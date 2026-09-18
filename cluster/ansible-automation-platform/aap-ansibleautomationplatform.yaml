@@ -13,6 +13,8 @@ spec:
   redis_mode: standalone
   database:
     database_secret: aap-gateway-database
+  metrics:
+    database_secret: aap-metrics-postgres-configuration
   controller:
     postgres_configuration_secret: aap-controller-database
   hub:

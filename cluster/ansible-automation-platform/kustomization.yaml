@@ -6,6 +6,9 @@ resources:
   - ansible-automation-platform-subscription.yaml
   - aap-admin-password-secret.yaml
   - aap-pg-credentials-secret.yaml
+  - aap-pg-superuser-secret.yaml
+  - aap-metrics-database-secret.yaml
+  - aap-metrics-read-token-secret.yaml
   - aap-pg-cluster.yaml
   - aap-gateway-database-secret.yaml
   - controller-database.yaml
