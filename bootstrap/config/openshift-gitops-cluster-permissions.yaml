@@ -1,10 +1,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: openshift-gitops-demo-cluster-admin
-  labels:
-    app.kubernetes.io/managed-by: openshift-gitops
-    argocd/aggregate-to-admin: "true"
+  name: openshift-gitops-kataconfig-manager
 rules:
   - apiGroups:
       - kataconfiguration.openshift.io
@@ -12,3 +9,16 @@ rules:
       - kataconfigs
     verbs:
       - "*"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: openshift-gitops-kataconfig-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: openshift-gitops-kataconfig-manager
+subjects:
+  - kind: ServiceAccount
+    name: openshift-gitops-argocd-application-controller
+    namespace: openshift-gitops

@@ -4,7 +4,6 @@ metadata:
   name: openshift-gitops
   namespace: openshift-gitops
 spec:
-  aggregatedClusterRoles: true
   resourceTrackingMethod: annotation
   kustomizeBuildOptions: --enable-helm --helm-kube-version v1.31.0
   server:
