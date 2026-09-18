@@ -25,5 +25,7 @@ spec:
       - name: eda_event_stream
         ensure: present
         login: true
+        inherit: true
+        connectionLimit: -1
         passwordSecret:
           name: aap-eda-event-stream-database

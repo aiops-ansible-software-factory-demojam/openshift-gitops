@@ -25,6 +25,8 @@ spec:
       - name: changeme
         ensure: present
         login: true
+        inherit: true
+        connectionLimit: -1
         createdb: true
         passwordSecret:
           name: rhdh-pg-credentials
