@@ -9,3 +9,4 @@ resources:
   - keycloak-pg-cluster.yaml
   - keycloak-keycloak.yaml
   - keycloak-route.yaml
+  - openshift-oauth-route.yaml

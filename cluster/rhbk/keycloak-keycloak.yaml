@@ -24,7 +24,7 @@ spec:
   http:
     httpEnabled: true
   hostname:
-    hostname: https://keycloak.apps.cluster-spz55.dyn.redhatworkshops.io
+    hostname: https://sso.apps.cluster-spz55.dyn.redhatworkshops.io
   proxy:
     headers: xforwarded
   ingress:
