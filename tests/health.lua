@@ -2,6 +2,9 @@
 local check = assert(loadfile(arg[1]))
 local kind = arg[2]
 local cases = {
+  SandboxTemplate = {
+    {{}, "Healthy"},
+  },
   SandboxWarmPool = {
     {{spec = {replicas = 0}}, "Healthy"},
     {{spec = {replicas = 1}}, "Progressing"},
