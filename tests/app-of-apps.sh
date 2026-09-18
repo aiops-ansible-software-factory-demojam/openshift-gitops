@@ -7,7 +7,8 @@ test "$(yq -r 'select(.kind == "AppProject") | .metadata.name' "$rendered")" = c
 test "$(yq -r 'select(.kind == "Application") | .metadata.name' "$rendered" | wc -l)" -eq 9
 test "$(yq -r 'select(.kind == "Application" and .metadata.name == "cloudnative-pg") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered")" = 0
 test "$(yq -r 'select(.kind == "Application" and .metadata.name == "agent-sandboxes") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered")" = 20
-test "$(yq -r 'select(.kind == "Application" and .metadata.name != "cloudnative-pg" and .metadata.name != "agent-sandboxes") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered" | sort -u)" = 10
+test "$(yq -r 'select(.kind == "Application" and .metadata.name == "automation-orchestrator") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered")" = 30
+test "$(yq -r 'select(.kind == "Application" and .metadata.name != "cloudnative-pg" and .metadata.name != "agent-sandboxes" and .metadata.name != "automation-orchestrator") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered" | sort -u)" = 10
 
 while read -r name path; do
   test "$path" = "cluster/$name"

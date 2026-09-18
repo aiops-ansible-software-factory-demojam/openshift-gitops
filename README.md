@@ -71,13 +71,13 @@ can wait between APIs becoming available.
 | --- | --- | --- |
 | 0 | cloudnative-pg | Certified operator, `stable-v1`; readiness hook |
 | 10 | ansible-automation-platform | Operator `stable-2.7`; gateway, controller and EDA |
-| 10 | automation-orchestrator | Operator `stable`; standalone instance, no file storage |
 | 10 | sandboxed-containers-operator | Operator `stable`; KataConfig with explicit worker opt-in |
 | 10 | agent-sandbox-operator | Operator `preview-0.9` only |
 | 10 | rhbk | Adopts the environment-provided operator and Keycloak instance |
 | 10 | rhdh | Operator `fast-1.10`; vanilla Developer Hub with guest access |
 | 10 | forgejo | Helm chart `17.1.6`; rootless Forgejo `15.0.8` |
 | 20 | agent-sandboxes | Kata template, paused warm pool, session/client RBAC, networking and cleanup |
+| 30 | automation-orchestrator | Operator `stable`; standalone instance, no file storage; direct sandbox API prototype |
 
 Child Application health propagates both sync status and health to the parent.
 The CNPG PostSync hook waits for the installed CSV, its deployment rollout and

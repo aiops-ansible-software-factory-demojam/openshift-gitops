@@ -6,6 +6,8 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "3"
 spec:
+  workflowHttpRequestAllowedHosts:
+    - kubernetes.default.svc
   postgres:
     host: orchestrator-pg-rw
     port: 5432
