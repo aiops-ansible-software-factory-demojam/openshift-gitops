@@ -1,0 +1,125 @@
+default:
+  app:
+    enabled: true
+    enableAutoSync: true
+    autoSyncPrune: false
+    project: cluster-config
+    labels:
+      app-source: demo-cluster
+      repo: cluster-config
+    destination:
+      namespace: openshift-gitops
+      server: https://kubernetes.default.svc
+    source:
+      repoURL: https://github.com/aiops-ansible-software-factory-demojam/openshift-gitops.git
+      targetRevision: main
+    syncOptions:
+      - ApplyOutOfSyncOnly=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+      - ServerSideApply=true
+      - FailOnSharedResource=true
+      - RespectIgnoreDifferences=true
+      - CreateNamespace=false
+      - SkipDryRunOnMissingResource=true
+    syncPolicyRetry:
+      limit: -1
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+projects:
+  cluster-config:
+    description: Demo cluster configuration
+    sourceRepos:
+      - https://github.com/aiops-ansible-software-factory-demojam/openshift-gitops.git
+    destinations: |
+      - namespace: '*'
+        server: https://kubernetes.default.svc
+    extraFields: |
+      clusterResourceWhitelist:
+        - group: '*'
+          kind: '*'
+
+applications:
+  cloudnative-pg:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: "0"
+    destination:
+      namespace: cloudnative-pg
+    source:
+      path: cluster/cloudnative-pg
+
+  ansible-automation-platform:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: "10"
+    destination:
+      namespace: ansible-automation-platform
+    source:
+      path: cluster/ansible-automation-platform
+
+  automation-orchestrator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: "10"
+    destination:
+      namespace: automation-orchestrator
+    source:
+      path: cluster/automation-orchestrator
+
+  sandboxed-containers-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: "10"
+    destination:
+      namespace: openshift-sandboxed-containers-operator
+    source:
+      path: cluster/sandboxed-containers-operator
+
+  agent-sandbox-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: "10"
+    destination:
+      namespace: agent-sandbox-system
+    source:
+      path: cluster/agent-sandbox-operator
+
+  rhbk:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: "10"
+    destination:
+      namespace: keycloak
+    source:
+      path: cluster/rhbk
+
+  rhdh:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: "10"
+    destination:
+      namespace: rhdh
+    source:
+      path: cluster/rhdh
+
+  forgejo:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: "10"
+    destination:
+      namespace: forgejo
+    source:
+      path: cluster/forgejo
+
+  agent-sandboxes:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: "20"
+    destination:
+      namespace: agent-sandboxes
+    source:
+      path: cluster/agent-sandboxes

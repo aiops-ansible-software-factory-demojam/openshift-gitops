@@ -3,8 +3,9 @@
 A disposable, single-cluster demo environment, using the OLM, Kustomize and
 ArgoCD app-of-apps patterns from `igou-openshift`.
 
-Everything lives under `cluster/<app>`. `cluster/kustomization.yaml` assembles
-nine child Applications; each child renders its own directory. There are no
+Everything lives under `cluster/<app>`. `cluster/kustomization.yaml` renders the
+vendored `argocd-app-of-app` Helm chart with `cluster/values.yaml`, producing
+one AppProject and nine child Applications. Each child renders its own directory. There are no
 cluster overlays, ESO dependencies, S3 buckets, backups or lab-specific storage
 classes. All PVCs use the cluster's default StorageClass.
 
@@ -40,28 +41,29 @@ Verify you are targeting the demo cluster, then bootstrap:
 ```bash
 oc whoami --show-server
 oc whoami
-oc apply -k bootstrap
-oc -n openshift-gitops wait --for=condition=Complete job/gitops-bootstrap --timeout=1800s
-oc -n openshift-gitops get applications
+bash bootstrap/bootstrap.sh
 ```
 
-`bootstrap/` needs only the built-in OpenShift APIs. It installs the GitOps
-operator, RBAC and a Job. The Job waits for Argo CRDs, applies the configured
-ArgoCD instance, waits for its health customizations, and creates the root
-Application. This avoids submitting custom resources before their CRDs exist.
-The default operator-created ArgoCD instance is disabled so there is one owner
-of its configuration. Bootstrap completion means GitOps is running; the apps
-continue installing asynchronously.
+The script follows Red Hat's CLI installation flow: it applies the operator
+Namespace, OperatorGroup and Subscription, then waits for OLM and the operator
+deployment. The operator creates its default cluster-scoped Argo CD instance in
+`openshift-gitops`; the script server-side applies the checked-in ArgoCD object
+over that default, waits for the instance and all its pods to become healthy,
+and applies the root Application. It then prints Application status every ten
+seconds until the root app-of-apps is Synced and Healthy.
 
-The bootstrap service account and ArgoCD application controller have
-cluster-admin permissions to install operators and cluster-scoped resources.
-Bootstrap files are applied locally; they are not reconciled by the root app.
-To rerun after changing bootstrap configuration or after a failed Job:
+The default instance receives its cluster-scoped permissions from the Red Hat
+operator. Bootstrap does not create a Job, service account, cluster role binding
+or `openshift-gitops` namespace. The script is idempotent and can be rerun after
+changing the checked-in ArgoCD or root Application:
 
 ```bash
-oc -n openshift-gitops delete job gitops-bootstrap
-oc apply -k bootstrap
+bash bootstrap/bootstrap.sh
 ```
+
+The three operator installation objects can still be inspected locally with
+`kustomize build bootstrap`; the script applies the same files directly so it
+can wait between APIs becoming available.
 
 ## Deployment order
 
@@ -138,7 +140,8 @@ and Bash. Run:
 make test
 ```
 
-This renders bootstrap, the root and all nine apps, checks shell syntax, tests
+This renders the three operator bootstrap objects, the app-of-apps chart and all
+nine apps, checks shell syntax, tests
 session cleanup and validates built-in Kubernetes schemas. Custom APIs without local schemas are
 reported as skipped, not validated. To check the Lua health gates, also install
 Lua and `yq`, then run `make test-health` (`LUA` can select another interpreter).
@@ -148,7 +151,8 @@ from the reference cluster. That does not replace installation testing against
 the demo cluster's catalog versions. No live demo deployment has been tested.
 
 ```bash
-oc -n openshift-gitops logs job/gitops-bootstrap
+oc -n openshift-gitops-operator get subscription,csv,deployments
+oc -n openshift-gitops get argocd,pods
 oc -n openshift-gitops get applications \
   -o custom-columns=NAME:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status
 oc -n cloudnative-pg get subscription,csv,deployments
@@ -164,8 +168,9 @@ Job. If a database remains Pending, check that namespace's PVCs and default
 storage provisioning. Inspect Subscription conditions for missing catalog
 channels, dependency-resolution failures or image pull errors.
 
-Only `bootstrap/` and the root Application list use plain `oc apply -k`.
-Forgejo uses Helm inflation; render individual apps with
+The bootstrap script applies its checked-in objects with `oc apply`. The root
+Application renders `cluster/` with the vendored app-of-apps chart. Forgejo also
+uses Helm inflation; render individual apps with
 `kustomize build --enable-helm --helm-kube-version v1.31.0 cluster/<app>`.
 
 Configuration references:
@@ -175,3 +180,5 @@ Configuration references:
 - [Standalone Orchestrator](https://docs.redhat.com/en/documentation/automation_orchestrator/2026.8/plan-understand_the_independent_topology)
 - [Keycloak operator configuration](https://www.keycloak.org/operator/advanced-configuration)
 - [ArgoCD operator configuration](https://argocd-operator.readthedocs.io/en/latest/reference/argocd/)
+- [Red Hat OpenShift GitOps CLI installation](https://docs.redhat.com/en/documentation/red_hat_openshift_gitops/1.19/html/installing_gitops/installing-openshift-gitops)
+- [igou-openshift app-of-apps chart](https://github.com/igou-io/igou-openshift/tree/main/.helm/charts/argocd-app-of-app)

@@ -3,7 +3,7 @@
 render:
 	@mkdir -p .rendered
 	kustomize build bootstrap > .rendered/bootstrap.yaml
-	kustomize build cluster > .rendered/cluster.yaml
+	kustomize build --enable-helm cluster > .rendered/cluster.yaml
 	@for app in cluster/*/; do \
 		echo "Rendering $$app"; \
 		kustomize build --enable-helm --helm-kube-version v1.31.0 "$$app" > ".rendered/$$(basename "$$app").yaml" || exit 1; \
@@ -11,6 +11,8 @@ render:
 
 test: render
 	bash -n bootstrap/bootstrap.sh scripts/*.sh tests/*.sh cluster/agent-sandboxes/cleanup.sh
+	bash tests/bootstrap.sh
+	bash tests/app-of-apps.sh
 	bash tests/sandbox-cleanup.sh
 	kubeconform -strict -summary -ignore-missing-schemas .rendered/
 	git diff --check

@@ -57,8 +57,8 @@ finish, and KataConfig's ready node count to reflect it. Then change
 health check stays Progressing until a sandbox is ready. With zero replicas it
 is intentionally Healthy/paused, which does not imply Kata is operational.
 
-For an already bootstrapped cluster, rerun the bootstrap Job as described in
-the root README to install the new warm-pool health customization.
+For an already bootstrapped cluster, rerun `bash bootstrap/bootstrap.sh` as
+described in the root README to install the new warm-pool health customization.
 
 ## Networking
 

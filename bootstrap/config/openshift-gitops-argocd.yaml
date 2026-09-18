@@ -7,12 +7,8 @@ spec:
   resourceTrackingMethod: annotation
   kustomizeBuildOptions: --enable-helm --helm-kube-version v1.31.0
   server:
-    insecure: true
     route:
       enabled: true
-      tls:
-        termination: edge
-        insecureEdgeTerminationPolicy: Redirect
   resourceHealthChecks:
     - group: argoproj.io
       kind: Application
