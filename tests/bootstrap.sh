@@ -30,6 +30,7 @@ argocd_apply_line=$(grep -n 'apply --server-side --force-conflicts -f .*openshif
 permissions_apply_line=$(grep -n 'apply -f .*openshift-gitops-cluster-permissions.yaml' "$BOOTSTRAP_TEST_LOG" | cut -d: -f1)
 permissions_check_line=$(grep -n 'auth can-i .*kataconfigs.kataconfiguration.openshift.io' "$BOOTSTRAP_TEST_LOG" | cut -d: -f1)
 root_apply_line=$(grep -n 'apply -f .*root-application.yaml' "$BOOTSTRAP_TEST_LOG" | cut -d: -f1)
+refresh_check_line=$(grep -n 'metadata.annotations.argocd\\.argoproj\\.io/refresh' "$BOOTSTRAP_TEST_LOG" | cut -d: -f1)
 health_line=$(grep -n "get application cluster -o jsonpath={.status.health.status}" "$BOOTSTRAP_TEST_LOG" | cut -d: -f1)
 
 test "$namespace_line" -lt "$subscription_line"
@@ -38,7 +39,8 @@ test "$argocd_get_line" -lt "$argocd_apply_line"
 test "$argocd_apply_line" -lt "$permissions_apply_line"
 test "$permissions_apply_line" -lt "$permissions_check_line"
 test "$permissions_check_line" -lt "$root_apply_line"
-test "$root_apply_line" -lt "$health_line"
+test "$root_apply_line" -lt "$refresh_check_line"
+test "$refresh_check_line" -lt "$health_line"
 test "$(grep -c 'rollout status deployment/openshift-gitops-operator-controller-manager' "$BOOTSTRAP_TEST_LOG")" -eq 1
 test "$(grep -c 'wait --for=condition=Ready pod --all' "$BOOTSTRAP_TEST_LOG")" -eq 1
 

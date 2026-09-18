@@ -52,6 +52,12 @@ done
 echo 'OpenShift GitOps is healthy; starting the app-of-apps rollout...'
 oc apply -f "$bootstrap_dir/config/root-application.yaml"
 
+echo 'Waiting for Argo CD to refresh the root application...'
+until [[ $(oc -n "$gitops_namespace" get application cluster \
+  -o jsonpath='{.metadata.annotations.argocd\.argoproj\.io/refresh}') != hard ]]; do
+  sleep 2
+done
+
 deadline=$((SECONDS + 3600))
 until [[ $(oc -n "$gitops_namespace" get application cluster \
   -o jsonpath='{.status.sync.status}') == Synced ]] && \
