@@ -6,7 +6,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "3"
 spec:
-  host: keycloak.apps.demo.example.com
+  host: keycloak.apps.cluster-spz55.dyn.redhatworkshops.io
   to:
     kind: Service
     name: keycloak-service
