@@ -1,0 +1,35 @@
+apiVersion: aap.ansible.com/v1alpha1
+kind: AutomationOrchestrator
+metadata:
+  name: automation-orchestrator
+  namespace: automation-orchestrator
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  postgres:
+    host: orchestrator-pg-rw
+    port: 5432
+    sslMode: verify-ca
+    caCertSecretRef:
+      name: orchestrator-pg-ca
+    backendDatabase:
+      secretRef:
+        name: orchestrator-pg-credentials
+    temporalDatabase:
+      secretRef:
+        name: temporal-pg-credentials
+  ingress:
+    type: Route
+    host: orchestrator.apps.demo.example.com
+  secrets:
+    initialAdminPasswordSecretRef:
+      name: automation-orchestrator-admin-password
+  backend:
+    replicas: 1
+  ui:
+    replicas: 1
+  worker:
+    replicas: 1
+  temporal:
+    server:
+      replicas: 1

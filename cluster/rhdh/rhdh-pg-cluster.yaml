@@ -1,0 +1,30 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: rhdh-pg
+  namespace: rhdh
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  instances: 1
+  enablePDB: false
+  imageName: ghcr.io/cloudnative-pg/postgresql:15.18
+  bootstrap:
+    initdb:
+      database: backstage
+      owner: changeme
+      secret:
+        name: rhdh-pg-credentials
+  storage:
+    size: 10Gi
+  postgresql:
+    parameters:
+      max_connections: "200"
+  managed:
+    roles:
+      - name: changeme
+        ensure: present
+        login: true
+        createdb: true
+        passwordSecret:
+          name: rhdh-pg-credentials

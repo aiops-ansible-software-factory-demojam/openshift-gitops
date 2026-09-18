@@ -1,0 +1,22 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: forgejo-pg
+  namespace: forgejo
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  instances: 1
+  enablePDB: false
+  imageName: ghcr.io/cloudnative-pg/postgresql:15.18
+  bootstrap:
+    initdb:
+      database: forgejo
+      owner: changeme
+      secret:
+        name: forgejo-pg-credentials
+  storage:
+    size: 10Gi
+  postgresql:
+    parameters:
+      max_connections: "200"

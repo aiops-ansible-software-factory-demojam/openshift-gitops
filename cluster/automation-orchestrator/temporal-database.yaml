@@ -1,0 +1,13 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: temporal
+  namespace: automation-orchestrator
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  cluster:
+    name: orchestrator-pg
+  name: temporal
+  owner: changeme
+  databaseReclaimPolicy: retain

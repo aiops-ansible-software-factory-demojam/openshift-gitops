@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - cloudnative-pg-namespace.yaml
+  - cloudnative-pg-operatorgroup.yaml
+  - cloudnative-pg-subscription.yaml
+  - cnpg-ready-serviceaccount.yaml
+  - cnpg-ready-role.yaml
+  - cnpg-ready-rolebinding.yaml
+  - demo-cnpg-ready-clusterrole.yaml
+  - demo-cnpg-ready-clusterrolebinding.yaml
+  - cnpg-ready-job.yaml

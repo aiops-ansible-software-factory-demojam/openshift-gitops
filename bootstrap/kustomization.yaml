@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - openshift-gitops-namespace.yaml
+  - openshift-gitops-operator-namespace.yaml
+  - openshift-gitops-operator-operatorgroup.yaml
+  - openshift-gitops-operator-subscription.yaml
+  - gitops-bootstrap-serviceaccount.yaml
+  - gitops-bootstrap-clusterrolebinding.yaml
+  - gitops-cluster-admin-clusterrolebinding.yaml
+  - gitops-bootstrap-job.yaml
+configMapGenerator:
+  - name: gitops-bootstrap
+    namespace: openshift-gitops
+    files:
+      - bootstrap.sh
+      - config/openshift-gitops-argocd.yaml
+      - config/root-application.yaml
+generatorOptions:
+  disableNameSuffixHash: true

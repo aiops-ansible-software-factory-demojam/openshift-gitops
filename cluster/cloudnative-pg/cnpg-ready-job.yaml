@@ -1,0 +1,31 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cnpg-ready
+  namespace: cloudnative-pg
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 900
+  template:
+    spec:
+      serviceAccountName: cnpg-ready
+      restartPolicy: Never
+      containers:
+        - name: wait
+          image: registry.redhat.io/openshift4/ose-cli-rhel9:v4.18
+          command:
+            - /bin/bash
+            - -ec
+            - |
+              oc whoami --show-server
+              oc whoami
+              csv=$(oc -n cloudnative-pg get subscription cloudnative-pg -o jsonpath='{.status.installedCSV}')
+              test -n "$csv"
+              oc -n cloudnative-pg wait --for=jsonpath='{.status.phase}'=Succeeded "csv/$csv" --timeout=600s
+              for deployment in $(oc -n cloudnative-pg get csv "$csv" -o jsonpath='{.spec.install.spec.deployments[*].name}'); do
+                oc -n cloudnative-pg rollout status "deployment/$deployment" --timeout=600s
+              done
+              oc wait --for=condition=Established crd/clusters.postgresql.cnpg.io crd/databases.postgresql.cnpg.io --timeout=120s

@@ -1,0 +1,29 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: aap-pg
+  namespace: ansible-automation-platform
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  instances: 1
+  enablePDB: false
+  imageName: ghcr.io/cloudnative-pg/postgresql:15.18
+  bootstrap:
+    initdb:
+      database: gateway
+      owner: changeme
+      secret:
+        name: aap-pg-credentials
+  storage:
+    size: 10Gi
+  postgresql:
+    parameters:
+      max_connections: "200"
+  managed:
+    roles:
+      - name: eda_event_stream
+        ensure: present
+        login: true
+        passwordSecret:
+          name: aap-eda-event-stream-database

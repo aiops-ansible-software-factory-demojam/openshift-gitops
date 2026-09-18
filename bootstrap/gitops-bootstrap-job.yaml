@@ -1,0 +1,26 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gitops-bootstrap
+  namespace: openshift-gitops
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 1800
+  template:
+    spec:
+      serviceAccountName: gitops-bootstrap
+      restartPolicy: OnFailure
+      containers:
+        - name: bootstrap
+          image: registry.redhat.io/openshift4/ose-cli-rhel9:v4.18
+          command:
+            - /bin/bash
+            - /config/bootstrap.sh
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: gitops-bootstrap

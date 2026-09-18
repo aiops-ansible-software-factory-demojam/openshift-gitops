@@ -1,0 +1,8 @@
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: automation-orchestrator
+  namespace: automation-orchestrator
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec: {}

@@ -1,0 +1,22 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: orchestrator-pg
+  namespace: automation-orchestrator
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  instances: 1
+  enablePDB: false
+  imageName: ghcr.io/cloudnative-pg/postgresql:15.18
+  bootstrap:
+    initdb:
+      database: orchestrator
+      owner: changeme
+      secret:
+        name: orchestrator-pg-credentials
+  storage:
+    size: 10Gi
+  postgresql:
+    parameters:
+      max_connections: "200"

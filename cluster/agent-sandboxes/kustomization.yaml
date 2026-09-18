@@ -1,0 +1,29 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - agent-sandboxes-namespace.yaml
+  - agent-sandbox-clients-namespace.yaml
+  - sandbox-serviceaccount.yaml
+  - sandbox-provisioner-serviceaccount.yaml
+  - sandbox-cleanup-serviceaccount.yaml
+  - sandbox-capacity-resourcequota.yaml
+  - sandbox-defaults-limitrange.yaml
+  - sandbox-provisioner-role.yaml
+  - sandbox-cleanup-role.yaml
+  - sandbox-provisioner-rolebinding.yaml
+  - sandbox-cleanup-rolebinding.yaml
+  - agent-sandboxes-default-deny-networkpolicy.yaml
+  - agent-sandbox-clients-default-deny-networkpolicy.yaml
+  - sandbox-dns-networkpolicy.yaml
+  - sandbox-forgejo-networkpolicy.yaml
+  - sandbox-client-api-networkpolicy.yaml
+  - python-kata-sandboxtemplate.yaml
+  - python-kata-sandboxwarmpool.yaml
+  - sandbox-cleanup-cronjob.yaml
+configMapGenerator:
+  - name: sandbox-cleanup
+    namespace: agent-sandbox-clients
+    files:
+      - cleanup.sh
+generatorOptions:
+  disableNameSuffixHash: true

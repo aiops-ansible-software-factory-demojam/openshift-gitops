@@ -1,0 +1,15 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cnpg-ready
+  namespace: cloudnative-pg
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cnpg-ready
+subjects:
+  - kind: ServiceAccount
+    name: cnpg-ready
+    namespace: cloudnative-pg

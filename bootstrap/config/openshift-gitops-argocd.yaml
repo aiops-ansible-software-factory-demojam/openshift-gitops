@@ -1,0 +1,69 @@
+apiVersion: argoproj.io/v1beta1
+kind: ArgoCD
+metadata:
+  name: openshift-gitops
+  namespace: openshift-gitops
+spec:
+  resourceTrackingMethod: annotation
+  kustomizeBuildOptions: --enable-helm --helm-kube-version v1.31.0
+  server:
+    insecure: true
+    route:
+      enabled: true
+      tls:
+        termination: edge
+        insecureEdgeTerminationPolicy: Redirect
+  resourceHealthChecks:
+    - group: argoproj.io
+      kind: Application
+      check: |
+        local hs = {status = "Progressing", message = "Waiting for child sync and health"}
+        if obj.status ~= nil then
+          if obj.status.operationState ~= nil and obj.status.operationState.phase ~= "Succeeded" then
+            hs.message = "Child sync (including hooks) has not succeeded"
+            if obj.status.operationState.phase == "Failed" or obj.status.operationState.phase == "Error" then hs.status = "Degraded" end
+            return hs
+          end
+          if obj.status.sync ~= nil and obj.status.sync.status == "Synced" and obj.status.health ~= nil then
+            hs.status = obj.status.health.status
+            hs.message = obj.status.health.message or "Child is synced"
+          end
+        end
+        return hs
+    - group: operators.coreos.com
+      kind: Subscription
+      check: |
+        local hs = {status = "Progressing", message = "Waiting for OLM installation"}
+        if obj.status ~= nil then
+          for _, c in ipairs(obj.status.conditions or {}) do
+            if c.status == "True" and (c.type == "ResolutionFailed" or c.type == "InstallPlanFailed" or c.type == "CatalogSourcesUnhealthy") then
+              return {status = "Degraded", message = c.message or c.type}
+            end
+            if c.type == "InstallPlanPending" and c.status == "True" then return hs end
+          end
+          if obj.status.installedCSV ~= nil and obj.status.installedCSV ~= "" and obj.status.installedCSV == obj.status.currentCSV and obj.status.state == "AtLatestKnown" then
+            return {status = "Healthy", message = obj.status.installedCSV}
+          end
+        end
+        return hs
+    - group: postgresql.cnpg.io
+      kind: Cluster
+      check: |
+        for _, c in ipairs((obj.status or {}).conditions or {}) do
+          if c.type == "Ready" and c.status == "True" then return {status = "Healthy", message = c.message or "PostgreSQL is ready"} end
+        end
+        return {status = "Progressing", message = "Waiting for PostgreSQL Ready"}
+    - group: postgresql.cnpg.io
+      kind: Database
+      check: |
+        if obj.status ~= nil and obj.status.applied == true then return {status = "Healthy", message = "Database applied"} end
+        return {status = "Progressing", message = "Waiting for database reconciliation"}
+    - group: extensions.agents.x-k8s.io
+      kind: SandboxWarmPool
+      check: |
+        local desired = obj.spec.replicas or 0
+        if desired == 0 then return {status = "Healthy", message = "Warm pool paused; enroll workers before enabling"} end
+        if obj.status ~= nil and (obj.status.readyReplicas or 0) >= desired then
+          return {status = "Healthy", message = "Warm sandboxes ready"}
+        end
+        return {status = "Progressing", message = "Waiting for Kata workers and ready sandboxes"}

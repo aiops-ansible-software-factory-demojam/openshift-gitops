@@ -1,0 +1,31 @@
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: Keycloak
+metadata:
+  name: keycloak
+  namespace: keycloak
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  instances: 1
+  bootstrapAdmin:
+    user:
+      secret: keycloak-admin
+  db:
+    vendor: postgres
+    host: keycloak-pg-rw
+    port: 5432
+    database: keycloak
+    usernameSecret:
+      name: keycloak-pg-credentials
+      key: username
+    passwordSecret:
+      name: keycloak-pg-credentials
+      key: password
+  http:
+    httpEnabled: true
+  hostname:
+    hostname: https://keycloak.apps.demo.example.com
+  proxy:
+    headers: xforwarded
+  ingress:
+    enabled: false

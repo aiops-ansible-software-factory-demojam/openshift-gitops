@@ -1,0 +1,43 @@
+-- Exercise the actual Lua embedded in the ArgoCD resource, not a duplicate.
+local check = assert(loadfile(arg[1]))
+local kind = arg[2]
+local cases = {
+  SandboxWarmPool = {
+    {{spec = {replicas = 0}}, "Healthy"},
+    {{spec = {replicas = 1}}, "Progressing"},
+    {{spec = {replicas = 2}, status = {readyReplicas = 1}}, "Progressing"},
+    {{spec = {replicas = 1}, status = {readyReplicas = 1}}, "Healthy"},
+  },
+  Application = {
+    {{}, "Progressing"},
+    {{status = {sync = {status = "OutOfSync"}, health = {status = "Healthy"}}}, "Progressing"},
+    {{status = {sync = {status = "Synced"}, health = {status = "Healthy"}, operationState = {phase = "Running"}}}, "Progressing"},
+    {{status = {sync = {status = "Synced"}, health = {status = "Healthy"}, operationState = {phase = "Failed"}}}, "Degraded"},
+    {{status = {sync = {status = "Synced"}, health = {status = "Progressing"}, operationState = {phase = "Succeeded"}}}, "Progressing"},
+    {{status = {sync = {status = "Synced"}, health = {status = "Healthy"}, operationState = {phase = "Succeeded"}}}, "Healthy"},
+  },
+  Subscription = {
+    {{}, "Progressing"},
+    {{status = {conditions = {}}}, "Progressing"},
+    {{status = {installedCSV = "old", currentCSV = "new", state = "AtLatestKnown"}}, "Progressing"},
+    {{status = {conditions = {{type = "ResolutionFailed", status = "True"}}}}, "Degraded"},
+    {{status = {installedCSV = "v1", currentCSV = "v1", state = "AtLatestKnown", conditions = {{type = "InstallPlanPending", status = "True"}}}}, "Progressing"},
+    {{status = {installedCSV = "v1", currentCSV = "v1", state = "AtLatestKnown"}}, "Healthy"},
+  },
+  Cluster = {
+    {{}, "Progressing"},
+    {{status = {conditions = {{type = "Ready", status = "False"}}}}, "Progressing"},
+    {{status = {conditions = {{type = "Ready", status = "True"}}}}, "Healthy"},
+  },
+  Database = {
+    {{}, "Progressing"},
+    {{status = {applied = false}}, "Progressing"},
+    {{status = {applied = true}}, "Healthy"},
+  },
+}
+for i, case in ipairs(assert(cases[kind])) do
+  obj = case[1]
+  local result = check()
+  assert(result.status == case[2], kind .. " case " .. i .. ": " .. result.status)
+end
+print(kind .. ": " .. #cases[kind] .. " health cases passed")

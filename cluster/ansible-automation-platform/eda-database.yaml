@@ -1,0 +1,13 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: eda
+  namespace: ansible-automation-platform
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  cluster:
+    name: aap-pg
+  name: eda
+  owner: changeme
+  databaseReclaimPolicy: retain

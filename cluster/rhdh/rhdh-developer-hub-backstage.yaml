@@ -1,0 +1,19 @@
+apiVersion: rhdh.redhat.com/v1alpha5
+kind: Backstage
+metadata:
+  name: rhdh-developer-hub
+  namespace: rhdh
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  database:
+    enableLocalDb: false
+  application:
+    appConfig:
+      configMaps:
+        - name: app-config-rhdh
+    extraEnvs:
+      secrets:
+        - name: rhdh-pg-credentials
+    route:
+      host: rhdh.apps.demo.example.com

@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config-rhdh
+  namespace: rhdh
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+data:
+  app-config.yaml: |
+    app:
+      title: Demo Developer Hub
+      baseUrl: https://rhdh.apps.demo.example.com
+    backend:
+      baseUrl: https://rhdh.apps.demo.example.com
+      cors:
+        origin: https://rhdh.apps.demo.example.com
+      database:
+        client: pg
+        connection:
+          host: rhdh-pg-rw
+          port: 5432
+          user: ${username}
+          password: ${password}
+    auth:
+      providers:
+        guest:
+          dangerouslyAllowOutsideDevelopment: true

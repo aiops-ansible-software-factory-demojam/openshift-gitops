@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - rhdh-namespace.yaml
+  - rhdh-operatorgroup.yaml
+  - rhdh-subscription.yaml
+  - rhdh-pg-credentials-secret.yaml
+  - rhdh-pg-cluster.yaml
+  - app-config-rhdh-configmap.yaml
+  - rhdh-developer-hub-backstage.yaml
