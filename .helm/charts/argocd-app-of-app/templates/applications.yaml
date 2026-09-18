@@ -34,7 +34,7 @@ metadata:
 {{- $defaultFinalizers = $.Values.default.app.finalizers }}
 {{- end }}
 {{- $finalizers := uniq (concat $appFinalizers $defaultFinalizers) }}
-  finalizers: 
+  finalizers:
 {{ toYaml $finalizers | indent 4 }}
 {{- end }}
 spec:

@@ -5,9 +5,9 @@ ArgoCD app-of-apps patterns from `igou-openshift`.
 
 Everything lives under `cluster/<app>`. `cluster/kustomization.yaml` renders the
 vendored `argocd-app-of-app` Helm chart with `cluster/values.yaml`, producing
-one AppProject and nine child Applications. Each child renders its own directory. There are no
-cluster overlays, ESO dependencies, S3 buckets, backups or lab-specific storage
-classes. All PVCs use the cluster's default StorageClass.
+one AppProject and nine child Applications. Each child renders its own directory.
+There are no cluster overlays, ESO dependencies, S3 buckets, backups or
+lab-specific storage classes. All PVCs use the cluster's default StorageClass.
 
 ## First deployment
 
@@ -141,10 +141,10 @@ make test
 ```
 
 This renders the three operator bootstrap objects, the app-of-apps chart and all
-nine apps, checks shell syntax, tests
-session cleanup and validates built-in Kubernetes schemas. Custom APIs without local schemas are
-reported as skipped, not validated. To check the Lua health gates, also install
-Lua and `yq`, then run `make test-health` (`LUA` can select another interpreter).
+nine apps, checks shell syntax, tests session cleanup and validates built-in
+Kubernetes schemas. Custom APIs without local schemas are reported as skipped,
+not validated. To check the Lua health gates, also install Lua and `yq`, then run
+`make test-health` (`LUA` can select another interpreter).
 
 The initial implementation was additionally checked against CRD schemas read
 from the reference cluster. That does not replace installation testing against
