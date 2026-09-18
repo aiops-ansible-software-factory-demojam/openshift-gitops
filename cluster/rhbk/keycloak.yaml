@@ -1,0 +1,37 @@
+apiVersion: k8s.keycloak.org/v2beta1
+kind: Keycloak
+metadata:
+  name: keycloak
+  namespace: keycloak
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  instances: 1
+  db:
+    vendor: postgres
+    host: keycloak-pgsql
+    port: 5432
+    database: keycloak
+    usernameSecret:
+      name: keycloak-pgsql-user
+      key: user
+    passwordSecret:
+      name: keycloak-pgsql-user
+      key: password
+  http:
+    httpEnabled: false
+    tlsSecret: keycloak-tls
+  hostname:
+    hostname: https://sso.apps.cluster-spz55.dyn.redhatworkshops.io
+    strict: false
+    strictBackchannel: false
+  proxy:
+    headers: xforwarded
+  ingress:
+    enabled: false
+  transaction:
+    xaEnabled: true
+  additionalOptions:
+    - name: enable-recovery
+      value: "true"
+

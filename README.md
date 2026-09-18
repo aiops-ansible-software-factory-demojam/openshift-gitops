@@ -74,6 +74,7 @@ can wait between APIs becoming available.
 | 10 | automation-orchestrator | Operator `stable`; standalone instance, no file storage |
 | 10 | sandboxed-containers-operator | Operator `stable`; KataConfig with explicit worker opt-in |
 | 10 | agent-sandbox-operator | Operator `preview-0.9` only |
+| 10 | rhbk | Adopts the environment-provided operator and Keycloak instance |
 | 10 | rhdh | Operator `fast-1.10`; vanilla Developer Hub with guest access |
 | 10 | forgejo | Helm chart `17.1.6`; rootless Forgejo `15.0.8` |
 | 20 | agent-sandboxes | Kata template, paused warm pool, session/client RBAC, networking and cleanup |
@@ -110,9 +111,12 @@ credentials are left to their operators.
 - **Orchestrator:** `admin` / `changeme`. Its own CNPG instance holds backend,
   Temporal and Temporal visibility databases. No AAP/LLM integrations or
   workflows. With no S3 configuration, file uploads are unavailable.
-- **Keycloak:** supplied by the demo environment and intentionally excluded from
-  this repository. Its operator, database, realm, Route and OpenShift OAuth
-  client remain owned by the environment bootstrap.
+- **Keycloak:** GitOps adopts the environment's `keycloak-og`, `rhbk-operator`,
+  Keycloak CR and `sso` Route without replacing its data plane. The environment
+  must provide `keycloak-pgsql`, `keycloak-pgsql-user`, `keycloak-tls`, the
+  imported `sso` realm and its OpenShift OAuth client. The PostgreSQL
+  Deployment, PVC, Secrets and realm import Job are deliberately not rendered
+  or pruned by this repository.
 - **Developer Hub:** guest sign-in enabled for the demo, its own CNPG instance.
   Its database role can create the per-plugin databases Backstage needs. No
   SSO, external catalogs, dynamic plugins or scaffolder integrations.
@@ -157,6 +161,7 @@ oc -n openshift-gitops get applications \
 oc -n cloudnative-pg get subscription,csv,deployments
 oc -n ansible-automation-platform get clusters.postgresql.cnpg.io,pods,routes
 oc -n automation-orchestrator get clusters.postgresql.cnpg.io,pods,routes
+oc -n keycloak get operatorgroup,subscription,keycloak,pods,routes
 oc -n rhdh get clusters.postgresql.cnpg.io,pods,routes
 oc -n forgejo get clusters.postgresql.cnpg.io,pods,routes
 ```
@@ -176,6 +181,7 @@ Configuration references:
 - [AAP external databases](https://docs.redhat.com/en/documentation/red_hat_ansible_automation_platform/2.7/install-configure_an_external_database_for_ansible_automation_platform)
 - [AAP EDA event-stream database](https://docs.redhat.com/en/documentation/red_hat_ansible_automation_platform/2.7/install-configure_an_external_database_for_event_streams_on_aap_operator_on_ocp)
 - [Standalone Orchestrator](https://docs.redhat.com/en/documentation/automation_orchestrator/2026.8/plan-understand_the_independent_topology)
+- [Keycloak operator configuration](https://www.keycloak.org/operator/advanced-configuration)
 - [ArgoCD operator configuration](https://argocd-operator.readthedocs.io/en/latest/reference/argocd/)
 - [Red Hat OpenShift GitOps CLI installation](https://docs.redhat.com/en/documentation/red_hat_openshift_gitops/1.19/html/installing_gitops/installing-openshift-gitops)
 - [igou-openshift app-of-apps chart](https://github.com/igou-io/igou-openshift/tree/main/.helm/charts/argocd-app-of-app)
