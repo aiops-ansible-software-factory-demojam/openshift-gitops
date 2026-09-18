@@ -5,4 +5,5 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "-2"
   labels:
+    argocd.argoproj.io/managed-by: openshift-gitops
     pod-security.kubernetes.io/enforce: restricted
