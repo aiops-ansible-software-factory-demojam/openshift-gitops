@@ -37,9 +37,17 @@ done
 # the special cluster-scoped permissions Red Hat grants to this instance.
 oc apply --server-side --force-conflicts \
   -f "$bootstrap_dir/config/openshift-gitops-argocd.yaml"
+oc apply -f "$bootstrap_dir/config/openshift-gitops-cluster-permissions.yaml"
 oc -n "$gitops_namespace" wait --for=jsonpath='{.status.phase}'=Available \
   argocd/openshift-gitops --timeout=15m
 oc -n "$gitops_namespace" wait --for=condition=Ready pod --all --timeout=15m
+
+echo 'Waiting for the Argo CD cluster permissions...'
+until [[ $(oc auth can-i \
+  --as=system:serviceaccount:openshift-gitops:openshift-gitops-argocd-application-controller \
+  patch kataconfigs.kataconfiguration.openshift.io) == yes ]]; do
+  sleep 5
+done
 
 echo 'OpenShift GitOps is healthy; starting the app-of-apps rollout...'
 oc apply -f "$bootstrap_dir/config/root-application.yaml"
