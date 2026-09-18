@@ -25,6 +25,13 @@ spec:
       max_connections: "200"
   managed:
     roles:
+      - name: metricsservice
+        ensure: present
+        login: true
+        inherit: true
+        connectionLimit: -1
+        passwordSecret:
+          name: aap-metrics-database-user
       - name: eda_event_stream
         ensure: present
         login: true

@@ -7,6 +7,7 @@ resources:
   - aap-admin-password-secret.yaml
   - aap-pg-credentials-secret.yaml
   - aap-pg-superuser-secret.yaml
+  - aap-metrics-database-user-secret.yaml
   - aap-metrics-database-secret.yaml
   - aap-metrics-read-token-secret.yaml
   - aap-pg-cluster.yaml
@@ -14,6 +15,7 @@ resources:
   - controller-database.yaml
   - aap-controller-database-secret.yaml
   - eda-database.yaml
+  - metrics-database.yaml
   - aap-eda-database-secret.yaml
   - aap-ansibleautomationplatform.yaml
   - aap-eda-event-stream-database-secret.yaml

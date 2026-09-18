@@ -1,0 +1,14 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: metricsservice
+  namespace: ansible-automation-platform
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  cluster:
+    name: aap-pg
+  name: metricsservice
+  owner: metricsservice
+  databaseReclaimPolicy: retain
+
