@@ -104,7 +104,7 @@ are also `changeme`. Operator-generated internal keys, certificates and service
 credentials are left to their operators.
 
 - **AAP:** `admin` / `changeme`. One CNPG instance holds separate gateway,
-  controller and EDA databases. The event-stream role has PostgreSQL's default
+  controller, EDA and metrics databases. The event-stream role has PostgreSQL's default
   database CONNECT privilege and owns no tables. Automation Hub is disabled,
   matching the reference repo, so the initial install does not require RWX
   content storage. No projects, inventories, credentials or job templates.
@@ -112,8 +112,10 @@ credentials are left to their operators.
   Temporal and Temporal visibility databases. No AAP/LLM integrations or
   workflows. With no S3 configuration, file uploads are unavailable.
 - **Keycloak:** bootstrap administrator `changeme` / `changeme`. Its own CNPG
-  database, edge-terminated Route, no imported realms or clients. Create a
-  regular administrator after first login; this is a bootstrap account.
+  database and an `sso` re-encrypt Route preserve the issuer used by the
+  cluster's OpenShift OAuth provider. The existing `sso` realm and OAuth client
+  remain cluster data and are not declared here. Create a regular administrator
+  after first login; this is a bootstrap account.
 - **Developer Hub:** guest sign-in enabled for the demo, its own CNPG instance.
   Its database role can create the per-plugin databases Backstage needs. No
   SSO, external catalogs, dynamic plugins or scaffolder integrations.
@@ -147,8 +149,8 @@ not validated. To check the Lua health gates, also install Lua and `yq`, then ru
 `make test-health` (`LUA` can select another interpreter).
 
 The initial implementation was additionally checked against CRD schemas read
-from the reference cluster. That does not replace installation testing against
-the demo cluster's catalog versions. No live demo deployment has been tested.
+from the reference cluster. The complete bootstrap was also tested live on the
+demo cluster with the catalog versions resolved there.
 
 ```bash
 oc -n openshift-gitops-operator get subscription,csv,deployments
