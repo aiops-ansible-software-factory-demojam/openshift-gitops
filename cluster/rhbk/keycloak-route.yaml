@@ -1,7 +1,7 @@
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
-  name: keycloak
+  name: keycloak-demo
   namespace: keycloak
   annotations:
     argocd.argoproj.io/sync-wave: "3"
