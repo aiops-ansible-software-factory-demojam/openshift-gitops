@@ -22,7 +22,7 @@ TERMINAL_STATES = frozenset(
     {"completed", "failed", "timed_out", "cancelled", "interrupted"}
 )
 ACTIVE_STATES = frozenset(
-    {"accepted", "provisioning", "preparing", "running", "collecting", "cleaning"}
+    {"accepted", "claimed", "provisioning", "preparing", "running", "collecting", "cleaning"}
 )
 ALLOWED_FIELDS = frozenset({"prompt", "source_execution_id"})
 
@@ -61,6 +61,7 @@ class RunRecord:
     validation_json: str
     result_json: str
     cancel_requested: bool
+    execution_claimed: bool
 
     def public_status(self) -> dict[str, Any]:
         return {

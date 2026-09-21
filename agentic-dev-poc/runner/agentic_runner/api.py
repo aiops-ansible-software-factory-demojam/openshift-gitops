@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
 import hmac
 import json
+import stat
 import threading
 import time
 from collections import deque
@@ -13,7 +15,7 @@ from typing import Callable
 from urllib.parse import unquote, urlsplit
 
 from .lifecycle import Engine
-from .models import BODY_MAX, RequestError
+from .models import ARTIFACT_BYTES, BODY_MAX, RequestError
 
 StartRun = Callable[[str], None]
 
@@ -105,8 +107,8 @@ class Handler(BaseHTTPRequestHandler):
         from .models import parse_run_request
 
         prompt, source = parse_run_request(body)
-        run, status = self.server.engine.accept(prompt, source, key)
-        if status == 202:
+        run, status, created = self.server.engine.accept(prompt, source, key)
+        if created and self.server.engine.claim_execution(run.id):
             self.server.start_run(run.id)
         self._json(status, run.public_status())
 
@@ -128,11 +130,22 @@ class Handler(BaseHTTPRequestHandler):
         if row is None:
             raise RequestError(404, "not_found", "Artifact not found.")
         path = Path(row["path"])
-        if not path.is_file():
+        expected_root = (self.server.engine.artifact_root / run_id).resolve()
+        try:
+            resolved = path.resolve(strict=True)
+            resolved.relative_to(expected_root)
+        except (FileNotFoundError, ValueError):
             raise RequestError(404, "not_found", "Artifact file is gone.")
+        info = path.lstat()
+        if path.is_symlink() or not stat.S_ISREG(info.st_mode):
+            raise RequestError(422, "artifact_rejected", "Artifact is not a regular file.")
+        if info.st_size != row["size"] or info.st_size > ARTIFACT_BYTES:
+            raise RequestError(422, "artifact_rejected", "Artifact size changed or is unsafe.")
         data = path.read_bytes()
+        if not hmac.compare_digest(hashlib.sha256(data).hexdigest(), row["sha256"]):
+            raise RequestError(422, "artifact_rejected", "Artifact checksum changed.")
         self.send_response(200)
-        self.send_header("Content-Type", "application/octet-stream")
+        self.send_header("Content-Type", row["content_type"])
         self.send_header("Content-Disposition", f'attachment; filename="{row["name"]}"')
         self.send_header("Content-Length", str(len(data)))
         self.send_header("X-Content-Type-Options", "nosniff")

@@ -48,10 +48,11 @@ class Store:
               summary TEXT NOT NULL DEFAULT '',
               validation_json TEXT NOT NULL DEFAULT '',
               result_json TEXT NOT NULL DEFAULT '',
-              cancel_requested INTEGER NOT NULL DEFAULT 0
+              cancel_requested INTEGER NOT NULL DEFAULT 0,
+              execution_claimed INTEGER NOT NULL DEFAULT 0
             );
             CREATE TABLE IF NOT EXISTS artifacts (
-              id TEXT PRIMARY KEY,
+              id TEXT NOT NULL,
               run_id TEXT NOT NULL,
               name TEXT NOT NULL,
               path TEXT NOT NULL,
@@ -59,10 +60,46 @@ class Store:
               sha256 TEXT NOT NULL,
               content_type TEXT NOT NULL,
               created_at TEXT NOT NULL,
-              FOREIGN KEY (run_id) REFERENCES runs(id)
+              PRIMARY KEY (run_id, id),
+              FOREIGN KEY (run_id) REFERENCES runs(id) ON DELETE CASCADE
             );
             """
         )
+        run_columns = {
+            row["name"] for row in self._db.execute("PRAGMA table_info(runs)")
+        }
+        if "execution_claimed" not in run_columns:
+            self._db.execute(
+                "ALTER TABLE runs ADD COLUMN execution_claimed INTEGER NOT NULL DEFAULT 0"
+            )
+        artifact_pk = [
+            row["name"]
+            for row in self._db.execute("PRAGMA table_info(artifacts)")
+            if row["pk"]
+        ]
+        if artifact_pk == ["id"]:
+            self._db.executescript(
+                """
+                ALTER TABLE artifacts RENAME TO artifacts_legacy;
+                CREATE TABLE artifacts (
+                  id TEXT NOT NULL,
+                  run_id TEXT NOT NULL,
+                  name TEXT NOT NULL,
+                  path TEXT NOT NULL,
+                  size INTEGER NOT NULL,
+                  sha256 TEXT NOT NULL,
+                  content_type TEXT NOT NULL,
+                  created_at TEXT NOT NULL,
+                  PRIMARY KEY (run_id, id),
+                  FOREIGN KEY (run_id) REFERENCES runs(id) ON DELETE CASCADE
+                );
+                INSERT INTO artifacts
+                  (id, run_id, name, path, size, sha256, content_type, created_at)
+                SELECT id, run_id, name, path, size, sha256, content_type, created_at
+                FROM artifacts_legacy;
+                DROP TABLE artifacts_legacy;
+                """
+            )
         self._db.commit()
 
     def close(self) -> None:
@@ -90,7 +127,7 @@ class Store:
                 """
                 SELECT id FROM runs
                 WHERE state IN ({})
-                   OR cleanup_state = 'failed'
+                   OR cleanup_state != 'complete'
                 LIMIT 1
                 """.format(",".join("?" for _ in ACTIVE_STATES)),
                 tuple(ACTIVE_STATES),
@@ -116,13 +153,41 @@ class Store:
             ).fetchone()
         return _row(row) if row else None
 
+    def claim_execution(self, run_id: str, updated_at: str) -> bool:
+        """Claim a newly accepted run exactly once before launching a worker."""
+        with self._lock:
+            cursor = self._db.execute(
+                """
+                UPDATE runs
+                SET execution_claimed = 1, state = 'claimed', updated_at = ?
+                WHERE id = ? AND state = 'accepted' AND execution_claimed = 0 AND terminal = 0
+                """,
+                (updated_at, run_id),
+            )
+            self._db.commit()
+            return cursor.rowcount == 1
+
+    def start_execution(self, run_id: str, updated_at: str) -> bool:
+        """Move the single claimed worker into provisioning exactly once."""
+        with self._lock:
+            cursor = self._db.execute(
+                """
+                UPDATE runs
+                SET state = 'provisioning', updated_at = ?
+                WHERE id = ? AND state = 'claimed' AND execution_claimed = 1 AND terminal = 0
+                """,
+                (updated_at, run_id),
+            )
+            self._db.commit()
+            return cursor.rowcount == 1
+
     def has_blocker(self) -> RunRecord | None:
         with self._lock:
             row = self._db.execute(
                 """
                 SELECT * FROM runs
                 WHERE state IN ({})
-                   OR cleanup_state = 'failed'
+                   OR cleanup_state != 'complete'
                 ORDER BY created_at
                 LIMIT 1
                 """.format(",".join("?" for _ in ACTIVE_STATES)),
@@ -198,6 +263,11 @@ class Store:
             self._db.execute("DELETE FROM artifacts WHERE run_id = ?", (run_id,))
             self._db.commit()
 
+    def delete_run(self, run_id: str) -> None:
+        with self._lock:
+            self._db.execute("DELETE FROM runs WHERE id = ?", (run_id,))
+            self._db.commit()
+
 
 def _row(row: sqlite3.Row) -> RunRecord:
     return RunRecord(
@@ -225,4 +295,5 @@ def _row(row: sqlite3.Row) -> RunRecord:
         validation_json=row["validation_json"],
         result_json=row["result_json"],
         cancel_requested=bool(row["cancel_requested"]),
+        execution_claimed=bool(row["execution_claimed"]),
     )

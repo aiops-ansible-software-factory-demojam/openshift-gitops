@@ -10,6 +10,8 @@ from pathlib import Path
 
 from .models import ARTIFACT_BYTES, MAX_FILES, RequestError
 
+SECRET_MARKERS = (b"OPENSHELL_OIDC_CLIENT_SECRET", b"BEGIN PRIVATE KEY", b"Bearer ")
+
 
 def collect_tree(root: Path, archive: Path) -> list[dict[str, object]]:
     """Copy regular files under root into a tar archive.
@@ -48,7 +50,10 @@ def collect_tree(root: Path, archive: Path) -> list[dict[str, object]]:
                 total += info.st_size
                 if total > ARTIFACT_BYTES:
                     raise RequestError(422, "artifact_rejected", "Workspace exceeds 100 MiB.")
-                digest = hashlib.sha256(path.read_bytes()).hexdigest()
+                data = path.read_bytes()
+                if any(marker in data for marker in SECRET_MARKERS):
+                    raise RequestError(422, "artifact_rejected", "Workspace contains credential material.")
+                digest = hashlib.sha256(data).hexdigest()
                 relative = path.relative_to(root).as_posix()
                 tar.add(path, arcname=relative, recursive=False)
                 manifest.append({"path": relative, "size": info.st_size, "sha256": digest})
