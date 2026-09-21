@@ -43,11 +43,22 @@ oc -n "$gitops_namespace" wait --for=jsonpath='{.status.phase}'=Available \
 oc -n "$gitops_namespace" wait --for=condition=Ready pod --all --timeout=15m
 
 echo 'Waiting for the Argo CD cluster permissions...'
-until [[ $(oc auth can-i \
-  --as=system:serviceaccount:openshift-gitops:openshift-gitops-argocd-application-controller \
-  patch kataconfigs.kataconfiguration.openshift.io) == yes ]]; do
+until oc get clusterrolebinding openshift-gitops-kataconfig-manager >/dev/null 2>&1; do
   sleep 5
 done
+# The environment-provided keycloak namespace exists before GitOps. Label it so
+# the operator grants the application controller rights to adopt Keycloak.
+oc label namespace keycloak argocd.argoproj.io/managed-by=openshift-gitops --overwrite
+# KataConfig is installed later by the sandboxed-containers app. SubjectAccessReview
+# cannot succeed until that CRD exists, so only wait on can-i when the API is present.
+if oc api-resources --api-group=kataconfiguration.openshift.io --no-headers 2>/dev/null \
+  | grep -q kataconfigs; then
+  until [[ $(oc auth can-i \
+    --as=system:serviceaccount:openshift-gitops:openshift-gitops-argocd-application-controller \
+    patch kataconfigs.kataconfiguration.openshift.io) == yes ]]; do
+    sleep 5
+  done
+fi
 
 echo 'OpenShift GitOps is healthy; starting the app-of-apps rollout...'
 oc apply -f "$bootstrap_dir/config/root-application.yaml"
