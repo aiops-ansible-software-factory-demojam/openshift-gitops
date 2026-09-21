@@ -1,0 +1,27 @@
+# OVN egress firewall. In-cluster traffic is not covered. The name must be
+# default. Sandbox pods are separately denied external egress by NetworkPolicy.
+apiVersion: k8s.ovn.org/v1
+kind: EgressFirewall
+metadata:
+  name: default
+  namespace: openshell
+spec:
+  egress:
+    - type: Allow
+      to:
+        dnsName: api.openai.com
+    - type: Allow
+      to:
+        dnsName: sso.apps.cluster-qb5wm.dyn.redhatworkshops.io
+    - type: Allow
+      to:
+        cidrSelector: 10.10.10.0/24
+    - type: Allow
+      to:
+        cidrSelector: 10.232.0.0/14
+    - type: Allow
+      to:
+        cidrSelector: 172.231.0.0/16
+    - type: Deny
+      to:
+        cidrSelector: 0.0.0.0/0

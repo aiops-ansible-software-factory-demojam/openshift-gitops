@@ -1,0 +1,12 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: use-scc-privileged
+  namespace: openshell
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+rules:
+  - apiGroups: ["security.openshift.io"]
+    resources: ["securitycontextconstraints"]
+    resourceNames: ["privileged"]
+    verbs: ["use"]

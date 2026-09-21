@@ -1,0 +1,80 @@
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: KeycloakRealmImport
+metadata:
+  name: agentic-poc
+  namespace: keycloak
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  keycloakCRName: keycloak
+  realm:
+    realm: agentic-poc
+    enabled: true
+    displayName: Agentic POC
+    sslRequired: external
+    registrationAllowed: false
+    loginWithEmailAllowed: false
+    roles:
+      realm:
+        - name: openshell-user
+          description: OpenShell user role for the runner
+        - name: openshell-admin
+          description: OpenShell admin role for bootstrap
+    clients:
+      - clientId: openshell-cli
+        enabled: true
+        protocol: openid-connect
+        publicClient: true
+        standardFlowEnabled: false
+        implicitFlowEnabled: false
+        directAccessGrantsEnabled: false
+        serviceAccountsEnabled: false
+      - clientId: agentic-poc-runner
+        enabled: true
+        protocol: openid-connect
+        publicClient: false
+        secret: hq5y1M9uAUFSquHraeZpHF7jwoxHCsxU
+        standardFlowEnabled: false
+        implicitFlowEnabled: false
+        directAccessGrantsEnabled: false
+        serviceAccountsEnabled: true
+        clientAuthenticatorType: client-secret
+        fullScopeAllowed: true
+        protocolMappers:
+          - name: audience-openshell-cli
+            protocol: openid-connect
+            protocolMapper: oidc-audience-mapper
+            config:
+              included.client.audience: openshell-cli
+              access.token.claim: "true"
+              id.token.claim: "false"
+      - clientId: agentic-poc-admin
+        enabled: true
+        protocol: openid-connect
+        publicClient: false
+        secret: changeme-openshell-admin
+        standardFlowEnabled: false
+        implicitFlowEnabled: false
+        directAccessGrantsEnabled: false
+        serviceAccountsEnabled: true
+        clientAuthenticatorType: client-secret
+        fullScopeAllowed: true
+        protocolMappers:
+          - name: audience-openshell-cli
+            protocol: openid-connect
+            protocolMapper: oidc-audience-mapper
+            config:
+              included.client.audience: openshell-cli
+              access.token.claim: "true"
+              id.token.claim: "false"
+    users:
+      - username: service-account-agentic-poc-runner
+        enabled: true
+        serviceAccountClientId: agentic-poc-runner
+        realmRoles:
+          - openshell-user
+      - username: service-account-agentic-poc-admin
+        enabled: true
+        serviceAccountClientId: agentic-poc-admin
+        realmRoles:
+          - openshell-admin

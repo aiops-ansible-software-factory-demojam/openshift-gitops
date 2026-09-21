@@ -129,3 +129,21 @@ applications:
       namespace: agent-sandboxes
     source:
       path: cluster/agent-sandboxes
+
+  openshell:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: "15"
+    destination:
+      namespace: openshell
+    source:
+      path: cluster/openshell
+
+  agentic-poc:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: "25"
+    destination:
+      namespace: agentic-poc
+    source:
+      path: cluster/agentic-poc

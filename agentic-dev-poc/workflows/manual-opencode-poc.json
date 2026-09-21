@@ -1,0 +1,136 @@
+{
+  "schema_version": "2.0.0",
+  "name": "manual-opencode-poc",
+  "description": "Start one OpenCode sandbox from a development prompt and return its result.",
+  "triggers": [
+    {
+      "id": "manual",
+      "type": "manual_trigger",
+      "name": "Manual trigger",
+      "parameters": {
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["prompt"],
+          "properties": {
+            "prompt": {
+              "type": "string",
+              "title": "Development prompt",
+              "description": "Describe the code, tests, or analysis to produce in a fresh workspace.",
+              "minLength": 1,
+              "maxLength": 16000
+            }
+          }
+        }
+      }
+    }
+  ],
+  "nodes": [
+    {
+      "id": "start_run",
+      "name": "Start run",
+      "type": "http_request",
+      "parameters": {
+        "method": "POST",
+        "url": "https://runner.apps.cluster-qb5wm.dyn.redhatworkshops.io/v1/runs",
+        "headers": {
+          "content-type": "application/json",
+          "Idempotency-Key": "${workflow_context.execution.id}"
+        },
+        "body": {
+          "prompt": "${trigger.prompt}",
+          "source_execution_id": "${workflow_context.execution.id}"
+        },
+        "credential_id": "RUNNER_CREDENTIAL_ID"
+      },
+      "settings": {
+        "timeout": 30,
+        "retry_policy": {"max_retries": 2, "initial_interval": 1, "max_interval": 8, "backoff_coefficient": 2}
+      }
+    },
+    {
+      "id": "poll",
+      "name": "Poll until terminal",
+      "type": "loop",
+      "parameters": {
+        "type": "do_while",
+        "condition": "${get_status.body.terminal} != True",
+        "max_iterations": 300
+      }
+    },
+    {
+      "id": "get_status",
+      "name": "Get status",
+      "type": "http_request",
+      "parameters": {
+        "method": "GET",
+        "url": "https://runner.apps.cluster-qb5wm.dyn.redhatworkshops.io/v1/runs/${start_run.body.run_id}",
+        "credential_id": "RUNNER_CREDENTIAL_ID"
+      },
+      "settings": {
+        "timeout": 30,
+        "retry_policy": {"max_retries": 2, "initial_interval": 1, "max_interval": 8, "backoff_coefficient": 2}
+      }
+    },
+    {
+      "id": "still_running",
+      "name": "Still running",
+      "type": "condition",
+      "parameters": {"condition": "${get_status.body.terminal} != True"}
+    },
+    {
+      "id": "wait_poll",
+      "name": "Wait",
+      "type": "wait",
+      "parameters": {"duration": 5}
+    },
+    {
+      "id": "get_result",
+      "name": "Get result",
+      "type": "http_request",
+      "parameters": {
+        "method": "GET",
+        "url": "https://runner.apps.cluster-qb5wm.dyn.redhatworkshops.io/v1/runs/${start_run.body.run_id}/result",
+        "credential_id": "RUNNER_CREDENTIAL_ID"
+      },
+      "settings": {
+        "timeout": 30,
+        "retry_policy": {"max_retries": 2, "initial_interval": 1, "max_interval": 8, "backoff_coefficient": 2}
+      }
+    },
+    {
+      "id": "classify",
+      "name": "Classify outcome",
+      "type": "switch",
+      "parameters": {
+        "default_port": "failed",
+        "cases": [
+          {
+            "port": "completed",
+            "label": "Completed",
+            "condition": "\"${get_result.body.state}\" == \"completed\""
+          }
+        ]
+      }
+    },
+    {
+      "id": "fail_run",
+      "name": "Fail workflow",
+      "type": "script",
+      "parameters": {
+        "language": "python",
+        "code": "raise SystemExit('run finished in state ${get_result.body.state}')"
+      }
+    }
+  ],
+  "edges": [
+    {"from": "manual", "to": "start_run"},
+    {"from": "start_run", "to": "poll"},
+    {"from": "poll", "to": "get_status", "from_port": "iterate"},
+    {"from": "get_status", "to": "still_running"},
+    {"from": "still_running", "to": "wait_poll", "from_port": "true"},
+    {"from": "poll", "to": "get_result", "from_port": "complete"},
+    {"from": "get_result", "to": "classify"},
+    {"from": "classify", "to": "fail_run", "from_port": "failed"}
+  ]
+}

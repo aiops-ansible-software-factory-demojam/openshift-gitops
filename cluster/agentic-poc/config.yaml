@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agentic-poc
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
+  labels:
+    kubernetes.io/metadata.name: agentic-poc
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: runner
+  namespace: agentic-poc
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: runner-auth
+  namespace: agentic-poc
+type: Opaque
+stringData:
+  token: CkEC_8SrFZMQGzgWT4OGZkfgWUVUZBnwAsRSKZ957mI
+  oidc-client-secret: hq5y1M9uAUFSquHraeZpHF7jwoxHCsxU
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: runner-config
+  namespace: agentic-poc
+data:
+  SANDBOX_IMAGE: image-registry.openshift-image-registry.svc:5000/agentic-poc/agentic-poc-opencode:1.0.0
+  MODEL_ID: gpt-4.1-mini
+  MODEL_BASE_URL: https://api.openai.com/v1
+  OPENSHELL_GATEWAY: openshell
+  OIDC_ISSUER: https://sso.apps.cluster-qb5wm.dyn.redhatworkshops.io/realms/agentic-poc
+  OIDC_CLIENT_ID: agentic-poc-runner
+  OIDC_AUDIENCE: openshell-cli
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: runner-data
+  namespace: agentic-poc
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: ocs-external-storagecluster-ceph-rbd
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sandbox-policy
+  namespace: agentic-poc
+data:
+  sandbox-policy.yaml: |
+    version: 1
+    filesystem_policy:
+      include_workdir: true
+      read_only:
+        - /usr
+        - /lib
+        - /lib64
+        - /etc
+        - /opt
+        - /bin
+        - /sbin
+        - /proc/self
+        - /dev/urandom
+      read_write:
+        - /sandbox
+        - /tmp
+        - /dev/null
+    landlock:
+      compatibility: best_effort
+    network_policies: {}

@@ -8,11 +8,13 @@ yq_docs() {
 }
 
 test "$(yq_docs 'select(.kind == "AppProject") | .metadata.name' "$rendered")" = cluster-config
-test "$(yq_docs 'select(.kind == "Application") | .metadata.name' "$rendered" | wc -l)" -eq 9
+test "$(yq_docs 'select(.kind == "Application") | .metadata.name' "$rendered" | wc -l)" -eq 11
 test "$(yq_docs 'select(.kind == "Application" and .metadata.name == "cloudnative-pg") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered")" = 0
 test "$(yq_docs 'select(.kind == "Application" and .metadata.name == "agent-sandboxes") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered")" = 20
 test "$(yq_docs 'select(.kind == "Application" and .metadata.name == "automation-orchestrator") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered")" = 30
-test "$(yq_docs 'select(.kind == "Application" and .metadata.name != "cloudnative-pg" and .metadata.name != "agent-sandboxes" and .metadata.name != "automation-orchestrator") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered" | sort -u)" = 10
+test "$(yq_docs 'select(.kind == "Application" and .metadata.name == "openshell") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered")" = 15
+test "$(yq_docs 'select(.kind == "Application" and .metadata.name == "agentic-poc") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered")" = 25
+test "$(yq_docs 'select(.kind == "Application" and .metadata.name != "cloudnative-pg" and .metadata.name != "agent-sandboxes" and .metadata.name != "automation-orchestrator" and .metadata.name != "openshell" and .metadata.name != "agentic-poc") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered" | sort -u)" = 10
 
 while read -r name path; do
   test "$path" = "cluster/$name"
@@ -25,5 +27,5 @@ test "$(yq_docs 'select(.kind == "Secret" or .kind == "Deployment" or .kind == "
 test "$(yq_docs 'select(.kind == "Application" and .metadata.name == "rhbk") | .spec.ignoreDifferences[] | .kind' "$rendered")" = Keycloak
 test "$(yq_docs 'select(.kind == "Keycloak") | .spec.hostname.hostname' "$rhbk")" = sso.apps.cluster-qb5wm.dyn.redhatworkshops.io
 
-echo 'The app-of-apps chart renders the project, nine paths and expected waves.'
+echo 'The app-of-apps chart renders the project, eleven paths and expected waves.'
 echo 'RHBK adopts the environment Keycloak without managing its database, data or secrets.'

@@ -1,0 +1,52 @@
+openshift:
+  version: 4.22.13
+  kubernetes: v1.35.6
+  architecture: amd64
+  kernel: 5.14.0-687.44.1.el9_8.x86_64
+  runtime: cri-o://1.35.6
+  cni: OVNKubernetes
+  storage_class: ocs-external-storagecluster-ceph-rbd
+automation_orchestrator:
+  operator: automation-orchestrator-operator.v2026.8.1789549281
+  instance_version: 2026.8.1789549281
+  workflow_http_allowlist_field: spec.workflowHttpRequestAllowedHosts
+  workflow_schema: 2.0.0
+agent_sandbox:
+  served_api: agents.x-k8s.io/v1beta1
+  installation: redhat-operators/agent-sandbox-operator
+  version: 0.9.0
+  note: >
+    The cluster already served agents.x-k8s.io/v1beta1 from the installed
+    operator. A second upstream controller was not installed.
+openshell:
+  chart: oci://ghcr.io/nvidia/openshell/helm-chart
+  chart_version: 0.0.116
+  chart_digest: sha256:df55cd1538bdfb7836834c30dfcf8373b85ffea83bbfd70d50dbe69407a0d2b3
+  gateway_image: ghcr.io/nvidia/openshell/gateway:0.0.116
+  gateway_digest: sha256:05cf77bbb022a739aed6f22daa0e7e164415f4ab273b5f84319e46d91eb8f645
+  supervisor_digest: sha256:c8c42aef16c200063e32cbf72e553e4ead027085427b555efafd95063ecead42
+  cli_archive: openshell-x86_64-unknown-linux-musl.tar.gz
+  cli_sha256: 4fb4476d80a1875a0b83547ec3aba999cf0a2e2d75f95f2f709b622e2103520e
+  sideload_method: image-volume
+  topology: combined
+  community_base_image: ghcr.io/nvidia/openshell-community/sandboxes/base@sha256:aeef1c63f00e2913ea002ccb3aaf925f338b5c5d70e63576f0d95c16a138044e
+opencode:
+  npm: opencode-ai
+  version: 1.18.31
+  base_image: registry.access.redhat.com/ubi9/ubi-minimal@sha256:34880b64c07f28f64d95737f82f891516de9a3b43583f39970f7bf8e4cfa48b7
+model:
+  provider_type: openai
+  base_url: https://api.openai.com/v1
+  model_id: gpt-4.1-mini
+  credential: agentic-poc-model secret, not stored in this file
+identity:
+  issuer: https://sso.apps.cluster-qb5wm.dyn.redhatworkshops.io/realms/agentic-poc
+  audience: openshell-cli
+  runner_client: agentic-poc-runner
+  admin_client: agentic-poc-admin
+  tls: public Google Trust Services certificate on the SSO route
+runner_route: https://runner.apps.cluster-qb5wm.dyn.redhatworkshops.io
+runner_route_reason: >
+  AO workers verify TLS with certifi, which does not include the OpenShift
+  service CA. The workflow uses the public ingress hostname. The route still
+  requires the runner bearer token.

@@ -1,0 +1,167 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: runner
+  namespace: agentic-poc
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agentic-poc-runner
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: agentic-poc-runner
+    spec:
+      serviceAccountName: runner
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: runner
+          image: image-registry.openshift-image-registry.svc:5000/agentic-poc/agentic-poc-runner:1.0.0
+          imagePullPolicy: Always
+          ports:
+            - name: https
+              containerPort: 8443
+          env:
+            - name: RUNNER_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: runner-auth
+                  key: token
+            - name: OPENSHELL_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: runner-auth
+                  key: oidc-client-secret
+            - name: RUNNER_TLS_CERT
+              value: /etc/runner-tls/tls.crt
+            - name: RUNNER_TLS_KEY
+              value: /etc/runner-tls/tls.key
+            - name: RUNNER_DATA
+              value: /data
+            - name: SANDBOX_POLICY
+              value: /etc/agentic-poc/sandbox-policy.yaml
+            - name: HOME
+              value: /home/runner
+            - name: OPENSHELL_NO_BROWSER
+              value: "1"
+          envFrom:
+            - configMapRef:
+                name: runner-config
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            capabilities:
+              drop: [ALL]
+            seccompProfile:
+              type: RuntimeDefault
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: https
+              scheme: HTTPS
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: https
+              scheme: HTTPS
+            periodSeconds: 10
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: tls
+              mountPath: /etc/runner-tls
+              readOnly: true
+            - name: policy
+              mountPath: /etc/agentic-poc
+              readOnly: true
+            - name: openshell-mtls
+              mountPath: /etc/openshell-mtls
+              readOnly: true
+            - name: home
+              mountPath: /home/runner
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: runner-data
+        - name: tls
+          secret:
+            secretName: runner-tls
+        - name: policy
+          configMap:
+            name: sandbox-policy
+        - name: openshell-mtls
+          secret:
+            secretName: openshell-client-tls
+            optional: true
+        - name: home
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: runner
+  namespace: agentic-poc
+  annotations:
+    service.beta.openshift.io/serving-cert-secret-name: runner-tls
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: agentic-poc-runner
+  ports:
+    - name: https
+      port: 8443
+      targetPort: https
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: runner
+  namespace: agentic-poc
+spec:
+  host: runner.apps.cluster-qb5wm.dyn.redhatworkshops.io
+  to:
+    kind: Service
+    name: runner
+  port:
+    targetPort: https
+  tls:
+    termination: reencrypt
+    insecureEdgeTerminationPolicy: Redirect
+    destinationCACertificate: |
+      -----BEGIN CERTIFICATE-----
+      MIIDUTCCAjmgAwIBAgIIDPMAjBYFK58wDQYJKoZIhvcNAQELBQAwNjE0MDIGA1UE
+      Awwrb3BlbnNoaWZ0LXNlcnZpY2Utc2VydmluZy1zaWduZXJAMTc5MDAwMTQ0NDAe
+      Fw0yNjA5MjExNDM3MjNaFw0yODExMTkxNDM3MjRaMDYxNDAyBgNVBAMMK29wZW5z
+      aGlmdC1zZXJ2aWNlLXNlcnZpbmctc2lnbmVyQDE3OTAwMDE0NDQwggEiMA0GCSqG
+      SIb3DQEBAQUAA4IBDwAwggEKAoIBAQDeo4D7c86qjUSgUQ6l+/ZLeZ6E/PSv9dT+
+      rABGZyQfLRKYTgoCeIP0G8lcuxpISdn+cflKLluTaMe+WDJl3md3S6TFWTo5F2PQ
+      milEVU1bkfaqgmVfIpJ+JohZfTGpYeZvHXRI/pCqo/xbasCa4X+9HY4ErHDY/RF7
+      hFDdMLPq9bm01o+3z5vuPMxRzE2uemxSJwlnx17TOdPPcgce8A4aYsvmv8RGGol1
+      nTia3KAAcvKd6PMfsLtMvWj/kPthD+sOE97FqsunbC0EbbubwkGYO4fUJH+VtO+X
+      tEtv/MXzVYaTO6ydH4QSe7KpMjbcFb4RHYXbtTTAkTZ2iIL+o111AgMBAAGjYzBh
+      MA4GA1UdDwEB/wQEAwICpDAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBSzeLYg
+      Zqj5ZAMTqbnU60iNKKi4VDAfBgNVHSMEGDAWgBSzeLYgZqj5ZAMTqbnU60iNKKi4
+      VDANBgkqhkiG9w0BAQsFAAOCAQEALg1QfjlC/vQSqQvYHoGfIgaO8pFGaTSoSgR1
+      2zWr+GEM7nX7xOV4F3ezGYJRIdqQEQ5FiCRzqO5L1Y9KPz/qnVnngkqSS+aM5Lk1
+      39TXciOW3dpvthpZK5XDoqx/uf2IjqbOB7iCh9WOo4d5BWrHGaZ2/+bx4tR9CoV5
+      pr9aVWnS2qPW0EgAxF93BKfqvbN5m3/RwKVBuO3A4oUjKAZE1PBfdiqSz2LgDgiV
+      Yzz+hCy0AO3eBI7jU8kyFqRWDwC6/rlg2m592i+3DkK85cdKbPQ2zWNiM12eIBBP
+      Tlv6wPbeqsY5UJ/XSb4hvxpiFhn0FWSVwyWLZc5IoXPaXsiOgw==
+      -----END CERTIFICATE-----

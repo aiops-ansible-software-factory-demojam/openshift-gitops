@@ -1,0 +1,91 @@
+# OpenShell 0.0.116 values for this GitOps repository.
+# Field names match the tagged chart. agentSandbox.preflight is disabled because
+# Kustomize renders the chart with `helm template`, which cannot see the live
+# API. scripts/verify-platform.sh checks the served Sandbox API before the
+# gateway is treated as ready. A direct `helm upgrade --install` can set
+# agentSandbox.preflight.enabled=true.
+replicaCount: 1
+workload:
+  kind: statefulset
+
+image:
+  repository: ghcr.io/nvidia/openshell/gateway
+  tag: "0.0.116"
+  pullPolicy: IfNotPresent
+
+nameOverride: openshell
+fullnameOverride: openshell
+
+podSecurityContext:
+  fsGroup: null
+securityContext:
+  runAsUser: null
+  runAsNonRoot: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: [ALL]
+
+service:
+  type: ClusterIP
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: "2"
+    memory: 2Gi
+
+# Kubernetes 1.35 would auto-select image-volume, but this repository renders
+# the chart with helm template, which cannot read the apiserver version and
+# otherwise falls back to init-container. Pin the method that matches this cluster.
+supervisor:
+  sideloadMethod: image-volume
+  topology: combined
+
+agentSandbox:
+  preflight:
+    enabled: false
+
+server:
+  disableTls: false
+  telemetryEnabled: false
+  policyValidationFailureMode: fail_closed
+  sandboxNamespace: openshell
+  # Replaced by the digest-pinned OpenCode image after it is built.
+  # Gate A can still create sandboxes with the pinned community base image.
+  sandboxImage: ghcr.io/nvidia/openshell-community/sandboxes/base@sha256:aeef1c63f00e2913ea002ccb3aaf925f338b5c5d70e63576f0d95c16a138044e
+  workspaceStorageClass: ocs-external-storagecluster-ceph-rbd
+  workspaceDefaultStorageSize: 2Gi
+  defaultRuntimeClassName: ""
+  enableUserNamespaces: false
+  # RHCOS enforces SELinux. The chart's default AppArmor "Unconfined" profile
+  # is not the node mechanism. An empty value omits the field.
+  appArmorProfile: ""
+  drivers:
+    kubernetes:
+      workspaceMode: shared
+  auth:
+    allowUnauthenticatedUsers: false
+  credentialStorage:
+    existingSecret: openshell-credential-kek
+  oidc:
+    issuer: https://sso.apps.cluster-qb5wm.dyn.redhatworkshops.io/realms/agentic-poc
+    audience: openshell-cli
+    rolesClaim: realm_access.roles
+    adminRole: openshell-admin
+    userRole: openshell-user
+
+pkiInitJob:
+  enabled: true
+  serverDnsNames:
+    - openshell.openshell.svc.cluster.local
+
+certManager:
+  enabled: false
+openshiftRoute:
+  enabled: false
+grpcRoute:
+  enabled: false
+networkPolicy:
+  enabled: true

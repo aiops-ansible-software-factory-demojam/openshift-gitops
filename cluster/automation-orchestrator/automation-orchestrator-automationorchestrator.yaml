@@ -8,6 +8,7 @@ metadata:
 spec:
   workflowHttpRequestAllowedHosts:
     - kubernetes.default.svc
+    - runner.apps.cluster-qb5wm.dyn.redhatworkshops.io
   postgres:
     host: orchestrator-pg-rw
     port: 5432

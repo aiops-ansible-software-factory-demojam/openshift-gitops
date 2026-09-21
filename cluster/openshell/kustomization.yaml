@@ -1,0 +1,42 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: openshell
+resources:
+  - namespace.yaml
+  - privileged-scc-role.yaml
+  - privileged-scc-binding.yaml
+  - credential-kek-secret.yaml
+  - networkpolicy.yaml
+  - egress-network-policy.yaml
+  - resourcequota.yaml
+  - limitrange.yaml
+helmCharts:
+  - name: helm-chart
+    namespace: openshell
+    version: 0.0.116
+    releaseName: openshell
+    repo: oci://ghcr.io/nvidia/openshell
+    valuesFile: values.yaml
+patches:
+  - target:
+      kind: ConfigMap
+      name: openshell-config
+    patch: |-
+      - op: add
+        path: /metadata/namespace
+        value: openshell
+  - target:
+      kind: Service
+      name: openshell
+    patch: |-
+      - op: add
+        path: /metadata/namespace
+        value: openshell
+  - target:
+      kind: StatefulSet
+      name: openshell
+    patch: |-
+      - op: add
+        path: /metadata/namespace
+        value: openshell
+

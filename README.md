@@ -5,7 +5,7 @@ ArgoCD app-of-apps patterns from `igou-openshift`.
 
 Everything lives under `cluster/<app>`. `cluster/kustomization.yaml` renders the
 vendored `argocd-app-of-app` Helm chart with `cluster/values.yaml`, producing
-one AppProject and nine child Applications. Each child renders its own directory.
+one AppProject and eleven child Applications. Each child renders its own directory.
 There are no cluster overlays, ESO dependencies, S3 buckets, backups or
 lab-specific storage classes. All PVCs use the cluster's default StorageClass.
 
@@ -82,6 +82,8 @@ can wait between APIs becoming available.
 | 10 | rhdh | Operator `fast-1.10`; vanilla Developer Hub with guest access |
 | 10 | forgejo | Helm chart `17.1.6`; rootless Forgejo `15.0.8` |
 | 20 | agent-sandboxes | Kata template, paused warm pool, session/client RBAC, networking and cleanup |
+| 15 | openshell | OpenShell 0.0.116 gateway for the manual OpenCode POC |
+| 25 | agentic-poc | OpenCode runner, identity client, and sandbox image builds |
 | 30 | automation-orchestrator | Operator `stable`; standalone instance, no file storage; direct sandbox API prototype |
 
 Child Application health propagates both sync status and health to the parent.
@@ -152,7 +154,7 @@ make test
 ```
 
 This renders the three operator bootstrap objects, the app-of-apps chart and all
-nine apps, checks shell syntax, tests session cleanup and validates built-in
+eleven apps, checks shell syntax, tests session cleanup and validates built-in
 Kubernetes schemas. Custom APIs without local schemas are reported as skipped,
 not validated. To check the Lua health gates, also install Lua and `yq`, then run
 `make test-health` (`LUA` can select another interpreter).

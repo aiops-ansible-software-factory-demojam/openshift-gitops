@@ -1,2 +1,6 @@
 cluster/forgejo/charts/
+cluster/openshell/charts/
 .rendered/
+
+__pycache__/
+*.pyc

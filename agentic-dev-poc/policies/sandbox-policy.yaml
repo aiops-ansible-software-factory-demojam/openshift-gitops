@@ -1,0 +1,22 @@
+version: 1
+filesystem_policy:
+  include_workdir: true
+  read_only:
+    - /usr
+    - /lib
+    - /lib64
+    - /etc
+    - /opt
+    - /bin
+    - /sbin
+    - /proc/self
+    - /dev/urandom
+  read_write:
+    - /sandbox
+    - /tmp
+    - /dev/null
+landlock:
+  compatibility: best_effort
+# inference.local is intercepted by the supervisor and is not listed here.
+# Every other destination, including the Kubernetes API and the runner, is denied.
+network_policies: {}

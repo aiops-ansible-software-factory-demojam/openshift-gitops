@@ -1,0 +1,41 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: copy-openshell-mtls
+  namespace: agentic-poc
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  backoffLimit: 10
+  template:
+    spec:
+      serviceAccountName: tls-copier
+      restartPolicy: OnFailure
+      containers:
+        - name: copy
+          image: registry.redhat.io/openshift4/ose-cli:v4.22
+          command: ["bash", "-ceu"]
+          args:
+            - |
+              for i in $(seq 1 60); do
+                if oc -n openshell get secret openshell-client-tls openshell-server-tls >/dev/null 2>&1; then
+                  break
+                fi
+                sleep 10
+              done
+              oc -n openshell get secret openshell-server-tls -o jsonpath='{.data.ca\.crt}' | base64 -d > /tmp/ca.crt
+              oc -n openshell get secret openshell-client-tls -o jsonpath='{.data.tls\.crt}' | base64 -d > /tmp/tls.crt
+              oc -n openshell get secret openshell-client-tls -o jsonpath='{.data.tls\.key}' | base64 -d > /tmp/tls.key
+              test -s /tmp/ca.crt && test -s /tmp/tls.crt && test -s /tmp/tls.key
+              oc -n agentic-poc create secret generic openshell-client-tls \
+                --from-file=ca.crt=/tmp/ca.crt \
+                --from-file=tls.crt=/tmp/tls.crt \
+                --from-file=tls.key=/tmp/tls.key \
+                --dry-run=client -o yaml | oc apply -f -
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            capabilities:
+              drop: [ALL]
+            seccompProfile:
+              type: RuntimeDefault

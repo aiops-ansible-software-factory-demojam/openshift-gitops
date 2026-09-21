@@ -1,0 +1,30 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "poc/gpt-4.1-mini",
+  "small_model": "poc/gpt-4.1-mini",
+  "enabled_providers": ["poc"],
+  "share": "disabled",
+  "autoupdate": false,
+  "permission": {
+    "edit": "allow",
+    "bash": "allow",
+    "webfetch": "deny",
+    "external_directory": "deny",
+    "question": "deny"
+  },
+  "provider": {
+    "poc": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "POC protected inference",
+      "options": {
+        "baseURL": "https://inference.local/v1",
+        "apiKey": "openshell-managed-placeholder"
+      },
+      "models": {
+        "gpt-4.1-mini": {
+          "name": "POC model"
+        }
+      }
+    }
+  }
+}

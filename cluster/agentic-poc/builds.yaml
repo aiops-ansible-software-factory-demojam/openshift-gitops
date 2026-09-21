@@ -1,0 +1,55 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: agentic-poc-opencode
+  namespace: agentic-poc
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: agentic-poc-runner
+  namespace: agentic-poc
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: agentic-poc-opencode
+  namespace: agentic-poc
+spec:
+  source:
+    type: Git
+    git:
+      uri: https://github.com/aiops-ansible-software-factory-demojam/openshift-gitops.git
+      ref: main
+    contextDir: agentic-dev-poc
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: images/opencode/Dockerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      name: agentic-poc-opencode:1.0.0
+  triggers: []
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: agentic-poc-runner
+  namespace: agentic-poc
+spec:
+  source:
+    type: Git
+    git:
+      uri: https://github.com/aiops-ansible-software-factory-demojam/openshift-gitops.git
+      ref: main
+    contextDir: agentic-dev-poc
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: images/runner/Dockerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      name: agentic-poc-runner:1.0.0
+  triggers: []

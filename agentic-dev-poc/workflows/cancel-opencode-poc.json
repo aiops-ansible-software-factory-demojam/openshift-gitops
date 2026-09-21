@@ -1,0 +1,46 @@
+{
+  "schema_version": "2.0.0",
+  "name": "cancel-opencode-poc",
+  "description": "Cancel an OpenCode run by its runner ID.",
+  "triggers": [
+    {
+      "id": "manual",
+      "type": "manual_trigger",
+      "name": "Manual trigger",
+      "parameters": {
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["run_id"],
+          "properties": {
+            "run_id": {
+              "type": "string",
+              "title": "Run ID",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          }
+        }
+      }
+    }
+  ],
+  "nodes": [
+    {
+      "id": "cancel_run",
+      "name": "Cancel run",
+      "type": "http_request",
+      "parameters": {
+        "method": "POST",
+        "url": "https://runner.apps.cluster-qb5wm.dyn.redhatworkshops.io/v1/runs/${trigger.run_id}/cancel",
+        "credential_id": "RUNNER_CREDENTIAL_ID"
+      },
+      "settings": {
+        "timeout": 30,
+        "retry_policy": {"max_retries": 2, "initial_interval": 1, "max_interval": 8, "backoff_coefficient": 2}
+      }
+    }
+  ],
+  "edges": [
+    {"from": "manual", "to": "cancel_run"}
+  ]
+}

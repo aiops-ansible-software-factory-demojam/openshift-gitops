@@ -1,0 +1,102 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: runner
+  namespace: agentic-poc
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: agentic-poc-runner
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              network.openshift.io/policy-group: ingress
+      ports:
+        - protocol: TCP
+          port: 8443
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: automation-orchestrator
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: automation-orchestrator
+              app.kubernetes.io/component: worker
+      ports:
+        - protocol: TCP
+          port: 8443
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+        - protocol: UDP
+          port: 5353
+        - protocol: TCP
+          port: 5353
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshell
+      ports:
+        - protocol: TCP
+          port: 8080
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-ingress
+      ports:
+        - protocol: TCP
+          port: 443
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: keycloak
+      ports:
+        - protocol: TCP
+          port: 8443
+---
+apiVersion: k8s.ovn.org/v1
+kind: EgressFirewall
+metadata:
+  name: default
+  namespace: agentic-poc
+spec:
+  egress:
+    - type: Allow
+      to:
+        dnsName: sso.apps.cluster-qb5wm.dyn.redhatworkshops.io
+    - type: Allow
+      to:
+        cidrSelector: 10.10.10.0/24
+    - type: Allow
+      to:
+        cidrSelector: 10.232.0.0/14
+    - type: Allow
+      to:
+        cidrSelector: 172.231.0.0/16
+    - type: Deny
+      to:
+        cidrSelector: 0.0.0.0/0
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: agentic-poc
+  namespace: agentic-poc
+spec:
+  hard:
+    pods: "8"
+    requests.cpu: "2"
+    requests.memory: 4Gi
+    limits.cpu: "4"
+    limits.memory: 8Gi
+    persistentvolumeclaims: "4"
+    requests.storage: 30Gi
