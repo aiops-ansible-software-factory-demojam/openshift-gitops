@@ -14,6 +14,7 @@ case "$*" in
   *'.spec.install.spec.deployments[*].name}'*) printf 'openshift-gitops-operator-controller-manager' ;;
   *'.status.sync.status}'*) printf 'Synced' ;;
   *'.status.health.status}'*) printf 'Healthy' ;;
+  *'label namespace keycloak argocd.argoproj.io/managed-by=openshift-gitops --overwrite'*) : ;;
   *'get clusterrolebinding openshift-gitops-kataconfig-manager'*) : ;;
   *'api-resources --api-group=kataconfiguration.openshift.io'*) printf 'kataconfigs\n' ;;
   *'auth can-i '*kataconfigs.kataconfiguration.openshift.io*) printf 'yes\n' ;;
@@ -31,6 +32,7 @@ argocd_get_line=$(grep -n 'get argocd openshift-gitops' "$BOOTSTRAP_TEST_LOG" | 
 argocd_apply_line=$(grep -n 'apply --server-side --force-conflicts -f .*openshift-gitops-argocd.yaml' "$BOOTSTRAP_TEST_LOG" | cut -d: -f1)
 permissions_apply_line=$(grep -n 'apply -f .*openshift-gitops-cluster-permissions.yaml' "$BOOTSTRAP_TEST_LOG" | cut -d: -f1)
 permissions_binding_line=$(grep -n 'get clusterrolebinding openshift-gitops-kataconfig-manager' "$BOOTSTRAP_TEST_LOG" | cut -d: -f1)
+keycloak_label_line=$(grep -n 'label namespace keycloak argocd.argoproj.io/managed-by=openshift-gitops --overwrite' "$BOOTSTRAP_TEST_LOG" | cut -d: -f1)
 permissions_check_line=$(grep -n 'auth can-i .*kataconfigs.kataconfiguration.openshift.io' "$BOOTSTRAP_TEST_LOG" | cut -d: -f1)
 root_apply_line=$(grep -n 'apply -f .*root-application.yaml' "$BOOTSTRAP_TEST_LOG" | cut -d: -f1)
 refresh_check_line=$(grep -n 'metadata.annotations.argocd\\.argoproj\\.io/refresh' "$BOOTSTRAP_TEST_LOG" | cut -d: -f1)
@@ -41,7 +43,8 @@ test "$subscription_line" -lt "$argocd_get_line"
 test "$argocd_get_line" -lt "$argocd_apply_line"
 test "$argocd_apply_line" -lt "$permissions_apply_line"
 test "$permissions_apply_line" -lt "$permissions_binding_line"
-test "$permissions_binding_line" -lt "$permissions_check_line"
+test "$permissions_binding_line" -lt "$keycloak_label_line"
+test "$keycloak_label_line" -lt "$permissions_check_line"
 test "$permissions_check_line" -lt "$root_apply_line"
 test "$root_apply_line" -lt "$refresh_check_line"
 test "$refresh_check_line" -lt "$health_line"
