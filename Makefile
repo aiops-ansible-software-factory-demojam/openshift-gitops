@@ -13,6 +13,7 @@ test: render
 	bash -n bootstrap/bootstrap.sh scripts/*.sh tests/*.sh cluster/agent-sandboxes/cleanup.sh cluster/automation-orchestrator/*.sh
 	bash tests/bootstrap.sh
 	bash tests/app-of-apps.sh
+	bash tests/set-domain.sh
 	bash tests/sandbox-cleanup.sh
 	kubeconform -strict -summary -ignore-missing-schemas .rendered/
 	git diff --check
