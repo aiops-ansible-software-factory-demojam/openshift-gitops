@@ -33,7 +33,7 @@ helmCharts:
           argocd.argoproj.io/sync-wave: "3"
       route:
         enabled: true
-        host: forgejo.apps.cluster-spz55.dyn.redhatworkshops.io
+        host: forgejo.apps.cluster-qb5wm.dyn.redhatworkshops.io
         tls:
           termination: edge
           insecureEdgeTerminationPolicy: Redirect
@@ -47,7 +47,7 @@ helmCharts:
             HOST: forgejo-pg-rw:5432
             NAME: forgejo
           server:
-            ROOT_URL: https://forgejo.apps.cluster-spz55.dyn.redhatworkshops.io/
+            ROOT_URL: https://forgejo.apps.cluster-qb5wm.dyn.redhatworkshops.io/
         additionalConfigFromEnvs:
           - name: GITEA__database__USER
             valueFrom:

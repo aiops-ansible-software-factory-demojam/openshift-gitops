@@ -22,7 +22,7 @@ spec:
     httpEnabled: false
     tlsSecret: keycloak-tls
   hostname:
-    hostname: https://sso.apps.cluster-spz55.dyn.redhatworkshops.io
+    hostname: https://sso.apps.cluster-qb5wm.dyn.redhatworkshops.io
     strict: false
     strictBackchannel: false
   proxy:

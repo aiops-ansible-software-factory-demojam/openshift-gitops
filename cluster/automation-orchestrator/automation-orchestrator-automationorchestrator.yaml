@@ -22,7 +22,7 @@ spec:
         name: temporal-pg-credentials
   ingress:
     type: Route
-    host: orchestrator.apps.cluster-spz55.dyn.redhatworkshops.io
+    host: orchestrator.apps.cluster-qb5wm.dyn.redhatworkshops.io
   secrets:
     initialAdminPasswordSecretRef:
       name: automation-orchestrator-admin-password

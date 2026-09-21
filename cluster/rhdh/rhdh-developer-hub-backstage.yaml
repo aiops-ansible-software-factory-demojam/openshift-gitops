@@ -16,4 +16,4 @@ spec:
       secrets:
         - name: rhdh-pg-credentials
     route:
-      host: rhdh.apps.cluster-spz55.dyn.redhatworkshops.io
+      host: rhdh.apps.cluster-qb5wm.dyn.redhatworkshops.io
