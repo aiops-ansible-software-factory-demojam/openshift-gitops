@@ -18,12 +18,17 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from agentic_runner.api import ApiServer
-from agentic_runner.artifacts import collect_tree
+from agentic_runner.artifacts import collect_tree, extract_bounded_tar
 from agentic_runner.lifecycle import Engine, EngineConfig, iso, parse_iso
 from agentic_runner.models import RequestError
-from agentic_runner.openshell import CliOpenShell, FakeOpenShell
+from agentic_runner.openshell import (
+    CliOpenShell,
+    FakeOpenShell,
+    OpenShellError,
+    _bounded_communicate,
+    _receive_bounded,
+)
 from agentic_runner.store import Store
-
 
 TOKEN = "test-token"
 
@@ -49,7 +54,9 @@ class RunnerTest(unittest.TestCase):
         )
         self.autostart = False
         self.start_calls: list[str] = []
-        self.server = ApiServer(("127.0.0.1", 0), self.engine, TOKEN, self._start, lambda: True)
+        self.server = ApiServer(
+            ("127.0.0.1", 0), self.engine, TOKEN, self._start, lambda: True
+        )
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         host, port = self.server.server_address[:2]
@@ -64,9 +71,18 @@ class RunnerTest(unittest.TestCase):
     def _start(self, run_id: str) -> None:
         self.start_calls.append(run_id)
         if self.autostart:
-            threading.Thread(target=self.engine.execute, args=(run_id,), daemon=True).start()
+            threading.Thread(
+                target=self.engine.execute, args=(run_id,), daemon=True
+            ).start()
 
-    def request(self, method: str, path: str, body: dict | None = None, token: str = TOKEN, headers: dict | None = None):
+    def request(
+        self,
+        method: str,
+        path: str,
+        body: dict | None = None,
+        token: str = TOKEN,
+        headers: dict | None = None,
+    ):
         data = None if body is None else json.dumps(body).encode()
         request = urllib.request.Request(self.base + path, data=data, method=method)
         request.add_header("Authorization", f"Bearer {token}")
@@ -90,10 +106,16 @@ class RunnerTest(unittest.TestCase):
     def test_readiness_polls_exact_structured_phase(self) -> None:
         client = CliOpenShell()
         pending = subprocess.CompletedProcess(
-            [], 0, json.dumps({"metadata": {"name": "demo"}, "status": {"phase": "Pending"}}), ""
+            [],
+            0,
+            json.dumps({"metadata": {"name": "demo"}, "status": {"phase": "Pending"}}),
+            "",
         )
         ready = subprocess.CompletedProcess(
-            [], 0, json.dumps({"metadata": {"name": "demo"}, "status": {"phase": "Ready"}}), ""
+            [],
+            0,
+            json.dumps({"metadata": {"name": "demo"}, "status": {"phase": "Ready"}}),
+            "",
         )
         with patch.object(client, "_run", side_effect=[pending, ready]) as run, patch(
             "agentic_runner.openshell.time.sleep"
@@ -102,9 +124,17 @@ class RunnerTest(unittest.TestCase):
         self.assertEqual(run.call_count, 2)
 
     def test_auth_and_prompt_limits(self) -> None:
-        status, _ = self.request("POST", "/v1/runs", {"prompt": "hello"}, token="nope", headers={"Idempotency-Key": "a"})
+        status, _ = self.request(
+            "POST",
+            "/v1/runs",
+            {"prompt": "hello"},
+            token="nope",
+            headers={"Idempotency-Key": "a"},
+        )
         self.assertEqual(status, 401)
-        status, body = self.request("POST", "/v1/runs", {"prompt": "  "}, headers={"Idempotency-Key": "b"})
+        status, body = self.request(
+            "POST", "/v1/runs", {"prompt": "  "}, headers={"Idempotency-Key": "b"}
+        )
         self.assertEqual(status, 400)
         status, body = self.request(
             "POST",
@@ -157,7 +187,9 @@ class RunnerTest(unittest.TestCase):
         self.assertNotIn(prompt, joined)
         self.assertEqual(self.client.created.count(first["run_id"]), 1)
 
-    def test_three_sequential_runs_share_database_and_deliver_project_files(self) -> None:
+    def test_three_sequential_runs_share_database_and_deliver_project_files(
+        self,
+    ) -> None:
         run_ids = []
         for number in range(3):
             status, created = self.request(
@@ -231,8 +263,13 @@ class RunnerTest(unittest.TestCase):
         self.engine.execute(created["run_id"])
         run = self.store.get(created["run_id"])
         assert run is not None
-        self.assertEqual(run.state, "completed")
+        self.assertEqual(run.state, "failed")
+        self.assertTrue(run.terminal)
         self.assertEqual(run.cleanup_state, "failed")
+        result = self.engine.build_result(created["run_id"])
+        self.assertEqual(result["state"], "failed")
+        self.assertIn("cleanup failed", str(result["error"]).lower())
+        self.assertIn("delete failed", str(result["error"]).lower())
         status, blocked = self.request(
             "POST",
             "/v1/runs",
@@ -241,6 +278,38 @@ class RunnerTest(unittest.TestCase):
         )
         self.assertEqual(status, 409)
         self.assertEqual(blocked["error"], "busy")
+
+    def test_delayed_cleanup_cannot_be_reported_as_success(self) -> None:
+        self.client.block_delete = True
+        status, created = self.request(
+            "POST",
+            "/v1/runs",
+            {"prompt": "work"},
+            headers={"Idempotency-Key": "delayed-cleanup"},
+        )
+        self.assertEqual(status, 202)
+        worker = threading.Thread(target=self.engine.execute, args=(created["run_id"],))
+        worker.start()
+        self.assertTrue(self.client.delete_started.wait(2))
+        pending = self.store.get(created["run_id"])
+        assert pending is not None
+        self.assertEqual(pending.state, "cleaning")
+        self.assertFalse(pending.terminal)
+        with self.assertRaises(RequestError):
+            self.engine.build_result(created["run_id"])
+        self.client.delete_released.set()
+        worker.join(2)
+        self.assertEqual(
+            self.engine.build_result(created["run_id"])["state"], "completed"
+        )
+        workflow = json.loads(
+            (
+                Path(__file__).parents[1] / "workflows/manual-opencode-poc.json"
+            ).read_text()
+        )
+        classify = next(node for node in workflow["nodes"] if node["id"] == "classify")
+        condition = classify["parameters"]["cases"][0]["condition"]
+        self.assertIn("cleanup.state", condition)
 
     def test_artifact_rejection(self) -> None:
         root = Path(self.tmp.name) / "tree"
@@ -267,7 +336,9 @@ class RunnerTest(unittest.TestCase):
             collect_tree(root, Path(self.tmp.name) / "special.tar.gz")
 
         fifo.unlink()
-        (root / "leak.txt").write_text("Authorization: Bearer disclosed", encoding="utf-8")
+        (root / "leak.txt").write_text(
+            "Authorization: Bearer disclosed", encoding="utf-8"
+        )
         with self.assertRaises(RequestError):
             collect_tree(root, Path(self.tmp.name) / "credential.tar.gz")
 
@@ -284,6 +355,45 @@ class RunnerTest(unittest.TestCase):
         run = self.store.get(created["run_id"])
         assert run is not None
         self.assertEqual(run.cleanup_state, "failed")
+        self.assertEqual(run.state, "failed")
+
+    def test_gateway_not_found_and_malformed_inventory_fail_closed(self) -> None:
+        client = CliOpenShell()
+        gateway_error = subprocess.CompletedProcess([], 1, "", "gateway not found")
+        with patch.object(client, "_run", return_value=gateway_error):
+            with self.assertRaises(OpenShellError):
+                client.exists("owned-sandbox", 1)
+        absent = subprocess.CompletedProcess(
+            [], 1, "", 'status: NotFound, message: "sandbox not found"'
+        )
+        with patch.object(client, "_run", return_value=absent):
+            self.assertFalse(client.exists("owned-sandbox", 1))
+        malformed = subprocess.CompletedProcess([], 0, "{}", "")
+        with patch.object(client, "_run", return_value=malformed):
+            with self.assertRaises(OpenShellError):
+                client.list_managed()
+
+    def test_failed_owned_orphan_reconciliation_blocks_readiness_and_admission(
+        self,
+    ) -> None:
+        self.client.create_sandbox(
+            "owned-orphan",
+            "image",
+            self.policy,
+            "1",
+            "1Gi",
+            {"agentic-poc.io/managed": "true"},
+            1,
+        )
+        self.client.create_sandbox("unrelated", "image", self.policy, "1", "1Gi", {}, 1)
+        self.client.fail_delete.add("owned-orphan")
+        self.engine.reconcile_startup()
+        self.assertFalse(self.engine.ready())
+        self.assertTrue(self.client.exists("owned-orphan", 1))
+        self.assertTrue(self.client.exists("unrelated", 1))
+        with self.assertRaises(RequestError) as caught:
+            self.engine.accept("next", "", "blocked-by-orphan")
+        self.assertEqual(caught.exception.code, "reconciliation_pending")
 
     def test_observed_exit_and_required_validation_control_outcome(self) -> None:
         self.client.exec_exit_code = 7
@@ -356,8 +466,7 @@ class RunnerTest(unittest.TestCase):
         root = Path(self.tmp.name)
         legacy_path = root / "legacy.sqlite"
         connection = sqlite3.connect(legacy_path)
-        connection.executescript(
-            """
+        connection.executescript("""
             CREATE TABLE runs (
               id TEXT PRIMARY KEY, idempotency_key TEXT NOT NULL UNIQUE,
               request_hash TEXT NOT NULL, source_execution_id TEXT NOT NULL,
@@ -376,17 +485,24 @@ class RunnerTest(unittest.TestCase):
               size INTEGER NOT NULL, sha256 TEXT NOT NULL, content_type TEXT NOT NULL,
               created_at TEXT NOT NULL
             );
-            """
-        )
+            """)
         connection.close()
         migrated = Store(legacy_path)
         columns = migrated._db.execute("PRAGMA table_info(artifacts)").fetchall()
         self.assertEqual(
-            [row["name"] for row in sorted(columns, key=lambda row: row["pk"]) if row["pk"]],
+            [
+                row["name"]
+                for row in sorted(columns, key=lambda row: row["pk"])
+                if row["pk"]
+            ],
             ["run_id", "id"],
         )
         self.assertIn(
             "execution_claimed",
+            [row["name"] for row in migrated._db.execute("PRAGMA table_info(runs)")],
+        )
+        self.assertIn(
+            "artifacts_expired",
             [row["name"] for row in migrated._db.execute("PRAGMA table_info(runs)")],
         )
         migrated.close()
@@ -406,8 +522,91 @@ class RunnerTest(unittest.TestCase):
         self.assertTrue(artifact_dir.exists())
         moment["now"] += timedelta(days=8)
         self.engine.enforce_retention()
-        self.assertIsNone(self.store.get(created["run_id"]))
+        retained = self.store.get(created["run_id"])
+        self.assertIsNotNone(retained)
+        assert retained is not None
+        self.assertTrue(retained.artifacts_expired)
+        self.assertEqual(retained.prompt, "")
         self.assertFalse(artifact_dir.exists())
+        replay, status, is_new = self.engine.accept("retain briefly", "", "retention")
+        self.assertEqual((replay.id, status, is_new), (created["run_id"], 200, False))
+        self.assertTrue(self.engine.build_result(replay.id)["artifacts_expired"])
+        with self.assertRaises(RequestError) as caught:
+            self.engine.accept("changed", "", "retention")
+        self.assertEqual(caught.exception.code, "idempotency_conflict")
+
+        reopened = Store(Path(self.tmp.name) / "runner.sqlite")
+        try:
+            restarted = Engine(
+                reopened, FakeOpenShell(), self.engine.config, self.engine.artifact_root
+            )
+            replay, status, is_new = restarted.accept("retain briefly", "", "retention")
+            self.assertEqual(
+                (replay.id, status, is_new), (created["run_id"], 200, False)
+            )
+            self.assertEqual(restarted.client.created, [])
+        finally:
+            reopened.close()
+
+    def test_tar_is_validated_before_materializing_unsafe_content(self) -> None:
+        archive = Path(self.tmp.name) / "unsafe.tar"
+        outside = Path(self.tmp.name) / "outside.txt"
+        outside.write_text("must not be read", encoding="utf-8")
+        with tarfile.open(archive, "w") as stream:
+            link = tarfile.TarInfo("out/result.json")
+            link.type = tarfile.SYMTYPE
+            link.linkname = str(outside)
+            stream.addfile(link)
+        destination = Path(self.tmp.name) / "received"
+        with patch.object(
+            Path, "read_bytes", side_effect=AssertionError("outside file read")
+        ):
+            with self.assertRaises(RequestError):
+                extract_bounded_tar(archive, destination)
+        self.assertFalse(destination.exists())
+
+    def test_oversized_receive_is_stopped_before_extraction(self) -> None:
+        destination = Path(self.tmp.name) / "bounded.tar"
+        process = subprocess.Popen(
+            [
+                "python3",
+                "-c",
+                "import sys,time; sys.stdout.buffer.write(b'x'*8192); sys.stdout.flush(); time.sleep(30)",
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            start_new_session=True,
+        )
+        with self.assertRaises(OpenShellError):
+            _receive_bounded(process, destination, 2, 1024)
+        self.assertFalse(destination.exists())
+        self.assertIsNotNone(process.poll())
+
+    def test_timeout_reaps_child_and_descendant_after_streams_close(self) -> None:
+        child_pid = Path(self.tmp.name) / "child.pid"
+        descendant_pid = Path(self.tmp.name) / "descendant.pid"
+        script = (
+            "import os,subprocess,time; "
+            f"open({str(child_pid)!r},'w').write(str(os.getpid())); "
+            f"p=subprocess.Popen(['python3','-c',\"import os,time; open({str(descendant_pid)!r},'w').write(str(os.getpid())); time.sleep(30)\"]); "
+            "d=os.open('/dev/null',os.O_WRONLY); os.dup2(d,1); os.dup2(d,2); time.sleep(30)"
+        )
+        process = subprocess.Popen(
+            ["python3", "-c", script],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            start_new_session=True,
+        )
+        with self.assertRaises(subprocess.TimeoutExpired):
+            _bounded_communicate(process, 1)
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline and not descendant_pid.exists():
+            time.sleep(0.01)
+        for pid_path in (child_pid, descendant_pid):
+            self.assertTrue(pid_path.exists())
+            pid = int(pid_path.read_text())
+            with self.assertRaises(ProcessLookupError):
+                os.kill(pid, 0)
 
 
 if __name__ == "__main__":

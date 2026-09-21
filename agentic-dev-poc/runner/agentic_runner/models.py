@@ -22,7 +22,15 @@ TERMINAL_STATES = frozenset(
     {"completed", "failed", "timed_out", "cancelled", "interrupted"}
 )
 ACTIVE_STATES = frozenset(
-    {"accepted", "claimed", "provisioning", "preparing", "running", "collecting", "cleaning"}
+    {
+        "accepted",
+        "claimed",
+        "provisioning",
+        "preparing",
+        "running",
+        "collecting",
+        "cleaning",
+    }
 )
 ALLOWED_FIELDS = frozenset({"prompt", "source_execution_id"})
 
@@ -62,6 +70,8 @@ class RunRecord:
     result_json: str
     cancel_requested: bool
     execution_claimed: bool
+    artifacts_expired: bool
+    expired_at: str
 
     def public_status(self) -> dict[str, Any]:
         return {
@@ -74,6 +84,7 @@ class RunRecord:
             "deadline_at": self.deadline_at,
             "error": self.error or None,
             "cleanup": {"state": self.cleanup_state},
+            "artifacts_expired": self.artifacts_expired,
             "status_path": f"/v1/runs/{self.id}",
         }
 
@@ -98,7 +109,9 @@ def parse_run_request(body: bytes) -> tuple[str, str]:
         raise RequestError(400, "invalid_json", "Request body must be a JSON object.")
     extra = set(data) - ALLOWED_FIELDS
     if extra:
-        raise RequestError(400, "unexpected_field", "Only prompt and source_execution_id are accepted.")
+        raise RequestError(
+            400, "unexpected_field", "Only prompt and source_execution_id are accepted."
+        )
     prompt = data.get("prompt")
     if not isinstance(prompt, str) or not prompt.strip():
         raise RequestError(400, "invalid_prompt", "Prompt must be a nonblank string.")
@@ -108,5 +121,7 @@ def parse_run_request(body: bytes) -> tuple[str, str]:
     if source is None:
         source = ""
     if not isinstance(source, str) or len(source) > 256:
-        raise RequestError(400, "invalid_source", "source_execution_id must be a short string.")
+        raise RequestError(
+            400, "invalid_source", "source_execution_id must be a short string."
+        )
     return prompt, source

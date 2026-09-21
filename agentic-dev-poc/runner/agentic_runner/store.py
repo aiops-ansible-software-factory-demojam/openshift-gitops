@@ -22,8 +22,7 @@ class Store:
         self._init()
 
     def _init(self) -> None:
-        self._db.executescript(
-            """
+        self._db.executescript("""
             CREATE TABLE IF NOT EXISTS runs (
               id TEXT PRIMARY KEY,
               idempotency_key TEXT NOT NULL UNIQUE,
@@ -49,7 +48,9 @@ class Store:
               validation_json TEXT NOT NULL DEFAULT '',
               result_json TEXT NOT NULL DEFAULT '',
               cancel_requested INTEGER NOT NULL DEFAULT 0,
-              execution_claimed INTEGER NOT NULL DEFAULT 0
+              execution_claimed INTEGER NOT NULL DEFAULT 0,
+              artifacts_expired INTEGER NOT NULL DEFAULT 0,
+              expired_at TEXT NOT NULL DEFAULT ''
             );
             CREATE TABLE IF NOT EXISTS artifacts (
               id TEXT NOT NULL,
@@ -63,8 +64,7 @@ class Store:
               PRIMARY KEY (run_id, id),
               FOREIGN KEY (run_id) REFERENCES runs(id) ON DELETE CASCADE
             );
-            """
-        )
+            """)
         run_columns = {
             row["name"] for row in self._db.execute("PRAGMA table_info(runs)")
         }
@@ -72,14 +72,21 @@ class Store:
             self._db.execute(
                 "ALTER TABLE runs ADD COLUMN execution_claimed INTEGER NOT NULL DEFAULT 0"
             )
+        if "artifacts_expired" not in run_columns:
+            self._db.execute(
+                "ALTER TABLE runs ADD COLUMN artifacts_expired INTEGER NOT NULL DEFAULT 0"
+            )
+        if "expired_at" not in run_columns:
+            self._db.execute(
+                "ALTER TABLE runs ADD COLUMN expired_at TEXT NOT NULL DEFAULT ''"
+            )
         artifact_pk = [
             row["name"]
             for row in self._db.execute("PRAGMA table_info(artifacts)")
             if row["pk"]
         ]
         if artifact_pk == ["id"]:
-            self._db.executescript(
-                """
+            self._db.executescript("""
                 ALTER TABLE artifacts RENAME TO artifacts_legacy;
                 CREATE TABLE artifacts (
                   id TEXT NOT NULL,
@@ -98,8 +105,7 @@ class Store:
                 SELECT id, run_id, name, path, size, sha256, content_type, created_at
                 FROM artifacts_legacy;
                 DROP TABLE artifacts_legacy;
-                """
-            )
+                """)
         self._db.commit()
 
     def close(self) -> None:
@@ -143,7 +149,9 @@ class Store:
 
     def get(self, run_id: str) -> RunRecord | None:
         with self._lock:
-            row = self._db.execute("SELECT * FROM runs WHERE id = ?", (run_id,)).fetchone()
+            row = self._db.execute(
+                "SELECT * FROM runs WHERE id = ?", (run_id,)
+            ).fetchone()
         return _row(row) if row else None
 
     def get_by_idempotency(self, key: str) -> RunRecord | None:
@@ -208,26 +216,27 @@ class Store:
                 (*fields.values(), run_id),
             )
             self._db.commit()
-            row = self._db.execute("SELECT * FROM runs WHERE id = ?", (run_id,)).fetchone()
+            row = self._db.execute(
+                "SELECT * FROM runs WHERE id = ?", (run_id,)
+            ).fetchone()
         if row is None:
             raise KeyError(run_id)
         return _row(row)
 
     def list_needs_reconcile(self) -> list[RunRecord]:
         with self._lock:
-            rows = self._db.execute(
-                """
+            rows = self._db.execute("""
                 SELECT * FROM runs
                 WHERE terminal = 0 OR cleanup_state != 'complete'
                 ORDER BY created_at
-                """
-            ).fetchall()
+                """).fetchall()
         return [_row(row) for row in rows]
 
     def list_expired(self, older_than: str) -> list[RunRecord]:
         with self._lock:
             rows = self._db.execute(
-                "SELECT * FROM runs WHERE created_at < ? AND terminal = 1",
+                """SELECT * FROM runs
+                   WHERE created_at < ? AND terminal = 1 AND artifacts_expired = 0""",
                 (older_than,),
             ).fetchall()
         return [_row(row) for row in rows]
@@ -268,6 +277,20 @@ class Store:
             self._db.execute("DELETE FROM runs WHERE id = ?", (run_id,))
             self._db.commit()
 
+    def expire_run(self, run_id: str, expired_at: str) -> None:
+        """Remove payload/artifact data but retain the idempotency tombstone."""
+        with self._lock:
+            self._db.execute("DELETE FROM artifacts WHERE run_id = ?", (run_id,))
+            self._db.execute(
+                """UPDATE runs
+                   SET prompt = '', source_execution_id = '', summary = '',
+                       validation_json = '', result_json = '', artifacts_expired = 1,
+                       expired_at = ?, updated_at = ?
+                   WHERE id = ?""",
+                (expired_at, expired_at, run_id),
+            )
+            self._db.commit()
+
 
 def _row(row: sqlite3.Row) -> RunRecord:
     return RunRecord(
@@ -296,4 +319,6 @@ def _row(row: sqlite3.Row) -> RunRecord:
         result_json=row["result_json"],
         cancel_requested=bool(row["cancel_requested"]),
         execution_claimed=bool(row["execution_claimed"]),
+        artifacts_expired=bool(row["artifacts_expired"]),
+        expired_at=row["expired_at"],
     )

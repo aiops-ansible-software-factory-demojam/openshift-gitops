@@ -4,13 +4,17 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import selectors
+import signal
 import subprocess
 import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol
+
+from .artifacts import TRANSFER_BYTES, extract_bounded_tar
 
 
 class OpenShellError(Exception):
@@ -38,13 +42,17 @@ class OpenShellClient(Protocol):
 
     def wait_ready(self, name: str, timeout_seconds: int) -> None: ...
 
-    def upload(self, name: str, local: Path, dest: str, timeout_seconds: int) -> None: ...
+    def upload(
+        self, name: str, local: Path, dest: str, timeout_seconds: int
+    ) -> None: ...
 
     def exec(
         self, name: str, argv: list[str], timeout_seconds: int, workdir: str
     ) -> ExecResult: ...
 
-    def download(self, name: str, remote: str, dest: Path, timeout_seconds: int) -> None: ...
+    def download(
+        self, name: str, remote: str, dest: Path, timeout_seconds: int
+    ) -> None: ...
 
     def interrupt(self, name: str, timeout_seconds: int) -> None: ...
 
@@ -78,6 +86,9 @@ class FakeOpenShell:
         self.exec_released = threading.Event()
         self.block_exec = False
         self.fail_inspect = False
+        self.block_delete = False
+        self.delete_started = threading.Event()
+        self.delete_released = threading.Event()
         self.exec_exit_code = 0
         self.report_exit_code = 0
         self.validation_status = "passed"
@@ -128,7 +139,10 @@ class FakeOpenShell:
             "validation": {
                 "status": self.validation_status,
                 "commands": [
-                    {"command": "python -m unittest discover -s tests -v", "exit_code": 0},
+                    {
+                        "command": "python -m unittest discover -s tests -v",
+                        "exit_code": 0,
+                    },
                     {
                         "command": "python -m unittest discover -s /opt/agentic-poc/fixtures -v",
                         "exit_code": 0,
@@ -139,14 +153,18 @@ class FakeOpenShell:
         }
         sandbox.files["/sandbox/work/out/result.json"] = json.dumps(report).encode()
         sandbox.files["/sandbox/work/out/events.ndjson"] = b'{"type":"text"}\n'
-        sandbox.files["/sandbox/work/slugify.py"] = b"def slugify(text):\n    return text\n"
+        sandbox.files["/sandbox/work/slugify.py"] = (
+            b"def slugify(text):\n    return text\n"
+        )
         return ExecResult(
             exit_code=self.exec_exit_code,
             stdout='{"type":"text","part":{"type":"text","text":"done"}}\n',
             stderr="",
         )
 
-    def download(self, name: str, remote: str, dest: Path, timeout_seconds: int) -> None:
+    def download(
+        self, name: str, remote: str, dest: Path, timeout_seconds: int
+    ) -> None:
         del timeout_seconds
         sandbox = self._live(name)
         dest.mkdir(parents=True, exist_ok=True)
@@ -162,7 +180,9 @@ class FakeOpenShell:
         self.delete(name, timeout_seconds)
 
     def delete(self, name: str, timeout_seconds: int) -> None:
-        del timeout_seconds
+        self.delete_started.set()
+        if self.block_delete:
+            self.delete_released.wait(timeout_seconds)
         if name in self.fail_delete:
             raise OpenShellError(f"delete failed for {name}")
         sandbox = self.sandboxes.get(name)
@@ -183,7 +203,8 @@ class FakeOpenShell:
         return [
             name
             for name, sandbox in self.sandboxes.items()
-            if not sandbox.deleted and sandbox.labels.get("agentic-poc.io/managed") == "true"
+            if not sandbox.deleted
+            and sandbox.labels.get("agentic-poc.io/managed") == "true"
         ]
 
     def _live(self, name: str) -> FakeSandbox:
@@ -248,7 +269,9 @@ class CliOpenShell:
                 try:
                     payload = json.loads(completed.stdout)
                 except json.JSONDecodeError as exc:
-                    raise OpenShellError("OpenShell returned invalid sandbox JSON") from exc
+                    raise OpenShellError(
+                        "OpenShell returned invalid sandbox JSON"
+                    ) from exc
                 if not isinstance(payload, dict):
                     raise OpenShellError("OpenShell returned an invalid sandbox object")
                 last_phase = _sandbox_phase(payload)
@@ -256,12 +279,16 @@ class CliOpenShell:
                     return
                 if last_phase.lower() in {"failed", "error", "terminated"}:
                     raise OpenShellError(f"sandbox {name} entered {last_phase}")
-            elif _not_found(completed):
-                raise OpenShellError(f"sandbox {name} disappeared before becoming Ready")
+            elif _not_found(completed, name):
+                raise OpenShellError(
+                    f"sandbox {name} disappeared before becoming Ready"
+                )
             else:
                 raise OpenShellError((completed.stderr or completed.stdout)[-500:])
             time.sleep(min(1, max(0, deadline - time.monotonic())))
-        raise OpenShellError(f"sandbox {name} did not become Ready (last phase: {last_phase})")
+        raise OpenShellError(
+            f"sandbox {name} did not become Ready (last phase: {last_phase})"
+        )
 
     def upload(self, name: str, local: Path, dest: str, timeout_seconds: int) -> None:
         self._run(["sandbox", "upload", name, str(local), dest], timeout_seconds)
@@ -285,13 +312,49 @@ class CliOpenShell:
         completed = self._run(args, timeout_seconds + 30, check=False)
         return ExecResult(completed.returncode, completed.stdout, completed.stderr)
 
-    def download(self, name: str, remote: str, dest: Path, timeout_seconds: int) -> None:
-        dest.mkdir(parents=True, exist_ok=True)
-        self._run(["sandbox", "download", name, remote, str(dest)], timeout_seconds)
+    def download(
+        self, name: str, remote: str, dest: Path, timeout_seconds: int
+    ) -> None:
+        archive = dest.parent / ".workspace-transfer.tar"
+        archive.unlink(missing_ok=True)
+        command = [
+            self.binary,
+            "-g",
+            self.gateway,
+            "sandbox",
+            "exec",
+            "-n",
+            name,
+            "--no-tty",
+            "--timeout",
+            str(timeout_seconds),
+            "--workdir",
+            remote,
+            "--",
+            "python3",
+            "-c",
+            _BOUNDED_EXPORT_SCRIPT,
+        ]
+        process = subprocess.Popen(
+            command,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            start_new_session=True,
+        )
+        try:
+            stderr = _receive_bounded(process, archive, timeout_seconds, TRANSFER_BYTES)
+            if process.returncode != 0:
+                raise OpenShellError(
+                    stderr[-500:] or f"openshell exited {process.returncode}"
+                )
+            extract_bounded_tar(archive, dest)
+        finally:
+            archive.unlink(missing_ok=True)
 
     def interrupt(self, name: str, timeout_seconds: int) -> None:
         completed = self._run(["sandbox", "delete", name], timeout_seconds, check=False)
-        if completed.returncode != 0 and not _not_found(completed):
+        if completed.returncode != 0 and not _not_found(completed, name):
             raise OpenShellError((completed.stderr or completed.stdout)[-500:])
 
     def delete(self, name: str, timeout_seconds: int) -> None:
@@ -312,7 +375,7 @@ class CliOpenShell:
             if observed_name != name:
                 raise OpenShellError("OpenShell returned the wrong sandbox")
             return True
-        if _not_found(completed):
+        if _not_found(completed, name):
             return False
         raise OpenShellError((completed.stderr or completed.stdout)[-500:])
 
@@ -334,17 +397,24 @@ class CliOpenShell:
         try:
             payload = json.loads(completed.stdout or "[]")
         except json.JSONDecodeError as exc:
-            raise OpenShellError("OpenShell returned invalid sandbox list JSON") from exc
+            raise OpenShellError(
+                "OpenShell returned invalid sandbox list JSON"
+            ) from exc
         names: list[str] = []
         if not isinstance(payload, (list, dict)):
             raise OpenShellError("OpenShell returned an invalid sandbox list")
-        items = payload if isinstance(payload, list) else payload.get("sandboxes", [])
-        if isinstance(items, list):
-            for item in items:
-                if isinstance(item, str):
-                    names.append(item)
-                elif isinstance(item, dict) and _sandbox_name(item):
-                    names.append(_sandbox_name(item))
+        if isinstance(payload, dict) and "sandboxes" not in payload:
+            raise OpenShellError("OpenShell returned an invalid sandbox list")
+        items = payload if isinstance(payload, list) else payload.get("sandboxes")
+        if not isinstance(items, list):
+            raise OpenShellError("OpenShell returned an invalid sandbox list")
+        for item in items:
+            if isinstance(item, str) and item:
+                names.append(item)
+            elif isinstance(item, dict) and _sandbox_name(item):
+                names.append(_sandbox_name(item))
+            else:
+                raise OpenShellError("OpenShell returned an invalid sandbox list item")
         return names
 
     def _run(
@@ -354,11 +424,15 @@ class CliOpenShell:
         try:
             process = subprocess.Popen(
                 command,
+                stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
+                start_new_session=True,
             )
             stdout, stderr = _bounded_communicate(process, timeout)
-            completed = subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
+            completed = subprocess.CompletedProcess(
+                command, process.returncode, stdout, stderr
+            )
         except subprocess.TimeoutExpired as exc:
             raise OpenShellError(f"openshell timed out: {' '.join(args[:4])}") from exc
         if check and completed.returncode != 0:
@@ -376,12 +450,11 @@ def _bounded_communicate(
     selector.register(process.stdout, selectors.EVENT_READ, "stdout")
     selector.register(process.stderr, selectors.EVENT_READ, "stderr")
     deadline = time.monotonic() + timeout
+    completed = False
     try:
         while selector.get_map():
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                process.kill()
-                process.wait()
                 raise subprocess.TimeoutExpired(process.args, timeout)
             for key, _ in selector.select(min(1, remaining)):
                 chunk = os.read(key.fileobj.fileno(), 65536)
@@ -391,17 +464,106 @@ def _bounded_communicate(
                 buffer = buffers[key.data]
                 if len(buffer) < limit:
                     buffer.extend(chunk[: limit - len(buffer)])
-        process.wait(timeout=max(0.1, deadline - time.monotonic()))
+        process.wait(timeout=max(0.01, deadline - time.monotonic()))
+        completed = True
+    except BaseException:
+        _terminate_owned_group(process)
+        raise
     finally:
+        if not completed and process.poll() is None:
+            _terminate_owned_group(process)
         selector.close()
         process.stdout.close()
         process.stderr.close()
-    return tuple(bytes(buffers[name]).decode(errors="replace") for name in ("stdout", "stderr"))
+    return tuple(
+        bytes(buffers[name]).decode(errors="replace") for name in ("stdout", "stderr")
+    )
 
 
-def _not_found(completed: subprocess.CompletedProcess[str]) -> bool:
-    detail = (completed.stderr or completed.stdout).lower()
-    return "not found" in detail or "does not exist" in detail or "not exist" in detail
+def _receive_bounded(
+    process: subprocess.Popen[bytes], destination: Path, timeout: int, limit: int
+) -> str:
+    """Receive a binary stdout stream with a hard byte cap."""
+    assert process.stdout is not None and process.stderr is not None
+    selector = selectors.DefaultSelector()
+    selector.register(process.stdout, selectors.EVENT_READ, "stdout")
+    selector.register(process.stderr, selectors.EVENT_READ, "stderr")
+    deadline = time.monotonic() + timeout
+    received = 0
+    errors = bytearray()
+    completed = False
+    try:
+        with destination.open("xb") as output:
+            while selector.get_map():
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise subprocess.TimeoutExpired(process.args, timeout)
+                for key, _ in selector.select(min(1, remaining)):
+                    chunk = os.read(key.fileobj.fileno(), 65536)
+                    if not chunk:
+                        selector.unregister(key.fileobj)
+                    elif key.data == "stdout":
+                        received += len(chunk)
+                        if received > limit:
+                            raise OpenShellError(
+                                "Workspace transfer exceeds its bounded receive limit."
+                            )
+                        output.write(chunk)
+                    elif len(errors) < 1024 * 1024:
+                        errors.extend(chunk[: 1024 * 1024 - len(errors)])
+        process.wait(timeout=max(0.01, deadline - time.monotonic()))
+        completed = True
+        return errors.decode(errors="replace")
+    except BaseException:
+        _terminate_owned_group(process)
+        destination.unlink(missing_ok=True)
+        raise
+    finally:
+        if not completed and process.poll() is None:
+            _terminate_owned_group(process)
+        selector.close()
+        process.stdout.close()
+        process.stderr.close()
+
+
+def _terminate_owned_group(process: subprocess.Popen[bytes]) -> None:
+    """Terminate and reap only the process group created for this command."""
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        pass
+    deadline = time.monotonic() + 1
+    while time.monotonic() < deadline:
+        try:
+            os.killpg(process.pid, 0)
+        except ProcessLookupError:
+            break
+        time.sleep(0.01)
+    else:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+    try:
+        process.wait(timeout=1)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait(timeout=1)
+
+
+def _not_found(completed: subprocess.CompletedProcess[str], name: str) -> bool:
+    """Recognize only the pinned CLI's sandbox-specific NotFound status."""
+    detail = (completed.stderr or completed.stdout).strip().lower()
+    escaped = re.escape(name.lower())
+    return bool(
+        re.search(
+            rf"\bsandbox\s+['\"]?{escaped}['\"]?\s+(?:was\s+)?not found\b", detail
+        )
+        or re.search(rf"\bsandbox not found\s*:\s*['\"]?{escaped}['\"]?\b", detail)
+        or re.search(
+            r"\bstatus:\s*notfound\b.*\bmessage:\s*[\"']sandbox not found[\"']", detail
+        )
+    )
 
 
 def _sandbox_phase(payload: dict[str, object]) -> str:
@@ -419,3 +581,39 @@ def _sandbox_name(payload: dict[str, object]) -> str:
     if not value and isinstance(metadata, dict):
         value = metadata.get("name")
     return str(value or "")
+
+
+_BOUNDED_EXPORT_SCRIPT = r"""
+import os, stat, sys, tarfile
+root = os.path.realpath(".")
+count = 0
+total = 0
+with tarfile.open(fileobj=sys.stdout.buffer, mode="w|") as archive:
+    for directory, dirnames, filenames in os.walk(root, followlinks=False):
+        for dirname in dirnames:
+            path = os.path.join(directory, dirname)
+            if not stat.S_ISDIR(os.lstat(path).st_mode):
+                raise SystemExit("unsafe workspace directory")
+        for filename in filenames:
+            path = os.path.join(directory, filename)
+            info = os.lstat(path)
+            if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+                raise SystemExit("unsafe workspace file")
+            count += 1
+            total += info.st_size
+            if count > 2000 or total > 100 * 1024 * 1024:
+                raise SystemExit("workspace transfer limit exceeded")
+            flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+            fd = os.open(path, flags)
+            stream = os.fdopen(fd, "rb")
+            opened = os.fstat(fd)
+            if not stat.S_ISREG(opened.st_mode) or (opened.st_dev, opened.st_ino) != (info.st_dev, info.st_ino):
+                stream.close()
+                raise SystemExit("workspace file changed during transfer")
+            relative = os.path.relpath(path, root)
+            entry = tarfile.TarInfo(relative)
+            entry.size = opened.st_size
+            entry.mode = opened.st_mode & 0o777
+            archive.addfile(entry, stream)
+            stream.close()
+"""

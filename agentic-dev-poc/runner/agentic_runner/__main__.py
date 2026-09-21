@@ -16,7 +16,9 @@ from .store import Store
 
 def main() -> None:
     data = Path(os.environ.get("RUNNER_DATA", "/data"))
-    policy = Path(os.environ.get("SANDBOX_POLICY", "/etc/agentic-poc/sandbox-policy.yaml"))
+    policy = Path(
+        os.environ.get("SANDBOX_POLICY", "/etc/agentic-poc/sandbox-policy.yaml")
+    )
     policy_bytes = policy.read_bytes()
     policy_digest = hashlib.sha256(policy_bytes).hexdigest()
     image = os.environ["SANDBOX_IMAGE"]
@@ -41,7 +43,13 @@ def main() -> None:
     def start_run(run_id: str) -> None:
         threading.Thread(target=engine.execute, args=(run_id,), daemon=True).start()
 
-    server = ApiServer(("0.0.0.0", 8443), engine, token, start_run, ready.is_set)
+    server = ApiServer(
+        ("0.0.0.0", 8443),
+        engine,
+        token,
+        start_run,
+        lambda: ready.is_set() and engine.ready(),
+    )
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.minimum_version = ssl.TLSVersion.TLSv1_2
     context.load_cert_chain(cert, key)
