@@ -321,7 +321,7 @@ Example accepted response:
 }
 ```
 
-Use a unique database constraint on the idempotency key. Same key and same request return the original run, even after completion. Same key with a different payload returns 409. A new key while another run is active returns 409 Busy; do not silently accumulate an unbounded queue.
+Use a unique database constraint on the idempotency key. Same key and same request return the original run, even after completion or artifact expiry. Retention removes prompt and artifact payloads but preserves a lightweight request hash, original run ID and terminal outcome so an expired replay cannot launch another paid session. Same key with a different payload returns 409. A new key while another run is active returns 409 Busy; do not silently accumulate an unbounded queue.
 
 Accept only the defined JSON fields. Require a nonblank prompt of at most 16,000 characters; enforce an overall 64 KiB request-body limit. Model, provider URL, image, namespace, policy, arbitrary environment variables, filesystem paths, commands and execution limits cannot be supplied by the prompt or API request.
 
@@ -333,10 +333,10 @@ State machine:
 
 ```text
 accepted -> provisioning -> preparing -> running -> collecting -> cleaning -> completed
-                        \-> failed / timed_out / cancelled / interrupted
+                        \-> cleaning -> failed / timed_out / cancelled / interrupted
 ```
 
-Track cleanup independently (`pending`, `complete`, `failed`), so task failure cannot hide an orphaned sandbox. Terminal task state does not automatically prove all Kubernetes resources were deleted.
+Track cleanup independently (`pending`, `complete`, `failed`), so task failure cannot hide an orphaned sandbox. Do not mark a run terminal until cleanup has resolved. Successful completion requires both successful execution and confirmed cleanup; failed or unknown cleanup produces an unsuccessful terminal result and continues to block readiness and admission.
 
 For each accepted task:
 
@@ -345,7 +345,7 @@ For each accepted task:
 3. Upload a structured task file into the canonical workspace. Use separate create/upload/exec steps rather than rely on upload-versus-main-command startup ordering.
 4. Execute a fixed wrapper noninteractively, with OpenShell's timeout and an independent runner watchdog. The wrapper reads the task file and invokes OpenCode. It does not accept a caller-supplied program.
 5. Stream bounded events/logs to runner storage, recording actual process status. Generated code and tests execute only inside the sandbox.
-6. Collect workspace files and a structured report through OpenShell file transfer. Validate types, sizes, paths and expected artifacts before publishing the result.
+6. Collect workspace files and a structured report through a bounded OpenShell exec stream. Validate the complete archive's paths, entry types, file count, expanded bytes and report size before extracting, reading or publishing any result.
 7. Delete the sandbox in every completion path. Confirm deletion and cleanup of driver-owned Pods/PVCs; retain only exported artifacts and task metadata.
 
 The pinned CLI documents noninteractive execution, resource flags, machine-readable inspection and file transfer. A stopped sandbox retains state; stop is not cleanup. Use deletion for normal disposal. R8.
