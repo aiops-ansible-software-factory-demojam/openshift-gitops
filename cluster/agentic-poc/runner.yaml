@@ -67,7 +67,8 @@ spec:
             allowPrivilegeEscalation: false
             runAsNonRoot: true
             capabilities:
-              drop: [ALL]
+              drop:
+                - ALL
             seccompProfile:
               type: RuntimeDefault
           readinessProbe:

@@ -23,7 +23,8 @@ securityContext:
   runAsNonRoot: true
   allowPrivilegeEscalation: false
   capabilities:
-    drop: [ALL]
+    drop:
+      - ALL
 
 service:
   type: ClusterIP

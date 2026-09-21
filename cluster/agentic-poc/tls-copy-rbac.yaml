@@ -10,10 +10,15 @@ metadata:
   name: read-openshell-tls
   namespace: openshell
 rules:
-  - apiGroups: [""]
-    resources: ["secrets"]
-    resourceNames: ["openshell-client-tls", "openshell-server-tls"]
-    verbs: ["get"]
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    resourceNames:
+      - openshell-client-tls
+      - openshell-server-tls
+    verbs:
+      - get
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -35,13 +40,23 @@ metadata:
   name: write-openshell-client-tls
   namespace: agentic-poc
 rules:
-  - apiGroups: [""]
-    resources: ["secrets"]
-    resourceNames: ["openshell-client-tls"]
-    verbs: ["get", "create", "update", "patch"]
-  - apiGroups: [""]
-    resources: ["secrets"]
-    verbs: ["create"]
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    resourceNames:
+      - openshell-client-tls
+    verbs:
+      - get
+      - create
+      - update
+      - patch
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - create
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

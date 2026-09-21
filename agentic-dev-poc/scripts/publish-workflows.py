@@ -26,9 +26,8 @@ def request(method: str, path: str, token: str, body: dict | None = None) -> tup
         method=method,
         headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
     )
-    ctx = ssl._create_unverified_context()
     try:
-        with urllib.request.urlopen(req, context=ctx, timeout=60) as response:
+        with urllib.request.urlopen(req, context=tls_context(), timeout=60) as response:
             raw = response.read().decode()
             return response.status, json.loads(raw) if raw else {}
     except urllib.error.HTTPError as exc:
@@ -44,8 +43,13 @@ def login() -> str:
         ).encode(),
         headers={"Content-Type": "application/json"},
     )
-    with urllib.request.urlopen(req, context=ssl._create_unverified_context(), timeout=30) as response:
+    with urllib.request.urlopen(req, context=tls_context(), timeout=30) as response:
         return json.loads(response.read().decode())["access_token"]
+
+
+def tls_context() -> ssl.SSLContext:
+    ca_file = os.environ.get("AO_CA_FILE")
+    return ssl.create_default_context(cafile=ca_file) if ca_file else ssl.create_default_context()
 
 
 def credential_id(token: str, bearer: str) -> str:
@@ -54,6 +58,14 @@ def credential_id(token: str, bearer: str) -> str:
         raise SystemExit(f"list credentials failed: {status} {listed}")
     for item in listed.get("resources", []):
         if item.get("name") == "agentic-poc-runner":
+            status, updated = request(
+                "PATCH",
+                f"/api/v1/credentials/{item['id']}",
+                token,
+                {"inputs": {"token": bearer}},
+            )
+            if status != 200:
+                raise SystemExit(f"update credential failed: {status} {updated}")
             return item["id"]
     status, created = request(
         "POST",
@@ -73,30 +85,59 @@ def credential_id(token: str, bearer: str) -> str:
 
 def publish(token: str, path: Path, cred: str) -> None:
     definition = json.loads(path.read_text().replace("RUNNER_CREDENTIAL_ID", cred))
-    status, created = request(
-        "POST",
-        "/api/v1/workflows",
-        token,
-        {
+    body = {
+        "name": definition["name"],
+        "description": definition.get("description"),
+        "project_id": PROJECT,
+        "workflow_definition": definition,
+    }
+    status, listed = request("GET", "/api/v1/workflows?limit=100", token)
+    if status != 200:
+        raise SystemExit(f"list workflows failed: {status} {listed}")
+    existing = next(
+        (
+            item
+            for item in listed.get("resources", [])
+            if item.get("name") == definition["name"]
+            and item.get("project_id", PROJECT) == PROJECT
+        ),
+        None,
+    )
+    if existing:
+        workflow_id = existing["id"]
+        expected = existing.get("current_version") or existing.get("version")
+        if isinstance(expected, dict):
+            expected = expected.get("version")
+        update = {
             "name": definition["name"],
             "description": definition.get("description"),
-            "project_id": PROJECT,
             "workflow_definition": definition,
-        },
-    )
-    if status not in (200, 201):
-        raise SystemExit(f"create {definition['name']} failed: {status} {created}")
-    workflow_id = created["id"]
+        }
+        if isinstance(expected, int):
+            update["expected_version"] = expected
+        status, saved = request("PATCH", f"/api/v1/workflows/{workflow_id}", token, update)
+        if status != 200:
+            raise SystemExit(f"update {definition['name']} failed: {status} {saved}")
+    else:
+        status, saved = request("POST", "/api/v1/workflows", token, body)
+        if status not in (200, 201):
+            raise SystemExit(f"create {definition['name']} failed: {status} {saved}")
+        workflow_id = saved["id"]
+    version = saved.get("current_version") or saved.get("version") or 1
+    if isinstance(version, dict):
+        version = version.get("version", 1)
     status, published = request(
         "POST",
-        f"/api/v1/workflows/{workflow_id}/versions/1/publish",
+        f"/api/v1/workflows/{workflow_id}/versions/{version}/publish",
         token,
-        {"publish_name": definition["name"]},
+        {"publish_name": definition["name"], "expected_version": version},
     )
-    if status not in (200, 201):
+    conflict_text = json.dumps(published).lower()
+    already_published = status == 409 and "already" in conflict_text and "publish" in conflict_text
+    if status not in (200, 201) and not already_published:
         raise SystemExit(f"publish {definition['name']} failed: {status} {published}")
     status, exported = request(
-        "GET", f"/api/v1/workflows/{workflow_id}/versions/1/export", token
+        "GET", f"/api/v1/workflows/{workflow_id}/versions/{version}/export", token
     )
     if status == 200:
         dest = ROOT / "workflows" / "exported" / f"{definition['name']}.json"
@@ -107,6 +148,8 @@ def publish(token: str, path: Path, cred: str) -> None:
 
 
 def main() -> None:
+    global PROJECT
+    PROJECT = os.environ.get("AO_PROJECT_ID", PROJECT)
     token = login()
     bearer = os.environ["RUNNER_TOKEN"]
     cred = credential_id(token, bearer)

@@ -3,7 +3,7 @@ FROM registry.access.redhat.com/ubi9/ubi-minimal@sha256:34880b64c07f28f64d95737f
 ARG OPENSHELL_VERSION=0.0.116
 ARG OPENSHELL_SHA256=4fb4476d80a1875a0b83547ec3aba999cf0a2e2d75f95f2f709b622e2103520e
 USER 0
-RUN microdnf install -y python3 tar gzip ca-certificates shadow-utils coreutils \
+RUN microdnf install -y python3 tar gzip ca-certificates shadow-utils coreutils openssh-clients \
     && microdnf clean all \
     && mkdir -p /opt/agentic-runner /data /home/runner \
     && chgrp -R 0 /opt/agentic-runner /data /home/runner \

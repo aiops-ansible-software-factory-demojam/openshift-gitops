@@ -5,7 +5,6 @@ resources:
   - namespace.yaml
   - privileged-scc-role.yaml
   - privileged-scc-binding.yaml
-  - credential-kek-secret.yaml
   - networkpolicy.yaml
   - egress-network-policy.yaml
   - resourcequota.yaml
@@ -39,4 +38,16 @@ patches:
       - op: add
         path: /metadata/namespace
         value: openshell
-
+  - target:
+      kind: Job
+      name: openshell-certgen
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: 10m
+            memory: 64Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi

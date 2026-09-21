@@ -15,6 +15,7 @@ test: render
 	bash tests/app-of-apps.sh
 	bash tests/set-domain.sh
 	bash tests/sandbox-cleanup.sh
+	cd agentic-dev-poc && PYTHONPATH=runner python3 -m unittest -v tests.test_runner tests.test_wrapper tests.test_publish_workflows
 	kubeconform -strict -summary -ignore-missing-schemas .rendered/
 	git diff --check
 

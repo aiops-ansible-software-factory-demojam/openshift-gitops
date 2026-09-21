@@ -8,7 +8,9 @@ spec:
     matchLabels:
       app.kubernetes.io/name: openshell
       app.kubernetes.io/instance: openshell
-  policyTypes: [Ingress, Egress]
+  policyTypes:
+    - Ingress
+    - Egress
   ingress:
     - from:
         - namespaceSelector:
@@ -98,7 +100,8 @@ spec:
     matchExpressions:
       - key: agents.x-k8s.io/sandbox-name-hash
         operator: Exists
-  policyTypes: [Egress]
+  policyTypes:
+    - Egress
   egress:
     - to:
         - namespaceSelector:
@@ -138,7 +141,8 @@ spec:
     matchLabels:
       app.kubernetes.io/name: openshell
       job-name: openshell-certgen
-  policyTypes: [Egress]
+  policyTypes:
+    - Egress
   egress:
     - to:
         - namespaceSelector:
