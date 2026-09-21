@@ -26,15 +26,17 @@ Prerequisites:
 - These files published on this public repository's `main` branch. ArgoCD reads
   GitHub, not your local working tree; repository credentials are not required.
 
-Set the ingress domain before publishing. On a fresh checkout:
+Set the ingress domain before publishing. Run this for every target cluster;
+it replaces the currently authored `apps.*` domain (not only the original
+placeholder):
 
 ```bash
 bash scripts/set-domain.sh apps.your-demo-cluster.example.com
 ```
 
-This replaces `apps.demo.example.com` in the Orchestrator, Developer Hub and
-Forgejo configuration. Review and publish those changes to `main`. AAP and
-ArgoCD use operator-generated route hosts.
+This updates Orchestrator, Developer Hub, Forgejo and Keycloak hosts. Review
+and publish those changes to `main`. ArgoCD reads GitHub, not your local
+working tree. AAP and ArgoCD use operator-generated route hosts.
 
 Verify you are targeting the demo cluster, then bootstrap:
 
@@ -53,9 +55,12 @@ and applies the root Application. It then prints Application status every ten
 seconds until the root app-of-apps is Synced and Healthy.
 
 The default instance receives its cluster-scoped permissions from the Red Hat
-operator. Bootstrap does not create a Job, service account, cluster role binding
-or `openshift-gitops` namespace. The script is idempotent and can be rerun after
-changing the checked-in ArgoCD or root Application:
+operator. Bootstrap then applies extra ClusterRole rules so the application
+controller can manage KataConfig and namespaced objects in namespaces that
+existed before GitOps labeled them, and labels the environment `keycloak`
+namespace `argocd.argoproj.io/managed-by=openshift-gitops`. The script is
+idempotent and can be rerun after changing the checked-in ArgoCD or root
+Application:
 
 ```bash
 bash bootstrap/bootstrap.sh
@@ -112,11 +117,14 @@ credentials are left to their operators.
   Temporal and Temporal visibility databases. No AAP/LLM integrations or
   workflows. With no S3 configuration, file uploads are unavailable.
 - **Keycloak:** GitOps adopts the environment's `keycloak-og`, `rhbk-operator`,
-  Keycloak CR and `sso` Route without replacing its data plane. The environment
-  must provide `keycloak-pgsql`, `keycloak-pgsql-user`, `keycloak-tls`, the
-  imported `sso` realm and its OpenShift OAuth client. The PostgreSQL
-  Deployment, PVC, Secrets and realm import Job are deliberately not rendered
-  or pruned by this repository.
+  Keycloak CR and `sso` Route without replacing its data plane. The Keycloak
+  CR must use the API version served by the environment operator
+  (`k8s.keycloak.org/v2alpha1` here) and a hostname without a scheme. GitOps
+  ignores `spec.proxy` and `spec.db.port` so it does not rewrite the running
+  instance. The environment must provide `keycloak-pgsql`, `keycloak-pgsql-user`,
+  `keycloak-tls`, the imported `sso` realm and its OpenShift OAuth client. The
+  PostgreSQL Deployment, PVC, Secrets and realm import Job are deliberately not
+  rendered or pruned by this repository.
 - **Developer Hub:** guest sign-in enabled for the demo, its own CNPG instance.
   Its database role can create the per-plugin databases Backstage needs. No
   SSO, external catalogs, dynamic plugins or scaffolder integrations.
@@ -158,6 +166,10 @@ oc -n openshift-gitops-operator get subscription,csv,deployments
 oc -n openshift-gitops get argocd,pods
 oc -n openshift-gitops get applications \
   -o custom-columns=NAME:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status
+oc -n ansible-automation-platform get ansibleautomationplatform aap \
+  -o jsonpath='{range .status.conditions[*]}{.type}={.status} {.reason}{"\n"}{end}'
+oc -n automation-orchestrator get automationorchestrator automation-orchestrator \
+  -o jsonpath='{range .status.conditions[*]}{.type}={.status} {.reason}{"\n"}{end}'
 oc -n cloudnative-pg get subscription,csv,deployments
 oc -n ansible-automation-platform get clusters.postgresql.cnpg.io,pods,routes
 oc -n automation-orchestrator get clusters.postgresql.cnpg.io,pods,routes
@@ -166,10 +178,15 @@ oc -n rhdh get clusters.postgresql.cnpg.io,pods,routes
 oc -n forgejo get clusters.postgresql.cnpg.io,pods,routes
 ```
 
-If the parent remains at wave 0, inspect CNPG's Subscription, CSV and readiness
-Job. If a database remains Pending, check that namespace's PVCs and default
-storage provisioning. Inspect Subscription conditions for missing catalog
-channels, dependency-resolution failures or image pull errors.
+Application health follows child sync, OLM Subscriptions, CNPG, AAP,
+Orchestrator and Keycloak readiness. A Synced root app is not enough if an
+instance CR is still `Progressing` or `Degraded`. If the parent remains at
+wave 0, inspect CNPG's Subscription, CSV and readiness Job. If RHBK cannot
+sync, confirm the Keycloak CRD version and that the `keycloak` namespace is
+labeled `argocd.argoproj.io/managed-by=openshift-gitops`. If a database remains
+Pending, check that namespace's PVCs and default storage provisioning. Inspect
+Subscription conditions for missing catalog channels, dependency-resolution
+failures or image pull errors.
 
 The bootstrap script applies its checked-in objects with `oc apply`. The root
 Application renders `cluster/` with the vendored app-of-apps chart. Forgejo also
