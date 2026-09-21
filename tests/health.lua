@@ -37,6 +37,23 @@ local cases = {
     {{status = {applied = false}}, "Progressing"},
     {{status = {applied = true}}, "Healthy"},
   },
+  AnsibleAutomationPlatform = {
+    {{}, "Progressing"},
+    {{status = {conditions = {{type = "Running", status = "True"}}}}, "Progressing"},
+    {{status = {conditions = {{type = "Failure", status = "True", message = "unknown playbook failure"}}}}, "Degraded"},
+    {{status = {conditions = {{type = "Successful", status = "True"}}}}, "Healthy"},
+  },
+  AutomationOrchestrator = {
+    {{}, "Progressing"},
+    {{status = {conditions = {{type = "Progressing", status = "True"}}}}, "Progressing"},
+    {{status = {conditions = {{type = "Degraded", status = "True"}}}}, "Degraded"},
+    {{status = {conditions = {{type = "Ready", status = "True"}}}}, "Healthy"},
+  },
+  Keycloak = {
+    {{}, "Progressing"},
+    {{status = {conditions = {{type = "Ready", status = "False"}}}}, "Progressing"},
+    {{status = {conditions = {{type = "Ready", status = "True"}}}}, "Healthy"},
+  },
 }
 for i, case in ipairs(assert(cases[kind])) do
   obj = case[1]

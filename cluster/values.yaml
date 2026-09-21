@@ -96,6 +96,12 @@ applications:
       namespace: keycloak
     source:
       path: cluster/rhbk
+    ignoreDifferences:
+      - group: k8s.keycloak.org
+        kind: Keycloak
+        jsonPointers:
+          - /spec/proxy
+          - /spec/db/port
 
   rhdh:
     annotations:
