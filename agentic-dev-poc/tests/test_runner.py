@@ -337,6 +337,10 @@ class RunnerTest(unittest.TestCase):
             "${get_result.body.state} == 'completed' and "
             "${get_result.body.cleanup.state} == 'complete'",
         )
+        failure = next(node for node in workflow["nodes"] if node["id"] == "fail_run")
+        self.assertEqual(failure["type"], "http_request")
+        self.assertIn("/__failed_outcome__", failure["parameters"]["url"])
+        self.assertEqual(failure["settings"]["retry_policy"]["max_retries"], 0)
 
     def test_artifact_rejection(self) -> None:
         root = Path(self.tmp.name) / "tree"
