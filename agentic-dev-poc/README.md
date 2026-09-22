@@ -59,6 +59,14 @@ TLS verification is always enabled. Set `AO_CA_FILE` to a CA bundle only when th
 
 ## Current cluster status
 
-The OpenShell gateway is running in `openshell` with TLS, client-certificate verification, and OIDC. Its pod is admitted under `restricted-v2`. A sandbox using the pinned community base image was created, executed `echo`, and deleted; its workspace PVC went away with it. The sandbox service account is the only identity granted the `privileged` SCC. The `agentic-poc` Keycloak realm issues a client-credentials token for `agentic-poc-runner` with audience `openshell-cli` and role `openshell-user`.
+The PR runner and OpenCode images are built and deployed by the temporary
+`agentic-poc-pr2` and `openshell-pr2` Argo CD Applications. Their exact source
+revisions and image digests are recorded in `versions.lock.yaml`. The native
+gateway path has been exercised through create, exact readiness, upload, exec,
+bounded download, and confirmed deletion. See `docs/part2-handoff.md` for the
+evidence and temporary-resource cleanup procedure.
 
-The runner Deployment is waiting for `agentic-poc-runner:1.0.0`, which is not built yet. No model API key is present, so inference routing is not configured. Argo CD will not keep the new Orchestrator allowlist or these applications until this branch is on `main`. Unit tests use a mock OpenShell client and do not establish live readiness.
+No model API key or OpenShell provider is present. The live checks therefore do
+not establish inference or end-to-end AO acceptance. Local tests use a mock
+OpenShell client; the handoff distinguishes those tests from real gateway and AO
+checks.

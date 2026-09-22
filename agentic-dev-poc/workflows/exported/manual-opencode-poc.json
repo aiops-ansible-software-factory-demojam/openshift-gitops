@@ -1,0 +1,185 @@
+{
+  "name": "manual-opencode-poc",
+  "edges": [
+    {
+      "to": "start_run",
+      "from": "manual"
+    },
+    {
+      "to": "poll",
+      "from": "start_run"
+    },
+    {
+      "to": "get_status",
+      "from": "poll",
+      "from_port": "iterate"
+    },
+    {
+      "to": "still_running",
+      "from": "get_status"
+    },
+    {
+      "to": "wait_poll",
+      "from": "still_running",
+      "from_port": "true"
+    },
+    {
+      "to": "get_result",
+      "from": "poll",
+      "from_port": "complete"
+    },
+    {
+      "to": "classify",
+      "from": "get_result"
+    },
+    {
+      "to": "fail_run",
+      "from": "classify",
+      "from_port": "failed"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "start_run",
+      "name": "Start run",
+      "type": "http_request",
+      "settings": {
+        "timeout": 30,
+        "retry_policy": {
+          "max_retries": 2,
+          "max_interval": 8,
+          "initial_interval": 1,
+          "backoff_coefficient": 2.0
+        }
+      },
+      "parameters": {
+        "url": "https://runner.apps.cluster-qb5wm.dyn.redhatworkshops.io/v1/runs",
+        "body": {
+          "prompt": "${trigger.prompt}",
+          "source_execution_id": "${workflow_context.execution.id}"
+        },
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "Idempotency-Key": "${workflow_context.execution.id}"
+        },
+        "credential_id": "2ab302ec-bb34-4a1e-914e-c00534c7130a"
+      }
+    },
+    {
+      "id": "poll",
+      "name": "Poll until terminal",
+      "type": "loop",
+      "parameters": {
+        "type": "do_while",
+        "condition": "${get_status.body.terminal} != True",
+        "max_iterations": 300
+      }
+    },
+    {
+      "id": "get_status",
+      "name": "Get status",
+      "type": "http_request",
+      "settings": {
+        "timeout": 30,
+        "retry_policy": {
+          "max_retries": 2,
+          "max_interval": 8,
+          "initial_interval": 1,
+          "backoff_coefficient": 2.0
+        }
+      },
+      "parameters": {
+        "url": "https://runner.apps.cluster-qb5wm.dyn.redhatworkshops.io/v1/runs/${start_run.body.run_id}",
+        "method": "GET",
+        "credential_id": "2ab302ec-bb34-4a1e-914e-c00534c7130a"
+      }
+    },
+    {
+      "id": "still_running",
+      "name": "Still running",
+      "type": "condition",
+      "parameters": {
+        "condition": "${get_status.body.terminal} != True"
+      }
+    },
+    {
+      "id": "wait_poll",
+      "name": "Wait",
+      "type": "wait",
+      "parameters": {
+        "duration": 5
+      }
+    },
+    {
+      "id": "get_result",
+      "name": "Get result",
+      "type": "http_request",
+      "settings": {
+        "timeout": 30,
+        "retry_policy": {
+          "max_retries": 2,
+          "max_interval": 8,
+          "initial_interval": 1,
+          "backoff_coefficient": 2.0
+        }
+      },
+      "parameters": {
+        "url": "https://runner.apps.cluster-qb5wm.dyn.redhatworkshops.io/v1/runs/${start_run.body.run_id}/result",
+        "method": "GET",
+        "credential_id": "2ab302ec-bb34-4a1e-914e-c00534c7130a"
+      }
+    },
+    {
+      "id": "classify",
+      "name": "Classify outcome",
+      "type": "switch",
+      "parameters": {
+        "cases": [
+          {
+            "port": "completed",
+            "label": "Completed",
+            "condition": "${get_result.body.state} == 'completed' and ${get_result.body.cleanup.state} == 'complete'"
+          }
+        ],
+        "default_port": "failed"
+      }
+    },
+    {
+      "id": "fail_run",
+      "name": "Fail workflow",
+      "type": "script",
+      "parameters": {
+        "code": "raise SystemExit('run finished in state ${get_result.body.state}')",
+        "language": "python"
+      }
+    }
+  ],
+  "triggers": [
+    {
+      "id": "manual",
+      "name": "Manual trigger",
+      "type": "manual_trigger",
+      "parameters": {
+        "input_schema": {
+          "type": "object",
+          "required": [
+            "prompt"
+          ],
+          "properties": {
+            "prompt": {
+              "type": "string",
+              "title": "Development prompt",
+              "maxLength": 16000,
+              "minLength": 1,
+              "description": "Describe the code, tests, or analysis to produce in a fresh workspace."
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    }
+  ],
+  "description": "Start one OpenCode sandbox from a development prompt and return its result.",
+  "schema_version": "2.0.0"
+}
