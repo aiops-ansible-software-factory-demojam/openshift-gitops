@@ -25,7 +25,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: runner
-          image: image-registry.openshift-image-registry.svc:5000/agentic-poc/agentic-poc-runner@sha256:4530ae8cdfb8cfcc111af9aa79f3f3d584978ca86166c9b54354cc2bf8be85d5
+          image: image-registry.openshift-image-registry.svc:5000/agentic-poc/agentic-poc-runner@sha256:fff0aadb5cf112e8ddc0ad777ea5184ef28e6454256cdc2299b2832428659427
           imagePullPolicy: Always
           ports:
             - name: https
