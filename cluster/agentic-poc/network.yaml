@@ -89,6 +89,15 @@ spec:
         cidrSelector: 10.10.10.101/32
     - type: Allow
       to:
+        cidrSelector: 10.10.10.10/32
+    - type: Allow
+      to:
+        cidrSelector: 10.10.10.11/32
+    - type: Allow
+      to:
+        cidrSelector: 10.10.10.12/32
+    - type: Allow
+      to:
         dnsName: github.com
     - type: Allow
       to:
