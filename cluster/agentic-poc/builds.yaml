@@ -27,7 +27,7 @@ spec:
     type: Git
     git:
       uri: https://github.com/aiops-ansible-software-factory-demojam/openshift-gitops.git
-      ref: c245cfb003f7b6e82e55f55e2b0027a632180343
+      ref: c245cfb359a6338374ac03e21591f0f25eb54c0a
     contextDir: agentic-dev-poc
   strategy:
     type: Docker
