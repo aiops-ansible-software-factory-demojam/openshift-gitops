@@ -89,6 +89,9 @@ spec:
         dnsName: registry.access.redhat.com
     - type: Allow
       to:
+        dnsName: cdn01.quay.io
+    - type: Allow
+      to:
         dnsName: cdn-ubi.redhat.com
     - type: Allow
       to:
