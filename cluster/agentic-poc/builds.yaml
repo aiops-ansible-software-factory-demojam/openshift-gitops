@@ -16,6 +16,13 @@ metadata:
   name: agentic-poc-opencode
   namespace: agentic-poc
 spec:
+  resources:
+    requests:
+      cpu: 250m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 3Gi
   source:
     type: Git
     git:
@@ -38,6 +45,13 @@ metadata:
   name: agentic-poc-runner
   namespace: agentic-poc
 spec:
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 2Gi
   source:
     type: Git
     git:
