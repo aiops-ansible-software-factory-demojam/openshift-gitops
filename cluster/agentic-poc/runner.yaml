@@ -14,6 +14,8 @@ spec:
       app.kubernetes.io/name: agentic-poc-runner
   template:
     metadata:
+      annotations:
+        agentic-poc.io/config-revision: opencode-sha256-c944b062ab97227e
       labels:
         app.kubernetes.io/name: agentic-poc-runner
     spec:
