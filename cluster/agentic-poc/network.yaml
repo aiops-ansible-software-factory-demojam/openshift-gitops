@@ -74,6 +74,21 @@ spec:
   egress:
     - type: Allow
       to:
+        dnsName: github.com
+    - type: Allow
+      to:
+        dnsName: objects.githubusercontent.com
+    - type: Allow
+      to:
+        dnsName: release-assets.githubusercontent.com
+    - type: Allow
+      to:
+        dnsName: registry.npmjs.org
+    - type: Allow
+      to:
+        dnsName: cdn-ubi.redhat.com
+    - type: Allow
+      to:
         dnsName: sso.apps.cluster-qb5wm.dyn.redhatworkshops.io
     - type: Allow
       to:
