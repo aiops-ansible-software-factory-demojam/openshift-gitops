@@ -1,17 +1,18 @@
 # Part 2 deployment handoff
 
-Status as of 2026-09-22: the PR revision is deployed on the separate
-`cluster-qb5wm.dyn.redhatworkshops.io` demo cluster and the native OpenShell
-data path is verified. End-to-end inference and the full AO acceptance matrix
-remain blocked because no authorized model credential is available. Nothing in
-this document claims live readiness from mock tests.
+Status as of 2026-09-22: the corrected PR revision is deployed on the separate
+`cluster-qb5wm.dyn.redhatworkshops.io` demo cluster, the native OpenShell data
+path is verified, and AO-to-runner connectivity remains active under a narrow
+PR override. End-to-end inference and the full AO acceptance matrix remain
+blocked because no authorized model credential is available. Nothing in this
+document claims live readiness from mock tests or stub output.
 
 ## Deployed revisions
 
 - Runner source: `ea1d0ef832a8509b2b82787ba8bac34610350b36`
 - Runner image: `image-registry.openshift-image-registry.svc:5000/agentic-poc/agentic-poc-runner@sha256:e54c1a29d64c92f4dc34cb8c3e26c16f05ff033754be31faa2f7065e4d92e0b0`
-- OpenCode source: `59dd8f3a536ecf9ef3f0840bef62aff06d548715`
-- OpenCode image: `image-registry.openshift-image-registry.svc:5000/agentic-poc/agentic-poc-opencode@sha256:39948eb861bb56e678eb3323e6a6020715783d31b51d82e6de598290d12c39f3`
+- OpenCode source: `aca9fc838ac24d16c1fcf3138a810fe1dbc3a267`
+- OpenCode image: `image-registry.openshift-image-registry.svc:5000/agentic-poc/agentic-poc-opencode@sha256:34fa6cf50924ec0bd7f4bad3ac24eb05dd5dbf40799364f6fe7261a1c6add691`
 
 Both source revisions are commits on `feat/openshell-opencode-poc`, not builds
 from `main`. The runner contains OpenShell 0.0.116, OpenSSH 9.9, and works with
@@ -19,6 +20,12 @@ an OpenShift-assigned UID. The sandbox image includes the pinned OpenCode
 version and the `find`, `ip`, and `nsenter` helpers required by OpenShell
 0.0.116. The sandbox service account alone has the cross-namespace image-pull
 grant for the private agent image.
+
+The wrapper now parses the complete event stream incrementally while retaining
+at most 10 MiB in `events.ndjson`. Error and final-status metadata, a truncation
+flag, and parser uncertainty are bounded separately. An error after the saved
+log cap cannot be lost; malformed JSON, invalid UTF-8, or a greater-than-1-MiB
+event line makes the wrapper fail closed.
 
 ## Live evidence
 
@@ -31,11 +38,18 @@ The real gateway path was run from the built runner image:
 5. receive and validate the bounded workspace archive;
 6. delete the sandbox and confirm it is absent.
 
-The downloaded runner-PVC evidence survived deletion of the task Pod and PVC:
+The corrected image was then exercised again with a synthetic OpenCode stub
+from the deployed runner. The installed wrapper was present, exited zero for a
+valid event stream, and reported `event_count=1`, `log_truncated=false`, and
+`validation=passed`. The downloaded runner-PVC evidence survived deletion of
+the task Pod and PVC:
 
-- `out/result.json`: 94 bytes, SHA-256 `fc540d8ffe5f848d99490bc73877d677b5e423ba61029c4efcadf07273cceac5`
-- `project.py`: 28 bytes, SHA-256 `aecc013c518523ca22b7e3780f87002f5cae13fabc369f2f59a1faf7058f8c76`
-- `tests/test_project.py`: 73 bytes, SHA-256 `3df682ce18df926b3230a51626d5cae9c874fa459e5837630346a528e54a96cd`
+- `out/result.json`: SHA-256 `ecf6bb96a2fdeca66e6f6fb040b34584888999fce8779f5992bdc26e09c8f0d8`
+- `project.py`: SHA-256 `2921fc2c922adc90199e383c9b877d1c5a06f75ea749455a602514af3331b89d`
+- `test_project.py`: SHA-256 `ad968f6d5928b0fe15ec53049ef1745d9199316b734322e1319276a2542e1436`
+
+This proves the real gateway and bounded file-transfer path for the corrected
+image. The stub used no model and is not inference acceptance.
 
 A real symlink to `/etc/passwd` and a 101 MiB sparse output were each rejected
 before destination materialization. The temporary receive archive was removed
@@ -50,16 +64,42 @@ and no task Pod or workspace PVC remained.
 
 AO workflow publication updated the existing objects rather than duplicating
 them. The manual and cancel workflow counts are each one, and the runner bearer
-credential count is one. A live AO execution (`fa614321…2876`) reached the
-runner and created runner run `poc-a57b…b10e`. With no provider configured,
-OpenCode exited 250; the runner reported `state=failed` and
-`cleanup.state=complete`, and the sandbox was deleted. This is a truthful
-failure-path test, not a successful inference run.
+credential count is one. HTTPS from the AO worker reaches only the exact runner
+host: missing and invalid bearer tokens both return 401, while the stored
+credential permits workflow calls.
+
+A live serialization execution (`dbd53494…b234`, runner `poc-5cd4…5c34`)
+preserved quotes, a newline, Unicode (`café 雪`), and literal shell metacharacters
+byte-for-byte in the runner database. With no provider configured, it failed
+and cleaned up without leaving a task Pod or PVC.
+
+That run also showed that script nodes are disabled in the installed AO. The
+failure branch now uses an authenticated, non-retrying HTTP request for a
+deterministic nonexistent artifact. A second AO execution (`339a7406…44a9`,
+runner `poc-0227…832c`) reached `get_result` with `state=failed` and
+`cleanup.state=complete`, selected the failed switch port, and ended red on the
+expected 404. OpenCode exited 250, and the sandbox was deleted. This is a
+truthful AO failure-path test, not a successful inference run.
+
+A direct live runner check returned the same run ID for an active retry,
+rejected a different request with 409 while the slot was occupied, and created
+only one sandbox for runner run `poc-d361…6028`. Cancellation during
+provisioning ended in `state=cancelled`, `cleanup.state=complete`; no task Pod
+or PVC remained. This exercises live ownership and cancellation without
+claiming paid-session or model-backed acceptance.
 
 That run exposed an AO-version-specific switch syntax defect. The workflow now
 uses AO's Python-style `and` expression rather than `&&`. Tests against the real
 AO evaluator selected `completed` only for execution success plus confirmed
 cleanup. Execution failure and cleanup failure both selected `failed`.
+
+## Tests run for the corrected revision
+
+`make test` passed on 2026-09-22. It ran 34 Python regressions, including the
+actual wrapper with a stub OpenCode subprocess; repository shell tests; strict
+render validation; and `kubeconform` over 159 resources (105 valid, 0 invalid,
+0 errors, and 54 skipped for unavailable schemas). `git diff --check` also
+passed. These are local/mock checks and do not replace model-backed acceptance.
 
 ## Credential and storage state
 
@@ -75,8 +115,10 @@ recreate provider records before retiring the old key.
 
 ## Exact blocker
 
-`agentic-poc-model` is absent, and neither an OpenAI nor Azure OpenAI credential
-is available in the authorized session profiles. Consequently these gates have
+`agentic-poc-model` is absent, `openshell provider list --names` is empty, and
+`openshell inference get` reports that neither the user nor system route is
+configured. Neither an OpenAI nor Azure OpenAI credential is available in the
+authorized session profiles. Consequently these gates have
 not been run:
 
 - protected inference, streaming, and a real tool-call/result cycle;
@@ -85,21 +127,41 @@ not been run:
 - genuinely long-running model cancellation; and
 - the complete AO success-path acceptance matrix.
 
-Do not substitute a fake key or infer success from the mock suite. Supply a
-limited-budget POC credential through the approved secret process, then use the
-separate bootstrap identity to register it without placing its value on the
-command line. With OpenShell 0.0.116, `--credential OPENAI_API_KEY` reads the
-value from the bootstrap process environment:
+Do not substitute a fake key or infer success from the mock suite. The smallest
+remaining operator action is to supply a limited-budget POC credential from a
+protected file through the approved secret process:
 
 ```bash
-openshell -g openshell provider create \
-  --name openai \
-  --type openai \
-  --credential OPENAI_API_KEY
+umask 077
+oc -n agentic-poc create secret generic agentic-poc-model \
+  --from-file=api_key=/secure/path/openai-api-key \
+  --from-literal=base_url=https://api.openai.com/v1 \
+  --from-literal=model=gpt-4.1-mini
 ```
 
-Do not use `--gateway-insecure`. Verify provider streaming and a tool call in a
-single bounded sandbox before starting the AO acceptance sequence.
+Then use the separate bootstrap identity and a short-lived Pod to expose the
+Secret key as `OPENAI_API_KEY`. With OpenShell 0.0.116,
+`--credential OPENAI_API_KEY` reads the value from that process environment.
+Provider bootstrap is rerunnable and route selection is a separate required
+step:
+
+```bash
+if openshell -g openshell provider get openai >/dev/null 2>&1; then
+  openshell -g openshell provider update openai --credential OPENAI_API_KEY
+else
+  openshell -g openshell provider create \
+    --name openai \
+    --type openai \
+    --credential OPENAI_API_KEY
+fi
+openshell -g openshell inference set --provider openai --model gpt-4.1-mini
+openshell -g openshell inference get
+```
+
+Do not use `--gateway-insecure` or `--no-verify`. Delete the bootstrap Pod and
+any namespace-local admin Secret copy after configuration. Verify provider
+streaming and a tool call in a single bounded sandbox before starting the AO
+acceptance sequence.
 
 ## Reproducible operation
 
@@ -156,8 +218,13 @@ curl --fail --silent --show-error \
 
 The live PR test uses Argo CD Applications `openshell-pr2` and
 `agentic-poc-pr2`, plus `pr2-gitops-sync` and `pr2-gitops-extra` bindings in
-both target namespaces. The AO allowlist was changed only for the test window
-and has already returned to the `main` value of `kubernetes.default.svc`.
+both target namespaces. AO connectivity remains active at handoff. The
+`automation-orchestrator` child Application temporarily targets
+`feat/openshell-opencode-poc`; the root `cluster` Application has an exact
+ignore rule only for that child's `/spec/source/targetRevision` and has
+`RespectIgnoreDifferences=true`. The resulting allowlist preserves
+`kubernetes.default.svc` and adds only
+`runner.apps.cluster-qb5wm.dyn.redhatworkshops.io`.
 
 After the PR is merged and the normal `main` Applications have successfully
 synced the promoted manifests, remove the two PR Applications with orphan
@@ -165,6 +232,11 @@ propagation, then remove the temporary Roles and RoleBindings. Confirm the
 normal Applications own healthy resources before deleting any temporary
 objects. Do not delete the OpenShell PVC or rotate the encryption key as part
 of that cleanup.
+
+After `main` contains the runner host and the normal AO Application has synced,
+restore the child target revision to `main`, then remove only the exact root
+ignore rule and the added `RespectIgnoreDifferences=true` option. Verify the AO
+worker still has both allowed hosts before removing the PR ownership controls.
 
 The rotated external Secrets, Keycloak clients, AO credential, and gateway PVC
 are durable prerequisites, not disposable test resources. The built image

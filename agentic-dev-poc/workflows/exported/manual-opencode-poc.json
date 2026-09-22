@@ -147,11 +147,21 @@
     },
     {
       "id": "fail_run",
-      "name": "Fail workflow",
-      "type": "script",
+      "name": "Mark unsuccessful outcome",
+      "type": "http_request",
+      "settings": {
+        "timeout": 30,
+        "retry_policy": {
+          "max_retries": 0,
+          "max_interval": 1,
+          "initial_interval": 1,
+          "backoff_coefficient": 1.0
+        }
+      },
       "parameters": {
-        "code": "raise SystemExit('run finished in state ${get_result.body.state}')",
-        "language": "python"
+        "url": "https://runner.apps.cluster-qb5wm.dyn.redhatworkshops.io/v1/runs/${start_run.body.run_id}/artifacts/__failed_outcome__",
+        "method": "GET",
+        "credential_id": "2ab302ec-bb34-4a1e-914e-c00534c7130a"
       }
     }
   ],

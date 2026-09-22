@@ -40,11 +40,34 @@ Do not enable shell tracing around these commands. Rotate the AO credential by s
 Create the model credential. It is not stored in Git.
 
 ```bash
+umask 077
 oc -n agentic-poc create secret generic agentic-poc-model \
-  --from-literal=api_key="$OPENAI_API_KEY" \
+  --from-file=api_key=/secure/path/openai-api-key \
   --from-literal=base_url=https://api.openai.com/v1 \
   --from-literal=model=gpt-4.1-mini
 ```
+
+Using `--from-file` keeps the API key out of the process argument list. Do not
+enable shell tracing. In a short-lived bootstrap Pod using the separate admin
+OIDC Secret, expose that Secret key as `OPENAI_API_KEY`, then configure both the
+provider and the protected route:
+
+```bash
+if openshell -g openshell provider get openai >/dev/null 2>&1; then
+  openshell -g openshell provider update openai --credential OPENAI_API_KEY
+else
+  openshell -g openshell provider create \
+    --name openai \
+    --type openai \
+    --credential OPENAI_API_KEY
+fi
+openshell -g openshell inference set --provider openai --model gpt-4.1-mini
+openshell -g openshell inference get
+```
+
+The bootstrap Pod must also mount the existing OpenShell mTLS files. Delete the
+Pod and any temporary namespace-local copy of the admin OIDC Secret afterward;
+do not mount either credential into the runner or sandbox.
 
 AO workflow HTTP uses `https://runner.apps.cluster-qb5wm.dyn.redhatworkshops.io`. AO workers trust public CAs through certifi and do not trust the OpenShift service CA, so the route uses the cluster ingress certificate. The bearer token is still required.
 
