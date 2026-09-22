@@ -35,11 +35,11 @@ opencode:
   npm: opencode-ai
   version: 1.18.31
   base_image: registry.access.redhat.com/ubi9/ubi-minimal@sha256:34880b64c07f28f64d95737f82f891516de9a3b43583f39970f7bf8e4cfa48b7
-  source_revision: f27e87de8fee52dc69994b8cc6bc031bf466ff2e
-  image: image-registry.openshift-image-registry.svc:5000/agentic-poc/agentic-poc-opencode@sha256:1188e7b0cadb76e4e8a3c58cccc9171d126378c5d5b07c85075f24eef2e2aca0
+  source_revision: ea1d0ef832a8509b2b82787ba8bac34610350b36
+  image: image-registry.openshift-image-registry.svc:5000/agentic-poc/agentic-poc-opencode@sha256:e250856006af9a63b2085dbc9dd82e095bc1904e2762a8dda3ec9f4f8b718451
 runner:
-  source_revision: d7557e0b628363b0c9eb7314aaded4116bba884f
-  image: image-registry.openshift-image-registry.svc:5000/agentic-poc/agentic-poc-runner@sha256:fff0aadb5cf112e8ddc0ad777ea5184ef28e6454256cdc2299b2832428659427
+  source_revision: ea1d0ef832a8509b2b82787ba8bac34610350b36
+  image: image-registry.openshift-image-registry.svc:5000/agentic-poc/agentic-poc-runner@sha256:e54c1a29d64c92f4dc34cb8c3e26c16f05ff033754be31faa2f7065e4d92e0b0
 model:
   provider_type: openai
   base_url: https://api.openai.com/v1
