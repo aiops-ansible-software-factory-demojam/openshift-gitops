@@ -80,6 +80,15 @@ spec:
   egress:
     - type: Allow
       to:
+        cidrSelector: 172.231.0.0/16
+    - type: Allow
+      to:
+        cidrSelector: 10.232.0.0/14
+    - type: Allow
+      to:
+        cidrSelector: 10.10.10.101/32
+    - type: Allow
+      to:
         dnsName: github.com
     - type: Allow
       to:
@@ -102,15 +111,6 @@ spec:
     - type: Allow
       to:
         dnsName: sso.apps.cluster-qb5wm.dyn.redhatworkshops.io
-    - type: Allow
-      to:
-        cidrSelector: 10.10.10.101/32
-    - type: Allow
-      to:
-        cidrSelector: 10.232.0.0/14
-    - type: Allow
-      to:
-        cidrSelector: 172.231.0.0/16
     - type: Deny
       to:
         cidrSelector: 0.0.0.0/0
