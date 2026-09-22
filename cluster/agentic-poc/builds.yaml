@@ -27,7 +27,7 @@ spec:
     type: Git
     git:
       uri: https://github.com/aiops-ansible-software-factory-demojam/openshift-gitops.git
-      ref: 59dd8f3a536ecf9ef3f0840bef62aff06d548715
+      ref: aca9fc838ac24d16c1fcf3138a810fe1dbc3a267
     contextDir: agentic-dev-poc
   strategy:
     type: Docker
@@ -36,7 +36,7 @@ spec:
   output:
     to:
       kind: ImageStreamTag
-      name: agentic-poc-opencode:git-59dd8f3a
+      name: agentic-poc-opencode:git-aca9fc83
   triggers: []
 ---
 apiVersion: build.openshift.io/v1
