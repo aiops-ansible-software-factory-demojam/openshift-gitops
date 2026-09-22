@@ -6,6 +6,7 @@ resources:
   - runner.yaml
   - network.yaml
   - keycloak-realm.yaml
+  - image-pull-rbac.yaml
   - tls-copy-rbac.yaml
   - tls-copy-job.yaml
   - builds.yaml

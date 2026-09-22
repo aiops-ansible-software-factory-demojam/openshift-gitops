@@ -35,6 +35,11 @@ opencode:
   npm: opencode-ai
   version: 1.18.31
   base_image: registry.access.redhat.com/ubi9/ubi-minimal@sha256:34880b64c07f28f64d95737f82f891516de9a3b43583f39970f7bf8e4cfa48b7
+  source_revision: f27e87de8fee52dc69994b8cc6bc031bf466ff2e
+  image: image-registry.openshift-image-registry.svc:5000/agentic-poc/agentic-poc-opencode@sha256:1188e7b0cadb76e4e8a3c58cccc9171d126378c5d5b07c85075f24eef2e2aca0
+runner:
+  source_revision: f27e87de8fee52dc69994b8cc6bc031bf466ff2e
+  image: image-registry.openshift-image-registry.svc:5000/agentic-poc/agentic-poc-runner@sha256:4530ae8cdfb8cfcc111af9aa79f3f3d584978ca86166c9b54354cc2bf8be85d5
 model:
   provider_type: openai
   base_url: https://api.openai.com/v1

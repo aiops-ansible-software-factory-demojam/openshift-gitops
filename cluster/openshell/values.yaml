@@ -53,9 +53,7 @@ server:
   telemetryEnabled: false
   policyValidationFailureMode: fail_closed
   sandboxNamespace: openshell
-  # Replaced by the digest-pinned OpenCode image after it is built.
-  # Gate A can still create sandboxes with the pinned community base image.
-  sandboxImage: ghcr.io/nvidia/openshell-community/sandboxes/base@sha256:aeef1c63f00e2913ea002ccb3aaf925f338b5c5d70e63576f0d95c16a138044e
+  sandboxImage: image-registry.openshift-image-registry.svc:5000/agentic-poc/agentic-poc-opencode@sha256:1188e7b0cadb76e4e8a3c58cccc9171d126378c5d5b07c85075f24eef2e2aca0
   workspaceStorageClass: ocs-external-storagecluster-ceph-rbd
   workspaceDefaultStorageSize: 2Gi
   defaultRuntimeClassName: ""
