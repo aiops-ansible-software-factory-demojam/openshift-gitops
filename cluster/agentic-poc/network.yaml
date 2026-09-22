@@ -58,6 +58,12 @@ spec:
         - protocol: TCP
           port: 443
     - to:
+        - ipBlock:
+            cidr: 10.10.10.101/32
+      ports:
+        - protocol: TCP
+          port: 443
+    - to:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: keycloak
@@ -98,7 +104,7 @@ spec:
         dnsName: sso.apps.cluster-qb5wm.dyn.redhatworkshops.io
     - type: Allow
       to:
-        cidrSelector: 10.10.10.0/24
+        cidrSelector: 10.10.10.101/32
     - type: Allow
       to:
         cidrSelector: 10.232.0.0/14
