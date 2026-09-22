@@ -220,6 +220,7 @@ class CliOpenShell:
     def __init__(self, binary: str = "openshell", gateway: str = "openshell") -> None:
         self.binary = binary
         self.gateway = gateway
+        self._auth_lock = threading.Lock()
 
     def create_sandbox(
         self,
@@ -315,6 +316,11 @@ class CliOpenShell:
     def download(
         self, name: str, remote: str, dest: Path, timeout_seconds: int
     ) -> None:
+        started = time.monotonic()
+        self._authenticate(timeout_seconds)
+        remaining = timeout_seconds - (time.monotonic() - started)
+        if remaining <= 0:
+            raise OpenShellError("openshell timed out: sandbox exec")
         archive = dest.parent / ".workspace-transfer.tar"
         archive.unlink(missing_ok=True)
         command = [
@@ -343,7 +349,7 @@ class CliOpenShell:
             start_new_session=True,
         )
         try:
-            stderr = _receive_bounded(process, archive, timeout_seconds, TRANSFER_BYTES)
+            stderr = _receive_bounded(process, archive, int(remaining), TRANSFER_BYTES)
             if process.returncode != 0:
                 raise OpenShellError(
                     stderr[-500:] or f"openshell exited {process.returncode}"
@@ -418,6 +424,26 @@ class CliOpenShell:
         return names
 
     def _run(
+        self, args: list[str], timeout: int, check: bool = True
+    ) -> subprocess.CompletedProcess[str]:
+        started = time.monotonic()
+        self._authenticate(timeout)
+        remaining = timeout - (time.monotonic() - started)
+        if remaining <= 0:
+            raise OpenShellError(f"openshell timed out: {' '.join(args[:4])}")
+        return self._invoke(args, max(1, int(remaining)), check)
+
+    def _authenticate(self, timeout: int) -> None:
+        if not os.environ.get("OPENSHELL_OIDC_CLIENT_SECRET"):
+            return
+        with self._auth_lock:
+            self._invoke(
+                ["gateway", "login", self.gateway],
+                min(30, max(1, timeout)),
+                True,
+            )
+
+    def _invoke(
         self, args: list[str], timeout: int, check: bool = True
     ) -> subprocess.CompletedProcess[str]:
         command = [self.binary, "-g", self.gateway, *args]

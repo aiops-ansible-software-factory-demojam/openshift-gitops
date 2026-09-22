@@ -123,6 +123,29 @@ class RunnerTest(unittest.TestCase):
             client.wait_ready("demo", 5)
         self.assertEqual(run.call_count, 2)
 
+    def test_cli_renews_machine_oidc_before_each_command(self) -> None:
+        client = CliOpenShell()
+        authenticated = subprocess.CompletedProcess([], 0, "", "")
+        listed = subprocess.CompletedProcess([], 0, '{"sandboxes": []}', "")
+        with patch.dict(
+            os.environ, {"OPENSHELL_OIDC_CLIENT_SECRET": "test-only"}
+        ), patch.object(
+            client,
+            "_invoke",
+            side_effect=[authenticated, listed, authenticated, listed],
+        ) as invoke:
+            self.assertEqual(client.list_managed(), [])
+            self.assertEqual(client.list_managed(), [])
+        self.assertEqual(invoke.call_count, 4)
+        self.assertEqual(
+            invoke.call_args_list[0].args[0],
+            ["gateway", "login", "openshell"],
+        )
+        self.assertEqual(
+            invoke.call_args_list[2].args[0],
+            ["gateway", "login", "openshell"],
+        )
+
     def test_auth_and_prompt_limits(self) -> None:
         status, _ = self.request(
             "POST",
