@@ -589,6 +589,11 @@ def _not_found(completed: subprocess.CompletedProcess[str], name: str) -> bool:
         or re.search(
             r"\bstatus:\s*notfound\b.*\bmessage:\s*[\"']sandbox not found[\"']", detail
         )
+        or re.search(
+            r"\bcode:\s*[\"']some requested entity was not found[\"']"
+            r".*\bmessage:\s*[\"']sandbox not found[\"']",
+            detail,
+        )
     )
 
 

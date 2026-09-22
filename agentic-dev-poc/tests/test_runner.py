@@ -391,6 +391,15 @@ class RunnerTest(unittest.TestCase):
         )
         with patch.object(client, "_run", return_value=absent):
             self.assertFalse(client.exists("owned-sandbox", 1))
+        pinned_absent = subprocess.CompletedProcess(
+            [],
+            1,
+            "",
+            "code: 'Some requested entity was not found', "
+            'message: "sandbox not found"',
+        )
+        with patch.object(client, "_run", return_value=pinned_absent):
+            self.assertFalse(client.exists("owned-sandbox", 1))
         malformed = subprocess.CompletedProcess([], 0, "{}", "")
         with patch.object(client, "_run", return_value=malformed):
             with self.assertRaises(OpenShellError):

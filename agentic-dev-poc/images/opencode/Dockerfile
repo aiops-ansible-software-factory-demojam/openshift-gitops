@@ -2,7 +2,7 @@ FROM registry.access.redhat.com/ubi9/ubi-minimal@sha256:34880b64c07f28f64d95737f
 
 ARG OPENCODE_VERSION=1.18.31
 USER 0
-RUN microdnf install -y python3 python3-pip nodejs npm tar gzip shadow-utils \
+RUN microdnf install -y python3 python3-pip nodejs npm tar gzip shadow-utils findutils \
     && npm install -g "opencode-ai@${OPENCODE_VERSION}" \
     && microdnf clean all \
     && mkdir -p /sandbox/work /opt/agentic-poc \
