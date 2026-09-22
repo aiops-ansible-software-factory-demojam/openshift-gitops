@@ -150,7 +150,7 @@ def main() -> int:
     env["XDG_CONFIG_HOME"] = str(HOME / "config")
     env["XDG_DATA_HOME"] = str(HOME / "data")
     env["XDG_CACHE_HOME"] = str(HOME / "cache")
-    model = env.get("OPENCODE_MODEL", "poc/gpt-4.1-mini")
+    model = env.get("OPENCODE_MODEL", "poc/glm-5.3-flash")
     events = OUT / "events.ndjson"
     event_status = EventStatus()
     exit_code = _stream_process(

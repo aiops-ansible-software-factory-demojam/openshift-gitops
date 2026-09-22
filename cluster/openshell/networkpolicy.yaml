@@ -43,7 +43,7 @@ spec:
           port: 5353
     - to:
         - ipBlock:
-            cidr: 172.231.0.0/16
+            cidr: 172.65.90.0/24
       ports:
         - protocol: TCP
           port: 443

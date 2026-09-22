@@ -9,7 +9,7 @@ spec:
   egress:
     - type: Allow
       to:
-        dnsName: api.openai.com
+        dnsName: opencode.ai
     - type: Allow
       to:
         dnsName: sso.apps.cluster-qb5wm.dyn.redhatworkshops.io
@@ -19,9 +19,11 @@ spec:
     - type: Allow
       to:
         cidrSelector: 10.232.0.0/14
+    # opencode.ai currently resolves inside RFC1918-overlapping 172.16/12,
+    # which the gateway NetworkPolicy deliberately excludes by default.
     - type: Allow
       to:
-        cidrSelector: 172.231.0.0/16
+        cidrSelector: 172.65.90.0/24
     - type: Deny
       to:
         cidrSelector: 0.0.0.0/0

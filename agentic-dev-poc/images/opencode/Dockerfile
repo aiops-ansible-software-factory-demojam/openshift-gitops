@@ -13,7 +13,7 @@ COPY fixtures /opt/agentic-poc/fixtures
 RUN chmod 0555 /opt/agentic-poc/wrapper.py \
     && chmod -R a-w /opt/agentic-poc
 ENV OPENCODE_CONFIG=/opt/agentic-poc/opencode.json \
-    OPENCODE_MODEL=poc/gpt-4.1-mini \
+    OPENCODE_MODEL=poc/glm-5.3-flash \
     HOME=/sandbox/opencode-home
 WORKDIR /sandbox
 USER 1001

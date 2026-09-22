@@ -42,8 +42,9 @@ runner:
   image: image-registry.openshift-image-registry.svc:5000/agentic-poc/agentic-poc-runner@sha256:e54c1a29d64c92f4dc34cb8c3e26c16f05ff033754be31faa2f7065e4d92e0b0
 model:
   provider_type: openai
-  base_url: https://api.openai.com/v1
-  model_id: gpt-4.1-mini
+  provider_name: opencode-go
+  base_url: https://opencode.ai/zen/go/v1
+  model_id: glm-5.3-flash
   credential: agentic-poc-model secret, not stored in this file
 identity:
   issuer: https://sso.apps.cluster-qb5wm.dyn.redhatworkshops.io/realms/agentic-poc
