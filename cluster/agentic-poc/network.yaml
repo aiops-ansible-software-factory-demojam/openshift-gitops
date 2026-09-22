@@ -86,6 +86,9 @@ spec:
         dnsName: registry.npmjs.org
     - type: Allow
       to:
+        dnsName: registry.access.redhat.com
+    - type: Allow
+      to:
         dnsName: cdn-ubi.redhat.com
     - type: Allow
       to:
