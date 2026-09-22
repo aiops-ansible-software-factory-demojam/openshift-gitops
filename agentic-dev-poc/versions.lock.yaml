@@ -6,6 +6,7 @@ openshift:
   runtime: cri-o://1.35.6
   cni: OVNKubernetes
   storage_class: ocs-external-storagecluster-ceph-rbd
+  cli_image: quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:84b0aa6c19cdedba485212a5b599bdb9fd6975d5c808aaf4f115500b782ee600
 automation_orchestrator:
   operator: automation-orchestrator-operator.v2026.8.1789549281
   instance_version: 2026.8.1789549281
