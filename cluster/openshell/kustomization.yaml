@@ -40,7 +40,7 @@ patches:
         value: openshell
       - op: add
         path: /spec/template/metadata/annotations/agentic-poc.io~1config-revision
-        value: opencode-sha256-39948eb861bb56e6
+        value: opencode-sha256-34fa6cf50924ec0b
   - target:
       kind: Job
       name: openshell-certgen

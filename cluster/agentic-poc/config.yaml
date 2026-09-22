@@ -23,7 +23,7 @@ metadata:
   name: runner-config
   namespace: agentic-poc
 data:
-  SANDBOX_IMAGE: image-registry.openshift-image-registry.svc:5000/agentic-poc/agentic-poc-opencode@sha256:39948eb861bb56e678eb3323e6a6020715783d31b51d82e6de598290d12c39f3
+  SANDBOX_IMAGE: image-registry.openshift-image-registry.svc:5000/agentic-poc/agentic-poc-opencode@sha256:34fa6cf50924ec0bd7f4bad3ac24eb05dd5dbf40799364f6fe7261a1c6add691
   MODEL_ID: gpt-4.1-mini
   MODEL_BASE_URL: https://api.openai.com/v1
   OPENSHELL_GATEWAY: openshell
