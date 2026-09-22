@@ -35,8 +35,8 @@ opencode:
   npm: opencode-ai
   version: 1.18.31
   base_image: registry.access.redhat.com/ubi9/ubi-minimal@sha256:34880b64c07f28f64d95737f82f891516de9a3b43583f39970f7bf8e4cfa48b7
-  source_revision: ea1d0ef832a8509b2b82787ba8bac34610350b36
-  image: image-registry.openshift-image-registry.svc:5000/agentic-poc/agentic-poc-opencode@sha256:e250856006af9a63b2085dbc9dd82e095bc1904e2762a8dda3ec9f4f8b718451
+  source_revision: 32ae9fd8fb7b7217adb85c87eb5d2e4c3cb4c05d
+  image: image-registry.openshift-image-registry.svc:5000/agentic-poc/agentic-poc-opencode@sha256:c944b062ab97227e3f5c2b59cd417ab09ffb4dd88320379ea703633584445da1
 runner:
   source_revision: ea1d0ef832a8509b2b82787ba8bac34610350b36
   image: image-registry.openshift-image-registry.svc:5000/agentic-poc/agentic-poc-runner@sha256:e54c1a29d64c92f4dc34cb8c3e26c16f05ff033754be31faa2f7065e4d92e0b0

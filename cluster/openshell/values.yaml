@@ -53,7 +53,7 @@ server:
   telemetryEnabled: false
   policyValidationFailureMode: fail_closed
   sandboxNamespace: openshell
-  sandboxImage: image-registry.openshift-image-registry.svc:5000/agentic-poc/agentic-poc-opencode@sha256:e250856006af9a63b2085dbc9dd82e095bc1904e2762a8dda3ec9f4f8b718451
+  sandboxImage: image-registry.openshift-image-registry.svc:5000/agentic-poc/agentic-poc-opencode@sha256:c944b062ab97227e3f5c2b59cd417ab09ffb4dd88320379ea703633584445da1
   workspaceStorageClass: ocs-external-storagecluster-ceph-rbd
   workspaceDefaultStorageSize: 2Gi
   defaultRuntimeClassName: ""
