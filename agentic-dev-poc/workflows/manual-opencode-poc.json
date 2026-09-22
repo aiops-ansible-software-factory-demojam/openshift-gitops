@@ -108,7 +108,7 @@
           {
             "port": "completed",
             "label": "Completed",
-            "condition": "\"${get_result.body.state}\" == \"completed\" && \"${get_result.body.cleanup.state}\" == \"complete\""
+            "condition": "${get_result.body.state} == 'completed' and ${get_result.body.cleanup.state} == 'complete'"
           }
         ]
       }

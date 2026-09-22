@@ -332,7 +332,11 @@ class RunnerTest(unittest.TestCase):
         )
         classify = next(node for node in workflow["nodes"] if node["id"] == "classify")
         condition = classify["parameters"]["cases"][0]["condition"]
-        self.assertIn("cleanup.state", condition)
+        self.assertEqual(
+            condition,
+            "${get_result.body.state} == 'completed' and "
+            "${get_result.body.cleanup.state} == 'complete'",
+        )
 
     def test_artifact_rejection(self) -> None:
         root = Path(self.tmp.name) / "tree"
