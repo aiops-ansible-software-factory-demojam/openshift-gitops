@@ -503,6 +503,7 @@ class Engine:
         for _ in range(3):
             try:
                 managed = self.client.list_managed()
+                self._reconciliation_error = ""
                 break
             except OpenShellError as exc:
                 self._reconciliation_error = (

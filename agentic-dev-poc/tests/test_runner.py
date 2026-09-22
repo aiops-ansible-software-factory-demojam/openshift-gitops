@@ -395,6 +395,29 @@ class RunnerTest(unittest.TestCase):
             self.engine.accept("next", "", "blocked-by-orphan")
         self.assertEqual(caught.exception.code, "reconciliation_pending")
 
+    def test_inventory_retry_recovers_readiness_after_transient_failure(self) -> None:
+        with patch.object(
+            self.client,
+            "list_managed",
+            side_effect=[OpenShellError("transient inventory failure"), []],
+        ) as inventory:
+            self.engine.reconcile_startup()
+        self.assertEqual(inventory.call_count, 2)
+        self.assertTrue(self.engine.ready())
+
+    def test_persistent_inventory_failure_blocks_readiness(self) -> None:
+        with patch.object(
+            self.client,
+            "list_managed",
+            side_effect=OpenShellError("persistent inventory failure"),
+        ) as inventory:
+            self.engine.reconcile_startup()
+        self.assertEqual(inventory.call_count, 3)
+        self.assertFalse(self.engine.ready())
+        with self.assertRaises(RequestError) as caught:
+            self.engine.accept("next", "", "blocked-by-inventory")
+        self.assertEqual(caught.exception.code, "reconciliation_pending")
+
     def test_observed_exit_and_required_validation_control_outcome(self) -> None:
         self.client.exec_exit_code = 7
         self.client.report_exit_code = 0
