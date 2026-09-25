@@ -2,12 +2,60 @@
 set -euo pipefail
 
 bootstrap_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+repo_root=$(cd -- "$bootstrap_dir/.." && pwd)
 operator_namespace=openshift-gitops-operator
 gitops_namespace=openshift-gitops
 export KUBECONFIG=${KUBECONFIG:-"$HOME/.kube/config"}
 
 oc whoami --show-server
 oc whoami
+
+# Each demo cluster can publish to its own branch so concurrent bootstraps do
+# not overwrite Application targetRevision on main.
+gitops_branch=${BOOTSTRAP_BRANCH:-}
+if [[ -z $gitops_branch ]]; then
+  if [[ -r /dev/tty ]]; then
+    read -r -p 'GitOps publish branch [main]: ' gitops_branch </dev/tty || true
+  fi
+  gitops_branch=${gitops_branch:-main}
+fi
+if ! git check-ref-format --branch "$gitops_branch"; then
+  echo "Invalid GitOps branch name: $gitops_branch" >&2
+  exit 1
+fi
+
+current_branch=$(git -C "$repo_root" branch --show-current)
+if [[ $current_branch != "$gitops_branch" ]]; then
+  if [[ -n $(git -C "$repo_root" status --porcelain) ]]; then
+    echo "Checkout is dirty; commit or stash before switching to $gitops_branch." >&2
+    exit 1
+  fi
+  if git -C "$repo_root" show-ref --verify --quiet "refs/heads/$gitops_branch"; then
+    git -C "$repo_root" checkout "$gitops_branch"
+  elif git -C "$repo_root" show-ref --verify --quiet "refs/remotes/origin/$gitops_branch"; then
+    git -C "$repo_root" checkout --track "origin/$gitops_branch"
+  else
+    git -C "$repo_root" checkout -b "$gitops_branch"
+  fi
+fi
+echo "Publishing GitOps manifests on branch $gitops_branch."
+
+root_revision=$(yq -r '.spec.source.targetRevision' \
+  "$bootstrap_dir/config/root-application.yaml")
+values_revision=$(yq -r '.default.app.source.targetRevision' \
+  "$repo_root/cluster/values.yaml")
+if [[ $root_revision != "$gitops_branch" ||
+      $values_revision != "$gitops_branch" ]]; then
+  bash "$repo_root/scripts/set-gitops-branch.sh" "$gitops_branch"
+fi
+if [[ -n $(git -C "$repo_root" status --porcelain -- \
+  bootstrap/config/root-application.yaml cluster/values.yaml) ]]; then
+  git -C "$repo_root" add -- \
+    bootstrap/config/root-application.yaml cluster/values.yaml
+  git -C "$repo_root" commit -m \
+    "Point GitOps apps at branch $gitops_branch"
+  git -C "$repo_root" push -u origin "HEAD:$gitops_branch"
+fi
 
 # The Route manifests request stable subdomains from this cluster's ingress
 # controller. Forgejo also needs its public URL for links and callbacks.
@@ -61,10 +109,10 @@ done
 oc label namespace keycloak argocd.argoproj.io/managed-by=openshift-gitops --overwrite
 # These namespaces also hold bootstrap-owned Secrets. Create them before the
 # root app so the first child sync can mount the model and encryption keys.
-oc apply -f "$bootstrap_dir/../cluster/openshell/openshell-namespace.yaml"
-oc apply -f "$bootstrap_dir/../cluster/omnigent/omnigent-namespace.yaml"
-oc apply -f "$bootstrap_dir/../cluster/automation-orchestrator/automation-orchestrator-namespace.yaml"
-oc apply -f "$bootstrap_dir/../cluster/forgejo-demo/forgejo-demo-namespace.yaml"
+oc apply -f "$repo_root/cluster/openshell/openshell-namespace.yaml"
+oc apply -f "$repo_root/cluster/omnigent/omnigent-namespace.yaml"
+oc apply -f "$repo_root/cluster/automation-orchestrator/automation-orchestrator-namespace.yaml"
+oc apply -f "$repo_root/cluster/forgejo-demo/forgejo-demo-namespace.yaml"
 oc -n forgejo-demo create configmap forgejo-demo-url \
   --from-literal="root-url=https://forgejo-demo.$ingress_domain/" \
   --dry-run=client -o yaml | oc -n forgejo-demo apply -f -
@@ -82,11 +130,11 @@ bash "$bootstrap_dir/omnigent-auth.sh"
 
 echo 'OpenShift GitOps is healthy; starting the app-of-apps rollout...'
 oc apply -f "$bootstrap_dir/config/root-application.yaml"
-target_revision=$(git -C "$bootstrap_dir/.." rev-parse HEAD)
-published_revision=$(git -C "$bootstrap_dir/.." ls-remote origin refs/heads/main |
+target_revision=$(git -C "$repo_root" rev-parse HEAD)
+published_revision=$(git -C "$repo_root" ls-remote origin "refs/heads/$gitops_branch" |
   cut -f1)
 if [[ "$published_revision" != "$target_revision" ]]; then
-  echo 'Publish the checked-out revision to origin/main before bootstrap.' >&2
+  echo "Publish the checked-out revision to origin/$gitops_branch before bootstrap." >&2
   exit 1
 fi
 oc -n "$gitops_namespace" annotate application cluster \
@@ -210,7 +258,7 @@ sandbox_image_current() {
     -o json | jq -r '[.items[] | select(.status.phase == "Complete")] |
       sort_by(.metadata.creationTimestamp) | last | .spec.revision.git.commit // empty')
   [[ "$built_revision" =~ ^[0-9a-f]{40}$ ]] &&
-    git -C "$bootstrap_dir/.." diff --quiet "$built_revision" HEAD -- \
+    git -C "$repo_root" diff --quiet "$built_revision" HEAD -- \
       cluster/openshell/image
 }
 if ! sandbox_image_current; then
@@ -220,9 +268,17 @@ fi
 sandbox_image_current
 oc -n openshell rollout status statefulset/openshell --timeout=10m
 oc -n omnigent rollout status deployment/omnigent --timeout=10m
+# The Argo CD health check only requires the AutomationOrchestrator Ready
+# condition. Wait for the UI and backend Deployments before publishing the
+# dispatch workflow so the Route has endpoints.
+for deploy in automation-orchestrator-ui automation-orchestrator-backend; do
+  if oc -n automation-orchestrator get "deployment/$deploy" >/dev/null 2>&1; then
+    oc -n automation-orchestrator rollout status "deployment/$deploy" --timeout=10m
+  fi
+done
 oc -n omnigent delete secret omnigent-auth omnigent-machine-client \
   --ignore-not-found
 if [[ ${BOOTSTRAP_RECONCILE_WORKFLOW:-true} == true ]]; then
-  bash "$bootstrap_dir/../cluster/automation-orchestrator/reconcile-omnigent-workflow.sh"
+  bash "$repo_root/cluster/automation-orchestrator/reconcile-omnigent-workflow.sh"
 fi
-echo 'The app-of-apps rollout, sandbox image, and dispatch workflow are ready.'
+echo "The app-of-apps rollout, sandbox image, and dispatch workflow are ready on $gitops_branch."

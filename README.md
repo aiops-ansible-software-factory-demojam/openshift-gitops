@@ -12,15 +12,27 @@ Use an OpenShift cluster with OLM, the Red Hat and certified operator catalogs,
 working ingress, a default RWO StorageClass, and enough capacity for
 Orchestrator, Developer Hub, Forgejo, Omnigent, and their databases. The account
 in `~/.kube/config` needs cluster-admin rights. Install `oc`, `kustomize`, `helm`,
-`yq`, `jq`, `openssl`, `curl`, and `git` locally. The checkout must be on a
-publishable `main` branch at the repository in `cluster/values.yaml`; Argo CD
-reads that remote repository.
+`yq`, `jq`, `openssl`, `curl`, and `git` locally. Argo CD reads the remote
+repository in `cluster/values.yaml`; bootstrap can publish the checkout to a
+branch you choose so concurrent demos do not fight over `main`.
 
 Run:
 
 ```bash
 bash bootstrap/bootstrap.sh
 ```
+
+When prompted, accept `main` or enter a personal branch such as `demo-alice`.
+Noninteractive runs can set the branch explicitly:
+
+```bash
+BOOTSTRAP_BRANCH=demo-alice bash bootstrap/bootstrap.sh
+```
+
+Bootstrap checks out or creates that branch, points Application
+`targetRevision` values at it, commits when needed, and pushes
+`origin/<branch>` before creating the root Argo CD Application. Use a distinct
+branch per cluster when multiple people bootstrap from the same repository.
 
 On the first run, bootstrap uses OpenCode Go at
 `https://opencode.ai/zen/go/v1` with model `kimi-k3` and prompts for its API
@@ -46,9 +58,11 @@ ConfigMap. It does not rewrite or commit cluster-specific hostnames. It installs
 the OpenShift GitOps operator, creates the model, gateway, and Omnigent Route
 credential Secrets, waits for the app-of-apps and OpenCode image build, then
 publishes the `omnigent-dispatch` workflow in Automation Orchestrator. Publish
-the checked-out revision to `main` before running bootstrap. When upgrading a
-demo that used explicit Route hosts, bootstrap recreates those Routes after the
-new GitOps revision is read so OpenShift can assign hosts for this cluster.
+the checked-out revision to the chosen branch before running bootstrap. When
+upgrading a demo that used explicit Route hosts, bootstrap recreates those
+Routes after the new GitOps revision is read so OpenShift can assign hosts for
+this cluster. A dirty checkout must be clean before bootstrap can switch
+branches.
 
 ## Sandbox interface
 
