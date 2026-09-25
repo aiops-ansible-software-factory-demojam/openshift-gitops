@@ -9,7 +9,7 @@ worker labels, or warm pool is used.
 ## Bootstrap
 
 Use an OpenShift cluster with OLM, the Red Hat and certified operator catalogs,
-working ingress, a default RWO StorageClass, and enough capacity for AAP,
+working ingress, a default RWO StorageClass, and enough capacity for
 Orchestrator, Developer Hub, Forgejo, Omnigent, and their databases. The account
 in `~/.kube/config` needs cluster-admin rights. Install `oc`, `kustomize`, `helm`,
 `yq`, `jq`, `openssl`, `curl`, and `git` locally. The checkout must be on a

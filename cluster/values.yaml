@@ -54,15 +54,6 @@ applications:
     source:
       path: cluster/cloudnative-pg
 
-  ansible-automation-platform:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: "10"
-    destination:
-      namespace: ansible-automation-platform
-    source:
-      path: cluster/ansible-automation-platform
-
   automation-orchestrator:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous

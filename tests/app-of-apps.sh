@@ -9,7 +9,7 @@ yq_docs() {
 
 test "$(yq_docs 'select(.kind == "AppProject") | .metadata.name' "$rendered")" = cluster-config
 test "$(yq_docs 'select(.kind == "AppProject") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered")" = -1
-test "$(yq_docs 'select(.kind == "Application") | .metadata.name' "$rendered" | wc -l)" -eq 9
+test "$(yq_docs 'select(.kind == "Application") | .metadata.name' "$rendered" | wc -l)" -eq 8
 test "$(yq_docs 'select(.kind == "Application" and .metadata.name == "cloudnative-pg") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered")" = 0
 test "$(yq_docs 'select(.kind == "Application" and .metadata.name == "openshell") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered")" = 20
 test "$(yq_docs 'select(.kind == "Application" and .metadata.name == "omnigent") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered")" = 30
@@ -37,5 +37,5 @@ done
 test "$(yq_docs 'select(.kind == "ImageStream") | .metadata.annotations."argocd.argoproj.io/sync-wave"' .rendered/openshell.yaml)" = \
   "$(yq_docs 'select(.kind == "BuildConfig") | .metadata.annotations."argocd.argoproj.io/sync-wave"' .rendered/openshell.yaml)"
 
-echo 'The app-of-apps chart renders the project, nine paths and expected waves.'
+echo 'The app-of-apps chart renders the project, eight paths and expected waves.'
 echo 'RHBK adopts the environment Keycloak without managing its database, data or secrets.'
