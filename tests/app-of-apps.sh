@@ -8,6 +8,7 @@ yq_docs() {
 }
 
 test "$(yq_docs 'select(.kind == "AppProject") | .metadata.name' "$rendered")" = cluster-config
+test "$(yq_docs 'select(.kind == "AppProject") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered")" = -1
 test "$(yq_docs 'select(.kind == "Application") | .metadata.name' "$rendered" | wc -l)" -eq 9
 test "$(yq_docs 'select(.kind == "Application" and .metadata.name == "cloudnative-pg") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered")" = 0
 test "$(yq_docs 'select(.kind == "Application" and .metadata.name == "openshell") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered")" = 20
