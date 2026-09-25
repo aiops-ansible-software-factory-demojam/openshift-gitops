@@ -11,7 +11,7 @@ spec:
     type: Git
     git:
       uri: https://github.com/aiops-ansible-software-factory-demojam/openshift-gitops.git
-      ref: demo-qrs5n
+      ref: main
     contextDir: cluster/openshell/image
   strategy:
     type: Docker

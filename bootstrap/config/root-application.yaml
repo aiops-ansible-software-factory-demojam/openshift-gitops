@@ -9,7 +9,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/aiops-ansible-software-factory-demojam/openshift-gitops.git
-    targetRevision: demo-qrs5n
+    targetRevision: main
     path: cluster
   destination:
     server: https://kubernetes.default.svc
