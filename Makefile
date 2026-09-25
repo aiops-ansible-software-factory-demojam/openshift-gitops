@@ -10,7 +10,7 @@ render:
 	done
 
 test: render
-	bash -n bootstrap/bootstrap.sh scripts/*.sh tests/*.sh cluster/agent-sandboxes/cleanup.sh cluster/automation-orchestrator/*.sh
+	bash -n bootstrap/bootstrap.sh scripts/*.sh tests/*.sh cluster/agent-sandboxes/cleanup.sh cluster/automation-orchestrator/*.sh cluster/forgejo-demo/scripts/*.sh
 	bash tests/bootstrap.sh
 	bash tests/app-of-apps.sh
 	bash tests/set-domain.sh
