@@ -37,7 +37,7 @@ Subsequent runs reuse the existing Secret. Delete `omnigent-model` and
 Bootstrap detects the cluster's ingress domain, updates checked-in Route hosts
 when needed, commits that domain change, and pushes `main` before creating the
 root Argo CD Application. It installs the OpenShift GitOps operator, creates the
-two bootstrap Secrets, waits for the app-of-apps and OpenCode image build, then
+model, gateway, and Omnigent account Secrets, waits for the app-of-apps and OpenCode image build, then
 publishes the `omnigent-dispatch` workflow in Automation Orchestrator. A dirty
 checkout must be published first if the ingress domain differs.
 
@@ -71,11 +71,11 @@ Automation Orchestrator workflow
 ```
 
 In Automation Orchestrator, run `omnigent-dispatch` with a task. The workflow
-creates an Omnigent managed session and sends the task to the seeded OpenCode
-agent. Open the Omnigent UI with `oc -n omnigent port-forward svc/omnigent
-8000:8000` to inspect the session. Delete finished sessions in Omnigent to
-remove their sandboxes. The Omnigent and OpenShell APIs are deliberately internal
-and unauthenticated; access to their Kubernetes Services must remain trusted.
+uses an HTTP Basic credential to mint a short-lived Omnigent token, creates a
+managed session, and sends the task to the seeded OpenCode agent. Omnigent has
+an HTTPS Route with accounts login; the initial `demo-admin` password is in the
+`omnigent-auth` Secret. Delete finished sessions in Omnigent to remove their
+sandboxes. The OpenShell gateway remains cluster-internal.
 
 The disposable [Forgejo demo](cluster/forgejo-demo/README.md) supplies the sample
 repository and issue. Bootstrap installs the Forgejo app; seed its users and

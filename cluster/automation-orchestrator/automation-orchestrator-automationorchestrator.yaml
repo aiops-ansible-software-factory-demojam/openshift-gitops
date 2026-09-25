@@ -7,7 +7,7 @@ metadata:
     argocd.argoproj.io/sync-wave: "3"
 spec:
   workflowHttpRequestAllowedHosts:
-    - omnigent.omnigent.svc.cluster.local
+    - omnigent.apps.cluster-8qxkk.dyn.redhatworkshops.io
   postgres:
     host: orchestrator-pg-rw
     port: 5432

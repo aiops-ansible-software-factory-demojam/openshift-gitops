@@ -21,7 +21,31 @@ unset login_payload
 auth_header="Authorization: Bearer $ao_token"
 project_id=$(curl -fsS -H "$auth_header" "$base_url/projects" | jq -r \
   '.resources[] | select(.name == "default") | .id')
-workflow_definition=$(yq -c '.' "$workflow_file")
+credential_name=omnigent-machine-client
+credential_type_id=$(curl -fsS -H "$auth_header" \
+  "$base_url/credential_types?limit=100" | jq -r \
+  '.resources[] | select(.name == "HTTP Basic Auth") | .id')
+credential_id=$(curl -fsS -H "$auth_header" "$base_url/credentials?limit=100" |
+  jq -r --arg name "$credential_name" \
+    '.resources[]? | select(.name == $name) | .id' | head -1)
+if [[ -z "$credential_id" ]]; then
+  client_id=$(oc -n "$namespace" get secret omnigent-machine-client-credential \
+    -o go-template='{{index .data "username" | base64decode}}')
+  client_secret=$(oc -n "$namespace" get secret omnigent-machine-client-credential \
+    -o go-template='{{index .data "password" | base64decode}}')
+  credential_payload=$(jq -n --arg name "$credential_name" \
+    --arg project_id "$project_id" --arg type_id "$credential_type_id" \
+    --arg username "$client_id" --arg password "$client_secret" \
+    '{name:$name,project_id:$project_id,credential_type_id:$type_id,
+      inputs:{username:$username,password:$password}}')
+  unset client_secret
+  credential_id=$(curl -fsS -H "$auth_header" -H 'Content-Type: application/json' \
+    --data-binary @- "$base_url/credentials" <<<"$credential_payload" | jq -er '.id')
+  unset credential_payload
+fi
+workflow_definition=$(yq -c '.' "$workflow_file" | jq -c \
+  --arg credential_id "$credential_id" \
+  '.nodes |= map(if .id == "mint_token" then .parameters.credential_id = $credential_id else . end)')
 validation_payload=$(jq -n --argjson definition "$workflow_definition" \
   '{workflow_definition: $definition}')
 curl -fsS -H "$auth_header" -H 'Content-Type: application/json' \

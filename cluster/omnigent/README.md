@@ -3,7 +3,9 @@
 Omnigent's server creates managed sessions through the internal OpenShell
 gateway. Its session database is a single CNPG instance and artifacts live on a
 5 GiB PVC. The server uses the OpenShell-specific image with the SDK installed;
-it has no Kubernetes runner Job permissions, Kata node selector, or public Route.
+it has no Kubernetes runner Job permissions or Kata node selector. The HTTPS
+Route uses accounts login. Bootstrap generates the initial administrator password
+and a separate machine client for Automation Orchestrator.
 
 Bootstrap creates two Secrets: `omnigent-model` contains the OpenCode inference
 key and generated OpenCode provider config, and `omnigent-agent` contains the
@@ -14,5 +16,5 @@ The key is injected into each OpenShell sandbox and forwarded to OpenCode.
 The gateway registration is a plaintext internal Service endpoint stored in
 `omnigent-gateway-config`. Omnigent's managed host image has an OpenShell egress
 policy admitting the Omnigent callback, selected model endpoints, package
-registry, and the Forgejo demo Service. Use `oc -n omnigent port-forward
-svc/omnigent 8000:8000` to inspect sessions in the UI.
+registry, and the Forgejo demo Service. Open the Omnigent Route to inspect
+sessions in the UI.
