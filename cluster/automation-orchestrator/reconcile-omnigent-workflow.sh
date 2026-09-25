@@ -21,7 +21,7 @@ unset login_payload
 auth_header="Authorization: Bearer $ao_token"
 project_id=$(curl -fsS -H "$auth_header" "$base_url/projects" | jq -r \
   '.resources[] | select(.name == "default") | .id')
-workflow_definition=$(yq -o=json '.' "$workflow_file")
+workflow_definition=$(yq -c '.' "$workflow_file")
 validation_payload=$(jq -n --argjson definition "$workflow_definition" \
   '{workflow_definition: $definition}')
 curl -fsS -H "$auth_header" -H 'Content-Type: application/json' \
