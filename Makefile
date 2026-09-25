@@ -13,6 +13,7 @@ render:
 test: render
 	bash -n bootstrap/*.sh scripts/*.sh tests/*.sh cluster/automation-orchestrator/*.sh cluster/forgejo-demo/scripts/*.sh
 	bash tests/bootstrap.sh
+	bash tests/model-config.sh
 	bash tests/app-of-apps.sh
 	bash tests/set-domain.sh
 	kubeconform -strict -summary -ignore-missing-schemas .rendered/
