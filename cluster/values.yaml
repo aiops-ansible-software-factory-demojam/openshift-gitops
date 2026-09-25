@@ -12,7 +12,7 @@ default:
       server: https://kubernetes.default.svc
     source:
       repoURL: https://github.com/aiops-ansible-software-factory-demojam/openshift-gitops.git
-      targetRevision: main
+      targetRevision: demo-qrs5n
     syncOptions:
       - ApplyOutOfSyncOnly=true
       - PrunePropagationPolicy=foreground
