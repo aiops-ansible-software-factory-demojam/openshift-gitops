@@ -6,7 +6,7 @@ metadata:
   annotations:
     haproxy.router.openshift.io/timeout: 10m
 spec:
-  host: omnigent.apps.cluster-8qxkk.dyn.redhatworkshops.io
+  host: omnigent.apps.cluster-dpx5t.dyn.redhatworkshops.io
   to:
     kind: Service
     name: omnigent
