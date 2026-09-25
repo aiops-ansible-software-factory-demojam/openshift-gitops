@@ -71,6 +71,7 @@ oc label namespace keycloak argocd.argoproj.io/managed-by=openshift-gitops --ove
 # root app so the first child sync can mount the model and encryption keys.
 oc apply -f "$bootstrap_dir/../cluster/openshell/openshell-namespace.yaml"
 oc apply -f "$bootstrap_dir/../cluster/omnigent/omnigent-namespace.yaml"
+oc apply -f "$bootstrap_dir/../cluster/automation-orchestrator/automation-orchestrator-namespace.yaml"
 if ! oc -n openshell get secret openshell-credential-encryption-key >/dev/null 2>&1; then
   umask 077
   scratch=$(mktemp -d)
@@ -81,6 +82,7 @@ if ! oc -n openshell get secret openshell-credential-encryption-key >/dev/null 2
     --dry-run=client -o yaml | oc apply -f -
 fi
 bash "$bootstrap_dir/model-config.sh"
+bash "$bootstrap_dir/omnigent-auth.sh"
 
 echo 'OpenShift GitOps is healthy; starting the app-of-apps rollout...'
 oc apply -f "$bootstrap_dir/config/root-application.yaml"

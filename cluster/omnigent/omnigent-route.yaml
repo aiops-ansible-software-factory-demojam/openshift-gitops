@@ -1,0 +1,15 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: omnigent
+  namespace: omnigent
+spec:
+  host: omnigent.apps.cluster-8qxkk.dyn.redhatworkshops.io
+  to:
+    kind: Service
+    name: omnigent
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

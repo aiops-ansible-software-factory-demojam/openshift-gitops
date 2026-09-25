@@ -29,6 +29,10 @@ spec:
                 name: omnigent-config
             - secretRef:
                 name: omnigent-model
+            - secretRef:
+                name: omnigent-auth
+            - secretRef:
+                name: omnigent-machine-client
           env:
             - name: DATABASE_URL
               valueFrom:

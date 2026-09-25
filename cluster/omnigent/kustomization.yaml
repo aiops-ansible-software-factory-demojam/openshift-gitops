@@ -9,3 +9,4 @@ resources:
   - omnigent-gateway-config-configmap.yaml
   - omnigent-deployment.yaml
   - omnigent-service.yaml
+  - omnigent-route.yaml
