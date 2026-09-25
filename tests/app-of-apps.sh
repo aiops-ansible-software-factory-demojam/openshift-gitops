@@ -41,8 +41,8 @@ if rg -q 'baseUrl:|origin:' cluster/rhdh/app-config-rhdh-configmap.yaml; then
   exit 1
 fi
 test "$(yq_docs 'select(.kind == "AutomationOrchestrator") | .spec.ingress.host' .rendered/automation-orchestrator.yaml)" = null
-test "$(yq_docs 'select(.kind == "AutomationOrchestrator") | .spec.workflowHttpRequestAllowedHosts[0]' .rendered/automation-orchestrator.yaml)" = omnigent.omnigent.svc.cluster.local
-test "$(yq_docs '.nodes[] | select(.id == "create_session") | .parameters.url' cluster/automation-orchestrator/workflows/omnigent-dispatch.yaml)" = http://omnigent.omnigent.svc.cluster.local:8080/v1/sessions
+test "$(yq_docs 'select(.kind == "AutomationOrchestrator") | .spec.workflowHttpRequestAllowedHosts[0]' .rendered/automation-orchestrator.yaml)" = omnigent.omnigent.svc
+test "$(yq_docs '.nodes[] | select(.id == "create_session") | .parameters.url' cluster/automation-orchestrator/workflows/omnigent-dispatch.yaml)" = http://omnigent.omnigent.svc:8080/v1/sessions
 if rg -q 'apps\.cluster-' cluster -g '*.yaml' -g '!**/charts/**'; then
   echo 'A cluster-specific ingress domain remains in a GitOps manifest.' >&2
   exit 1
