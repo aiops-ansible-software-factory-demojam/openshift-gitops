@@ -34,6 +34,7 @@ helmCharts:
       image:
         tag: 0.0.116@sha256:05cf77bbb022a739aed6f22daa0e7e164415f4ab273b5f84319e46d91eb8f645
       supervisor:
+        sideloadMethod: image-volume
         image:
           tag: 0.0.116@sha256:c8c42aef16c200063e32cbf72e553e4ead027085427b555efafd95063ecead42
       agentSandbox:
