@@ -121,6 +121,18 @@ until oc -n openshell get imagestreamtag omnigent-opencode:1.18.32 >/dev/null 2>
   fi
   sleep 15
 done
+source_revision=$(git -C "$bootstrap_dir/.." rev-parse HEAD)
+if ! oc -n openshell get builds -l buildconfig=omnigent-opencode -o json |
+    jq -e --arg revision "$source_revision" \
+      'any(.items[]; .status.phase == "Complete" and
+        .spec.revision.git.commit == $revision)' >/dev/null; then
+  echo 'Building the OpenCode sandbox image from the current Git revision...'
+  oc -n openshell start-build buildconfig/omnigent-opencode --wait --follow
+fi
+oc -n openshell get builds -l buildconfig=omnigent-opencode -o json |
+  jq -e --arg revision "$source_revision" \
+    'any(.items[]; .status.phase == "Complete" and
+      .spec.revision.git.commit == $revision)' >/dev/null
 oc -n openshell rollout status statefulset/openshell --timeout=10m
 oc -n omnigent rollout status deployment/omnigent --timeout=10m
 if [[ ${BOOTSTRAP_RECONCILE_WORKFLOW:-true} == true ]]; then

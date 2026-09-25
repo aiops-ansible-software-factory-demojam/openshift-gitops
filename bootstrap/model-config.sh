@@ -5,6 +5,21 @@ set -euo pipefail
 # GitOps-managed Omnigent Deployment and survive repeat bootstrap runs.
 if oc -n omnigent get secret omnigent-model >/dev/null 2>&1 &&
    oc -n omnigent get secret omnigent-agent >/dev/null 2>&1; then
+  # OpenShell accepts environment values only on one line. Normalize Secrets
+  # created by an earlier bootstrap without changing the existing API key.
+  current_encoded=$(oc -n omnigent get secret omnigent-model -o json |
+    jq -er '.data.OPENCODE_CONFIG_CONTENT')
+  config=$(printf '%s' "$current_encoded" | base64 -d | jq -c .)
+  encoded_config=$(printf '%s' "$config" | base64 -w0)
+  if [[ "$current_encoded" != "$encoded_config" ]]; then
+    oc -n omnigent patch secret omnigent-model --type merge \
+      -p "$(jq -cn --arg value "$encoded_config" \
+        '{data:{OPENCODE_CONFIG_CONTENT:$value}}')" >/dev/null
+    if oc -n omnigent get deployment omnigent >/dev/null 2>&1; then
+      oc -n omnigent rollout restart deployment/omnigent
+    fi
+  fi
+  unset current_encoded config encoded_config
   echo 'Using the existing Omnigent model configuration.'
   exit 0
 fi
@@ -50,7 +65,7 @@ scratch=$(mktemp -d)
 trap 'find "$scratch" -type f -delete; rmdir "$scratch"' EXIT
 printf '%s' "$model_key" >"$scratch/api-key"
 unset model_key
-jq -n --arg base "$base_url" --arg model "$model" --arg package "$package" '
+jq -cn --arg base "$base_url" --arg model "$model" --arg package "$package" '
   {
     "$schema": "https://opencode.ai/config.json",
     model: ("demo/" + $model),
@@ -70,7 +85,7 @@ jq -n --arg base "$base_url" --arg model "$model" --arg package "$package" '
       }
     }
   }
-' >"$scratch/opencode-config.json"
+' | tr -d '\n' >"$scratch/opencode-config.json"
 
 cat >"$scratch/demo.yaml" <<EOF
 name: opencode-go-test

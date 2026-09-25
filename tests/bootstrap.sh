@@ -18,6 +18,11 @@ case "$*" in
   *'.spec.install.spec.deployments[*].name}'*) printf 'openshift-gitops-operator-controller-manager' ;;
   *'.status.sync.status}'*) printf 'Synced' ;;
   *'.status.health.status}'*) printf 'Healthy' ;;
+  *'get secret omnigent-model -o json'*)
+    printf '{"data":{"OPENCODE_CONFIG_CONTENT":"e30="}}' ;;
+  *'get builds -l buildconfig=omnigent-opencode -o json'*)
+    printf '{"items":[{"status":{"phase":"Complete"},"spec":{"revision":{"git":{"commit":"%s"}}}}]}' \
+      "$(git rev-parse HEAD)" ;;
   *'get applications -o custom-columns='*) printf 'cluster Synced Healthy\n' ;;
   *) : ;;
 esac
