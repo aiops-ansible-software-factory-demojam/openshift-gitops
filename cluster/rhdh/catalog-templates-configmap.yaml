@@ -32,6 +32,8 @@ data:
             description:
               title: Description
               type: string
+              maxLength: 160
+              pattern: '^[A-Za-z0-9][A-Za-z0-9 _.,/-]{0,159}$'
       steps:
         - id: generate
           name: Generate repository from the collection template

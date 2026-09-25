@@ -1,3 +1,4 @@
+---
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
@@ -5,7 +6,11 @@ metadata:
   description: ${REPO_DESCRIPTION}
   annotations:
     backstage.io/source-location: url:__FORGEJO_URL__/${REPO_OWNER}/${REPO_NAME}
+  links:
+    - url: __FORGEJO_URL__/${REPO_OWNER}/${REPO_NAME}
+      title: Forgejo repository
+      icon: scm
 spec:
   type: ansible-collection
   lifecycle: experimental
-  owner: user:default/guest
+  owner: user:default/demo-agent

@@ -120,6 +120,9 @@ injected at launch. The agent leaves the pull request for review.
 
 ## Validate and inspect
 
+`make test` also requires `ansible-galaxy` and `ansible-lint` to verify the
+generated collection fixture.
+
 ```bash
 make test
 KUBECONFIG="$HOME/.kube/config" oc -n openshift-gitops get applications

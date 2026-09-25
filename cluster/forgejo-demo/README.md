@@ -49,7 +49,10 @@ source checkout at the same commit for repeatable resets.
 
 - `demo-owner`: maintainer, owns `ansible-collection-demo` and `demo-notes`.
 - `demo-agent`: write collaborator on the collection, able to push branches and open PRs.
-- `demo-agent/ansible-collection-template`: source for the Backstage collection golden path.
+- `demo-agent/ansible-collection-template`: source for the Backstage collection
+  golden path. Based on the homelab `platform/ansible-collection-template`, its
+  fixture includes a starter role, Podman Molecule scenario, collection metadata,
+  and a Devfile. Agent tasks run in OpenShell.
 - `demo-reviewer`: write collaborator on both repositories.
 - `demo-admin`: separate bootstrap administrator.
 
@@ -136,9 +139,11 @@ with `Retain` reclaim policy can leave old PVs behind; reset is not secure erasu
 
 `seed.sh`, `webhook.sh` and `issue.sh` use `FORGEJO_URL` and `FORGEJO_TOKEN` directly.
 Seed needs an admin token; `COLLECTION_SOURCE` is optional. The lifecycle
-wrapper is the only part that invokes `oc`. User/repo seed is additive, not full
-configuration reconciliation. All failures return nonzero without printing API
-response bodies or credentials. Don't run these scripts with shell tracing.
+wrapper is the only part that invokes `oc`. User/repo seed is additive. The
+`demo-agent/ansible-collection-template` repo is reconciled from its fixture
+on each bootstrap, while generated collections are left alone. All failures
+return nonzero without printing API response bodies or credentials. Don't run
+these scripts with shell tracing.
 
 ## Verification
 

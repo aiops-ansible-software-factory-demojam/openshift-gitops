@@ -14,6 +14,7 @@ test: render
 	bash -n bootstrap/*.sh scripts/*.sh tests/*.sh cluster/automation-orchestrator/*.sh cluster/forgejo-demo/scripts/*.sh
 	bash tests/bootstrap.sh
 	bash tests/model-config.sh
+	python3 tests/collection-template.py
 	bash tests/app-of-apps.sh
 	bash tests/set-gitops-branch.sh
 	kubeconform -strict -summary -ignore-missing-schemas .rendered/
