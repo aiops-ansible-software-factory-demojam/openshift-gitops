@@ -9,11 +9,7 @@ data:
   app-config.yaml: |
     app:
       title: Demo Developer Hub
-      baseUrl: https://rhdh.apps.cluster-dpx5t.dyn.redhatworkshops.io
     backend:
-      baseUrl: https://rhdh.apps.cluster-dpx5t.dyn.redhatworkshops.io
-      cors:
-        origin: https://rhdh.apps.cluster-dpx5t.dyn.redhatworkshops.io
       database:
         client: pg
         connection:

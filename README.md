@@ -40,12 +40,15 @@ when the desired values differ from the OpenCode Go defaults. The base URL ends
 at `/v1`, before `/chat/completions`. For another API host, add it to the
 sandbox egress policy in `cluster/openshell/image/policy.yaml`.
 
-Bootstrap detects the cluster's ingress domain, updates checked-in Route hosts
-when needed, commits that domain change, and pushes `main` before creating the
-root Argo CD Application. It installs the OpenShift GitOps operator, creates the
-model, gateway, and Omnigent Route credential Secrets, waits for the app-of-apps and OpenCode image build, then
-publishes the `omnigent-dispatch` workflow in Automation Orchestrator. A dirty
-checkout must be published first if the ingress domain differs.
+Bootstrap reads the cluster's ingress domain. OpenShift assigns the requested
+Route subdomains, and bootstrap supplies Forgejo's public URL through a
+ConfigMap. It does not rewrite or commit cluster-specific hostnames. It installs
+the OpenShift GitOps operator, creates the model, gateway, and Omnigent Route
+credential Secrets, waits for the app-of-apps and OpenCode image build, then
+publishes the `omnigent-dispatch` workflow in Automation Orchestrator. Publish
+the checked-out revision to `main` before running bootstrap. When upgrading a
+demo that used explicit Route hosts, bootstrap recreates those Routes after the
+new GitOps revision is read so OpenShift can assign hosts for this cluster.
 
 ## Sandbox interface
 
@@ -70,7 +73,7 @@ rather than a production security boundary.
 
 ```text
 Automation Orchestrator workflow
-  -> Omnigent API (HTTPS Route)
+  -> Omnigent API (cluster Service)
   -> OpenShell gateway (cluster Service)
   -> OpenCode agent in a container sandbox
   -> OpenCode Go or LiteLLM MaaS with the bootstrap key
@@ -78,10 +81,11 @@ Automation Orchestrator workflow
 
 In Automation Orchestrator, run `omnigent-dispatch` with a task. The workflow
 uses an HTTP Basic credential to mint a short-lived Omnigent token, creates a
-managed session, and sends the task to the seeded OpenCode agent. The Omnigent
-Route uses that generated credential; the internal callback Service remains
-reachable by managed hosts and runners. Delete finished sessions in Omnigent to
-remove their sandboxes. The OpenShell gateway remains cluster-internal.
+managed session through Omnigent's cluster Service, and sends the task to the
+seeded OpenCode agent. The Omnigent Route uses that generated credential for
+external access; the internal callback Service remains reachable by managed
+hosts and runners. Delete finished sessions in Omnigent to remove their
+sandboxes. The OpenShell gateway remains cluster-internal.
 
 The disposable [Forgejo demo](cluster/forgejo-demo/README.md) supplies the sample
 repository and issue. Bootstrap installs the Forgejo app; seed its users and

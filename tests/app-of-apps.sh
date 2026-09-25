@@ -27,8 +27,26 @@ rhbk=.rendered/rhbk.yaml
 test "$(yq_docs 'select(.kind == "Namespace" or .kind == "OperatorGroup" or .kind == "Subscription" or .kind == "Keycloak" or .kind == "Route") | .kind' "$rhbk" | wc -l)" -eq 5
 test "$(yq_docs 'select(.kind == "Secret" or .kind == "Deployment" or .kind == "PersistentVolumeClaim" or .kind == "Cluster") | .kind' "$rhbk" | wc -l)" -eq 0
 test "$(yq_docs 'select(.kind == "Application" and .metadata.name == "rhbk") | .spec.ignoreDifferences[] | .kind' "$rendered")" = Keycloak
-test "$(yq_docs 'select(.kind == "Keycloak") | .spec.hostname.hostname' "$rhbk")" = \
-  "$(yq -r '.spec.hostname.hostname' cluster/rhbk/keycloak.yaml)"
+test "$(yq_docs 'select(.kind == "Keycloak") | .spec.hostname.hostname' "$rhbk")" = null
+test "$(yq_docs 'select(.kind == "Keycloak") | .spec.hostname.strict' "$rhbk")" = false
+test "$(yq_docs 'select(.kind == "Route") | .spec.subdomain' "$rhbk")" = sso
+for app in forgejo-demo omnigent; do
+  test "$(yq_docs 'select(.kind == "Route") | .spec.host' ".rendered/$app.yaml")" = null
+  test "$(yq_docs 'select(.kind == "Route") | .spec.subdomain' ".rendered/$app.yaml")" = "$app"
+done
+test "$(yq_docs 'select(.kind == "Deployment") | .spec.template.spec.containers[0].env[] | select(.name == "FORGEJO__server__ROOT_URL") | .valueFrom.configMapKeyRef.name' .rendered/forgejo-demo.yaml)" = forgejo-demo-url
+test "$(yq_docs 'select(.kind == "Backstage") | .spec.application.route.subdomain' .rendered/rhdh.yaml)" = rhdh
+if rg -q 'baseUrl:|origin:' cluster/rhdh/app-config-rhdh-configmap.yaml; then
+  echo 'The RHDH app config overrides the ingress-derived base URLs.' >&2
+  exit 1
+fi
+test "$(yq_docs 'select(.kind == "AutomationOrchestrator") | .spec.ingress.host' .rendered/automation-orchestrator.yaml)" = null
+test "$(yq_docs 'select(.kind == "AutomationOrchestrator") | .spec.workflowHttpRequestAllowedHosts[0]' .rendered/automation-orchestrator.yaml)" = omnigent.omnigent.svc.cluster.local
+test "$(yq_docs '.nodes[] | select(.id == "create_session") | .parameters.url' cluster/automation-orchestrator/workflows/omnigent-dispatch.yaml)" = http://omnigent.omnigent.svc.cluster.local:8080/v1/sessions
+if rg -q 'apps\.cluster-' cluster -g '*.yaml' -g '!**/charts/**'; then
+  echo 'A cluster-specific ingress domain remains in a GitOps manifest.' >&2
+  exit 1
+fi
 for app in forgejo-demo omnigent; do
   rendered_app=".rendered/$app.yaml"
   test "$(yq_docs 'select(.kind == "PersistentVolumeClaim") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered_app")" = \
