@@ -10,7 +10,7 @@ if ! git check-ref-format --branch "$branch"; then
   exit 1
 fi
 
-yq -i ".spec.source.targetRevision = \"$branch\"" \
+yq -y -i ".spec.source.targetRevision = \"$branch\"" \
   "$root/bootstrap/config/root-application.yaml"
-yq -i ".default.app.source.targetRevision = \"$branch\"" \
+yq -y -i ".default.app.source.targetRevision = \"$branch\"" \
   "$root/cluster/values.yaml"
