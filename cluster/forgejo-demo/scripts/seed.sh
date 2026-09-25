@@ -59,11 +59,13 @@ while IFS= read -r repo; do
   if [[ -z $refs ]]; then
     source=$(jq -r '.source // ""' <<< "$repo")
     [[ $name != ansible-collection-demo || -n $source ]] || source=$COLLECTION_SOURCE
+    [[ $name != ansible-collection-template || -n $source ]] || source=$root/fixtures/collection-template
     work=$tmp/$name
     git init -q -b main "$work"
     if [[ -n $source ]]; then
       # Snapshot tracked HEAD only; omit .git, untracked secrets, and old history.
-      if [[ $source == "$root/fixtures/collection" ]]; then
+      if [[ $source == "$root/fixtures/collection" ||
+            $source == "$root/fixtures/collection-template" ]]; then
         tar -C "$source" --exclude=.git --exclude=.venv --exclude=.ansible --exclude=.cache --exclude=__pycache__ --exclude='*.pyc' --exclude='*.tar.gz' -cf - . | tar -xf - -C "$work"
       else
         git -C "$source" archive HEAD | tar -x -C "$work"
@@ -71,9 +73,31 @@ while IFS= read -r repo; do
     else
       printf '# %s\n\n%s\n' "$name" "$(jq -r .description <<< "$repo")" > "$work/README.md"
     fi
+    find "$work" -type f -not -path '*/.git/*' -print0 |
+      xargs -0 -r sed -i "s|__FORGEJO_URL__|$FORGEJO_URL|g"
     git -C "$work" add .
     git -C "$work" -c user.name='Demo Maintainer' -c user.email=owner@example.test commit -qm 'Seed demo baseline'
     git -C "$work" -c credential.helper= push -q "$FORGEJO_URL/$owner/$name.git" main
+  elif [[ $name == ansible-collection-template ]]; then
+    # This repo is owned by the seed fixture. Reconcile it on every bootstrap
+    # so a changed golden path reaches Forgejo without deleting generated repos.
+    work=$tmp/$name
+    git -c credential.helper= clone -q "$FORGEJO_URL/$owner/$name.git" "$work"
+    find "$work" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf -- {} +
+    tar -C "$root/fixtures/collection-template" --exclude=.git --exclude=.venv \
+      --exclude=.ansible --exclude=.cache --exclude=__pycache__ \
+      --exclude='*.pyc' --exclude='*.tar.gz' -cf - . | tar -xf - -C "$work"
+    find "$work" -type f -not -path '*/.git/*' -print0 |
+      xargs -0 -r sed -i "s|__FORGEJO_URL__|$FORGEJO_URL|g"
+    git -C "$work" add -A
+    if ! git -C "$work" diff --cached --quiet; then
+      git -C "$work" -c user.name='Demo Maintainer' \
+        -c user.email=owner@example.test commit -qm 'Reconcile demo collection template'
+      git -C "$work" -c credential.helper= push -q origin main
+    fi
+  fi
+  if [[ $name == ansible-collection-template ]]; then
+    api PATCH "/repos/$owner/$name" '{"template":true}' >/dev/null
   fi
   while IFS= read -r collaborator; do
     api PUT "/repos/$owner/$name/collaborators/$collaborator" '{"permission":"write"}' >/dev/null

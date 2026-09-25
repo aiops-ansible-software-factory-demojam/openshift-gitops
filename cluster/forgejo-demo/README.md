@@ -12,7 +12,10 @@ The target is your OpenShift cluster, in a dedicated `forgejo-demo` namespace.
 The root app-of-apps creates the `forgejo-demo` child Application, which owns the
 namespace, `nonroot-v2` SCC grant, PVC, workload, Service, and Route. Bootstrap
 reads the cluster's ingress domain and creates the ConfigMap used for Forgejo's
-public URL. The script needs the cluster API URL and the assigned public HTTPS
+public URL. `bootstrap.sh` also seeds the users, three repositories, and the
+example nginx UID issue, then provisions Backstage and sandbox credentials.
+The manual scripts below remain useful for reset and standalone testing.
+The script needs the cluster API URL and the assigned public HTTPS
 Route URL; they must match the GitOps-managed resources.
 
 ```bash
@@ -46,11 +49,16 @@ source checkout at the same commit for repeatable resets.
 
 - `demo-owner`: maintainer, owns `ansible-collection-demo` and `demo-notes`.
 - `demo-agent`: write collaborator on the collection, able to push branches and open PRs.
+- `demo-agent/ansible-collection-template`: source for the Backstage collection
+  golden path. Based on the homelab `platform/ansible-collection-template`, its
+  fixture includes a starter role, Podman Molecule scenario, collection metadata,
+  and a Devfile. Agent tasks run in OpenShell.
 - `demo-reviewer`: write collaborator on both repositories.
 - `demo-admin`: separate bootstrap administrator.
 
 Each repository may have a `source` pointing to a local Git checkout. The default
-collection uses `COLLECTION_SOURCE`; other repos without a source get a README.
+collection uses `COLLECTION_SOURCE`; the collection template uses its checked-in
+fixture; other repos without a source get a README.
 The default lifecycle token and webhook commands assume these default user/repo names.
 If changing them, adjust those commands too.
 
@@ -59,7 +67,9 @@ For this private demo, every password equals the username: `demo-admin`,
 No password files or password environment variables are needed.
 
 Generated API credentials are stored in ignored, private `.state/` files:
-`admin-token` and `agent-token`. Give the agent only `agent-token`, the instance URL, and
+`admin-token`, `agent-token`, and `rhdh-token`. Bootstrap keeps per-cluster copies under
+`.state/<ingress-domain>/` and places scoped tokens in Kubernetes Secrets for
+Backstage and Omnigent. Give a standalone agent only `agent-token`, the instance URL, and
 `demo-owner/ansible-collection-demo`. Its scopes are `write:repository`, `write:issue`,
 and `read:user`, constrained by the user's collaborator permissions. These are
 standalone demo identities.
@@ -96,12 +106,13 @@ A different URL adds an integration; remove a retired destination in the UI.
 The receiver should verify the `X-Forgejo-Signature` HMAC-SHA256 over the raw body,
 filter `X-Forgejo-Event: issues` with action `opened`, and deduplicate deliveries.
 Ignore the agent's subsequent push/PR/comment events as task triggers to avoid loops.
-The agent service itself is external to this bundle. OAuth, SMTP and CI runners are
-not configured. Inspect webhook delivery history under repository Settings → Webhooks.
+The project bootstrap uses Automation Orchestrator and Omnigent for dispatch;
+it does not install this optional webhook. SMTP and CI runners are not configured.
+Inspect webhook delivery history under repository Settings → Webhooks.
 
 Setting `WEBHOOK_URL` and `WEBHOOK_SECRET` during seed/reset restores that integration
-automatically. Issue creation is deliberately separate and creates a new issue on each
-invocation, so a reset does not launch the agent before you are ready.
+automatically. Standalone `seed` and `reset` leave issue creation separate; the
+project bootstrap creates the example issue once after seeding.
 
 ## Reset
 
@@ -128,9 +139,11 @@ with `Retain` reclaim policy can leave old PVs behind; reset is not secure erasu
 
 `seed.sh`, `webhook.sh` and `issue.sh` use `FORGEJO_URL` and `FORGEJO_TOKEN` directly.
 Seed needs an admin token; `COLLECTION_SOURCE` is optional. The lifecycle
-wrapper is the only part that invokes `oc`. User/repo seed is additive, not full
-configuration reconciliation. All failures return nonzero without printing API
-response bodies or credentials. Don't run these scripts with shell tracing.
+wrapper is the only part that invokes `oc`. User/repo seed is additive. The
+`demo-agent/ansible-collection-template` repo is reconciled from its fixture
+on each bootstrap, while generated collections are left alone. All failures
+return nonzero without printing API response bodies or credentials. Don't run
+these scripts with shell tracing.
 
 ## Verification
 

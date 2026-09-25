@@ -12,7 +12,7 @@ host=${FORGEJO_URL#https://}
   echo 'FORGEJO_URL must be an HTTPS URL with a DNS hostname and no path or port.' >&2; exit 2;
 }
 export FORGEJO_URL
-state=$root/.state
+state=${FORGEJO_STATE_DIR:-$root/.state}
 umask 077
 mkdir -p "$state"
 cluster() {
@@ -53,6 +53,10 @@ seed() {
   if [[ ! -s $state/agent-token ]]; then
     oc -n "$namespace" exec deploy/forgejo-demo -- forgejo --config /var/lib/gitea/custom/conf/app.ini admin user generate-access-token --username demo-agent --token-name demo-agent --scopes write:repository,write:issue,read:user --raw > "$state/agent-token.tmp"
     mv "$state/agent-token.tmp" "$state/agent-token"
+  fi
+  if [[ ! -s $state/rhdh-token ]]; then
+    oc -n "$namespace" exec deploy/forgejo-demo -- forgejo --config /var/lib/gitea/custom/conf/app.ini admin user generate-access-token --username demo-agent --token-name demo-rhdh --scopes write:repository,write:user,read:issue --raw > "$state/rhdh-token.tmp"
+    mv "$state/rhdh-token.tmp" "$state/rhdh-token"
   fi
 }
 case ${1:-help} in

@@ -60,7 +60,10 @@ nodes:
     settings:
       timeout: 360
       retry_policy:
-        max_retries: 0
+        max_retries: 12
+        initial_interval: 5
+        max_interval: 20
+        backoff_coefficient: 1.5
 edges:
   - from: start
     to: create_session

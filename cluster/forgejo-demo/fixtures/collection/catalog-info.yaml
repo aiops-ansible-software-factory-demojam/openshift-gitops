@@ -1,0 +1,11 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ansible-collection-demo
+  description: Issue-to-PR example Ansible collection
+  annotations:
+    backstage.io/source-location: url:__FORGEJO_URL__/demo-owner/ansible-collection-demo
+spec:
+  type: ansible-collection
+  lifecycle: experimental
+  owner: user:default/guest

@@ -35,8 +35,10 @@ Bootstrap checks out or creates that branch, points Application
 branch per cluster when multiple people bootstrap from the same repository.
 
 On the first run, bootstrap uses OpenCode Go at
-`https://opencode.ai/zen/go/v1` with model `glm-5.3-flash` and prompts for its API
-key. LiteLLM MaaS uses the same three parameters: base URL, model, and key.
+`https://opencode.ai/zen/go/v1` with model `glm-5.3-flash`. It reads the
+subscription key from the configured `lab_agents/opencode-go-subscription-key`
+1Password item when available, and otherwise prompts for the key. LiteLLM MaaS
+uses the same three parameters: base URL, model, and key.
 For the MaaS example in `/workspace/scratch/litellm.txt`, run:
 
 ```bash
@@ -59,7 +61,8 @@ Route subdomains, and bootstrap supplies Forgejo's public URL through a
 ConfigMap. It does not rewrite or commit cluster-specific hostnames. It installs
 the OpenShift GitOps operator, creates the model, gateway, and Omnigent Route
 credential Secrets, waits for the app-of-apps and OpenCode image build, then
-publishes the `omnigent-dispatch` workflow in Automation Orchestrator. Publish
+publishes the `omnigent-dispatch` workflow in Automation Orchestrator and waits
+for the Backstage templates to appear in the catalog. Publish
 the checked-out revision to the chosen branch before running bootstrap. When
 upgrading a demo that used explicit Route hosts, bootstrap recreates those
 Routes after the new GitOps revision is read so OpenShift can assign hosts for
@@ -104,10 +107,21 @@ hosts and runners. Delete finished sessions in Omnigent to remove their
 sandboxes. The OpenShell gateway remains cluster-internal.
 
 The disposable [Forgejo demo](cluster/forgejo-demo/README.md) supplies the sample
-repository and issue. Bootstrap installs the Forgejo app; seed its users and
-repositories with its documented `demo.sh` commands when needed.
+repository and issue. Bootstrap seeds those resources, creates scoped Forgejo
+credentials for RHDH and Omnigent, and registers two Backstage templates:
+`New Ansible Collection` and `Contribute to the Demo Ansible Collection`.
+The first creates a Forgejo collection repository and catalog entry. The second
+reads an issue and creates its feature branch. Dispatch the existing
+`omnigent-dispatch` workflow with a task such as "Deliver issue #1 in
+demo-owner/ansible-collection-demo as a pull request." The sandbox has
+`demo-goldenpath issue 1`, `demo-goldenpath feature 1`, and
+`demo-goldenpath pr 1 'Title'`; Git authentication and Backstage access are
+injected at launch. The agent leaves the pull request for review.
 
 ## Validate and inspect
+
+`make test` also requires `ansible-galaxy` and `ansible-lint` to verify the
+generated collection fixture.
 
 ```bash
 make test

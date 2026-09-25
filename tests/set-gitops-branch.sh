@@ -4,9 +4,10 @@ cd "$(dirname "$0")/.."
 scratch=$(mktemp -d)
 trap 'rm -r "$scratch"' EXIT
 
-mkdir -p "$scratch/bootstrap/config" "$scratch/cluster" "$scratch/scripts"
+mkdir -p "$scratch/bootstrap/config" "$scratch/cluster/openshell" "$scratch/scripts"
 cp bootstrap/config/root-application.yaml "$scratch/bootstrap/config/"
 cp cluster/values.yaml "$scratch/cluster/"
+cp cluster/openshell/omnigent-opencode-buildconfig.yaml "$scratch/cluster/openshell/"
 cp scripts/set-gitops-branch.sh "$scratch/scripts/"
 
 bash "$scratch/scripts/set-gitops-branch.sh" demo-alice
