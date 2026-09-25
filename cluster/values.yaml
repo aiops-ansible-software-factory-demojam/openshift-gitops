@@ -32,6 +32,8 @@ default:
 projects:
   cluster-config:
     description: Demo cluster configuration
+    annotations:
+      argocd.argoproj.io/sync-wave: '-1'
     sourceRepos:
       - https://github.com/aiops-ansible-software-factory-demojam/openshift-gitops.git
     destinations: |
