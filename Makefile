@@ -4,14 +4,13 @@ render:
 	@mkdir -p .rendered
 	kustomize build bootstrap > .rendered/bootstrap.yaml
 	kustomize build --enable-helm cluster > .rendered/cluster.yaml
-	kustomize build forgejo-demo/manifests > .rendered/forgejo-demo.yaml
 	@for app in cluster/*/; do \
 		echo "Rendering $$app"; \
 		kustomize build --enable-helm --helm-kube-version v1.31.0 "$$app" > ".rendered/$$(basename "$$app").yaml" || exit 1; \
 	done
 
 test: render
-	bash -n bootstrap/bootstrap.sh scripts/*.sh tests/*.sh cluster/agent-sandboxes/cleanup.sh cluster/automation-orchestrator/*.sh forgejo-demo/scripts/*.sh
+	bash -n bootstrap/bootstrap.sh scripts/*.sh tests/*.sh cluster/agent-sandboxes/cleanup.sh cluster/automation-orchestrator/*.sh cluster/forgejo-demo/scripts/*.sh
 	bash tests/bootstrap.sh
 	bash tests/app-of-apps.sh
 	bash tests/set-domain.sh

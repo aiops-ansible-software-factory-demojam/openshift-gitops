@@ -23,8 +23,12 @@ cluster() {
     echo 'Unexpected cluster; check EXPECTED_SERVER before continuing.' >&2; exit 2;
   }
 }
-render() {
-  kustomize build "$root/manifests" | sed "s/forgejo-demo.apps.example.com/$host/g"
+route() {
+  local route_host
+  route_host=$(oc -n "$namespace" get route forgejo-demo -o jsonpath='{.spec.host}')
+  [[ $FORGEJO_URL == "https://$route_host" ]] || {
+    echo 'FORGEJO_URL does not match the GitOps-managed Route host.' >&2; exit 2;
+  }
 }
 bootstrap() {
   # Inspect usernames only; never read Kubernetes Secrets.
@@ -51,15 +55,19 @@ seed() {
   fi
 }
 case ${1:-help} in
-  render) render ;;
   deploy)
     cluster
-    render | oc apply -f -
+    oc -n openshift-gitops get applications.argoproj.io forgejo-demo >/dev/null || {
+      echo 'Sync the root GitOps application to create forgejo-demo first.' >&2; exit 2;
+    }
+    oc -n openshift-gitops wait --for=jsonpath='{.status.sync.status}'=Synced \
+      applications.argoproj.io/forgejo-demo --timeout=600s
     oc -n "$namespace" rollout status deploy/forgejo-demo --timeout=300s
+    route
     bootstrap
     echo "Ready at $FORGEJO_URL; credentials in $state (mode 600)."
     ;;
-  seed) cluster; seed ;;
+  seed) cluster; route; seed ;;
   reset)
     [[ ${2:-} == --confirm-forgejo-demo ]] || { echo 'Usage: demo.sh reset --confirm-forgejo-demo (erases demo data)' >&2; exit 2; }
     COLLECTION_SOURCE=${COLLECTION_SOURCE:-$root/fixtures/collection}
@@ -67,13 +75,27 @@ case ${1:-help} in
     [[ -f $COLLECTION_SOURCE/galaxy.yml ]] || exit 2
     cluster
     [[ $(oc get namespace "$namespace" -o jsonpath='{.metadata.labels.app\.kubernetes\.io/part-of}') == forgejo-demo ]] || exit 2
+    route
+    [[ $(oc -n openshift-gitops get applications.argoproj.io forgejo-demo -o jsonpath='{.spec.syncPolicy.automated.selfHeal}') == true ]] || {
+      echo 'forgejo-demo must have GitOps self-heal enabled for reset.' >&2; exit 2;
+    }
+    old_uid=$(oc -n "$namespace" get pvc forgejo-demo -o jsonpath='{.metadata.uid}')
     oc -n "$namespace" scale deploy/forgejo-demo --replicas=0
     oc -n "$namespace" wait --for=delete pod -l app=forgejo-demo --timeout=180s
     oc -n "$namespace" delete pvc forgejo-demo --wait=true --timeout=180s
     rm -f "$state/admin-token" "$state/admin-token.tmp" "$state/agent-token" "$state/agent-token.tmp"
-    render | oc apply -f -
+    new_uid=
+    for ((attempt = 0; attempt < 60; attempt++)); do
+      new_uid=$(oc -n "$namespace" get pvc forgejo-demo -o jsonpath='{.metadata.uid}' 2>/dev/null || true)
+      [[ -n $new_uid && $new_uid != "$old_uid" ]] && break
+      sleep 5
+    done
+    [[ -n $new_uid && $new_uid != "$old_uid" ]] || {
+      echo 'GitOps did not recreate the demo PVC within five minutes.' >&2; exit 1;
+    }
+    oc -n "$namespace" scale deploy/forgejo-demo --replicas=1
     oc -n "$namespace" rollout status deploy/forgejo-demo --timeout=300s
     seed
     ;;
-  *) echo 'Usage: demo.sh render | deploy | seed | reset --confirm-forgejo-demo' ;;
+  *) echo 'Usage: demo.sh deploy | seed | reset --confirm-forgejo-demo' ;;
 esac

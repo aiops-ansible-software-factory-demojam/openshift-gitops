@@ -3,7 +3,7 @@ kind: Route
 metadata:
   name: forgejo-demo
 spec:
-  host: forgejo-demo.apps.example.com
+  host: forgejo-demo.apps.cluster-qb5wm.dyn.redhatworkshops.io
   to:
     kind: Service
     name: forgejo-demo

@@ -2,6 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: forgejo-demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   replicas: 1
   strategy:
@@ -42,7 +44,7 @@ spec:
             - name: FORGEJO__service__DISABLE_REGISTRATION
               value: "true"
             - name: FORGEJO__server__ROOT_URL
-              value: https://forgejo-demo.apps.example.com/
+              value: https://forgejo-demo.apps.cluster-qb5wm.dyn.redhatworkshops.io/
             - name: FORGEJO__server__DISABLE_SSH
               value: "true"
             - name: FORGEJO__webhook__ALLOWED_HOST_LIST
