@@ -20,32 +20,16 @@ triggers:
             minLength: 1
             maxLength: 4000
 nodes:
-  - id: mint_token
-    name: Mint Omnigent access token
+  - id: create_session
+    name: Create managed sandbox session
     type: http_request
     position:
       x: 300
       y: 300
     parameters:
       method: POST
-      url: https://omnigent.apps.cluster-8qxkk.dyn.redhatworkshops.io/oauth/token
-      headers:
-        Content-Type: application/x-www-form-urlencoded
-      body: grant_type=client_credentials
-    settings:
-      retry_policy:
-        max_retries: 0
-  - id: create_session
-    name: Create managed sandbox session
-    type: http_request
-    position:
-      x: 600
-      y: 300
-    parameters:
-      method: POST
       url: https://omnigent.apps.cluster-8qxkk.dyn.redhatworkshops.io/v1/sessions
       headers:
-        Authorization: Bearer ${mint_token.body.access_token}
         Content-Type: application/json
       body:
         agent_id: DEMO_AGENT_ID
@@ -59,13 +43,12 @@ nodes:
     name: Send task to agent
     type: http_request
     position:
-      x: 900
+      x: 600
       y: 300
     parameters:
       method: POST
       url: https://omnigent.apps.cluster-8qxkk.dyn.redhatworkshops.io/v1/sessions/${create_session.body.id}/events
       headers:
-        Authorization: Bearer ${mint_token.body.access_token}
         Content-Type: application/json
       body:
         type: message
@@ -80,8 +63,6 @@ nodes:
         max_retries: 0
 edges:
   - from: start
-    to: mint_token
-  - from: mint_token
     to: create_session
   - from: create_session
     to: send_task

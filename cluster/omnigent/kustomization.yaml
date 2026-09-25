@@ -7,6 +7,7 @@ resources:
   - omnigent-config-configmap.yaml
   - omnigent-sandbox-config-configmap.yaml
   - omnigent-gateway-config-configmap.yaml
+  - omnigent-proxy-config-configmap.yaml
   - omnigent-deployment.yaml
   - omnigent-service.yaml
   - omnigent-route.yaml

@@ -44,16 +44,15 @@ if [[ -z "$credential_id" ]]; then
 fi
 omnigent_host=$(oc -n omnigent get route omnigent -o jsonpath='{.spec.host}')
 omnigent_url="https://$omnigent_host"
-omnigent_token=$(curl -fsS --user "$client_id:$client_secret" \
-  -d grant_type=client_credentials "$omnigent_url/oauth/token" | jq -er '.access_token')
-unset client_secret
-agent_id=$(curl -fsS -H "Authorization: Bearer $omnigent_token" \
+agent_id=$(curl -fsS --user "$client_id:$client_secret" \
   "$omnigent_url/v1/agents" | jq -er '.data[] | select(.name == "demo") | .id')
-unset omnigent_token
+unset client_secret
 workflow_definition=$(yq -c '.' "$workflow_file" | jq -c \
   --arg credential_id "$credential_id" --arg agent_id "$agent_id" \
-  '.nodes |= map(if .id == "mint_token" then .parameters.credential_id = $credential_id
-    elif .id == "create_session" then .parameters.body.agent_id = $agent_id
+  '.nodes |= map(if .id == "create_session" then
+      .parameters.credential_id = $credential_id |
+      .parameters.body.agent_id = $agent_id
+    elif .id == "send_task" then .parameters.credential_id = $credential_id
     else . end)')
 validation_payload=$(jq -n --argjson definition "$workflow_definition" \
   '{workflow_definition: $definition}')

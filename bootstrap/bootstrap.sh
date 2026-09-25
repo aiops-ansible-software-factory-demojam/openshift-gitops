@@ -137,6 +137,8 @@ fi
 sandbox_image_current
 oc -n openshell rollout status statefulset/openshell --timeout=10m
 oc -n omnigent rollout status deployment/omnigent --timeout=10m
+oc -n omnigent delete secret omnigent-auth omnigent-machine-client \
+  --ignore-not-found
 if [[ ${BOOTSTRAP_RECONCILE_WORKFLOW:-true} == true ]]; then
   bash "$bootstrap_dir/../cluster/automation-orchestrator/reconcile-omnigent-workflow.sh"
 fi

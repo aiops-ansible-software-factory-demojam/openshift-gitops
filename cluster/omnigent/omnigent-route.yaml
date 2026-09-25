@@ -3,13 +3,15 @@ kind: Route
 metadata:
   name: omnigent
   namespace: omnigent
+  annotations:
+    haproxy.router.openshift.io/timeout: 10m
 spec:
   host: omnigent.apps.cluster-8qxkk.dyn.redhatworkshops.io
   to:
     kind: Service
     name: omnigent
   port:
-    targetPort: http
+    targetPort: proxy
   tls:
     termination: edge
     insecureEdgeTerminationPolicy: Redirect
