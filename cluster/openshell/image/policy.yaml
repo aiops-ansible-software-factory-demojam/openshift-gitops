@@ -12,6 +12,8 @@ filesystem_policy:
   read_write:
     - /tmp
     - /dev/null
+    - /dev/pts
+    - /dev/ptmx
 network_policies:
   omnigent:
     endpoints:
