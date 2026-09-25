@@ -33,8 +33,8 @@ unset FORGEJO_TOKEN
 umask 077
 scratch=$(mktemp -d)
 trap 'find "$scratch" -type f -delete; rmdir "$scratch"' EXIT
-cp "$state_dir/agent-token" "$scratch/token"
-cp "$state_dir/rhdh-token" "$scratch/rhdh-token"
+tr -d '\r\n' <"$state_dir/agent-token" >"$scratch/token"
+tr -d '\r\n' <"$state_dir/rhdh-token" >"$scratch/rhdh-token"
 printf 'demo-agent' >"$scratch/username"
 printf 'http://forgejo-demo.forgejo-demo.svc.cluster.local:3000' >"$scratch/forgejo-url"
 printf 'http://backstage-rhdh-developer-hub.rhdh.svc.cluster.local:80' >"$scratch/backstage-url"
