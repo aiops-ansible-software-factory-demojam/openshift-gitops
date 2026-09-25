@@ -17,6 +17,7 @@ case "$*" in
   *'.status.installedCSV}'*) printf 'openshift-gitops-operator.v1.21.0' ;;
   *'.spec.install.spec.deployments[*].name}'*) printf 'openshift-gitops-operator-controller-manager' ;;
   *'.status.sync.status}'*) printf 'Synced' ;;
+  *'.status.sync.revision}'*) git rev-parse HEAD ;;
   *'.status.health.status}'*) printf 'Healthy' ;;
   *'get secret omnigent-model -o json'*)
     printf '{"data":{"OPENCODE_CONFIG_CONTENT":"e30="}}' ;;
@@ -32,6 +33,17 @@ case "$*" in
 esac
 MOCK
 chmod +x "$scratch/oc"
+
+cat >"$scratch/git" <<'MOCK_GIT'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ "$*" == *'ls-remote origin refs/heads/main' ]]; then
+  printf '%s\trefs/heads/main\n' "$(/usr/bin/git rev-parse HEAD)"
+else
+  exec /usr/bin/git "$@"
+fi
+MOCK_GIT
+chmod +x "$scratch/git"
 
 BOOTSTRAP_RECONCILE_WORKFLOW=false PATH="$scratch:$PATH" \
   bash bootstrap/bootstrap.sh >/dev/null

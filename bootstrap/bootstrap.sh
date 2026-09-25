@@ -86,6 +86,15 @@ bash "$bootstrap_dir/omnigent-auth.sh"
 
 echo 'OpenShift GitOps is healthy; starting the app-of-apps rollout...'
 oc apply -f "$bootstrap_dir/config/root-application.yaml"
+target_revision=$(git -C "$bootstrap_dir/.." rev-parse HEAD)
+published_revision=$(git -C "$bootstrap_dir/.." ls-remote origin refs/heads/main |
+  cut -f1)
+if [[ "$published_revision" != "$target_revision" ]]; then
+  echo 'Publish the checked-out revision to origin/main before bootstrap.' >&2
+  exit 1
+fi
+oc -n "$gitops_namespace" annotate application cluster \
+  argocd.argoproj.io/refresh=hard --overwrite
 
 echo 'Waiting for Argo CD to refresh the root application...'
 until [[ $(oc -n "$gitops_namespace" get application cluster \
@@ -97,7 +106,9 @@ deadline=$((SECONDS + 3600))
 until [[ $(oc -n "$gitops_namespace" get application cluster \
   -o jsonpath='{.status.sync.status}') == Synced ]] && \
   [[ $(oc -n "$gitops_namespace" get application cluster \
-  -o jsonpath='{.status.health.status}') == Healthy ]]; do
+  -o jsonpath='{.status.health.status}') == Healthy ]] && \
+  [[ $(oc -n "$gitops_namespace" get application cluster \
+  -o jsonpath='{.status.sync.revision}') == "$target_revision" ]]; do
   oc -n "$gitops_namespace" get applications \
     -o custom-columns=NAME:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status
   if (( SECONDS >= deadline )); then
@@ -109,6 +120,24 @@ done
 
 oc -n "$gitops_namespace" get applications \
   -o custom-columns=NAME:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status
+
+for app in openshell omnigent automation-orchestrator; do
+  oc -n "$gitops_namespace" annotate application "$app" \
+    argocd.argoproj.io/refresh=hard --overwrite
+  deadline=$((SECONDS + 1800))
+  until [[ $(oc -n "$gitops_namespace" get application "$app" \
+    -o jsonpath='{.status.sync.revision}') == "$target_revision" ]] && \
+    [[ $(oc -n "$gitops_namespace" get application "$app" \
+    -o jsonpath='{.status.sync.status}') == Synced ]] && \
+    [[ $(oc -n "$gitops_namespace" get application "$app" \
+    -o jsonpath='{.status.health.status}') == Healthy ]]; do
+    if (( SECONDS >= deadline )); then
+      echo "Timed out waiting for $app to sync $target_revision." >&2
+      exit 1
+    fi
+    sleep 10
+  done
+done
 
 echo 'Waiting for the OpenCode sandbox image build...'
 deadline=$((SECONDS + 1800))
