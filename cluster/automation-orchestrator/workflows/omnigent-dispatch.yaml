@@ -28,7 +28,7 @@ nodes:
       y: 300
     parameters:
       method: POST
-      url: https://omnigent.apps.cluster-dpx5t.dyn.redhatworkshops.io/v1/sessions
+      url: http://omnigent.omnigent.svc.cluster.local:8080/v1/sessions
       headers:
         Content-Type: application/json
       body:
@@ -47,7 +47,7 @@ nodes:
       y: 300
     parameters:
       method: POST
-      url: https://omnigent.apps.cluster-dpx5t.dyn.redhatworkshops.io/v1/sessions/${create_session.body.id}/events
+      url: http://omnigent.omnigent.svc.cluster.local:8080/v1/sessions/${create_session.body.id}/events
       headers:
         Content-Type: application/json
       body:

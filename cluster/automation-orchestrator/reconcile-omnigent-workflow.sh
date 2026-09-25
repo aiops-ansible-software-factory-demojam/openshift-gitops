@@ -8,7 +8,9 @@ workflow_file="$script_dir/workflows/omnigent-dispatch.yaml"
 
 oc whoami --show-server
 oc whoami
-route_host=$(oc -n "$namespace" get route automation-orchestrator -o jsonpath='{.spec.host}')
+route_host=$(oc -n "$namespace" get route automation-orchestrator \
+  -o jsonpath='{.status.ingress[0].host}')
+[[ -n "$route_host" ]] || { echo 'Automation Orchestrator Route has no assigned host.' >&2; exit 1; }
 base_url="https://$route_host/api/v1"
 admin_password=$(oc -n "$namespace" get secret automation-orchestrator-admin-password \
   -o go-template='{{index .data "password" | base64decode}}')
@@ -42,7 +44,9 @@ if [[ -z "$credential_id" ]]; then
     --data-binary @- "$base_url/credentials" <<<"$credential_payload" | jq -er '.id')
   unset credential_payload
 fi
-omnigent_host=$(oc -n omnigent get route omnigent -o jsonpath='{.spec.host}')
+omnigent_host=$(oc -n omnigent get route omnigent \
+  -o jsonpath='{.status.ingress[0].host}')
+[[ -n "$omnigent_host" ]] || { echo 'Omnigent Route has no assigned host.' >&2; exit 1; }
 omnigent_url="https://$omnigent_host"
 agent_id=$(curl -fsS --user "$client_id:$client_secret" \
   "$omnigent_url/v1/agents" | jq -er '.data[] | select(.name == "demo") | .id')

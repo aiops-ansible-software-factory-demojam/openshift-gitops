@@ -4,9 +4,7 @@ cd "$(dirname "$0")/.."
 scratch=$(mktemp -d)
 trap 'find "$scratch" -type f -delete; rmdir "$scratch"' EXIT
 export BOOTSTRAP_TEST_LOG="$scratch/oc.log"
-export BOOTSTRAP_TEST_DOMAIN
-BOOTSTRAP_TEST_DOMAIN=$(yq -r '.spec.hostname.hostname' cluster/rhbk/keycloak.yaml)
-BOOTSTRAP_TEST_DOMAIN=${BOOTSTRAP_TEST_DOMAIN#*.}
+export BOOTSTRAP_TEST_DOMAIN=apps.demo.example.test
 
 cat >"$scratch/oc" <<'MOCK'
 #!/usr/bin/env bash
@@ -19,6 +17,19 @@ case "$*" in
   *'.status.sync.status}'*) printf 'Synced' ;;
   *'.status.sync.revision}'*) git rev-parse HEAD ;;
   *'.status.health.status}'*) printf 'Healthy' ;;
+  *'get route '*'.spec.host}'*) printf 'old.apps.previous.example.test' ;;
+  *'get route '*'.status.ingress[0].host}'*)
+    printf 'old.apps.previous.example.test' ;;
+  *'get route '*'-o json'*)
+    command_line=$*
+    route_name=${command_line#*get route }
+    route_name=${route_name%% *}
+    if rg -q "delete route $route_name --wait=true" "$BOOTSTRAP_TEST_LOG"; then
+      printf '{"spec":{"host":""},"status":{"ingress":[{"host":"%s"}]}}' \
+        "demo.$BOOTSTRAP_TEST_DOMAIN"
+    else
+      printf '{"spec":{"host":"old.apps.previous.example.test"},"status":{"ingress":[{"host":"old.apps.previous.example.test"}]}}'
+    fi ;;
   *'get secret omnigent-model -o json'*)
     printf '{"data":{"OPENCODE_CONFIG_CONTENT":"e30="}}' ;;
   *'get secret omnigent-machine-client-credential -o go-template='*'username'* )
@@ -54,6 +65,7 @@ subscription_line=$(line 'apply -f .*openshift-gitops-operator-subscription.yaml
 argocd_line=$(line 'apply --server-side --force-conflicts -f .*openshift-gitops-argocd.yaml')
 permissions_line=$(line 'apply -f .*openshift-gitops-cluster-permissions.yaml')
 model_line=$(line 'get secret omnigent-model')
+forgejo_url_line=$(line 'create configmap forgejo-demo-url')
 root_line=$(line 'apply -f .*root-application.yaml')
 image_line=$(line 'get imagestreamtag omnigent-opencode:1.18.32')
 
@@ -61,10 +73,14 @@ test "$namespace_line" -lt "$subscription_line"
 test "$subscription_line" -lt "$argocd_line"
 test "$argocd_line" -lt "$permissions_line"
 test "$permissions_line" -lt "$model_line"
+test "$permissions_line" -lt "$forgejo_url_line"
+test "$forgejo_url_line" -lt "$root_line"
 test "$model_line" -lt "$root_line"
 test "$root_line" -lt "$image_line"
 test "$(rg -c 'rollout status deployment/openshift-gitops-operator-controller-manager' "$BOOTSTRAP_TEST_LOG")" -eq 1
 test "$(rg -c 'rollout status statefulset/openshell' "$BOOTSTRAP_TEST_LOG")" -eq 1
 test "$(rg -c 'rollout status deployment/omnigent' "$BOOTSTRAP_TEST_LOG")" -eq 1
+rg -q 'root-url=https://forgejo-demo.apps.demo.example.test/' "$BOOTSTRAP_TEST_LOG"
+test "$(rg -c 'delete route .*--wait=true' "$BOOTSTRAP_TEST_LOG")" -eq 5
 
-echo 'Bootstrap installs GitOps, creates model configuration, and waits for the sandbox image.'
+echo 'Bootstrap derives Forgejo URL, migrates legacy Routes, and waits for the sandbox image.'

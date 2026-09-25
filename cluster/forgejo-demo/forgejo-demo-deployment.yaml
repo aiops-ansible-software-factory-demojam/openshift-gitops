@@ -44,7 +44,10 @@ spec:
             - name: FORGEJO__service__DISABLE_REGISTRATION
               value: "true"
             - name: FORGEJO__server__ROOT_URL
-              value: https://forgejo-demo.apps.cluster-dpx5t.dyn.redhatworkshops.io/
+              valueFrom:
+                configMapKeyRef:
+                  name: forgejo-demo-url
+                  key: root-url
             - name: FORGEJO__server__DISABLE_SSH
               value: "true"
             - name: FORGEJO__webhook__ALLOWED_HOST_LIST

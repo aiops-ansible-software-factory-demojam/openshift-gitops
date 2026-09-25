@@ -3,7 +3,7 @@ kind: Route
 metadata:
   name: forgejo-demo
 spec:
-  host: forgejo-demo.apps.cluster-dpx5t.dyn.redhatworkshops.io
+  subdomain: forgejo-demo
   to:
     kind: Service
     name: forgejo-demo

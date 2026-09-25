@@ -7,7 +7,7 @@ metadata:
     argocd.argoproj.io/sync-wave: "3"
 spec:
   workflowHttpRequestAllowedHosts:
-    - omnigent.apps.cluster-dpx5t.dyn.redhatworkshops.io
+    - omnigent.omnigent.svc.cluster.local
   postgres:
     host: orchestrator-pg-rw
     port: 5432
@@ -22,7 +22,6 @@ spec:
         name: temporal-pg-credentials
   ingress:
     type: Route
-    host: orchestrator.apps.cluster-dpx5t.dyn.redhatworkshops.io
   secrets:
     initialAdminPasswordSecretRef:
       name: automation-orchestrator-admin-password
