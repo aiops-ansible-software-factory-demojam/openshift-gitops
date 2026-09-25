@@ -1,13 +1,17 @@
 # Demo OpenShift GitOps
 
-A disposable, single-cluster demo environment, using the OLM, Kustomize and
-ArgoCD app-of-apps patterns from `igou-openshift`.
+A disposable, single-cluster demo environment using OLM, Kustomize, and
+ArgoCD app-of-apps.
 
 Everything lives under `cluster/<app>`. `cluster/kustomization.yaml` renders the
 vendored `argocd-app-of-app` Helm chart with `cluster/values.yaml`, producing
-one AppProject and nine child Applications. Each child renders its own directory.
-There are no cluster overlays, ESO dependencies, S3 buckets, backups or
-lab-specific storage classes. All PVCs use the cluster's default StorageClass.
+one AppProject and ten child Applications. Each child renders its own directory.
+There are no cluster overlays, ESO dependencies, S3 buckets, backups, or
+custom storage classes. All PVCs use the cluster's default StorageClass.
+
+The [Forgejo issue-to-PR demo](cluster/forgejo-demo/README.md) runs in its own
+namespace as a GitOps child application. Its reset command replaces only its PVC;
+ArgoCD restores that PVC and ignores the temporary Deployment replica change.
 
 ## First deployment
 
@@ -34,7 +38,7 @@ placeholder):
 bash scripts/set-domain.sh apps.your-demo-cluster.example.com
 ```
 
-This updates Orchestrator, Developer Hub, Forgejo and Keycloak hosts. Review
+This updates Orchestrator, Developer Hub, both Forgejo hosts, and Keycloak. Review
 and publish those changes to `main`. ArgoCD reads GitHub, not your local
 working tree. AAP and ArgoCD use operator-generated route hosts.
 
@@ -81,6 +85,7 @@ can wait between APIs becoming available.
 | 10 | rhbk | Adopts the environment-provided operator and Keycloak instance |
 | 10 | rhdh | Operator `fast-1.10`; vanilla Developer Hub with guest access |
 | 10 | forgejo | Helm chart `17.1.6`; rootless Forgejo `15.0.8` |
+| 10 | forgejo-demo | Disposable SQLite Forgejo for the issue-to-PR demo |
 | 20 | agent-sandboxes | Kata template, paused warm pool, session/client RBAC, networking and cleanup |
 | 30 | automation-orchestrator | Operator `stable`; standalone instance, no file storage; direct sandbox API prototype |
 
@@ -98,7 +103,8 @@ Deployment to support `WaitForFirstConsumer` storage.
 Automatic sync and self-heal are enabled, pruning is disabled, and failed syncs
 retry with backoff. OLM InstallPlans are automatically approved, including the
 Agent Sandbox preview channel. `SkipDryRunOnMissingResource` handles newly
-installed APIs; it is not used as a readiness gate.
+installed APIs; it is not used as a readiness gate. The demo Forgejo application
+ignores only its Deployment's replica count so reset can stop it briefly.
 
 ## Vanilla scope and credentials
 
@@ -152,7 +158,7 @@ make test
 ```
 
 This renders the three operator bootstrap objects, the app-of-apps chart and all
-nine apps, checks shell syntax, tests session cleanup and validates built-in
+ten apps, checks shell syntax, tests session cleanup and validates built-in
 Kubernetes schemas. Custom APIs without local schemas are reported as skipped,
 not validated. To check the Lua health gates, also install Lua and `yq`, then run
 `make test-health` (`LUA` can select another interpreter).
@@ -201,4 +207,4 @@ Configuration references:
 - [Keycloak operator configuration](https://www.keycloak.org/operator/advanced-configuration)
 - [ArgoCD operator configuration](https://argocd-operator.readthedocs.io/en/latest/reference/argocd/)
 - [Red Hat OpenShift GitOps CLI installation](https://docs.redhat.com/en/documentation/red_hat_openshift_gitops/1.19/html/installing_gitops/installing-openshift-gitops)
-- [igou-openshift app-of-apps chart](https://github.com/igou-io/igou-openshift/tree/main/.helm/charts/argocd-app-of-app)
+- [Vendored app-of-apps chart](.helm/charts/argocd-app-of-app)

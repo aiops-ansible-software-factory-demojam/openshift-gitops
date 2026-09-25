@@ -121,6 +121,22 @@ applications:
     source:
       path: cluster/forgejo
 
+  forgejo-demo:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: "10"
+    destination:
+      namespace: forgejo-demo
+    source:
+      path: cluster/forgejo-demo
+    ignoreDifferences:
+      - group: apps
+        kind: Deployment
+        name: forgejo-demo
+        namespace: forgejo-demo
+        jsonPointers:
+          - /spec/replicas
+
   agent-sandboxes:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
