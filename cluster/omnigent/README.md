@@ -13,6 +13,8 @@ key and generated OpenCode provider config, and `omnigent-agent` contains the
 seeded `opencode-go-test` agent specification. The model can be OpenCode Go
 (`kimi-k3` by default) or the official OpenAI API (`gpt-4.1-mini` by default).
 The key is injected into each OpenShell sandbox and forwarded to OpenCode.
+The sandbox image writes the generated provider definition to the sandbox user's
+OpenCode config on login; Omnigent imports it into each isolated native session.
 
 The gateway registration is a plaintext internal Service endpoint stored in
 `omnigent-gateway-config`. Omnigent's managed host image has an OpenShell egress

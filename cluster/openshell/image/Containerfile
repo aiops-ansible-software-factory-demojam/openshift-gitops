@@ -5,3 +5,4 @@ RUN /opt/venv/bin/python -m pip install --no-cache-dir --no-deps websockets==15.
 RUN npm install --global opencode-ai@1.18.32
 
 COPY policy.yaml /etc/openshell/policy.yaml
+COPY opencode-profile.sh /etc/profile.d/omnigent-opencode.sh
