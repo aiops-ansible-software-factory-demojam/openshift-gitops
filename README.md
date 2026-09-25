@@ -1,13 +1,17 @@
 # Demo OpenShift GitOps
 
-A disposable, single-cluster demo environment, using the OLM, Kustomize and
-ArgoCD app-of-apps patterns from `igou-openshift`.
+A disposable, single-cluster demo environment using OLM, Kustomize, and
+ArgoCD app-of-apps.
 
 Everything lives under `cluster/<app>`. `cluster/kustomization.yaml` renders the
 vendored `argocd-app-of-app` Helm chart with `cluster/values.yaml`, producing
 one AppProject and nine child Applications. Each child renders its own directory.
-There are no cluster overlays, ESO dependencies, S3 buckets, backups or
-lab-specific storage classes. All PVCs use the cluster's default StorageClass.
+There are no cluster overlays, ESO dependencies, S3 buckets, backups, or
+custom storage classes. All PVCs use the cluster's default StorageClass.
+
+The standalone [Forgejo issue-to-PR demo](forgejo-demo/README.md) runs in its own
+namespace. It is not an ArgoCD child application because its reset command replaces
+its PVC.
 
 ## First deployment
 
@@ -201,4 +205,4 @@ Configuration references:
 - [Keycloak operator configuration](https://www.keycloak.org/operator/advanced-configuration)
 - [ArgoCD operator configuration](https://argocd-operator.readthedocs.io/en/latest/reference/argocd/)
 - [Red Hat OpenShift GitOps CLI installation](https://docs.redhat.com/en/documentation/red_hat_openshift_gitops/1.19/html/installing_gitops/installing-openshift-gitops)
-- [igou-openshift app-of-apps chart](https://github.com/igou-io/igou-openshift/tree/main/.helm/charts/argocd-app-of-app)
+- [Vendored app-of-apps chart](.helm/charts/argocd-app-of-app)
