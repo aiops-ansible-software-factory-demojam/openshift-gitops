@@ -120,6 +120,14 @@ applications:
       namespace: openshell
     source:
       path: cluster/openshell
+    ignoreDifferences:
+      - group: apps
+        kind: StatefulSet
+        name: openshell
+        namespace: openshell
+        jsonPointers:
+          - /spec/volumeClaimTemplates/0/apiVersion
+          - /spec/volumeClaimTemplates/0/kind
 
   omnigent:
     annotations:
