@@ -12,10 +12,15 @@ OpenCode CLI to Omnigent's OpenShell-compatible host image and installs the
 sandbox egress policy. The ImageStream tag is the sandbox image used by both
 OpenShell's CLI defaults and Omnigent's managed sessions. It must finish building
 before the first sandbox can start.
+Sandboxes always pull the current ImageStream tag so rebuilt policies reach new
+sessions. Bootstrap compares the image source directory with the latest
+successful build and rebuilds only when that source changed.
 
 OpenShell 0.0.116 requires the sandbox ServiceAccount to use the privileged SCC;
 the binding is limited to `openshell/openshell-sandbox`. The gateway does not set
 `runtimeClassName` and does not need a specially labeled worker.
+Argo CD ignores the two PVC template type fields that Kubernetes adds after
+creating the gateway StatefulSet; those defaults otherwise appear as drift.
 
 Use `bash scripts/sandbox.sh create --name demo --detach` from the repository
 root to launch a container through the gateway.
