@@ -136,6 +136,11 @@ for route_ref in keycloak/keycloak forgejo-demo/forgejo-demo \
         [[ -n "$route_host" ]]; }; then
       echo "Recreating $route_ref to release its old Route host."
       oc -n "$route_namespace" delete route "$route_name" --wait=true
+      if [[ "$route_ref" == rhdh/* ]]; then
+        # The RHDH operator reconciles on Backstage changes, not Route deletion.
+        oc -n rhdh annotate backstage rhdh-developer-hub \
+          demo.openshift-gitops.io/route-reconcile="$target_revision" --overwrite
+      fi
     fi
   fi
   until route_json=$(oc -n "$route_namespace" get route "$route_name" \

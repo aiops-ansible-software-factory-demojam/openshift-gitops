@@ -82,5 +82,6 @@ test "$(rg -c 'rollout status statefulset/openshell' "$BOOTSTRAP_TEST_LOG")" -eq
 test "$(rg -c 'rollout status deployment/omnigent' "$BOOTSTRAP_TEST_LOG")" -eq 1
 rg -q 'root-url=https://forgejo-demo.apps.demo.example.test/' "$BOOTSTRAP_TEST_LOG"
 test "$(rg -c 'delete route .*--wait=true' "$BOOTSTRAP_TEST_LOG")" -eq 5
+test "$(rg -c 'annotate backstage rhdh-developer-hub demo.openshift-gitops.io/route-reconcile=' "$BOOTSTRAP_TEST_LOG")" -eq 1
 
 echo 'Bootstrap derives Forgejo URL, migrates legacy Routes, and waits for the sandbox image.'
