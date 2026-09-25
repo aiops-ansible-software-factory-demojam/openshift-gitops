@@ -29,6 +29,11 @@ test "$(yq_docs 'select(.kind == "Secret" or .kind == "Deployment" or .kind == "
 test "$(yq_docs 'select(.kind == "Application" and .metadata.name == "rhbk") | .spec.ignoreDifferences[] | .kind' "$rendered")" = Keycloak
 test "$(yq_docs 'select(.kind == "Keycloak") | .spec.hostname.hostname' "$rhbk")" = \
   "$(yq -r '.spec.hostname.hostname' cluster/rhbk/keycloak.yaml)"
+for app in forgejo-demo omnigent; do
+  rendered_app=".rendered/$app.yaml"
+  test "$(yq_docs 'select(.kind == "PersistentVolumeClaim") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered_app")" = \
+    "$(yq_docs 'select(.kind == "Deployment") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered_app")"
+done
 
 echo 'The app-of-apps chart renders the project, nine paths and expected waves.'
 echo 'RHBK adopts the environment Keycloak without managing its database, data or secrets.'
