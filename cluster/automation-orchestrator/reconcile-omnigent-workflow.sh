@@ -143,7 +143,8 @@ wait_for_ao_api() {
   echo "Waiting for the Automation Orchestrator API at $base_url ..."
   until http_code=$(ao_curl GET "$base_url/auth/providers") &&
     ao_http_ok "$http_code" && ao_response_is_json &&
-    jq -e '.providers | type == "array"' "$ao_response" >/dev/null 2>&1; do
+    jq -e '(.providers // .resources) | type == "array"' \
+      "$ao_response" >/dev/null 2>&1; do
     if [[ -n ${pf_pid:-} ]] && ! kill -0 "$pf_pid" 2>/dev/null; then
       echo 'The Automation Orchestrator port-forward exited early.' >&2
       [[ -s "$pf_log" ]] && cat "$pf_log" >&2
