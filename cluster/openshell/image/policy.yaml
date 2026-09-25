@@ -7,13 +7,13 @@ filesystem_policy:
     - /lib64
     - /etc
     - /opt
+    - /var/log
     - /proc
     - /dev/urandom
   read_write:
     - /tmp
     - /dev/null
     - /dev/pts
-    - /dev/ptmx
 network_policies:
   omnigent:
     endpoints:
