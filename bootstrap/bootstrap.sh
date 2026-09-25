@@ -113,6 +113,7 @@ oc apply -f "$repo_root/cluster/openshell/openshell-namespace.yaml"
 oc apply -f "$repo_root/cluster/omnigent/omnigent-namespace.yaml"
 oc apply -f "$repo_root/cluster/automation-orchestrator/automation-orchestrator-namespace.yaml"
 oc apply -f "$repo_root/cluster/forgejo-demo/forgejo-demo-namespace.yaml"
+oc apply -f "$repo_root/cluster/rhdh/rhdh-namespace.yaml"
 oc -n forgejo-demo create configmap forgejo-demo-url \
   --from-literal="root-url=https://forgejo-demo.$ingress_domain/" \
   --dry-run=client -o yaml | oc -n forgejo-demo apply -f -
@@ -167,6 +168,9 @@ for app in rhbk forgejo-demo omnigent rhdh automation-orchestrator; do
     fi
     sleep 5
   done
+  if [[ $app == forgejo-demo && ${BOOTSTRAP_SEED_DEMO:-true} == true ]]; then
+    bash "$bootstrap_dir/forgejo-backstage.sh" "$ingress_domain"
+  fi
 done
 for route_ref in keycloak/keycloak forgejo-demo/forgejo-demo \
   omnigent/omnigent rhdh/backstage-rhdh-developer-hub \

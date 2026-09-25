@@ -36,10 +36,7 @@ for app in forgejo-demo omnigent; do
 done
 test "$(yq_docs 'select(.kind == "Deployment") | .spec.template.spec.containers[0].env[] | select(.name == "FORGEJO__server__ROOT_URL") | .valueFrom.configMapKeyRef.name' .rendered/forgejo-demo.yaml)" = forgejo-demo-url
 test "$(yq_docs 'select(.kind == "Backstage") | .spec.application.route.subdomain' .rendered/rhdh.yaml)" = rhdh
-if rg -q 'baseUrl:|origin:' cluster/rhdh/app-config-rhdh-configmap.yaml; then
-  echo 'The RHDH app config overrides the ingress-derived base URLs.' >&2
-  exit 1
-fi
+rg -q 'baseUrl: \$\{RHDH_URL\}' cluster/rhdh/app-config-rhdh-configmap.yaml
 test "$(yq_docs 'select(.kind == "AutomationOrchestrator") | .spec.ingress.host' .rendered/automation-orchestrator.yaml)" = null
 test "$(yq_docs 'select(.kind == "AutomationOrchestrator") | .spec.workflowHttpRequestAllowedHosts[0]' .rendered/automation-orchestrator.yaml)" = omnigent.omnigent.svc
 test "$(yq_docs '.nodes[] | select(.id == "create_session") | .parameters.url' cluster/automation-orchestrator/workflows/omnigent-dispatch.yaml)" = http://omnigent.omnigent.svc:8080/v1/sessions

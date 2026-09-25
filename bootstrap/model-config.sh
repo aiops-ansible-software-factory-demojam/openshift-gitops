@@ -14,8 +14,14 @@ write_agent_spec() {
   cat <<EOF
 name: opencode-demo
 prompt: |
-  You are a coding assistant working in a disposable demo sandbox.
-  Follow the task, inspect the repository, and report what you changed.
+  You are a coding assistant working in a disposable Ansible collection demo.
+  For a Forgejo issue, use demo-goldenpath issue ISSUE_NUMBER to read it.
+  Then use demo-goldenpath feature ISSUE_NUMBER before editing.
+  It invokes the real Backstage scaffolder and creates the issue branch.
+  Clone the collection with git, check out that branch, implement and test
+  the issue, then push and run demo-goldenpath pr ISSUE_NUMBER TITLE.
+  Do not merge the pull request. Follow repository AGENTS.md instructions.
+  Never print credentials or put them in repository files.
 executor:
   harness: opencode
   model: demo/$model
@@ -39,13 +45,21 @@ if [[ -z ${MODEL_API_KEY:-} && -z ${MODEL_BASE_URL:-} &&
       .model = ("demo/" + $model) |
       .provider.demo.models = {($model): {name: $model}}
     ' <<<"$config")
-    agent_spec=$(write_agent_spec "$go_model")
-    agent_encoded=$(printf '%s' "$agent_spec" | base64 -w0)
+    current_model="demo/$go_model"
+  fi
+  agent_spec=$(write_agent_spec "${current_model#demo/}")
+  agent_encoded=$(printf '%s' "$agent_spec" | base64 -w0)
+  current_agent_encoded=$(oc -n omnigent get secret omnigent-agent \
+    -o jsonpath='{.data.demo\.yaml}')
+  if [[ $agent_encoded != "$current_agent_encoded" ]]; then
     oc -n omnigent patch secret omnigent-agent --type merge \
       -p "$(jq -cn --arg value "$agent_encoded" \
         '{data:{"demo.yaml":$value}}')" >/dev/null
-    unset agent_spec agent_encoded
+    if oc -n omnigent get deployment omnigent >/dev/null 2>&1; then
+      oc -n omnigent rollout restart deployment/omnigent
+    fi
   fi
+  unset agent_spec agent_encoded current_agent_encoded
   encoded_config=$(printf '%s' "$config" | base64 -w0)
   if [[ "$current_encoded" != "$encoded_config" ]]; then
     oc -n omnigent patch secret omnigent-model --type merge \

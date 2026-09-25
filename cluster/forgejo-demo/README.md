@@ -12,7 +12,10 @@ The target is your OpenShift cluster, in a dedicated `forgejo-demo` namespace.
 The root app-of-apps creates the `forgejo-demo` child Application, which owns the
 namespace, `nonroot-v2` SCC grant, PVC, workload, Service, and Route. Bootstrap
 reads the cluster's ingress domain and creates the ConfigMap used for Forgejo's
-public URL. The script needs the cluster API URL and the assigned public HTTPS
+public URL. `bootstrap.sh` also seeds the users, three repositories, and the
+example nginx UID issue, then provisions Backstage and sandbox credentials.
+The manual scripts below remain useful for reset and standalone testing.
+The script needs the cluster API URL and the assigned public HTTPS
 Route URL; they must match the GitOps-managed resources.
 
 ```bash
@@ -46,6 +49,7 @@ source checkout at the same commit for repeatable resets.
 
 - `demo-owner`: maintainer, owns `ansible-collection-demo` and `demo-notes`.
 - `demo-agent`: write collaborator on the collection, able to push branches and open PRs.
+- `demo-agent/ansible-collection-template`: source for the Backstage collection golden path.
 - `demo-reviewer`: write collaborator on both repositories.
 - `demo-admin`: separate bootstrap administrator.
 
@@ -59,7 +63,9 @@ For this private demo, every password equals the username: `demo-admin`,
 No password files or password environment variables are needed.
 
 Generated API credentials are stored in ignored, private `.state/` files:
-`admin-token` and `agent-token`. Give the agent only `agent-token`, the instance URL, and
+`admin-token` and `agent-token`. Bootstrap keeps per-cluster copies under
+`.state/<ingress-domain>/` and places the scoped agent token in Kubernetes
+Secrets for Backstage and Omnigent. Give a standalone agent only `agent-token`, the instance URL, and
 `demo-owner/ansible-collection-demo`. Its scopes are `write:repository`, `write:issue`,
 and `read:user`, constrained by the user's collaborator permissions. These are
 standalone demo identities.

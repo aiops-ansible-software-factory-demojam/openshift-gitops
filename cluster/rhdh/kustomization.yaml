@@ -7,4 +7,6 @@ resources:
   - rhdh-pg-credentials-secret.yaml
   - rhdh-pg-cluster.yaml
   - app-config-rhdh-configmap.yaml
+  - catalog-templates-configmap.yaml
+  - dynamic-plugins-rhdh-configmap.yaml
   - rhdh-developer-hub-backstage.yaml

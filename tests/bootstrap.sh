@@ -56,7 +56,8 @@ fi
 MOCK_GIT
 chmod +x "$scratch/git"
 
-BOOTSTRAP_BRANCH=main BOOTSTRAP_RECONCILE_WORKFLOW=false PATH="$scratch:$PATH" \
+BOOTSTRAP_BRANCH=$(git branch --show-current) BOOTSTRAP_SEED_DEMO=false \
+  BOOTSTRAP_RECONCILE_WORKFLOW=false PATH="$scratch:$PATH" \
   bash bootstrap/bootstrap.sh >/dev/null
 
 line() { rg -n "$1" "$BOOTSTRAP_TEST_LOG" | head -1 | cut -d: -f1; }

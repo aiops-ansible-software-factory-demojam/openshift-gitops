@@ -104,8 +104,16 @@ hosts and runners. Delete finished sessions in Omnigent to remove their
 sandboxes. The OpenShell gateway remains cluster-internal.
 
 The disposable [Forgejo demo](cluster/forgejo-demo/README.md) supplies the sample
-repository and issue. Bootstrap installs the Forgejo app; seed its users and
-repositories with its documented `demo.sh` commands when needed.
+repository and issue. Bootstrap seeds those resources, creates scoped Forgejo
+credentials for RHDH and Omnigent, and registers two Backstage templates:
+`New Ansible Collection` and `Contribute to the Demo Ansible Collection`.
+The first creates a Forgejo collection repository and catalog entry. The second
+reads an issue and creates its feature branch. Dispatch the existing
+`omnigent-dispatch` workflow with a task such as "Deliver issue #1 in
+demo-owner/ansible-collection-demo as a pull request." The sandbox has
+`demo-goldenpath issue 1`, `demo-goldenpath feature 1`, and
+`demo-goldenpath pr 1 'Title'`; Git authentication and Backstage access are
+injected at launch. The agent leaves the pull request for review.
 
 ## Validate and inspect
 

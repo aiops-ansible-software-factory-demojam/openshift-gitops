@@ -14,4 +14,8 @@ data:
         env:
           - OPENAI_API_KEY
           - OPENCODE_CONFIG_CONTENT
+          - FORGEJO_TOKEN
+          - FORGEJO_URL
+          - FORGEJO_USERNAME
+          - BACKSTAGE_URL
           - OMNIGENT_RUNNER_ENV_PASSTHROUGH

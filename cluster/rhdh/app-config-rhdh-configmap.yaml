@@ -9,7 +9,9 @@ data:
   app-config.yaml: |
     app:
       title: Demo Developer Hub
+      baseUrl: ${RHDH_URL}
     backend:
+      baseUrl: ${RHDH_URL}
       database:
         client: pg
         connection:
@@ -21,3 +23,31 @@ data:
       providers:
         guest:
           dangerouslyAllowOutsideDevelopment: true
+    integrations:
+      gitea:
+        - host: ${FORGEJO_HOST}
+          username: ${FORGEJO_USERNAME}
+          password: ${FORGEJO_TOKEN}
+    proxy:
+      endpoints:
+        '/forgejo':
+          target: http://forgejo-demo.forgejo-demo.svc:3000/api/v1
+          allowedMethods:
+            - GET
+            - POST
+          headers:
+            Authorization: token ${FORGEJO_TOKEN}
+    catalog:
+      locations:
+        - type: file
+          target: /opt/app-root/src/ansible-collection-template.yaml
+          rules:
+            - allow:
+                - Template
+        - type: file
+          target: /opt/app-root/src/ansible-collection-feature-template.yaml
+          rules:
+            - allow:
+                - Template
+        - type: url
+          target: ${FORGEJO_URL}/demo-owner/ansible-collection-demo/src/branch/main/catalog-info.yaml

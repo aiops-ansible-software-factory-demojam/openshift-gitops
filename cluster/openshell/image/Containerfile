@@ -2,7 +2,13 @@ FROM ghcr.io/omnigent-ai/omnigent-host@sha256:f3dee09609ccecbebd6841c30b33f0160e
 
 # The host and runner tunnels must use OpenShell's injected HTTP proxy.
 RUN /opt/venv/bin/python -m pip install --no-cache-dir --no-deps websockets==15.0.1
+RUN /opt/venv/bin/python -m pip install --no-cache-dir ansible-core==2.21.4 ansible-lint==26.9.0
 RUN npm install --global opencode-ai@1.18.32
 
 COPY policy.yaml /etc/openshell/policy.yaml
 COPY opencode-profile.sh /etc/profile.d/omnigent-opencode.sh
+COPY demo-goldenpath.py /usr/local/bin/demo-goldenpath
+COPY git-askpass.sh /usr/local/bin/demo-git-askpass
+RUN chmod 755 /usr/local/bin/demo-goldenpath /usr/local/bin/demo-git-askpass
+ENV GIT_ASKPASS=/usr/local/bin/demo-git-askpass
+ENV GIT_TERMINAL_PROMPT=0

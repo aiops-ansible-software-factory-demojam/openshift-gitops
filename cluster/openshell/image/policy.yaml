@@ -50,3 +50,10 @@ network_policies:
         tls: skip
     binaries:
       - path: /**
+  backstage:
+    endpoints:
+      - host: backstage-rhdh-developer-hub.rhdh.svc.cluster.local
+        port: 80
+        tls: skip
+    binaries:
+      - path: /**

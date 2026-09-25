@@ -1,0 +1,108 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: catalog-templates
+  namespace: rhdh
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+data:
+  ansible-collection-template.yaml: |
+    apiVersion: scaffolder.backstage.io/v1beta3
+    kind: Template
+    metadata:
+      name: ansible-collection
+      title: New Ansible Collection
+      description: Create a demo Ansible collection in Forgejo and register it in the catalog.
+      tags:
+        - ansible
+        - forgejo
+    spec:
+      owner: user:default/demo-agent
+      type: ansible-collection
+      parameters:
+        - title: Collection details
+          required:
+            - name
+            - description
+          properties:
+            name:
+              title: Collection name
+              type: string
+              pattern: '^[a-z][a-z0-9_]{1,62}$'
+            description:
+              title: Description
+              type: string
+      steps:
+        - id: generate
+          name: Generate repository from the collection template
+          action: http:backstage:request
+          input:
+            method: POST
+            path: /proxy/forgejo/repos/demo-agent/ansible-collection-template/generate
+            headers:
+              content-type: application/json
+            body:
+              owner: demo-agent
+              name: ${{ parameters.name }}
+              description: ${{ parameters.description }}
+              git_content: true
+              private: false
+        - id: register
+          name: Register the collection in Backstage
+          action: catalog:register
+          input:
+            catalogInfoUrl: ${{ steps.generate.output.body.html_url }}/src/branch/main/catalog-info.yaml
+      output:
+        links:
+          - title: Collection repository
+            url: ${{ steps.generate.output.body.html_url }}
+          - title: Catalog entry
+            entityRef: component:default/${{ parameters.name }}
+  ansible-collection-feature-template.yaml: |
+    apiVersion: scaffolder.backstage.io/v1beta3
+    kind: Template
+    metadata:
+      name: ansible-collection-feature
+      title: Contribute to the Demo Ansible Collection
+      description: Validate an example collection issue and create its feature branch.
+      tags:
+        - ansible
+        - forgejo
+        - feature
+    spec:
+      owner: user:default/demo-agent
+      type: ansible-collection
+      parameters:
+        - title: Feature request
+          required:
+            - issue_number
+          properties:
+            issue_number:
+              title: Forgejo issue number
+              type: integer
+              minimum: 1
+      steps:
+        - id: issue
+          name: Read the Forgejo issue
+          action: http:backstage:request
+          input:
+            method: GET
+            path: /proxy/forgejo/repos/demo-owner/ansible-collection-demo/issues/${{ parameters.issue_number }}
+        - id: branch
+          name: Create an issue branch in the collection
+          action: http:backstage:request
+          input:
+            method: POST
+            path: /proxy/forgejo/repos/demo-owner/ansible-collection-demo/branches
+            headers:
+              content-type: application/json
+            body:
+              new_branch_name: feature/issue-${{ parameters.issue_number }}
+              old_ref_name: main
+      output:
+        links:
+          - title: Feature request
+            url: ${{ steps.issue.output.body.html_url }}
+        text:
+          - title: Feature branch
+            content: feature/issue-${{ parameters.issue_number }}

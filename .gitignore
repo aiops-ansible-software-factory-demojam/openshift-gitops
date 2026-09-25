@@ -1,3 +1,4 @@
 cluster/forgejo/charts/
 /cluster/*/charts/
 .rendered/
+cluster/forgejo-demo/.state/
