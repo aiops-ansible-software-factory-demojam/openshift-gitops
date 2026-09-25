@@ -10,10 +10,10 @@ Actions are disabled. Self-registration is disabled.
 
 The target is your OpenShift cluster, in a dedicated `forgejo-demo` namespace.
 The root app-of-apps creates the `forgejo-demo` child Application, which owns the
-namespace, `nonroot-v2` SCC grant, PVC, workload, Service, and Route. Set the
-ingress domain with the repository's `scripts/set-domain.sh` and publish that
-change to `main` before deployment. The script needs the cluster API URL and the
-resulting public HTTPS Route URL; they must match the GitOps-managed resources.
+namespace, `nonroot-v2` SCC grant, PVC, workload, Service, and Route. Bootstrap
+reads the cluster's ingress domain and creates the ConfigMap used for Forgejo's
+public URL. The script needs the cluster API URL and the assigned public HTTPS
+Route URL; they must match the GitOps-managed resources.
 
 ```bash
 cd cluster/forgejo-demo

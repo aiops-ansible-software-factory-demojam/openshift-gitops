@@ -25,7 +25,8 @@ cluster() {
 }
 route() {
   local route_host
-  route_host=$(oc -n "$namespace" get route forgejo-demo -o jsonpath='{.spec.host}')
+  route_host=$(oc -n "$namespace" get route forgejo-demo \
+    -o jsonpath='{.status.ingress[0].host}')
   [[ $FORGEJO_URL == "https://$route_host" ]] || {
     echo 'FORGEJO_URL does not match the GitOps-managed Route host.' >&2; exit 2;
   }

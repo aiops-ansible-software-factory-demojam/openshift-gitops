@@ -15,7 +15,6 @@ test: render
 	bash tests/bootstrap.sh
 	bash tests/model-config.sh
 	bash tests/app-of-apps.sh
-	bash tests/set-domain.sh
 	kubeconform -strict -summary -ignore-missing-schemas .rendered/
 	git diff --check
 

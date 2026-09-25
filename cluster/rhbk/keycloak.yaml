@@ -22,7 +22,6 @@ spec:
     httpEnabled: false
     tlsSecret: keycloak-tls
   hostname:
-    hostname: sso.apps.cluster-dpx5t.dyn.redhatworkshops.io
     strict: false
     strictBackchannel: false
   proxy:
@@ -34,4 +33,3 @@ spec:
   additionalOptions:
     - name: enable-recovery
       value: "true"
-
