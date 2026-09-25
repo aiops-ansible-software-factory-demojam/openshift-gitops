@@ -20,6 +20,10 @@ case "$*" in
   *'.status.health.status}'*) printf 'Healthy' ;;
   *'get secret omnigent-model -o json'*)
     printf '{"data":{"OPENCODE_CONFIG_CONTENT":"e30="}}' ;;
+  *'get secret omnigent-machine-client-credential -o go-template='*'username'* )
+    printf 'automation-orchestrator' ;;
+  *'get secret omnigent-machine-client-credential -o go-template='*'password'* )
+    printf 'demo-password' ;;
   *'get builds -l buildconfig=omnigent-opencode -o json'*)
     printf '{"items":[{"status":{"phase":"Complete"},"spec":{"revision":{"git":{"commit":"%s"}}}}]}' \
       "$(git rev-parse HEAD)" ;;

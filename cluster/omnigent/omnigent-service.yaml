@@ -10,3 +10,6 @@ spec:
     - name: http
       port: 8000
       targetPort: http
+    - name: proxy
+      port: 8080
+      targetPort: proxy
