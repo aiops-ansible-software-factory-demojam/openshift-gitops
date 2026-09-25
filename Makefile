@@ -4,17 +4,17 @@ render:
 	@mkdir -p .rendered
 	kustomize build bootstrap > .rendered/bootstrap.yaml
 	kustomize build --enable-helm cluster > .rendered/cluster.yaml
-	@for app in cluster/*/; do \
+	@for config in cluster/*/kustomization.yaml; do \
+		app=$$(dirname "$$config"); \
 		echo "Rendering $$app"; \
 		kustomize build --enable-helm --helm-kube-version v1.31.0 "$$app" > ".rendered/$$(basename "$$app").yaml" || exit 1; \
 	done
 
 test: render
-	bash -n bootstrap/bootstrap.sh scripts/*.sh tests/*.sh cluster/agent-sandboxes/cleanup.sh cluster/automation-orchestrator/*.sh cluster/forgejo-demo/scripts/*.sh
+	bash -n bootstrap/*.sh scripts/*.sh tests/*.sh cluster/automation-orchestrator/*.sh cluster/forgejo-demo/scripts/*.sh
 	bash tests/bootstrap.sh
 	bash tests/app-of-apps.sh
 	bash tests/set-domain.sh
-	bash tests/sandbox-cleanup.sh
 	kubeconform -strict -summary -ignore-missing-schemas .rendered/
 	git diff --check
 

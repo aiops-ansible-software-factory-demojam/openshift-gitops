@@ -2,15 +2,6 @@
 local check = assert(loadfile(arg[1]))
 local kind = arg[2]
 local cases = {
-  SandboxTemplate = {
-    {{}, "Healthy"},
-  },
-  SandboxWarmPool = {
-    {{spec = {replicas = 0}}, "Healthy"},
-    {{spec = {replicas = 1}}, "Progressing"},
-    {{spec = {replicas = 2}, status = {readyReplicas = 1}}, "Progressing"},
-    {{spec = {replicas = 1}, status = {readyReplicas = 1}}, "Healthy"},
-  },
   Application = {
     {{}, "Progressing"},
     {{status = {sync = {status = "OutOfSync"}, health = {status = "Healthy"}}}, "Progressing"},

@@ -1,0 +1,59 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: openshell
+resources:
+  - openshell-namespace.yaml
+  - openshell-sandbox-privileged-clusterrolebinding.yaml
+  - omnigent-opencode-imagestream.yaml
+  - omnigent-opencode-buildconfig.yaml
+patches:
+  - target:
+      kind: StatefulSet
+      name: openshell
+    patch: |
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: openshell
+      spec:
+        template:
+          spec:
+            securityContext:
+              fsGroup: null
+            containers:
+              - name: openshell-gateway
+                securityContext:
+                  runAsUser: null
+helmCharts:
+  - name: helm-chart
+    namespace: openshell
+    version: 0.0.116
+    releaseName: openshell
+    repo: oci://ghcr.io/nvidia/openshell
+    valuesInline:
+      image:
+        tag: 0.0.116@sha256:05cf77bbb022a739aed6f22daa0e7e164415f4ab273b5f84319e46d91eb8f645
+      supervisor:
+        image:
+          tag: 0.0.116@sha256:c8c42aef16c200063e32cbf72e553e4ead027085427b555efafd95063ecead42
+      agentSandbox:
+        preflight:
+          enabled: false
+      server:
+        telemetryEnabled: false
+        disableTls: true
+        auth:
+          allowUnauthenticatedUsers: true
+        defaultRuntimeClassName: ''
+        appArmorProfile: ''
+        workspaceDefaultStorageSize: 2Gi
+        sandboxImage: image-registry.openshift-image-registry.svc:5000/openshell/omnigent-opencode:1.18.32
+        credentialStorage:
+          existingSecret: openshell-credential-encryption-key
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: '1'
+          memory: 1Gi

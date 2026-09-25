@@ -1,0 +1,25 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: omnigent-opencode
+  namespace: openshell
+  annotations:
+    argocd.argoproj.io/sync-wave: '-1'
+spec:
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: https://github.com/aiops-ansible-software-factory-demojam/openshift-gitops.git
+      ref: main
+    contextDir: cluster/openshell/image
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Containerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      name: omnigent-opencode:1.18.32
+  triggers:
+    - type: ConfigChange
