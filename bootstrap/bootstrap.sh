@@ -9,22 +9,14 @@ export KUBECONFIG=${KUBECONFIG:-"$HOME/.kube/config"}
 oc whoami --show-server
 oc whoami
 
-# Argo CD reads main from GitHub. Publish the cluster's actual ingress domain
-# before installing the root Application, so first sync uses routable hosts.
+# The Route manifests request stable subdomains from this cluster's ingress
+# controller. Forgejo also needs its public URL for links and callbacks.
 ingress_domain=$(oc -n openshift-ingress-operator get ingresscontroller default \
   -o jsonpath='{.status.domain}')
-keycloak_host=$(yq -r '.spec.hostname.hostname' \
-  "$bootstrap_dir/../cluster/rhbk/keycloak.yaml")
-if [[ "${keycloak_host#*.}" != "$ingress_domain" ]]; then
-  if [[ -n $(git -C "$bootstrap_dir/.." status --porcelain) ]]; then
-    echo 'Publish local changes before bootstrap can update the ingress domain.' >&2
-    exit 1
-  fi
-  bash "$bootstrap_dir/../scripts/set-domain.sh" "$ingress_domain"
-  git -C "$bootstrap_dir/.." add cluster
-  git -C "$bootstrap_dir/.." commit -m "Set demo ingress domain to $ingress_domain"
-  git -C "$bootstrap_dir/.." push origin HEAD:main
-fi
+[[ -n "$ingress_domain" ]] || {
+  echo 'The default ingress controller has no domain.' >&2
+  exit 1
+}
 
 # Follow the Red Hat CLI installation flow: namespace, OperatorGroup, then
 # Subscription. The operator creates the default cluster-scoped Argo CD instance.
@@ -72,6 +64,10 @@ oc label namespace keycloak argocd.argoproj.io/managed-by=openshift-gitops --ove
 oc apply -f "$bootstrap_dir/../cluster/openshell/openshell-namespace.yaml"
 oc apply -f "$bootstrap_dir/../cluster/omnigent/omnigent-namespace.yaml"
 oc apply -f "$bootstrap_dir/../cluster/automation-orchestrator/automation-orchestrator-namespace.yaml"
+oc apply -f "$bootstrap_dir/../cluster/forgejo-demo/forgejo-demo-namespace.yaml"
+oc -n forgejo-demo create configmap forgejo-demo-url \
+  --from-literal="root-url=https://forgejo-demo.$ingress_domain/" \
+  --dry-run=client -o yaml | oc -n forgejo-demo apply -f -
 if ! oc -n openshell get secret openshell-credential-encryption-key >/dev/null 2>&1; then
   umask 077
   scratch=$(mktemp -d)
@@ -103,6 +99,59 @@ until [[ $(oc -n "$gitops_namespace" get application cluster \
 done
 
 deadline=$((SECONDS + 3600))
+# OpenShift preserves an explicit Route host when a manifest starts requesting
+# a subdomain. Refresh each affected child app before recreating legacy Routes.
+for app in rhbk forgejo-demo omnigent rhdh automation-orchestrator; do
+  until oc -n "$gitops_namespace" get application "$app" >/dev/null 2>&1; do
+    if (( SECONDS >= deadline )); then
+      echo "Timed out waiting for the $app Application." >&2
+      exit 1
+    fi
+    sleep 5
+  done
+  oc -n "$gitops_namespace" annotate application "$app" \
+    argocd.argoproj.io/refresh=hard --overwrite
+  until [[ $(oc -n "$gitops_namespace" get application "$app" \
+    -o jsonpath='{.status.sync.revision}') == "$target_revision" ]]; do
+    if (( SECONDS >= deadline )); then
+      echo "Timed out waiting for $app to read $target_revision." >&2
+      exit 1
+    fi
+    sleep 5
+  done
+done
+for route_ref in keycloak/keycloak forgejo-demo/forgejo-demo \
+  omnigent/omnigent rhdh/backstage-rhdh-developer-hub \
+  automation-orchestrator/automation-orchestrator; do
+  route_namespace=${route_ref%%/*}
+  route_name=${route_ref#*/}
+  if oc -n "$route_namespace" get route "$route_name" >/dev/null 2>&1; then
+    route_host=$(oc -n "$route_namespace" get route "$route_name" \
+      -o jsonpath='{.spec.host}')
+    assigned_host=$(oc -n "$route_namespace" get route "$route_name" \
+      -o jsonpath='{.status.ingress[0].host}')
+    if [[ -n "$route_host" && "$route_host" != *".$ingress_domain" ]] || \
+      [[ -n "$assigned_host" && "$assigned_host" != *".$ingress_domain" ]] || \
+      { [[ "$route_ref" != rhdh/* && "$route_ref" != automation-orchestrator/* ]] && \
+        [[ -n "$route_host" ]]; }; then
+      echo "Recreating $route_ref to release its old Route host."
+      oc -n "$route_namespace" delete route "$route_name" --wait=true
+    fi
+  fi
+  until route_json=$(oc -n "$route_namespace" get route "$route_name" \
+    -o json 2>/dev/null) && \
+    assigned_host=$(jq -r '.status.ingress[0].host // ""' <<<"$route_json") && \
+    route_host=$(jq -r '.spec.host // ""' <<<"$route_json") && \
+    [[ "$assigned_host" == *".$ingress_domain" ]] && \
+    { [[ "$route_ref" == rhdh/* || "$route_ref" == automation-orchestrator/* ]] || \
+      [[ -z "$route_host" ]]; }; do
+    if (( SECONDS >= deadline )); then
+      echo "Timed out waiting for $route_ref on $ingress_domain." >&2
+      exit 1
+    fi
+    sleep 5
+  done
+done
 until [[ $(oc -n "$gitops_namespace" get application cluster \
   -o jsonpath='{.status.sync.status}') == Synced ]] && \
   [[ $(oc -n "$gitops_namespace" get application cluster \
