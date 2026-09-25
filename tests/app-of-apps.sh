@@ -34,6 +34,8 @@ for app in forgejo-demo omnigent; do
   test "$(yq_docs 'select(.kind == "PersistentVolumeClaim") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered_app")" = \
     "$(yq_docs 'select(.kind == "Deployment") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered_app")"
 done
+test "$(yq_docs 'select(.kind == "ImageStream") | .metadata.annotations."argocd.argoproj.io/sync-wave"' .rendered/openshell.yaml)" = \
+  "$(yq_docs 'select(.kind == "BuildConfig") | .metadata.annotations."argocd.argoproj.io/sync-wave"' .rendered/openshell.yaml)"
 
 echo 'The app-of-apps chart renders the project, nine paths and expected waves.'
 echo 'RHBK adopts the environment Keycloak without managing its database, data or secrets.'
