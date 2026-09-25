@@ -272,6 +272,9 @@ fi
 sandbox_image_current
 oc -n openshell rollout status statefulset/openshell --timeout=10m
 oc -n omnigent rollout status deployment/omnigent --timeout=10m
+if [[ ${BOOTSTRAP_VERIFY_GOLDENPATHS:-true} == true ]]; then
+  bash "$bootstrap_dir/verify-goldenpaths.sh"
+fi
 # The Argo CD health check only requires the AutomationOrchestrator Ready
 # condition. Wait for the UI and backend Deployments before publishing the
 # dispatch workflow so the Route has endpoints.

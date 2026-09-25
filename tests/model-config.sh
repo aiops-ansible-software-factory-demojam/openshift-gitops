@@ -92,6 +92,15 @@ jq -e '
 jq -er '.data["demo.yaml"] | @base64d' "$scratch/agent-patch.json" |
   yq -r '.executor.model' | rg -Fxq 'demo/glm-5.3-flash'
 
+cat >"$scratch/op" <<'MOCK_OP'
+#!/usr/bin/env bash
+printf '%s\n' '{"fields":[{"label":"password","value":"test-key"}]}'
+MOCK_OP
+chmod +x "$scratch/op"
+MODEL_API_KEY= MODEL_BASE_URL= MODEL_NAME= PATH="$scratch:$PATH" \
+  bash bootstrap/model-config.sh >/dev/null
+jq -e '.model == "demo/glm-5.3-flash"' "$scratch/config.json" >/dev/null
+
 if MODEL_BASE_URL=https://opencode.ai/zen/go/v1 \
    MODEL_NAME=kimi-k3 MODEL_API_KEY=test-key \
    PATH="$scratch:$PATH" bash bootstrap/model-config.sh >/dev/null 2>&1; then

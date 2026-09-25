@@ -57,6 +57,7 @@ MOCK_GIT
 chmod +x "$scratch/git"
 
 BOOTSTRAP_BRANCH=$(git branch --show-current) BOOTSTRAP_SEED_DEMO=false \
+  BOOTSTRAP_VERIFY_GOLDENPATHS=false \
   BOOTSTRAP_RECONCILE_WORKFLOW=false PATH="$scratch:$PATH" \
   bash bootstrap/bootstrap.sh >/dev/null
 

@@ -103,6 +103,13 @@ if [[ ! "$model" =~ ^[a-zA-Z0-9._-]+$ ]]; then
 fi
 
 model_key=${MODEL_API_KEY:-}
+if [[ -z "$model_key" && "$base_url" == "$go_base_url" ]] &&
+   command -v op >/dev/null 2>&1; then
+  model_key=$(op item get opencode-go-subscription-key --vault lab_agents \
+    --format json 2>/dev/null |
+    jq -er '.fields[] | select(.label == "password") | .value' 2>/dev/null) ||
+    model_key=
+fi
 if [[ -z "$model_key" ]]; then
   if [[ ! -r /dev/tty ]]; then
     echo 'Set MODEL_API_KEY for noninteractive bootstrap.' >&2

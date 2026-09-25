@@ -35,8 +35,10 @@ Bootstrap checks out or creates that branch, points Application
 branch per cluster when multiple people bootstrap from the same repository.
 
 On the first run, bootstrap uses OpenCode Go at
-`https://opencode.ai/zen/go/v1` with model `glm-5.3-flash` and prompts for its API
-key. LiteLLM MaaS uses the same three parameters: base URL, model, and key.
+`https://opencode.ai/zen/go/v1` with model `glm-5.3-flash`. It reads the
+subscription key from the configured `lab_agents/opencode-go-subscription-key`
+1Password item when available, and otherwise prompts for the key. LiteLLM MaaS
+uses the same three parameters: base URL, model, and key.
 For the MaaS example in `/workspace/scratch/litellm.txt`, run:
 
 ```bash
@@ -59,7 +61,8 @@ Route subdomains, and bootstrap supplies Forgejo's public URL through a
 ConfigMap. It does not rewrite or commit cluster-specific hostnames. It installs
 the OpenShift GitOps operator, creates the model, gateway, and Omnigent Route
 credential Secrets, waits for the app-of-apps and OpenCode image build, then
-publishes the `omnigent-dispatch` workflow in Automation Orchestrator. Publish
+publishes the `omnigent-dispatch` workflow in Automation Orchestrator and waits
+for the Backstage templates to appear in the catalog. Publish
 the checked-out revision to the chosen branch before running bootstrap. When
 upgrading a demo that used explicit Route hosts, bootstrap recreates those
 Routes after the new GitOps revision is read so OpenShift can assign hosts for
