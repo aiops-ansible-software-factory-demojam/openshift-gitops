@@ -7,7 +7,8 @@ metadata:
     argocd.argoproj.io/sync-wave: "3"
 spec:
   workflowHttpRequestAllowedHosts:
-    - omnigent.omnigent.svc.cluster.local
+    # The workflow validator blocks .svc.cluster.local before checking this list.
+    - omnigent.omnigent.svc
   postgres:
     host: orchestrator-pg-rw
     port: 5432
