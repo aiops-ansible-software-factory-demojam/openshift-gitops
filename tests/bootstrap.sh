@@ -48,7 +48,9 @@ chmod +x "$scratch/oc"
 cat >"$scratch/git" <<'MOCK_GIT'
 #!/usr/bin/env bash
 set -euo pipefail
-if [[ "$*" == ls-remote\ origin\ refs/heads/* ]]; then
+if [[ "$*" == *' branch --show-current' ]]; then
+  printf '%s\n' "$BOOTSTRAP_BRANCH"
+elif [[ "$*" == *' ls-remote origin refs/heads/'* ]]; then
   printf '%s\t%s\n' "$(/usr/bin/git rev-parse HEAD)" "${*##* }"
 else
   exec /usr/bin/git "$@"
@@ -56,7 +58,8 @@ fi
 MOCK_GIT
 chmod +x "$scratch/git"
 
-BOOTSTRAP_BRANCH=$(git branch --show-current) BOOTSTRAP_SEED_DEMO=false \
+BOOTSTRAP_BRANCH=$(yq -r '.spec.source.targetRevision' \
+  bootstrap/config/root-application.yaml) BOOTSTRAP_SEED_DEMO=false \
   BOOTSTRAP_VERIFY_GOLDENPATHS=false \
   BOOTSTRAP_RECONCILE_WORKFLOW=false PATH="$scratch:$PATH" \
   bash bootstrap/bootstrap.sh >/dev/null
