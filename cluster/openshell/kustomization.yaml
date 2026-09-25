@@ -49,6 +49,7 @@ helmCharts:
         appArmorProfile: ''
         workspaceDefaultStorageSize: 2Gi
         sandboxImage: image-registry.openshift-image-registry.svc:5000/openshell/omnigent-opencode:1.18.32
+        sandboxImagePullPolicy: Always
         credentialStorage:
           existingSecret: openshell-credential-encryption-key
       resources:
