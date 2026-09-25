@@ -3,7 +3,8 @@ set -euo pipefail
 
 # Keep model credentials outside Git. The two Secrets are referenced by the
 # GitOps-managed Omnigent Deployment and survive repeat bootstrap runs.
-if oc -n omnigent get secret omnigent-model >/dev/null 2>&1 &&
+if [[ -z ${MODEL_API_KEY:-} ]] &&
+   oc -n omnigent get secret omnigent-model >/dev/null 2>&1 &&
    oc -n omnigent get secret omnigent-agent >/dev/null 2>&1; then
   # OpenShell accepts environment values only on one line. Normalize Secrets
   # created by an earlier bootstrap without changing the existing API key.
@@ -22,6 +23,11 @@ if oc -n omnigent get secret omnigent-model >/dev/null 2>&1 &&
   unset current_encoded config encoded_config
   echo 'Using the existing Omnigent model configuration.'
   exit 0
+fi
+
+model_secret_exists=false
+if oc -n omnigent get secret omnigent-model >/dev/null 2>&1; then
+  model_secret_exists=true
 fi
 
 provider=${MODEL_PROVIDER:-opencode-go}
@@ -104,4 +110,8 @@ oc -n omnigent create secret generic omnigent-model \
 oc -n omnigent create secret generic omnigent-agent \
   --from-file=demo.yaml="$scratch/demo.yaml" \
   --dry-run=client -o yaml | oc apply -f -
+if [[ "$model_secret_exists" == true ]] &&
+   oc -n omnigent get deployment omnigent >/dev/null 2>&1; then
+  oc -n omnigent rollout restart deployment/omnigent
+fi
 echo "Omnigent is configured for $provider model $model."

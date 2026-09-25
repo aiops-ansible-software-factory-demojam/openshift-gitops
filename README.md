@@ -31,13 +31,14 @@ MODEL_PROVIDER=openai MODEL_NAME=gpt-4.1-mini bash bootstrap/bootstrap.sh
 
 For a noninteractive run, set `MODEL_API_KEY` in the environment. The key is
 stored only in a Kubernetes Secret in `omnigent`, never in Git or a shell trace.
-Subsequent runs reuse the existing Secret. Delete `omnigent-model` and
-`omnigent-agent` before rerunning if you intend to change providers or models.
+Subsequent runs reuse the existing Secret. Set `MODEL_API_KEY` again to replace
+the key or change providers or models. Repeat `MODEL_PROVIDER` and `MODEL_NAME`
+when the desired values differ from the defaults above.
 
 Bootstrap detects the cluster's ingress domain, updates checked-in Route hosts
 when needed, commits that domain change, and pushes `main` before creating the
 root Argo CD Application. It installs the OpenShift GitOps operator, creates the
-model, gateway, and Omnigent account Secrets, waits for the app-of-apps and OpenCode image build, then
+model, gateway, and Omnigent Route credential Secrets, waits for the app-of-apps and OpenCode image build, then
 publishes the `omnigent-dispatch` workflow in Automation Orchestrator. A dirty
 checkout must be published first if the ingress domain differs.
 
@@ -49,7 +50,7 @@ session:
 
 ```bash
 bash scripts/sandbox.sh create --name demo --detach
-bash scripts/sandbox.sh exec demo -- opencode --version
+bash scripts/sandbox.sh exec -n demo -- opencode --version
 bash scripts/sandbox.sh delete demo
 ```
 
@@ -64,7 +65,7 @@ rather than a production security boundary.
 
 ```text
 Automation Orchestrator workflow
-  -> Omnigent API (cluster Service)
+  -> Omnigent API (HTTPS Route)
   -> OpenShell gateway (cluster Service)
   -> OpenCode agent in a container sandbox
   -> OpenCode Go or OpenAI API with the bootstrap key
@@ -72,10 +73,10 @@ Automation Orchestrator workflow
 
 In Automation Orchestrator, run `omnigent-dispatch` with a task. The workflow
 uses an HTTP Basic credential to mint a short-lived Omnigent token, creates a
-managed session, and sends the task to the seeded OpenCode agent. Omnigent has
-an HTTPS Route with accounts login; the initial `demo-admin` password is in the
-`omnigent-auth` Secret. Delete finished sessions in Omnigent to remove their
-sandboxes. The OpenShell gateway remains cluster-internal.
+managed session, and sends the task to the seeded OpenCode agent. The Omnigent
+Route uses that generated credential; the internal callback Service remains
+reachable by managed hosts and runners. Delete finished sessions in Omnigent to
+remove their sandboxes. The OpenShell gateway remains cluster-internal.
 
 The disposable [Forgejo demo](cluster/forgejo-demo/README.md) supplies the sample
 repository and issue. Bootstrap installs the Forgejo app; seed its users and
