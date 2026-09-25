@@ -7,6 +7,21 @@ if [[ -n ${MODEL_PROVIDER:-} ]]; then
   echo 'Use MODEL_BASE_URL and MODEL_NAME instead of MODEL_PROVIDER.' >&2
   exit 2
 fi
+go_base_url=https://opencode.ai/zen/go/v1
+go_model=glm-5.3-flash
+write_agent_spec() {
+  local model=$1
+  cat <<EOF
+name: opencode-demo
+prompt: |
+  You are a coding assistant working in a disposable demo sandbox.
+  Follow the task, inspect the repository, and report what you changed.
+executor:
+  harness: opencode
+  model: demo/$model
+EOF
+}
+
 if [[ -z ${MODEL_API_KEY:-} && -z ${MODEL_BASE_URL:-} &&
       -z ${MODEL_NAME:-} ]] &&
    oc -n omnigent get secret omnigent-model >/dev/null 2>&1 &&
@@ -16,6 +31,21 @@ if [[ -z ${MODEL_API_KEY:-} && -z ${MODEL_BASE_URL:-} &&
   current_encoded=$(oc -n omnigent get secret omnigent-model -o json |
     jq -er '.data.OPENCODE_CONFIG_CONTENT')
   config=$(printf '%s' "$current_encoded" | base64 -d | jq -c .)
+  current_base_url=$(jq -r '.provider.demo.options.baseURL // empty' <<<"$config")
+  current_model=$(jq -r '.model // empty' <<<"$config")
+  if [[ "$current_base_url" == "$go_base_url" &&
+        "$current_model" != "demo/$go_model" ]]; then
+    config=$(jq -c --arg model "$go_model" '
+      .model = ("demo/" + $model) |
+      .provider.demo.models = {($model): {name: $model}}
+    ' <<<"$config")
+    agent_spec=$(write_agent_spec "$go_model")
+    agent_encoded=$(printf '%s' "$agent_spec" | base64 -w0)
+    oc -n omnigent patch secret omnigent-agent --type merge \
+      -p "$(jq -cn --arg value "$agent_encoded" \
+        '{data:{"demo.yaml":$value}}')" >/dev/null
+    unset agent_spec agent_encoded
+  fi
   encoded_config=$(printf '%s' "$config" | base64 -w0)
   if [[ "$current_encoded" != "$encoded_config" ]]; then
     oc -n omnigent patch secret omnigent-model --type merge \
@@ -25,7 +55,7 @@ if [[ -z ${MODEL_API_KEY:-} && -z ${MODEL_BASE_URL:-} &&
       oc -n omnigent rollout restart deployment/omnigent
     fi
   fi
-  unset current_encoded config encoded_config
+  unset current_encoded config encoded_config current_base_url current_model
   echo 'Using the existing Omnigent model configuration.'
   exit 0
 fi
@@ -35,8 +65,8 @@ if oc -n omnigent get secret omnigent-model >/dev/null 2>&1; then
   model_secret_exists=true
 fi
 
-base_url=${MODEL_BASE_URL:-https://opencode.ai/zen/go/v1}
-model=${MODEL_NAME:-kimi-k3}
+base_url=${MODEL_BASE_URL:-$go_base_url}
+model=${MODEL_NAME:-$go_model}
 if [[ "$base_url" != https://* || "$base_url" == *[[:space:]?#]* ||
       "$base_url" == */chat/completions ]]; then
   echo 'MODEL_BASE_URL must be an HTTPS API base URL ending before /chat/completions.' >&2
@@ -49,6 +79,10 @@ if [[ ! "$model_host" =~ ^[a-zA-Z0-9.-]+(:[0-9]+)?$ ]]; then
   exit 2
 fi
 base_url=${base_url%/}
+if [[ "$base_url" == "$go_base_url" && "$model" != "$go_model" ]]; then
+  echo "OpenCode Go always uses model $go_model." >&2
+  exit 2
+fi
 if [[ ! "$model" =~ ^[a-zA-Z0-9._-]+$ ]]; then
   echo 'MODEL_NAME may contain only letters, digits, dot, underscore and hyphen.' >&2
   exit 2
@@ -97,15 +131,7 @@ jq -cn --arg base "$base_url" --arg model "$model" '
   }
 ' | tr -d '\n' >"$scratch/opencode-config.json"
 
-cat >"$scratch/demo.yaml" <<EOF
-name: opencode-demo
-prompt: |
-  You are a coding assistant working in a disposable demo sandbox.
-  Follow the task, inspect the repository, and report what you changed.
-executor:
-  harness: opencode
-  model: demo/$model
-EOF
+write_agent_spec "$model" >"$scratch/demo.yaml"
 
 oc -n omnigent create secret generic omnigent-model \
   --from-file=OPENAI_API_KEY="$scratch/api-key" \

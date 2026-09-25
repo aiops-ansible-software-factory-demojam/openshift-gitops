@@ -35,7 +35,7 @@ Bootstrap checks out or creates that branch, points Application
 branch per cluster when multiple people bootstrap from the same repository.
 
 On the first run, bootstrap uses OpenCode Go at
-`https://opencode.ai/zen/go/v1` with model `kimi-k3` and prompts for its API
+`https://opencode.ai/zen/go/v1` with model `glm-5.3-flash` and prompts for its API
 key. LiteLLM MaaS uses the same three parameters: base URL, model, and key.
 For the MaaS example in `/workspace/scratch/litellm.txt`, run:
 
@@ -51,6 +51,8 @@ the key or change endpoints or models. Repeat `MODEL_BASE_URL` and `MODEL_NAME`
 when the desired values differ from the OpenCode Go defaults. The base URL ends
 at `/v1`, before `/chat/completions`. For another API host, add it to the
 sandbox egress policy in `cluster/openshell/image/policy.yaml`.
+OpenCode Go always uses `glm-5.3-flash`; repeat bootstrap runs update older Go
+model configurations while keeping their existing API key.
 
 Bootstrap reads the cluster's ingress domain. OpenShift assigns the requested
 Route subdomains, and bootstrap supplies Forgejo's public URL through a

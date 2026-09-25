@@ -11,7 +11,7 @@ credential for Automation Orchestrator. The Route is the only public API path.
 Bootstrap creates two Secrets: `omnigent-model` contains the OpenCode inference
 key and generated OpenCode provider config, and `omnigent-agent` contains the
 seeded `opencode-demo` agent specification. The same base URL, model name, and
-API key inputs configure OpenCode Go (`kimi-k3` by default) or LiteLLM MaaS
+API key inputs configure OpenCode Go (`glm-5.3-flash`) or LiteLLM MaaS
 (`gpt-oss-120b` in the supplied example). Both use OpenCode's
 `@ai-sdk/openai-compatible` adapter for `/v1/chat/completions`.
 The key is injected into each OpenShell sandbox and forwarded to OpenCode.
