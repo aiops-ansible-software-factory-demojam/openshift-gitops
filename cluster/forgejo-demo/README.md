@@ -2,31 +2,32 @@
 
 A disposable OpenShift Forgejo 16.0.5 instance, SQLite and Git repositories on one
 5 GiB PVC, with Bash automation (curl, jq, git, tar, openssl). Deployment/reset also
-need `oc` and `kustomize`. No operator, PostgreSQL, Ansible runtime, or CI runner.
+need `oc`. No dedicated Forgejo operator, PostgreSQL, Ansible runtime, or CI runner.
 The image is pinned by digest. HTTP Git is served through an HTTPS Route; SSH and
 Actions are disabled. Self-registration is disabled.
 
 ## Deploy and seed
 
 The target is your OpenShift cluster, in a dedicated `forgejo-demo` namespace.
-Deployment needs permission to create that namespace and grant its service account
-use of `nonroot-v2` (the rootless image runs as UID 1000). Set the cluster API URL
-and the desired public HTTPS Route URL before using the lifecycle script.
+The root app-of-apps creates the `forgejo-demo` child Application, which owns the
+namespace, `nonroot-v2` SCC grant, PVC, workload, Service, and Route. Set the
+ingress domain with the repository's `scripts/set-domain.sh` and publish that
+change to `main` before deployment. The script needs the cluster API URL and the
+resulting public HTTPS Route URL; they must match the GitOps-managed resources.
 
 ```bash
-cd forgejo-demo
+cd cluster/forgejo-demo
 cp .env.example .env
-# Edit .env with your cluster API URL and desired Forgejo Route URL.
+# Edit .env with your cluster API URL and published Forgejo Route URL.
 source .env
-./scripts/demo.sh render | kubeconform -strict -summary -skip Route
 ./scripts/demo.sh deploy
 ./scripts/demo.sh seed
 ```
 
-`render` substitutes the hostname from `FORGEJO_URL` into the Route and Forgejo
-`ROOT_URL`. Use an HTTPS DNS hostname without a port or path. The checked-in host
-is an example placeholder. The PVC uses the cluster's default StorageClass. Keep
-this standalone deployment outside ArgoCD auto-sync so reset can replace its PVC.
+`deploy` waits for the GitOps child Application to be Synced and the Deployment to
+be ready, then creates the demo administrator and bootstrap token. It does not
+apply manifests. Use an HTTPS DNS hostname without a port or path. The PVC uses
+the cluster's default StorageClass.
 
 By default, `fixtures/collection` supplies `demo.greetings`, generated with
 `ansible-galaxy collection init` (ansible-core 2.21.4). Its `nginx` role installs
@@ -104,8 +105,8 @@ invocation, so a reset does not launch the agent before you are ready.
 
 ## Reset
 
-Stop any external agent run before reset. This command deletes the **demo PVC**,
-recreates Forgejo, and seeds the users/repos again:
+Stop any external agent run before reset. This command stops the Deployment,
+deletes the **demo PVC**, waits for ArgoCD to recreate it, and seeds users/repos:
 
 ```bash
 export WEBHOOK_SECRET="$(cat .state/webhook-secret)"
@@ -118,10 +119,10 @@ All demo repositories, issues, PRs, users, tokens, hooks and app configuration a
 recreated. Passwords return to the usernames; admin and agent tokens rotate.
 Update the external agent's token after reset. The webhook secret stays the same.
 This touches only the `forgejo-demo` namespace and PVC. The script checks the
-cluster URL and demo namespace label before deleting anything. A storage class
+cluster URL, Route host, demo namespace label, and GitOps self-heal before deleting
+anything. ArgoCD ignores only the Deployment replica count, so it does not
+restore the pod while reset is replacing the PVC. A storage class
 with `Retain` reclaim policy can leave old PVs behind; reset is not secure erasure.
-Do not register this disposable deployment with auto-sync unless its reset behavior
-is coordinated with that controller.
 
 ## Using the scripts with another Forgejo
 
@@ -135,7 +136,7 @@ response bodies or credentials. Don't run these scripts with shell tracing.
 
 ```bash
 (cd scripts && shellcheck -x *.sh)
-./scripts/demo.sh render | kubeconform -strict -summary -skip Route
+kustomize build . | kubeconform -strict -summary -skip Route
 ansible-galaxy collection build fixtures/collection --output-path /tmp
 ```
 
