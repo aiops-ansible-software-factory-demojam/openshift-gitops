@@ -22,18 +22,23 @@ Run:
 bash bootstrap/bootstrap.sh
 ```
 
-On the first run, bootstrap prompts for an OpenCode Go API key. To use the
-official OpenAI API instead:
+On the first run, bootstrap uses OpenCode Go at
+`https://opencode.ai/zen/go/v1` with model `kimi-k3` and prompts for its API
+key. LiteLLM MaaS uses the same three parameters: base URL, model, and key.
+For the MaaS example in `/workspace/scratch/litellm.txt`, run:
 
 ```bash
-MODEL_PROVIDER=openai MODEL_NAME=gpt-4.1-mini bash bootstrap/bootstrap.sh
+MODEL_BASE_URL=https://maas-rhdp.apps.maas.redhatworkshops.io/v1 \
+  MODEL_NAME=gpt-oss-120b bash bootstrap/bootstrap.sh
 ```
 
 For a noninteractive run, set `MODEL_API_KEY` in the environment. The key is
 stored only in a Kubernetes Secret in `omnigent`, never in Git or a shell trace.
 Subsequent runs reuse the existing Secret. Set `MODEL_API_KEY` again to replace
-the key or change providers or models. Repeat `MODEL_PROVIDER` and `MODEL_NAME`
-when the desired values differ from the defaults above.
+the key or change endpoints or models. Repeat `MODEL_BASE_URL` and `MODEL_NAME`
+when the desired values differ from the OpenCode Go defaults. The base URL ends
+at `/v1`, before `/chat/completions`. For another API host, add it to the
+sandbox egress policy in `cluster/openshell/image/policy.yaml`.
 
 Bootstrap detects the cluster's ingress domain, updates checked-in Route hosts
 when needed, commits that domain change, and pushes `main` before creating the
@@ -68,7 +73,7 @@ Automation Orchestrator workflow
   -> Omnigent API (HTTPS Route)
   -> OpenShell gateway (cluster Service)
   -> OpenCode agent in a container sandbox
-  -> OpenCode Go or OpenAI API with the bootstrap key
+  -> OpenCode Go or LiteLLM MaaS with the bootstrap key
 ```
 
 In Automation Orchestrator, run `omnigent-dispatch` with a task. The workflow

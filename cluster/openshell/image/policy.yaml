@@ -29,9 +29,9 @@ network_policies:
         tls: skip
     binaries:
       - path: /**
-  openai:
+  litellm-maas:
     endpoints:
-      - host: api.openai.com
+      - host: maas-rhdp.apps.maas.redhatworkshops.io
         port: 443
         tls: skip
     binaries:

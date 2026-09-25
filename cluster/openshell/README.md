@@ -9,7 +9,8 @@ the gateway encryption key in the `openshell` namespace.
 
 `omnigent-opencode` is an OpenShift Docker BuildConfig. It adds the pinned
 OpenCode CLI and `websockets` 15 to Omnigent's OpenShell-compatible host image,
-then installs the sandbox egress policy. The newer WebSocket client follows the
+then installs the sandbox egress policy, which permits the OpenCode Go and
+LiteLLM MaaS API hosts. The newer WebSocket client follows the
 HTTP proxy injected by OpenShell for host and runner tunnels. The ImageStream
 tag is the sandbox image used by both
 OpenShell's CLI defaults and Omnigent's managed sessions. It must finish building
