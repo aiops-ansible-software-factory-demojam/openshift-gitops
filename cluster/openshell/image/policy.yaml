@@ -1,0 +1,36 @@
+network_policies:
+  omnigent:
+    endpoints:
+      - host: omnigent.omnigent.svc.cluster.local
+        port: 8000
+        tls: skip
+    binaries:
+      - path: /**
+  opencode-go:
+    endpoints:
+      - host: opencode.ai
+        port: 443
+        tls: skip
+    binaries:
+      - path: /**
+  openai:
+    endpoints:
+      - host: api.openai.com
+        port: 443
+        tls: skip
+    binaries:
+      - path: /**
+  packages:
+    endpoints:
+      - host: registry.npmjs.org
+        port: 443
+        tls: skip
+    binaries:
+      - path: /**
+  forgejo:
+    endpoints:
+      - host: forgejo-demo.forgejo-demo.svc.cluster.local
+        port: 3000
+        tls: skip
+    binaries:
+      - path: /**

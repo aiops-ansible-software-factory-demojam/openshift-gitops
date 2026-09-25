@@ -70,15 +70,6 @@ applications:
     source:
       path: cluster/automation-orchestrator
 
-  sandboxed-containers-operator:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: "10"
-    destination:
-      namespace: openshift-sandboxed-containers-operator
-    source:
-      path: cluster/sandboxed-containers-operator
-
   agent-sandbox-operator:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
@@ -112,15 +103,6 @@ applications:
     source:
       path: cluster/rhdh
 
-  forgejo:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: "10"
-    destination:
-      namespace: forgejo
-    source:
-      path: cluster/forgejo
-
   forgejo-demo:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
@@ -137,11 +119,20 @@ applications:
         jsonPointers:
           - /spec/replicas
 
-  agent-sandboxes:
+  openshell:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: "20"
     destination:
-      namespace: agent-sandboxes
+      namespace: openshell
     source:
-      path: cluster/agent-sandboxes
+      path: cluster/openshell
+
+  omnigent:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: "30"
+    destination:
+      namespace: omnigent
+    source:
+      path: cluster/omnigent

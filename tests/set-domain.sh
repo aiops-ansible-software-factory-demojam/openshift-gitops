@@ -6,7 +6,8 @@ trap 'rm -r "$scratch"' EXIT
 cp -R cluster "$scratch/cluster"
 
 domains() {
-  find "$1" -name '*.yaml' -type f -exec grep -hoE 'apps\.[a-z0-9.-]+' {} + | sort -u
+  find "$1" -path '*/charts/*' -prune -o -name '*.yaml' -type f \
+    -exec grep -hoE 'apps\.[a-z0-9.-]+' {} + | sort -u
 }
 
 CLUSTER_DIR="$scratch/cluster" bash scripts/set-domain.sh apps.new-demo.example.com

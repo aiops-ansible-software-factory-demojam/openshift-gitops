@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: omnigent-gateway-config
+  namespace: omnigent
+data:
+  active_gateway: demo
+  metadata.json: |
+    {
+      "name": "demo",
+      "gateway_endpoint": "http://openshell.openshell.svc:8080",
+      "is_remote": true,
+      "gateway_port": 0,
+      "auth_mode": "plaintext"
+    }

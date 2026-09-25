@@ -4,9 +4,27 @@ set -euo pipefail
 bootstrap_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 operator_namespace=openshift-gitops-operator
 gitops_namespace=openshift-gitops
+export KUBECONFIG=${KUBECONFIG:-"$HOME/.kube/config"}
 
 oc whoami --show-server
 oc whoami
+
+# Argo CD reads main from GitHub. Publish the cluster's actual ingress domain
+# before installing the root Application, so first sync uses routable hosts.
+ingress_domain=$(oc -n openshift-ingress-operator get ingresscontroller default \
+  -o jsonpath='{.status.domain}')
+keycloak_host=$(yq -r '.spec.hostname.hostname' \
+  "$bootstrap_dir/../cluster/rhbk/keycloak.yaml")
+if [[ "${keycloak_host#*.}" != "$ingress_domain" ]]; then
+  if [[ -n $(git -C "$bootstrap_dir/.." status --porcelain) ]]; then
+    echo 'Publish local changes before bootstrap can update the ingress domain.' >&2
+    exit 1
+  fi
+  bash "$bootstrap_dir/../scripts/set-domain.sh" "$ingress_domain"
+  git -C "$bootstrap_dir/.." add cluster
+  git -C "$bootstrap_dir/.." commit -m "Set demo ingress domain to $ingress_domain"
+  git -C "$bootstrap_dir/.." push origin HEAD:main
+fi
 
 # Follow the Red Hat CLI installation flow: namespace, OperatorGroup, then
 # Subscription. The operator creates the default cluster-scoped Argo CD instance.
@@ -43,22 +61,26 @@ oc -n "$gitops_namespace" wait --for=jsonpath='{.status.phase}'=Available \
 oc -n "$gitops_namespace" wait --for=condition=Ready pod --all --timeout=15m
 
 echo 'Waiting for the Argo CD cluster permissions...'
-until oc get clusterrolebinding openshift-gitops-kataconfig-manager >/dev/null 2>&1; do
+until oc get clusterrolebinding openshift-gitops-demo-manager >/dev/null 2>&1; do
   sleep 5
 done
 # The environment-provided keycloak namespace exists before GitOps. Label it so
 # the operator grants the application controller rights to adopt Keycloak.
 oc label namespace keycloak argocd.argoproj.io/managed-by=openshift-gitops --overwrite
-# KataConfig is installed later by the sandboxed-containers app. SubjectAccessReview
-# cannot succeed until that CRD exists, so only wait on can-i when the API is present.
-if oc api-resources --api-group=kataconfiguration.openshift.io --no-headers 2>/dev/null \
-  | grep -q kataconfigs; then
-  until [[ $(oc auth can-i \
-    --as=system:serviceaccount:openshift-gitops:openshift-gitops-argocd-application-controller \
-    patch kataconfigs.kataconfiguration.openshift.io) == yes ]]; do
-    sleep 5
-  done
+# These namespaces also hold bootstrap-owned Secrets. Create them before the
+# root app so the first child sync can mount the model and encryption keys.
+oc apply -f "$bootstrap_dir/../cluster/openshell/openshell-namespace.yaml"
+oc apply -f "$bootstrap_dir/../cluster/omnigent/omnigent-namespace.yaml"
+if ! oc -n openshell get secret openshell-credential-encryption-key >/dev/null 2>&1; then
+  umask 077
+  scratch=$(mktemp -d)
+  trap 'find "$scratch" -type f -delete; rmdir "$scratch"' EXIT
+  openssl rand -base64 32 >"$scratch/key-encryption-key"
+  oc -n openshell create secret generic openshell-credential-encryption-key \
+    --from-file=key-encryption-key="$scratch/key-encryption-key" \
+    --dry-run=client -o yaml | oc apply -f -
 fi
+bash "$bootstrap_dir/model-config.sh"
 
 echo 'OpenShift GitOps is healthy; starting the app-of-apps rollout...'
 oc apply -f "$bootstrap_dir/config/root-application.yaml"
@@ -85,4 +107,21 @@ done
 
 oc -n "$gitops_namespace" get applications \
   -o custom-columns=NAME:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status
-echo 'The app-of-apps rollout is Synced and Healthy.'
+
+echo 'Waiting for the OpenCode sandbox image build...'
+deadline=$((SECONDS + 1800))
+until oc -n openshell get imagestreamtag omnigent-opencode:1.18.32 >/dev/null 2>&1; do
+  oc -n openshell get builds -l buildconfig=omnigent-opencode \
+    -o custom-columns=NAME:.metadata.name,PHASE:.status.phase --no-headers || true
+  if (( SECONDS >= deadline )); then
+    echo 'Timed out waiting for the OpenCode sandbox image.' >&2
+    exit 1
+  fi
+  sleep 15
+done
+oc -n openshell rollout status statefulset/openshell --timeout=10m
+oc -n omnigent rollout status deployment/omnigent --timeout=10m
+if [[ ${BOOTSTRAP_RECONCILE_WORKFLOW:-true} == true ]]; then
+  bash "$bootstrap_dir/../cluster/automation-orchestrator/reconcile-omnigent-workflow.sh"
+fi
+echo 'The app-of-apps rollout, sandbox image, and dispatch workflow are ready.'

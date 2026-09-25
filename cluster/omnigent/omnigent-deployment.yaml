@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: omnigent
+  namespace: omnigent
+  annotations:
+    argocd.argoproj.io/sync-wave: '1'
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: omnigent
+  template:
+    metadata:
+      labels:
+        app: omnigent
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: omnigent
+          image: ghcr.io/omnigent-ai/omnigent-server-openshell@sha256:b1328b2f5c3aca1d350b5afe4588d645f85df6b2017a5401fbab7b0419bcf88e
+          ports:
+            - name: http
+              containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: omnigent-config
+            - secretRef:
+                name: omnigent-model
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: omnigent-pg-app
+                  key: uri
+            - name: OMNIGENT_CONFIG
+              value: /etc/omnigent/config.yaml
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: artifacts
+              mountPath: /data/artifacts
+            - name: sandbox-config
+              mountPath: /etc/omnigent/config.yaml
+              subPath: config.yaml
+              readOnly: true
+            - name: agent
+              mountPath: /etc/omnigent/agents
+              readOnly: true
+            - name: gateway-config
+              mountPath: /etc/omnigent-xdg/openshell
+              readOnly: true
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: '1'
+              memory: 1Gi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 90
+            periodSeconds: 30
+      volumes:
+        - name: artifacts
+          persistentVolumeClaim:
+            claimName: omnigent-artifacts
+        - name: sandbox-config
+          configMap:
+            name: omnigent-sandbox-config
+        - name: agent
+          secret:
+            secretName: omnigent-agent
+        - name: gateway-config
+          configMap:
+            name: omnigent-gateway-config
+            items:
+              - key: active_gateway
+                path: active_gateway
+              - key: metadata.json
+                path: gateways/demo/metadata.json

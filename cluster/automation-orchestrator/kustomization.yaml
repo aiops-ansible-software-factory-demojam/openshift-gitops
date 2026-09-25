@@ -11,7 +11,3 @@ resources:
   - temporal-database.yaml
   - temporal-visibility-database.yaml
   - automation-orchestrator-automationorchestrator.yaml
-  - automation-orchestrator-sandbox-api-serviceaccount.yaml
-  - automation-orchestrator-sandbox-api-token-secret.yaml
-  - automation-orchestrator-sandbox-api-role.yaml
-  - automation-orchestrator-sandbox-api-rolebinding.yaml

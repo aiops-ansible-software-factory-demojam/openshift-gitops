@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: omnigent
+  annotations:
+    argocd.argoproj.io/sync-wave: '-4'
+  labels:
+    argocd.argoproj.io/managed-by: openshift-gitops

@@ -1,0 +1,5 @@
+FROM ghcr.io/omnigent-ai/omnigent-host@sha256:f3dee09609ccecbebd6841c30b33f0160eaf3d2758d535b2e3993c1a3df5664a
+
+RUN npm install --global opencode-ai@1.18.32
+
+COPY policy.yaml /etc/openshell/policy.yaml

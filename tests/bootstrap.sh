@@ -2,53 +2,48 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 scratch=$(mktemp -d)
-trap 'rm -r "$scratch"' EXIT
+trap 'find "$scratch" -type f -delete; rmdir "$scratch"' EXIT
 export BOOTSTRAP_TEST_LOG="$scratch/oc.log"
+export BOOTSTRAP_TEST_DOMAIN
+BOOTSTRAP_TEST_DOMAIN=$(yq -r '.spec.hostname.hostname' cluster/rhbk/keycloak.yaml)
+BOOTSTRAP_TEST_DOMAIN=${BOOTSTRAP_TEST_DOMAIN#*.}
 
-cat > "$scratch/oc" <<'EOF'
+cat >"$scratch/oc" <<'MOCK'
 #!/usr/bin/env bash
 set -euo pipefail
-printf '%s\n' "$*" >> "$BOOTSTRAP_TEST_LOG"
+printf '%s\n' "$*" >>"$BOOTSTRAP_TEST_LOG"
 case "$*" in
+  *'.status.domain}'*) printf '%s' "$BOOTSTRAP_TEST_DOMAIN" ;;
   *'.status.installedCSV}'*) printf 'openshift-gitops-operator.v1.21.0' ;;
   *'.spec.install.spec.deployments[*].name}'*) printf 'openshift-gitops-operator-controller-manager' ;;
   *'.status.sync.status}'*) printf 'Synced' ;;
   *'.status.health.status}'*) printf 'Healthy' ;;
-  *'label namespace keycloak argocd.argoproj.io/managed-by=openshift-gitops --overwrite'*) : ;;
-  *'get clusterrolebinding openshift-gitops-kataconfig-manager'*) : ;;
-  *'api-resources --api-group=kataconfiguration.openshift.io'*) printf 'kataconfigs\n' ;;
-  *'auth can-i '*kataconfigs.kataconfiguration.openshift.io*) printf 'yes\n' ;;
   *'get applications -o custom-columns='*) printf 'cluster Synced Healthy\n' ;;
   *) : ;;
 esac
-EOF
+MOCK
 chmod +x "$scratch/oc"
 
-PATH="$scratch:$PATH" bash bootstrap/bootstrap.sh >/dev/null
+BOOTSTRAP_RECONCILE_WORKFLOW=false PATH="$scratch:$PATH" \
+  bash bootstrap/bootstrap.sh >/dev/null
 
-namespace_line=$(grep -n 'apply -f .*openshift-gitops-operator-namespace.yaml' "$BOOTSTRAP_TEST_LOG" | cut -d: -f1)
-subscription_line=$(grep -n 'apply -f .*openshift-gitops-operator-subscription.yaml' "$BOOTSTRAP_TEST_LOG" | cut -d: -f1)
-argocd_get_line=$(grep -n 'get argocd openshift-gitops' "$BOOTSTRAP_TEST_LOG" | cut -d: -f1)
-argocd_apply_line=$(grep -n 'apply --server-side --force-conflicts -f .*openshift-gitops-argocd.yaml' "$BOOTSTRAP_TEST_LOG" | cut -d: -f1)
-permissions_apply_line=$(grep -n 'apply -f .*openshift-gitops-cluster-permissions.yaml' "$BOOTSTRAP_TEST_LOG" | cut -d: -f1)
-permissions_binding_line=$(grep -n 'get clusterrolebinding openshift-gitops-kataconfig-manager' "$BOOTSTRAP_TEST_LOG" | cut -d: -f1)
-keycloak_label_line=$(grep -n 'label namespace keycloak argocd.argoproj.io/managed-by=openshift-gitops --overwrite' "$BOOTSTRAP_TEST_LOG" | cut -d: -f1)
-permissions_check_line=$(grep -n 'auth can-i .*kataconfigs.kataconfiguration.openshift.io' "$BOOTSTRAP_TEST_LOG" | cut -d: -f1)
-root_apply_line=$(grep -n 'apply -f .*root-application.yaml' "$BOOTSTRAP_TEST_LOG" | cut -d: -f1)
-refresh_check_line=$(grep -n 'metadata.annotations.argocd\\.argoproj\\.io/refresh' "$BOOTSTRAP_TEST_LOG" | cut -d: -f1)
-health_line=$(grep -n "get application cluster -o jsonpath={.status.health.status}" "$BOOTSTRAP_TEST_LOG" | cut -d: -f1)
+line() { rg -n "$1" "$BOOTSTRAP_TEST_LOG" | head -1 | cut -d: -f1; }
+namespace_line=$(line 'apply -f .*openshift-gitops-operator-namespace.yaml')
+subscription_line=$(line 'apply -f .*openshift-gitops-operator-subscription.yaml')
+argocd_line=$(line 'apply --server-side --force-conflicts -f .*openshift-gitops-argocd.yaml')
+permissions_line=$(line 'apply -f .*openshift-gitops-cluster-permissions.yaml')
+model_line=$(line 'get secret omnigent-model')
+root_line=$(line 'apply -f .*root-application.yaml')
+image_line=$(line 'get imagestreamtag omnigent-opencode:1.18.32')
 
 test "$namespace_line" -lt "$subscription_line"
-test "$subscription_line" -lt "$argocd_get_line"
-test "$argocd_get_line" -lt "$argocd_apply_line"
-test "$argocd_apply_line" -lt "$permissions_apply_line"
-test "$permissions_apply_line" -lt "$permissions_binding_line"
-test "$permissions_binding_line" -lt "$keycloak_label_line"
-test "$keycloak_label_line" -lt "$permissions_check_line"
-test "$permissions_check_line" -lt "$root_apply_line"
-test "$root_apply_line" -lt "$refresh_check_line"
-test "$refresh_check_line" -lt "$health_line"
-test "$(grep -c 'rollout status deployment/openshift-gitops-operator-controller-manager' "$BOOTSTRAP_TEST_LOG")" -eq 1
-test "$(grep -c 'wait --for=condition=Ready pod --all' "$BOOTSTRAP_TEST_LOG")" -eq 1
+test "$subscription_line" -lt "$argocd_line"
+test "$argocd_line" -lt "$permissions_line"
+test "$permissions_line" -lt "$model_line"
+test "$model_line" -lt "$root_line"
+test "$root_line" -lt "$image_line"
+test "$(rg -c 'rollout status deployment/openshift-gitops-operator-controller-manager' "$BOOTSTRAP_TEST_LOG")" -eq 1
+test "$(rg -c 'rollout status statefulset/openshell' "$BOOTSTRAP_TEST_LOG")" -eq 1
+test "$(rg -c 'rollout status deployment/omnigent' "$BOOTSTRAP_TEST_LOG")" -eq 1
 
-echo 'Bootstrap installs OLM objects, overlays the default ArgoCD, then watches the root app.'
+echo 'Bootstrap installs GitOps, creates model configuration, and waits for the sandbox image.'

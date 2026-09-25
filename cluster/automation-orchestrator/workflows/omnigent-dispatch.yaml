@@ -1,0 +1,68 @@
+name: omnigent-dispatch
+description: Create an OpenShell-backed Omnigent agent and send it a task.
+schema_version: 2.0.0
+triggers:
+  - id: start
+    name: Enter a task
+    type: manual_trigger
+    position:
+      x: 0
+      y: 300
+    parameters:
+      input_schema:
+        type: object
+        required:
+          - task
+        properties:
+          task:
+            type: string
+            title: Agent task
+            minLength: 1
+            maxLength: 4000
+nodes:
+  - id: create_session
+    name: Create managed sandbox session
+    type: http_request
+    position:
+      x: 300
+      y: 300
+    parameters:
+      method: POST
+      url: http://omnigent.omnigent.svc.cluster.local:8000/v1/sessions
+      headers:
+        Content-Type: application/json
+      body:
+        agent_id: c5d2063508039835af412be6a0c8fb8d
+        host_type: managed
+        title: Automation Orchestrator task
+        initial_items: []
+    settings:
+      retry_policy:
+        max_retries: 0
+  - id: send_task
+    name: Send task to agent
+    type: http_request
+    position:
+      x: 600
+      y: 300
+    parameters:
+      method: POST
+      url: http://omnigent.omnigent.svc.cluster.local:8000/v1/sessions/${create_session.body.id}/events
+      headers:
+        Content-Type: application/json
+      body:
+        type: message
+        data:
+          role: user
+          content:
+            - type: input_text
+              text: ${trigger.task}
+    settings:
+      timeout: 360
+      retry_policy:
+        max_retries: 0
+edges:
+  - from: start
+    to: create_session
+  - from: create_session
+    to: send_task

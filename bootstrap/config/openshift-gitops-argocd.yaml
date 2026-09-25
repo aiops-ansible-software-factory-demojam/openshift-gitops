@@ -54,19 +54,6 @@ spec:
       check: |
         if obj.status ~= nil and obj.status.applied == true then return {status = "Healthy", message = "Database applied"} end
         return {status = "Progressing", message = "Waiting for database reconciliation"}
-    - group: extensions.agents.x-k8s.io
-      kind: SandboxTemplate
-      check: |
-        return {status = "Healthy", message = "Sandbox template is available"}
-    - group: extensions.agents.x-k8s.io
-      kind: SandboxWarmPool
-      check: |
-        local desired = obj.spec.replicas or 0
-        if desired == 0 then return {status = "Healthy", message = "Warm pool paused; enroll workers before enabling"} end
-        if obj.status ~= nil and (obj.status.readyReplicas or 0) >= desired then
-          return {status = "Healthy", message = "Warm sandboxes ready"}
-        end
-        return {status = "Progressing", message = "Waiting for Kata workers and ready sandboxes"}
     - group: aap.ansible.com
       kind: AnsibleAutomationPlatform
       check: |
