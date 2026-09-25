@@ -34,6 +34,7 @@ umask 077
 scratch=$(mktemp -d)
 trap 'find "$scratch" -type f -delete; rmdir "$scratch"' EXIT
 cp "$state_dir/agent-token" "$scratch/token"
+cp "$state_dir/rhdh-token" "$scratch/rhdh-token"
 printf 'demo-agent' >"$scratch/username"
 printf 'http://forgejo-demo.forgejo-demo.svc.cluster.local:3000' >"$scratch/forgejo-url"
 printf 'http://backstage-rhdh-developer-hub.rhdh.svc.cluster.local:80' >"$scratch/backstage-url"
@@ -44,7 +45,7 @@ oc -n rhdh create configmap rhdh-demo-endpoints \
   --from-literal="RHDH_URL=https://rhdh.$ingress_domain" \
   --dry-run=client -o yaml | oc -n rhdh apply -f -
 oc -n rhdh create secret generic rhdh-forgejo-credentials \
-  --from-file=FORGEJO_TOKEN="$scratch/token" \
+  --from-file=FORGEJO_TOKEN="$scratch/rhdh-token" \
   --from-file=FORGEJO_USERNAME="$scratch/username" \
   --dry-run=client -o yaml | oc -n rhdh apply -f -
 oc -n omnigent create secret generic omnigent-feature-credentials \
@@ -53,4 +54,10 @@ oc -n omnigent create secret generic omnigent-feature-credentials \
   --from-file=FORGEJO_URL="$scratch/forgejo-url" \
   --from-file=BACKSTAGE_URL="$scratch/backstage-url" \
   --dry-run=client -o yaml | oc -n omnigent apply -f -
+if oc -n rhdh get deployment backstage-rhdh-developer-hub >/dev/null 2>&1; then
+  oc -n rhdh rollout restart deployment/backstage-rhdh-developer-hub
+fi
+if oc -n omnigent get deployment omnigent >/dev/null 2>&1; then
+  oc -n omnigent rollout restart deployment/omnigent
+fi
 echo 'Forgejo demo data and Backstage/agent credentials are ready.'

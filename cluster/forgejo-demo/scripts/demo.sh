@@ -54,6 +54,10 @@ seed() {
     oc -n "$namespace" exec deploy/forgejo-demo -- forgejo --config /var/lib/gitea/custom/conf/app.ini admin user generate-access-token --username demo-agent --token-name demo-agent --scopes write:repository,write:issue,read:user --raw > "$state/agent-token.tmp"
     mv "$state/agent-token.tmp" "$state/agent-token"
   fi
+  if [[ ! -s $state/rhdh-token ]]; then
+    oc -n "$namespace" exec deploy/forgejo-demo -- forgejo --config /var/lib/gitea/custom/conf/app.ini admin user generate-access-token --username demo-agent --token-name demo-rhdh --scopes write:repository,write:user,read:issue --raw > "$state/rhdh-token.tmp"
+    mv "$state/rhdh-token.tmp" "$state/rhdh-token"
+  fi
 }
 case ${1:-help} in
   deploy)
