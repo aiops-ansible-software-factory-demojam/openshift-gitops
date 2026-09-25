@@ -54,7 +54,8 @@ source checkout at the same commit for repeatable resets.
 - `demo-admin`: separate bootstrap administrator.
 
 Each repository may have a `source` pointing to a local Git checkout. The default
-collection uses `COLLECTION_SOURCE`; other repos without a source get a README.
+collection uses `COLLECTION_SOURCE`; the collection template uses its checked-in
+fixture; other repos without a source get a README.
 The default lifecycle token and webhook commands assume these default user/repo names.
 If changing them, adjust those commands too.
 
@@ -63,9 +64,9 @@ For this private demo, every password equals the username: `demo-admin`,
 No password files or password environment variables are needed.
 
 Generated API credentials are stored in ignored, private `.state/` files:
-`admin-token` and `agent-token`. Bootstrap keeps per-cluster copies under
-`.state/<ingress-domain>/` and places the scoped agent token in Kubernetes
-Secrets for Backstage and Omnigent. Give a standalone agent only `agent-token`, the instance URL, and
+`admin-token`, `agent-token`, and `rhdh-token`. Bootstrap keeps per-cluster copies under
+`.state/<ingress-domain>/` and places scoped tokens in Kubernetes Secrets for
+Backstage and Omnigent. Give a standalone agent only `agent-token`, the instance URL, and
 `demo-owner/ansible-collection-demo`. Its scopes are `write:repository`, `write:issue`,
 and `read:user`, constrained by the user's collaborator permissions. These are
 standalone demo identities.
@@ -102,12 +103,13 @@ A different URL adds an integration; remove a retired destination in the UI.
 The receiver should verify the `X-Forgejo-Signature` HMAC-SHA256 over the raw body,
 filter `X-Forgejo-Event: issues` with action `opened`, and deduplicate deliveries.
 Ignore the agent's subsequent push/PR/comment events as task triggers to avoid loops.
-The agent service itself is external to this bundle. OAuth, SMTP and CI runners are
-not configured. Inspect webhook delivery history under repository Settings → Webhooks.
+The project bootstrap uses Automation Orchestrator and Omnigent for dispatch;
+it does not install this optional webhook. SMTP and CI runners are not configured.
+Inspect webhook delivery history under repository Settings → Webhooks.
 
 Setting `WEBHOOK_URL` and `WEBHOOK_SECRET` during seed/reset restores that integration
-automatically. Issue creation is deliberately separate and creates a new issue on each
-invocation, so a reset does not launch the agent before you are ready.
+automatically. Standalone `seed` and `reset` leave issue creation separate; the
+project bootstrap creates the example issue once after seeding.
 
 ## Reset
 

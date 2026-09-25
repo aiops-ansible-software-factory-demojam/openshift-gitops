@@ -39,25 +39,30 @@ printf 'demo-agent' >"$scratch/username"
 printf 'http://forgejo-demo.forgejo-demo.svc.cluster.local:3000' >"$scratch/forgejo-url"
 printf 'http://backstage-rhdh-developer-hub.rhdh.svc.cluster.local:80' >"$scratch/backstage-url"
 
-oc -n rhdh create configmap rhdh-demo-endpoints \
+rhdh_endpoints_status=$(oc -n rhdh create configmap rhdh-demo-endpoints \
   --from-literal="FORGEJO_HOST=$forgejo_host" \
   --from-literal="FORGEJO_URL=https://$forgejo_host" \
   --from-literal="RHDH_URL=https://rhdh.$ingress_domain" \
-  --dry-run=client -o yaml | oc -n rhdh apply -f -
-oc -n rhdh create secret generic rhdh-forgejo-credentials \
+  --dry-run=client -o yaml | oc -n rhdh apply -f -)
+rhdh_secret_status=$(oc -n rhdh create secret generic rhdh-forgejo-credentials \
   --from-file=FORGEJO_TOKEN="$scratch/rhdh-token" \
   --from-file=FORGEJO_USERNAME="$scratch/username" \
-  --dry-run=client -o yaml | oc -n rhdh apply -f -
-oc -n omnigent create secret generic omnigent-feature-credentials \
+  --dry-run=client -o yaml | oc -n rhdh apply -f -)
+omnigent_secret_status=$(oc -n omnigent create secret generic omnigent-feature-credentials \
   --from-file=FORGEJO_TOKEN="$scratch/token" \
   --from-file=FORGEJO_USERNAME="$scratch/username" \
   --from-file=FORGEJO_URL="$scratch/forgejo-url" \
   --from-file=BACKSTAGE_URL="$scratch/backstage-url" \
-  --dry-run=client -o yaml | oc -n omnigent apply -f -
-if oc -n rhdh get deployment backstage-rhdh-developer-hub >/dev/null 2>&1; then
+  --dry-run=client -o yaml | oc -n omnigent apply -f -)
+printf '%s\n' "$rhdh_endpoints_status" "$rhdh_secret_status" \
+  "$omnigent_secret_status"
+if { [[ $rhdh_endpoints_status != *' unchanged' ]] ||
+      [[ $rhdh_secret_status != *' unchanged' ]]; } &&
+   oc -n rhdh get deployment backstage-rhdh-developer-hub >/dev/null 2>&1; then
   oc -n rhdh rollout restart deployment/backstage-rhdh-developer-hub
 fi
-if oc -n omnigent get deployment omnigent >/dev/null 2>&1; then
+if [[ $omnigent_secret_status != *' unchanged' ]] &&
+   oc -n omnigent get deployment omnigent >/dev/null 2>&1; then
   oc -n omnigent rollout restart deployment/omnigent
 fi
 echo 'Forgejo demo data and Backstage/agent credentials are ready.'

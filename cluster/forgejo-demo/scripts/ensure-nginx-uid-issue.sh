@@ -5,7 +5,9 @@ root=$(cd -- "$(dirname "$0")/.." && pwd)
 repo=demo-owner/ansible-collection-demo
 title='Allow configuring the nginx worker UID'
 issues=$(api GET "/repos/$repo/issues?state=all&limit=100")
-existing=$(jq -r --arg title "$title" '.[] | select(.title == $title) | .html_url' <<<"$issues" | head -1)
+existing=$(jq -r --arg title "$title" \
+  '.[] | select(.title == $title and .pull_request == null) | .html_url' \
+  <<<"$issues" | head -1)
 if [[ -n $existing ]]; then
   printf '%s\n' "$existing"
 else
