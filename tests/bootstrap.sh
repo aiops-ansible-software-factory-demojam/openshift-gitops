@@ -44,6 +44,8 @@ case "$*" in
     test -f "$BOOTSTRAP_TEST_IMAGE_READY" ;;
   *'start-build buildconfig/omnigent-opencode --wait --follow'*)
     touch "$BOOTSTRAP_TEST_IMAGE_READY" ;;
+  *'exec deployment/omnigent -c omnigent -- cat /etc/omnigent/config.yaml'*)
+    printf 'sandbox:\n  kubernetes:\n    image: previous-sandbox-image\n' ;;
   *'get applications -o custom-columns='*) printf 'cluster Synced Healthy\n' ;;
   *) : ;;
 esac
@@ -93,7 +95,8 @@ test "$root_line" -lt "$image_line"
 test "$(rg -c 'start-build buildconfig/omnigent-opencode --wait --follow' "$BOOTSTRAP_TEST_LOG")" -eq 1
 test "$(rg -c 'rollout status deployment/openshift-gitops-operator-controller-manager' "$BOOTSTRAP_TEST_LOG")" -eq 1
 test "$(rg -c 'get crd sandboxes.agents.x-k8s.io' "$BOOTSTRAP_TEST_LOG")" -eq 1
-test "$(rg -c 'rollout status deployment/omnigent' "$BOOTSTRAP_TEST_LOG")" -eq 1
+test "$(rg -c 'rollout status deployment/omnigent' "$BOOTSTRAP_TEST_LOG")" -eq 2
+test "$(rg -c 'rollout restart deployment/omnigent' "$BOOTSTRAP_TEST_LOG")" -eq 2
 rg -q 'root-url=https://forgejo-demo.apps.demo.example.test/' "$BOOTSTRAP_TEST_LOG"
 test "$(rg -c 'delete route .*--wait=true' "$BOOTSTRAP_TEST_LOG")" -eq 4
 

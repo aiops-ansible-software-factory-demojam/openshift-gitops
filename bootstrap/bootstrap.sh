@@ -262,6 +262,16 @@ fi
 sandbox_image_current
 oc get crd sandboxes.agents.x-k8s.io
 oc -n omnigent rollout status deployment/omnigent --timeout=10m
+desired_sandbox_image=$(yq -r '.data."config.yaml"' \
+  "$repo_root/cluster/omnigent/omnigent-sandbox-config-configmap.yaml" |
+  yq -r '.sandbox.kubernetes.image')
+mounted_sandbox_image=$(oc -n omnigent exec deployment/omnigent -c omnigent -- \
+  cat /etc/omnigent/config.yaml | yq -r '.sandbox.kubernetes.image')
+if [[ "$mounted_sandbox_image" != "$desired_sandbox_image" ]]; then
+  echo 'Reloading Omnigent to use the current sandbox image...'
+  oc -n omnigent rollout restart deployment/omnigent
+  oc -n omnigent rollout status deployment/omnigent --timeout=10m
+fi
 if [[ ${BOOTSTRAP_VERIFY_GOLDENPATHS:-false} == true ]]; then
   bash "$bootstrap_dir/verify-goldenpaths.sh"
 fi
