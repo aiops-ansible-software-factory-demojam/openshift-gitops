@@ -75,7 +75,7 @@ permissions_line=$(line 'apply -f .*openshift-gitops-cluster-permissions.yaml')
 model_line=$(line 'get secret omnigent-model')
 forgejo_url_line=$(line 'create configmap forgejo-demo-url')
 root_line=$(line 'apply -f .*root-application.yaml')
-image_line=$(line 'get imagestreamtag omnigent-opencode:1.18.32')
+image_line=$(line 'get imagestreamtag omnigent-opencode:1.18.32-demo2')
 
 test "$namespace_line" -lt "$subscription_line"
 test "$subscription_line" -lt "$argocd_line"

@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 scratch=$(mktemp -d)
-trap 'find "$scratch" -type f -delete; rmdir "$scratch"' EXIT
+trap 'find "$scratch" -depth -delete' EXIT
 export MODEL_TEST_DIR="$scratch"
 
 cat >"$scratch/oc" <<'MOCK'
@@ -124,5 +124,12 @@ if MODEL_BASE_URL=https://maas-rhdp.apps.maas.redhatworkshops.io/v1/chat/complet
   echo 'A chat completions URL was accepted as a base URL.' >&2
   exit 1
 fi
+
+mkdir -p "$scratch/home"
+HOME="$scratch/home" OPENCODE_CONFIG_CONTENT='{"model":"demo/glm-5.3-flash"}' \
+  bash -c 'source cluster/omnigent/image/opencode-profile.sh'
+test "$(jq -r '.model' "$scratch/home/.config/opencode/opencode.json")" = \
+  demo/glm-5.3-flash
+test "$(stat -c %a "$scratch/home/.config/opencode/opencode.json")" = 600
 
 echo 'OpenCode Go and LiteLLM MaaS share base URL, model, and API key inputs.'

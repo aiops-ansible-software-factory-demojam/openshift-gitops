@@ -232,7 +232,7 @@ done
 
 echo 'Waiting for the OpenCode sandbox image build...'
 deadline=$((SECONDS + 1800))
-until oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:1.18.32 >/dev/null 2>&1; do
+until oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:1.18.32-demo2 >/dev/null 2>&1; do
   oc -n omnigent-sandboxes get builds -l buildconfig=omnigent-opencode \
     -o custom-columns=NAME:.metadata.name,PHASE:.status.phase --no-headers || true
   if (( SECONDS >= deadline )); then

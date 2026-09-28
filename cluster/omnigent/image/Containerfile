@@ -2,3 +2,5 @@ FROM ghcr.io/omnigent-ai/omnigent-host@sha256:f3dee09609ccecbebd6841c30b33f0160e
 
 RUN /opt/venv/bin/python -m pip install --no-cache-dir ansible-core==2.21.4 ansible-lint==26.9.0
 RUN npm install --global opencode-ai@1.18.32
+
+COPY opencode-profile.sh /etc/profile.d/omnigent-opencode.sh
