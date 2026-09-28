@@ -266,6 +266,7 @@ workflow_definition=$(yq -c '.' "$workflow_file" | jq -c \
   '.nodes |= map(if .id == "create_session" then
       .parameters.credential_id = $credential_id |
       .parameters.body.agent_id = $agent_id
+    elif .id == "send_task" then .parameters.credential_id = $credential_id
     else . end)')
 validation_payload=$(jq -n --argjson definition "$workflow_definition" \
   '{workflow_definition: $definition}')

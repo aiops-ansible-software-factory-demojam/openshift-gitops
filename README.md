@@ -65,9 +65,9 @@ KUBECONFIG="$HOME/.kube/config" oc -n omnigent-sandboxes get builds,imagestream,
 ```
 
 In AO, run `omnigent-dispatch` with a small task such as “Reply with the
-OpenCode model name and the installed Ansible version.” Its HTTP Request node
-calls Omnigent's internal Service once to create a managed session with that
-initial message. A new `Sandbox` and Pod should appear in
+OpenCode model name and the installed Ansible version.” Its HTTP Request nodes
+call Omnigent's internal Service to create a managed session and send the
+message once the runner is ready. A new `Sandbox` and Pod should appear in
 `omnigent-sandboxes`. Inspect the conversation in Omnigent using the Route
 credential created by bootstrap. Delete the test session when finished to
 remove its Sandbox and workspace claim.

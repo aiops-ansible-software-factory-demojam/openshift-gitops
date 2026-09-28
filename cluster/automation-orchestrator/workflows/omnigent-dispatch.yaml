@@ -35,17 +35,38 @@ nodes:
         agent_id: DEMO_AGENT_ID
         host_type: managed
         title: Automation Orchestrator task
-        initial_items:
-          - type: message
-            data:
-              role: user
-              content:
-                - type: input_text
-                  text: ${trigger.task}
+        initial_items: []
     settings:
       timeout: 360
       retry_policy:
         max_retries: 0
+  - id: send_task
+    name: Send task to agent
+    type: http_request
+    position:
+      x: 600
+      y: 300
+    parameters:
+      method: POST
+      url: http://omnigent.omnigent.svc:8080/v1/sessions/${create_session.body.id}/events
+      headers:
+        Content-Type: application/json
+      body:
+        type: message
+        data:
+          role: user
+          content:
+            - type: input_text
+              text: ${trigger.task}
+    settings:
+      timeout: 360
+      retry_policy:
+        max_retries: 12
+        initial_interval: 5
+        max_interval: 20
+        backoff_coefficient: 1.5
 edges:
   - from: start
     to: create_session
+  - from: create_session
+    to: send_task

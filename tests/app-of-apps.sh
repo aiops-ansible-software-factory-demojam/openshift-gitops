@@ -40,6 +40,9 @@ rg -q 'baseUrl: \$\{RHDH_URL\}' cluster/rhdh/app-config-rhdh-configmap.yaml
 test "$(yq_docs 'select(.kind == "AutomationOrchestrator") | .spec.ingress.host' .rendered/automation-orchestrator.yaml)" = null
 test "$(yq_docs 'select(.kind == "AutomationOrchestrator") | .spec.workflowHttpRequestAllowedHosts[0]' .rendered/automation-orchestrator.yaml)" = omnigent.omnigent.svc
 test "$(yq_docs '.nodes[] | select(.id == "create_session") | .parameters.url' cluster/automation-orchestrator/workflows/omnigent-dispatch.yaml)" = http://omnigent.omnigent.svc:8080/v1/sessions
+test "$(yq -r '.nodes[] | select(.id == "create_session") | .parameters.body.initial_items | length' cluster/automation-orchestrator/workflows/omnigent-dispatch.yaml)" = 0
+test "$(yq_docs '.nodes[] | select(.id == "send_task") | .parameters.url' cluster/automation-orchestrator/workflows/omnigent-dispatch.yaml)" = 'http://omnigent.omnigent.svc:8080/v1/sessions/${create_session.body.id}/events'
+test "$(yq_docs '.edges[] | select(.from == "create_session" and .to == "send_task") | .to' cluster/automation-orchestrator/workflows/omnigent-dispatch.yaml)" = send_task
 if rg -q 'apps\.cluster-' cluster -g '*.yaml' -g '!**/charts/**'; then
   echo 'A cluster-specific ingress domain remains in a GitOps manifest.' >&2
   exit 1

@@ -17,7 +17,7 @@ suspension, and uses the cluster's normal container runtime. This demo has no
 warm pool or separate sandbox network policy.
 
 The `omnigent-dispatch` Automation Orchestrator workflow calls the internal
-Omnigent API to create a managed session with an initial task. A sidecar
+Omnigent API to create a managed session and then send its task. A sidecar
 protects Omnigent's Route with the same machine credential for inspection.
 The Forgejo and Backstage feature flow is a later stage of this demo.
 
