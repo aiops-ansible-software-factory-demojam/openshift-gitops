@@ -14,7 +14,7 @@ committed. The image built from `image/` starts from the digest-pinned official
 Ansible Development Tools image (26.9.0), which includes Molecule, pytest-ansible,
 ansible-builder, ansible-creator, and ansible-navigator. It installs Omnigent
 v0.15.0 in `/opt/omnigent` so its Python dependencies stay separate from the
-Ansible tools, and adds Node.js and OpenCode 1.18.32. The Ansible tools supply
+Ansible tools, and adds Node.js, tmux, and OpenCode 1.18.32. The Ansible tools supply
 development commands; running container or VM tests still needs a test target
 and its corresponding runtime or provisioner. The server and sandbox use the
 same Omnigent v0.15.0 release. The Sandbox has a 5 GiB

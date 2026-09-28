@@ -231,13 +231,13 @@ for app in agent-sandbox-operator omnigent automation-orchestrator; do
 done
 
 echo 'Waiting for the OpenCode sandbox image build...'
-if ! oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32 \
+if ! oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32-v2 \
   >/dev/null 2>&1; then
   echo 'Building the missing OpenCode sandbox image tag...'
   oc -n omnigent-sandboxes start-build buildconfig/omnigent-opencode --wait --follow
 fi
 deadline=$((SECONDS + 1800))
-until oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32 >/dev/null 2>&1; do
+until oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32-v2 >/dev/null 2>&1; do
   oc -n omnigent-sandboxes get builds -l buildconfig=omnigent-opencode \
     -o custom-columns=NAME:.metadata.name,PHASE:.status.phase --no-headers || true
   if (( SECONDS >= deadline )); then

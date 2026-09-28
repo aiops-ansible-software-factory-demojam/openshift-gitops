@@ -12,7 +12,7 @@ data:
         namespace: omnigent-sandboxes
         service_account: omnigent-runner
         secret_name: omnigent-model
-        image: image-registry.openshift-image-registry.svc:5000/omnigent-sandboxes/omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32
+        image: image-registry.openshift-image-registry.svc:5000/omnigent-sandboxes/omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32-v2
         in_cluster: true
         pod_ready_timeout_s: 300
         home_size_limit: 4Gi
