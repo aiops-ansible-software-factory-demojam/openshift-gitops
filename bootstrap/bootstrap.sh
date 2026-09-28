@@ -231,6 +231,11 @@ for app in agent-sandbox-operator omnigent automation-orchestrator; do
 done
 
 echo 'Waiting for the OpenCode sandbox image build...'
+if ! oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:1.18.32-demo2 \
+  >/dev/null 2>&1; then
+  echo 'Building the missing OpenCode sandbox image tag...'
+  oc -n omnigent-sandboxes start-build buildconfig/omnigent-opencode --wait --follow
+fi
 deadline=$((SECONDS + 1800))
 until oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:1.18.32-demo2 >/dev/null 2>&1; do
   oc -n omnigent-sandboxes get builds -l buildconfig=omnigent-opencode \

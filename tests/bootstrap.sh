@@ -5,6 +5,7 @@ scratch=$(mktemp -d)
 trap 'find "$scratch" -type f -delete; rmdir "$scratch"' EXIT
 export BOOTSTRAP_TEST_LOG="$scratch/oc.log"
 export BOOTSTRAP_TEST_DOMAIN=apps.demo.example.test
+export BOOTSTRAP_TEST_IMAGE_READY="$scratch/image-ready"
 
 cat >"$scratch/oc" <<'MOCK'
 #!/usr/bin/env bash
@@ -39,6 +40,10 @@ case "$*" in
   *'get builds -l buildconfig=omnigent-opencode -o json'*)
     printf '{"items":[{"status":{"phase":"Complete"},"spec":{"revision":{"git":{"commit":"%s"}}}}]}' \
       "$(git rev-parse HEAD)" ;;
+  *'get imagestreamtag omnigent-opencode:1.18.32-demo2'*)
+    test -f "$BOOTSTRAP_TEST_IMAGE_READY" ;;
+  *'start-build buildconfig/omnigent-opencode --wait --follow'*)
+    touch "$BOOTSTRAP_TEST_IMAGE_READY" ;;
   *'get applications -o custom-columns='*) printf 'cluster Synced Healthy\n' ;;
   *) : ;;
 esac
@@ -85,6 +90,7 @@ test "$permissions_line" -lt "$forgejo_url_line"
 test "$forgejo_url_line" -lt "$root_line"
 test "$model_line" -lt "$root_line"
 test "$root_line" -lt "$image_line"
+test "$(rg -c 'start-build buildconfig/omnigent-opencode --wait --follow' "$BOOTSTRAP_TEST_LOG")" -eq 1
 test "$(rg -c 'rollout status deployment/openshift-gitops-operator-controller-manager' "$BOOTSTRAP_TEST_LOG")" -eq 1
 test "$(rg -c 'get crd sandboxes.agents.x-k8s.io' "$BOOTSTRAP_TEST_LOG")" -eq 1
 test "$(rg -c 'rollout status deployment/omnigent' "$BOOTSTRAP_TEST_LOG")" -eq 1
