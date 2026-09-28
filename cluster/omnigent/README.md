@@ -13,11 +13,13 @@ Bootstrap creates both; no key is
 committed. The image built from `image/` adds OpenCode and the pinned
 `ansible-dev-tools` bundle (including Molecule, pytest-ansible, ansible-builder,
 ansible-creator, and ansible-navigator) to Omnigent's host image. It also pins
-ansible-core and ansible-lint for reproducible demo results. The bundle supplies
-development commands; running container or VM tests still needs a test target
-and its corresponding runtime or provisioner. The server and host base images
-use the same Omnigent v0.15.0 release. The Sandbox has a 5 GiB HOME claim, which survives idle
-suspension, and uses the cluster's normal container runtime. This demo has no
+ansible-core and ansible-lint for reproducible demo results. The Ansible bundle
+has its own Python environment so its dependencies cannot replace Omnigent's.
+The bundle supplies development commands; running container or VM tests still
+needs a test target and its corresponding runtime or provisioner. The server and
+host base images use the same Omnigent v0.15.0 release. The Sandbox has a 5 GiB
+HOME claim, which survives idle suspension, and uses the cluster's normal
+container runtime. This demo has no
 warm pool or separate sandbox network policy.
 
 The `omnigent-dispatch` Automation Orchestrator workflow calls the internal
