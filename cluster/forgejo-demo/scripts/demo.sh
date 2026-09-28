@@ -54,10 +54,6 @@ seed() {
     oc -n "$namespace" exec deploy/forgejo-demo -- forgejo --config /var/lib/gitea/custom/conf/app.ini admin user generate-access-token --username demo-agent --token-name demo-agent --scopes write:repository,write:issue,read:user --raw > "$state/agent-token.tmp"
     mv "$state/agent-token.tmp" "$state/agent-token"
   fi
-  if [[ ! -s $state/rhdh-token ]]; then
-    oc -n "$namespace" exec deploy/forgejo-demo -- forgejo --config /var/lib/gitea/custom/conf/app.ini admin user generate-access-token --username demo-agent --token-name demo-rhdh --scopes write:repository,write:user,read:issue --raw > "$state/rhdh-token.tmp"
-    mv "$state/rhdh-token.tmp" "$state/rhdh-token"
-  fi
 }
 case ${1:-help} in
   deploy)
@@ -88,7 +84,7 @@ case ${1:-help} in
     oc -n "$namespace" scale deploy/forgejo-demo --replicas=0
     oc -n "$namespace" wait --for=delete pod -l app=forgejo-demo --timeout=180s
     oc -n "$namespace" delete pvc forgejo-demo --wait=true --timeout=180s
-    rm -f "$state/admin-token" "$state/admin-token.tmp" "$state/agent-token" "$state/agent-token.tmp"
+    rm -f "$state/admin-token" "$state/admin-token.tmp" "$state/agent-token" "$state/agent-token.tmp" "$state/rhdh-token" "$state/rhdh-token.tmp"
     new_uid=
     for ((attempt = 0; attempt < 60; attempt++)); do
       new_uid=$(oc -n "$namespace" get pvc forgejo-demo -o jsonpath='{.metadata.uid}' 2>/dev/null || true)

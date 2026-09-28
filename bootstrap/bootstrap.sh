@@ -5,7 +5,7 @@ bootstrap_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 repo_root=$(cd -- "$bootstrap_dir/.." && pwd)
 operator_namespace=openshift-gitops-operator
 gitops_namespace=openshift-gitops
-export KUBECONFIG=${KUBECONFIG:-"$HOME/.kube/config"}
+: "${KUBECONFIG:?Set KUBECONFIG for the demo cluster}"
 
 oc whoami --show-server
 oc whoami
@@ -158,9 +158,6 @@ for app in rhbk forgejo-demo omnigent automation-orchestrator; do
     fi
     sleep 5
   done
-  if [[ $app == forgejo-demo && ${BOOTSTRAP_SEED_DEMO:-false} == true ]]; then
-    bash "$bootstrap_dir/forgejo-backstage.sh" "$ingress_domain"
-  fi
 done
 for route_ref in keycloak/keycloak forgejo-demo/forgejo-demo \
   omnigent/omnigent \
@@ -231,13 +228,13 @@ for app in agent-sandbox-operator omnigent automation-orchestrator; do
 done
 
 echo 'Waiting for the OpenCode sandbox image build...'
-if ! oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32-v3 \
+if ! oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32-v4 \
   >/dev/null 2>&1; then
   echo 'Building the missing OpenCode sandbox image tag...'
   oc -n omnigent-sandboxes start-build buildconfig/omnigent-opencode --wait --follow
 fi
 deadline=$((SECONDS + 1800))
-until oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32-v3 >/dev/null 2>&1; do
+until oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32-v4 >/dev/null 2>&1; do
   oc -n omnigent-sandboxes get builds -l buildconfig=omnigent-opencode \
     -o custom-columns=NAME:.metadata.name,PHASE:.status.phase --no-headers || true
   if (( SECONDS >= deadline )); then
@@ -277,8 +274,8 @@ if [[ "$mounted_sandbox_image" != "$desired_sandbox_image" ||
   oc -n omnigent rollout restart deployment/omnigent
   oc -n omnigent rollout status deployment/omnigent --timeout=10m
 fi
-if [[ ${BOOTSTRAP_VERIFY_GOLDENPATHS:-false} == true ]]; then
-  bash "$bootstrap_dir/verify-goldenpaths.sh"
+if [[ ${BOOTSTRAP_SEED_DEMO:-true} == true ]]; then
+  bash "$repo_root/scripts/feature-demo.sh" hydrate
 fi
 # The Argo CD health check only requires the AutomationOrchestrator Ready
 # condition. Wait for the UI and backend Deployments before publishing the

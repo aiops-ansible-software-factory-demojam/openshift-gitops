@@ -7,14 +7,17 @@ short-lived launch-token Secrets only in that runner namespace. The runner has
 no Kubernetes API token. Its fixed non-root UID uses the `nonroot-v2` SCC.
 
 `omnigent-model` in `omnigent-sandboxes` holds the OpenCode Go key and inline
-OpenCode configuration for `demo/glm-5.3-flash`. `omnigent-agent` in `omnigent`
+OpenCode configuration for `demo/glm-5.3-flash`. Forgejo hydration adds the
+scoped `demo-agent` token and internal URL to this Secret, so new Sandboxes
+can clone and push the demo collection. `omnigent-agent` in `omnigent`
 holds the `automation-developer` API agent specification, whose YAML name is
 also `automation-developer`. Bootstrap creates both; no key is committed. The
 image built from `image/` starts from the digest-pinned official
 Ansible Development Tools image (26.9.0), which includes Molecule, pytest-ansible,
 ansible-builder, ansible-creator, and ansible-navigator. It installs Omnigent
 v0.15.0 in `/opt/omnigent` so its Python dependencies stay separate from the
-Ansible tools, and adds Node.js, Bubblewrap, tmux, and OpenCode 1.18.32. The Ansible tools supply
+Ansible tools, and adds Node.js, Bubblewrap, tmux, OpenCode 1.18.32, and the
+`forgejo-issue` helper. The Ansible tools supply
 development commands; running container or VM tests still needs a test target
 and its corresponding runtime or provisioner. The server and sandbox use the
 same Omnigent v0.15.0 release. The Sandbox has a 5 GiB
@@ -37,17 +40,19 @@ podman build -f cluster/omnigent/image/Containerfile \
 `python3` remains the ADT image's Python; the `omnigent` command uses
 `/opt/omnigent/bin/python`.
 
-The `omnigent-dispatch` Automation Orchestrator workflow calls the internal
-Omnigent API to create a managed session and then send its task. A sidecar
-protects Omnigent's Route with the same machine credential for inspection.
-The Forgejo and Backstage feature flow is a later stage of this demo.
+The `omnigent-dispatch` Automation Orchestrator workflow accepts a Forgejo
+issue number, creates a managed session, and asks the agent to read that issue,
+work on a branch, and open a PR. `forgejo-issue start` clones using Git askpass;
+`forgejo-issue submit` pushes and calls Forgejo's PR API. Credentials do not
+appear in Git URLs. A sidecar protects Omnigent's Route with the same machine
+credential for inspection. RHDH is outside this flow.
 
 Check the resources with the selected kubeconfig:
 
 ```bash
-KUBECONFIG="$HOME/.kube/config" oc -n omnigent rollout status deployment/omnigent
-KUBECONFIG="$HOME/.kube/config" oc -n omnigent-sandboxes get builds,imagestream,sandboxes,pods
-KUBECONFIG="$HOME/.kube/config" oc -n omnigent-sandboxes get sandboxes \
+oc -n omnigent rollout status deployment/omnigent
+oc -n omnigent-sandboxes get builds,imagestream,sandboxes,pods
+oc -n omnigent-sandboxes get sandboxes \
   -l omnigent.ai/agent=automation-developer
 ```
 

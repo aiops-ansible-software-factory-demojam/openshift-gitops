@@ -12,4 +12,6 @@ ENV PATH="${PATH}:/opt/omnigent/bin"
 RUN npm install --global opencode-ai@1.18.32
 
 COPY opencode-profile.sh /etc/profile.d/omnigent-opencode.sh
-RUN bash -lc 'command -v omnigent && command -v bwrap && command -v tmux && command -v ansible && command -v molecule && command -v opencode'
+COPY forgejo-issue.py /usr/local/bin/forgejo-issue
+RUN chmod 755 /usr/local/bin/forgejo-issue \
+    && bash -lc 'command -v omnigent && command -v bwrap && command -v tmux && command -v ansible && command -v molecule && command -v opencode && command -v git && command -v forgejo-issue'

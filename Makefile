@@ -13,9 +13,11 @@ render:
 test: render
 	bash -n bootstrap/*.sh scripts/*.sh tests/*.sh cluster/automation-orchestrator/*.sh cluster/forgejo-demo/scripts/*.sh
 	bash tests/bootstrap.sh
+	bash tests/feature-demo.sh
 	bash tests/model-config.sh
 	bash tests/app-of-apps.sh
 	bash tests/set-gitops-branch.sh
+	PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_*.py'
 	kubeconform -strict -summary -ignore-missing-schemas .rendered/
 	git diff --check
 

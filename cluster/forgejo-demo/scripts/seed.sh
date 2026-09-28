@@ -59,7 +59,6 @@ while IFS= read -r repo; do
   if [[ -z $refs ]]; then
     source=$(jq -r '.source // ""' <<< "$repo")
     [[ $name != ansible-collection-demo || -n $source ]] || source=$COLLECTION_SOURCE
-    [[ $name != ansible-collection-template || -n $source ]] || source=$root/fixtures/collection-template
     work=$tmp/$name
     git init -q -b main "$work"
     if [[ -n $source ]]; then
@@ -78,9 +77,6 @@ while IFS= read -r repo; do
     git -C "$work" add .
     git -C "$work" -c user.name='Demo Maintainer' -c user.email=owner@example.test commit -qm 'Seed demo baseline'
     git -C "$work" -c credential.helper= push -q "$FORGEJO_URL/$owner/$name.git" main
-  fi
-  if [[ $name == ansible-collection-template ]]; then
-    api PATCH "/repos/$owner/$name" '{"template":true}' >/dev/null
   fi
   while IFS= read -r collaborator; do
     api PUT "/repos/$owner/$name/collaborators/$collaborator" '{"permission":"write"}' >/dev/null

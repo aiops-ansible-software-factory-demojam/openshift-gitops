@@ -9,16 +9,15 @@ AO workflow -> Omnigent API -> Sandbox in omnigent-sandboxes
                              -> OpenCode with OpenCode Go glm-5.3-flash
 ```
 
-Forgejo and Developer Hub manifests remain available for the later collection
-feature demo. The Developer Hub Application is disabled in `cluster/values.yaml`
-until that stage. This stage proves that AO can create and task an OpenCode session.
-It does not seed a collection repository or run the feature pipeline.
+Forgejo supplies the seeded collection and issue for an issue-to-PR demo.
+Developer Hub remains disabled in `cluster/values.yaml`; this flow uses no
+golden path or Backstage template.
 
 ## Requirements
 
 Use a disposable OpenShift cluster with OLM, Red Hat and certified operator
 catalogs, ingress, a default RWO StorageClass, and enough capacity for the
-operators, databases, and applications. The identity in `~/.kube/config` needs
+operators, databases, and applications. The active `KUBECONFIG` identity needs
 cluster-admin rights. Install `oc`, `kustomize`, `helm`, `yq`, `jq`, `openssl`,
 `curl`, `git`, and `op` (or supply `MODEL_API_KEY`).
 
@@ -33,17 +32,17 @@ From the repository root:
 
 ```bash
 make test
-KUBECONFIG="$HOME/.kube/config" oc whoami --show-server
-KUBECONFIG="$HOME/.kube/config" oc whoami
-BOOTSTRAP_BRANCH=demo-yourname KUBECONFIG="$HOME/.kube/config" bash bootstrap/bootstrap.sh
+oc whoami --show-server
+oc whoami
+BOOTSTRAP_BRANCH=demo-yourname bash bootstrap/bootstrap.sh
 ```
 
 The script installs OpenShift GitOps, creates the bootstrap-owned model and
 machine-credential Secrets, starts the app-of-apps, waits for the OpenCode
-image and Omnigent deployment, and publishes AO's `omnigent-dispatch` workflow.
-It is safe to rerun. It skips Forgejo data seeding and Backstage template
-verification by default. The Developer Hub app, seed credentials, and catalog
-checks are deferred to the later feature stage.
+image and Omnigent deployment, hydrates Forgejo's collection and issue, and
+publishes AO's `omnigent-dispatch` workflow. It is safe to rerun. Set
+`BOOTSTRAP_SEED_DEMO=false` only when testing the platform without Forgejo
+data. Developer Hub stays disabled.
 
 The default model is OpenCode Go `glm-5.3-flash` at
 `https://opencode.ai/zen/go/v1`. Bootstrap reads
@@ -55,34 +54,33 @@ Set `MODEL_API_KEY` again to rotate it. `MODEL_BASE_URL` and `MODEL_NAME` can
 select another OpenAI-compatible endpoint; the base URL ends before
 `/chat/completions`.
 
-## Verify the session path
+## Run an issue through AO
 
 ```bash
-KUBECONFIG="$HOME/.kube/config" oc -n openshift-gitops get applications
-KUBECONFIG="$HOME/.kube/config" oc -n agent-sandbox-system get csv
-KUBECONFIG="$HOME/.kube/config" oc -n omnigent rollout status deployment/omnigent
-KUBECONFIG="$HOME/.kube/config" oc -n omnigent-sandboxes get builds,imagestream,sandboxes,pods
+oc -n openshift-gitops get applications
+oc -n agent-sandbox-system get csv
+oc -n omnigent rollout status deployment/omnigent
+oc -n omnigent-sandboxes get builds,imagestream,sandboxes,pods
+bash scripts/feature-demo.sh hydrate
+bash scripts/dispatch-issue.sh 1
 ```
 
-In AO, run `omnigent-dispatch` with a small task such as “Reply with the
-OpenCode model name and the installed Ansible version.” Its HTTP Request nodes
-call Omnigent's internal Service to create a managed session and send the
-message once the runner is ready. A new `Sandbox` and Pod should appear in
-`omnigent-sandboxes`. Inspect the conversation in Omnigent using the Route
-credential created by bootstrap. Delete the test session when finished to
-remove its Sandbox and workspace claim.
+`hydrate` is idempotent and prints the issue URL. Pass its issue number to
+`dispatch-issue.sh`; the script calls AO's published workflow through its API
+and prints the AO execution and Omnigent session IDs. AO completion means the
+agent accepted the task. Inspect the session for its branch, checks, and PR URL.
+Each session gets its own Sandbox. Delete the session when finished.
 
-To make the same call through AO's API from the checkout, run:
+To return Forgejo to the fixture baseline and rotate the agent token, stop the
+session and run:
 
 ```bash
-KUBECONFIG="$HOME/.kube/config" bash scripts/dispatch-demo-task.sh
+bash scripts/feature-demo.sh reset --confirm-forgejo-demo
 ```
 
-The script logs in with the cluster-managed AO admin credential, calls the
-published workflow, waits for its HTTP nodes to finish, and prints the AO
-execution and Omnigent session IDs. Pass a quoted task as an argument to try a
-different prompt. AO completing means Omnigent accepted the task; check the
-session conversation for the agent's answer.
+This erases only the disposable Forgejo PVC and re-creates the collection,
+issue, and sandbox credential. See the [Forgejo demo guide](cluster/forgejo-demo/README.md)
+for the reset guardrails and fixture details.
 
 The [Omnigent component guide](cluster/omnigent/README.md) describes the
 permissions, image, and session lifecycle. The [AO workflow guide](cluster/automation-orchestrator/workflows/README.md)

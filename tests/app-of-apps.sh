@@ -41,6 +41,8 @@ test "$(yq_docs 'select(.kind == "AutomationOrchestrator") | .spec.ingress.host'
 test "$(yq_docs 'select(.kind == "AutomationOrchestrator") | .spec.workflowHttpRequestAllowedHosts[0]' .rendered/automation-orchestrator.yaml)" = omnigent.omnigent.svc
 test "$(yq_docs '.nodes[] | select(.id == "create_session") | .parameters.url' cluster/automation-orchestrator/workflows/omnigent-dispatch.yaml)" = http://omnigent.omnigent.svc:8080/v1/sessions
 test "$(yq -r '.nodes[] | select(.id == "create_session") | .parameters.body.initial_items | length' cluster/automation-orchestrator/workflows/omnigent-dispatch.yaml)" = 0
+test "$(yq -r '.triggers[0].parameters.input_schema.properties.issue_number.type' cluster/automation-orchestrator/workflows/omnigent-dispatch.yaml)" = integer
+rg -q 'forgejo-issue start \$\{trigger.issue_number\}' cluster/automation-orchestrator/workflows/omnigent-dispatch.yaml
 test "$(yq_docs '.nodes[] | select(.id == "send_task") | .parameters.url' cluster/automation-orchestrator/workflows/omnigent-dispatch.yaml)" = 'http://omnigent.omnigent.svc:8080/v1/sessions/${create_session.body.id}/events'
 test "$(yq_docs '.edges[] | select(.from == "create_session" and .to == "send_task") | .to' cluster/automation-orchestrator/workflows/omnigent-dispatch.yaml)" = send_task
 if rg -q 'apps\.cluster-' cluster -g '*.yaml' -g '!**/charts/**'; then
@@ -55,6 +57,7 @@ done
 test "$(yq_docs 'select(.kind == "ImageStream") | .metadata.annotations."argocd.argoproj.io/sync-wave"' .rendered/omnigent.yaml)" = \
   "$(yq_docs 'select(.kind == "BuildConfig") | .metadata.annotations."argocd.argoproj.io/sync-wave"' .rendered/omnigent.yaml)"
 test "$(yq_docs 'select(.kind == "ConfigMap" and .metadata.name == "omnigent-sandbox-config") | .data."config.yaml"' .rendered/omnigent.yaml | yq -r '.sandbox.provider')" = agent_sandbox
+rg -q 'FORGEJO_TOKEN' cluster/omnigent/omnigent-config-configmap.yaml
 
 echo 'The app-of-apps chart renders the project, six active paths and expected waves.'
 echo 'RHBK adopts the environment Keycloak without managing its database, data or secrets.'

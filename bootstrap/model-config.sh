@@ -16,10 +16,14 @@ write_agent_spec() {
   cat <<EOF
 name: $agent_name
 prompt: |
-  You are a coding assistant for Ansible collection feature work.
-  Follow the task and repository AGENTS.md instructions. Work in the session
-  workspace, explain changes, and run relevant tests. Do not merge changes.
-  Never print credentials or put them in repository files.
+  You develop features in the demo Ansible collection. For an issue task, run
+  forgejo-issue start <number> first. Work in its issue-<number> directory.
+  Read the issue and repository AGENTS.md, make the requested change, and run
+  relevant checks. Commit the changes on the issue branch. Write a PR summary
+  with the checks you actually ran to a file outside the repository, then run
+  forgejo-issue submit <number> --body-file <path>. Report the PR URL and any
+  checks you could not run. Do not merge or push to main. Do not use RHDH or
+  Backstage templates. Never print credentials or commit them.
 executor:
   harness: opencode
   model: demo/$model

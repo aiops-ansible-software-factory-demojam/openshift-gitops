@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
+: "${KUBECONFIG:?Set KUBECONFIG for the demo cluster}"
 
-# Call AO's published workflow API, then print the Omnigent session it created.
-export KUBECONFIG=${KUBECONFIG:-"$HOME/.kube/config"}
-task=${*:-Reply with DEMO_AGENT_READY and the first line of ansible --version. Do not edit files.}
+# Call AO's published workflow API and print the launched Omnigent session.
+issue_number=${1:?Usage: dispatch-issue.sh ISSUE_NUMBER}
+[[ $issue_number =~ ^[1-9][0-9]*$ ]] || {
+  echo 'Pass a positive numeric Forgejo issue number.' >&2
+  exit 2
+}
 
 oc whoami --show-server
 oc whoami
@@ -28,8 +32,9 @@ ao_get() {
 
 workflow_id=$(ao_get 'workflows?limit=100' |
   jq -er '.resources[] | select(.name == "omnigent-dispatch") | .id')
-payload=$(jq -cn --arg workflow_id "$workflow_id" --arg task "$task" \
-  '{workflow_id:$workflow_id,trigger_node_id:"start",use_published:true,input_data:{task:$task}}')
+payload=$(jq -cn --arg workflow_id "$workflow_id" \
+  --argjson issue_number "$issue_number" \
+  '{workflow_id:$workflow_id,trigger_node_id:"start",use_published:true,input_data:{issue_number:$issue_number}}')
 execution_id=$(curl -fsS "https://$ao_host/api/v1/executions" \
   -H "Authorization: Bearer $ao_token" -H 'Content-Type: application/json' \
   --data-binary "$payload" | jq -er '.id')
@@ -55,6 +60,6 @@ done
 
 session_id=$(ao_get "executions/$execution_id/activities" |
   jq -er '.resources[] | select(.activity_name == "create_session") | .output_data.body.id')
-echo "AO workflow: completed"
+echo 'AO workflow: completed'
 echo "Omnigent session: $session_id"
-echo 'Open the session in Omnigent to inspect the agent response.'
+echo 'The agent continues asynchronously. Inspect the session for its PR URL.'

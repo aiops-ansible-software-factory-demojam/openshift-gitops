@@ -40,7 +40,7 @@ case "$*" in
   *'get builds -l buildconfig=omnigent-opencode -o json'*)
     printf '{"items":[{"status":{"phase":"Complete"},"spec":{"revision":{"git":{"commit":"%s"}}}}]}' \
       "$(git rev-parse HEAD)" ;;
-  *'get imagestreamtag omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32-v3'*)
+  *'get imagestreamtag omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32-v4'*)
     test -f "$BOOTSTRAP_TEST_IMAGE_READY" ;;
   *'start-build buildconfig/omnigent-opencode --wait --follow'*)
     touch "$BOOTSTRAP_TEST_IMAGE_READY" ;;
@@ -69,8 +69,8 @@ MOCK_GIT
 chmod +x "$scratch/git"
 
 BOOTSTRAP_BRANCH=$(yq -r '.spec.source.targetRevision' \
-  bootstrap/config/root-application.yaml) BOOTSTRAP_SEED_DEMO=false \
-  BOOTSTRAP_VERIFY_GOLDENPATHS=false \
+  bootstrap/config/root-application.yaml) KUBECONFIG="$scratch/kubeconfig" \
+  BOOTSTRAP_SEED_DEMO=false \
   BOOTSTRAP_RECONCILE_WORKFLOW=false PATH="$scratch:$PATH" \
   bash bootstrap/bootstrap.sh >/dev/null
 
@@ -82,7 +82,7 @@ permissions_line=$(line 'apply -f .*openshift-gitops-cluster-permissions.yaml')
 model_line=$(line 'get secret omnigent-model')
 forgejo_url_line=$(line 'create configmap forgejo-demo-url')
 root_line=$(line 'apply -f .*root-application.yaml')
-image_line=$(line 'get imagestreamtag omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32-v3')
+image_line=$(line 'get imagestreamtag omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32-v4')
 
 test "$namespace_line" -lt "$subscription_line"
 test "$subscription_line" -lt "$argocd_line"
