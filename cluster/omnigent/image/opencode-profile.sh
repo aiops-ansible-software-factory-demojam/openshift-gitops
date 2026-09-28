@@ -2,8 +2,8 @@
 # imports provider definitions from this user-level config. Its serve process
 # intentionally ignores OPENCODE_CONFIG_CONTENT, so materialize it at login.
 case ":$PATH:" in
-  *:/opt/ansible-dev-tools/bin:*) ;;
-  *) export PATH="$PATH:/opt/ansible-dev-tools/bin" ;;
+  *:/opt/omnigent/bin:*) ;;
+  *) export PATH="$PATH:/opt/omnigent/bin" ;;
 esac
 
 if [ -n "${OPENCODE_CONFIG_CONTENT:-}" ]; then

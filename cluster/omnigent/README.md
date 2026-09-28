@@ -10,17 +10,27 @@ no Kubernetes API token. Its fixed non-root UID uses the `nonroot-v2` SCC.
 OpenCode configuration for `demo/glm-5.3-flash`. `omnigent-agent` in `omnigent`
 holds the `demo` API agent specification, whose YAML name is `opencode-demo`.
 Bootstrap creates both; no key is
-committed. The image built from `image/` adds OpenCode and the pinned
-`ansible-dev-tools` bundle (including Molecule, pytest-ansible, ansible-builder,
-ansible-creator, and ansible-navigator) to Omnigent's host image. It also pins
-ansible-core and ansible-lint for reproducible demo results. The Ansible bundle
-has its own Python environment so its dependencies cannot replace Omnigent's.
-The bundle supplies development commands; running container or VM tests still
-needs a test target and its corresponding runtime or provisioner. The server and
-host base images use the same Omnigent v0.15.0 release. The Sandbox has a 5 GiB
+committed. The image built from `image/` starts from the digest-pinned official
+Ansible Development Tools image (26.9.0), which includes Molecule, pytest-ansible,
+ansible-builder, ansible-creator, and ansible-navigator. It installs Omnigent
+v0.15.0 in `/opt/omnigent` so its Python dependencies stay separate from the
+Ansible tools, and adds Node.js and OpenCode 1.18.32. The Ansible tools supply
+development commands; running container or VM tests still needs a test target
+and its corresponding runtime or provisioner. The server and sandbox use the
+same Omnigent v0.15.0 release. The Sandbox has a 5 GiB
 HOME claim, which survives idle suspension, and uses the cluster's normal
 container runtime. This demo has no
 warm pool or separate sandbox network policy.
+
+From the repository root, build the sandbox image locally with:
+
+```bash
+podman build -f cluster/omnigent/image/Containerfile \
+  -t omnigent-adt:local cluster/omnigent/image
+```
+
+`python3` remains the ADT image's Python; the `omnigent` command uses
+`/opt/omnigent/bin/python`.
 
 The `omnigent-dispatch` Automation Orchestrator workflow calls the internal
 Omnigent API to create a managed session and then send its task. A sidecar

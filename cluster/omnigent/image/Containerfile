@@ -1,16 +1,15 @@
-FROM ghcr.io/omnigent-ai/omnigent-host@sha256:f3dee09609ccecbebd6841c30b33f0160eaf3d2758d535b2e3993c1a3df5664a
+FROM ghcr.io/ansible/community-ansible-dev-tools@sha256:775c81d53058009dd47b97872f4a86d3b0a9ce16ad9af3cc48514ce4197aa787
 
-RUN /opt/venv/bin/python -m venv /opt/ansible-dev-tools \
-    && /opt/ansible-dev-tools/bin/python -m pip install --no-cache-dir \
-        ansible-core==2.21.4 \
-        ansible-dev-tools==26.9.0 \
-        ansible-lint==26.9.0 \
-    && /opt/ansible-dev-tools/bin/python -m pip check \
-    && /opt/venv/bin/python -m pip check
+# Keep Omnigent's dependencies separate from the Ansible tools in the base image.
+RUN dnf5 install -y nodejs npm \
+    && dnf5 clean all \
+    && /usr/bin/python3 -m venv /opt/omnigent \
+    && /opt/omnigent/bin/python -m pip install --no-cache-dir omnigent==0.15.0 \
+    && /opt/omnigent/bin/python -m pip check
 
-ENV PATH="${PATH}:/opt/ansible-dev-tools/bin"
+ENV PATH="${PATH}:/opt/omnigent/bin"
 
 RUN npm install --global opencode-ai@1.18.32
 
 COPY opencode-profile.sh /etc/profile.d/omnigent-opencode.sh
-RUN bash -lc 'command -v ansible && command -v molecule && command -v pytest'
+RUN bash -lc 'command -v omnigent && command -v ansible && command -v molecule && command -v opencode'
