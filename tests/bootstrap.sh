@@ -40,7 +40,7 @@ case "$*" in
   *'get builds -l buildconfig=omnigent-opencode -o json'*)
     printf '{"items":[{"status":{"phase":"Complete"},"spec":{"revision":{"git":{"commit":"%s"}}}}]}' \
       "$(git rev-parse HEAD)" ;;
-  *'get imagestreamtag omnigent-opencode:1.18.32-demo2'*)
+  *'get imagestreamtag omnigent-opencode:1.18.32-adt26.9.0'*)
     test -f "$BOOTSTRAP_TEST_IMAGE_READY" ;;
   *'start-build buildconfig/omnigent-opencode --wait --follow'*)
     touch "$BOOTSTRAP_TEST_IMAGE_READY" ;;
@@ -80,7 +80,7 @@ permissions_line=$(line 'apply -f .*openshift-gitops-cluster-permissions.yaml')
 model_line=$(line 'get secret omnigent-model')
 forgejo_url_line=$(line 'create configmap forgejo-demo-url')
 root_line=$(line 'apply -f .*root-application.yaml')
-image_line=$(line 'get imagestreamtag omnigent-opencode:1.18.32-demo2')
+image_line=$(line 'get imagestreamtag omnigent-opencode:1.18.32-adt26.9.0')
 
 test "$namespace_line" -lt "$subscription_line"
 test "$subscription_line" -lt "$argocd_line"

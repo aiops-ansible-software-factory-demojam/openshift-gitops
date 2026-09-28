@@ -10,9 +10,13 @@ no Kubernetes API token. Its fixed non-root UID uses the `nonroot-v2` SCC.
 OpenCode configuration for `demo/glm-5.3-flash`. `omnigent-agent` in `omnigent`
 holds the `demo` API agent specification, whose YAML name is `opencode-demo`.
 Bootstrap creates both; no key is
-committed. The image built from `image/` adds OpenCode and Ansible tooling to
-Omnigent's host image. The server and host base images use the same Omnigent
-v0.15.0 release. The Sandbox has a 5 GiB HOME claim, which survives idle
+committed. The image built from `image/` adds OpenCode and the pinned
+`ansible-dev-tools` bundle (including Molecule, pytest-ansible, ansible-builder,
+ansible-creator, and ansible-navigator) to Omnigent's host image. It also pins
+ansible-core and ansible-lint for reproducible demo results. The bundle supplies
+development commands; running container or VM tests still needs a test target
+and its corresponding runtime or provisioner. The server and host base images
+use the same Omnigent v0.15.0 release. The Sandbox has a 5 GiB HOME claim, which survives idle
 suspension, and uses the cluster's normal container runtime. This demo has no
 warm pool or separate sandbox network policy.
 
