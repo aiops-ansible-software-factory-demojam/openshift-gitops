@@ -72,6 +72,18 @@ message once the runner is ready. A new `Sandbox` and Pod should appear in
 credential created by bootstrap. Delete the test session when finished to
 remove its Sandbox and workspace claim.
 
+To make the same call through AO's API from the checkout, run:
+
+```bash
+KUBECONFIG="$HOME/.kube/config" bash scripts/dispatch-demo-task.sh
+```
+
+The script logs in with the cluster-managed AO admin credential, calls the
+published workflow, waits for its HTTP nodes to finish, and prints the AO
+execution and Omnigent session IDs. Pass a quoted task as an argument to try a
+different prompt. AO completing means Omnigent accepted the task; check the
+session conversation for the agent's answer.
+
 The [Omnigent component guide](cluster/omnigent/README.md) describes the
 permissions, image, and session lifecycle. The [AO workflow guide](cluster/automation-orchestrator/workflows/README.md)
 describes workflow reconciliation.
