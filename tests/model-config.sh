@@ -12,6 +12,8 @@ case "$*" in
   *'get secret omnigent-model -o json'*)
     [[ ${MODEL_TEST_EXISTING_GO:-false} == true ]] || exit 1
     cat "$MODEL_TEST_DIR/existing-secret.json" ;;
+  *'get secret omnigent-agent -o jsonpath='*)
+    printf '%s' "${MODEL_TEST_AGENT_ENCODED:-}" ;;
   *'get secret omnigent-model'*|*'get secret omnigent-agent'*)
     [[ ${MODEL_TEST_EXISTING_GO:-false} == true ]] ;;
   *'patch secret omnigent-model'*|*'patch secret omnigent-agent'*)
@@ -91,6 +93,15 @@ jq -e '
 ' "$scratch/model-patch.json" >/dev/null
 jq -er '.data["demo.yaml"] | @base64d' "$scratch/agent-patch.json" |
   yq -r '.executor.model' | rg -Fxq 'demo/glm-5.3-flash'
+
+jq -cn --arg value "$(base64 -w0 <"$scratch/config.json")" \
+  '{data:{OPENCODE_CONFIG_CONTENT:$value}}' >"$scratch/existing-secret.json"
+rm -f "$scratch/model-patch.json" "$scratch/agent-patch.json"
+MODEL_TEST_EXISTING_GO=true \
+  MODEL_TEST_AGENT_ENCODED="$(base64 -w0 <"$scratch/agent.yaml")" \
+  PATH="$scratch:$PATH" bash bootstrap/model-config.sh >/dev/null
+test ! -e "$scratch/model-patch.json"
+test ! -e "$scratch/agent-patch.json"
 
 cat >"$scratch/op" <<'MOCK_OP'
 #!/usr/bin/env bash

@@ -8,7 +8,8 @@ no Kubernetes API token. Its fixed non-root UID uses the `nonroot-v2` SCC.
 
 `omnigent-model` in `omnigent-sandboxes` holds the OpenCode Go key and inline
 OpenCode configuration for `demo/glm-5.3-flash`. `omnigent-agent` in `omnigent`
-holds the `opencode-demo` agent specification. Bootstrap creates both; no key is
+holds the `demo` API agent specification, whose YAML name is `opencode-demo`.
+Bootstrap creates both; no key is
 committed. The image built from `image/` adds OpenCode and Ansible tooling to
 Omnigent's host image. The server and host base images use the same Omnigent
 v0.15.0 release. The Sandbox has a 5 GiB HOME claim, which survives idle

@@ -42,7 +42,7 @@ if [[ -z ${MODEL_API_KEY:-} && -z ${MODEL_BASE_URL:-} &&
     current_model="demo/$go_model"
   fi
   agent_spec=$(write_agent_spec "${current_model#demo/}")
-  agent_encoded=$(printf '%s' "$agent_spec" | base64 -w0)
+  agent_encoded=$(printf '%s\n' "$agent_spec" | base64 -w0)
   current_agent_encoded=$(oc -n omnigent get secret omnigent-agent \
     -o jsonpath='{.data.demo\.yaml}')
   if [[ $agent_encoded != "$current_agent_encoded" ]]; then
