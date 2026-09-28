@@ -8,9 +8,9 @@ no Kubernetes API token. Its fixed non-root UID uses the `nonroot-v2` SCC.
 
 `omnigent-model` in `omnigent-sandboxes` holds the OpenCode Go key and inline
 OpenCode configuration for `demo/glm-5.3-flash`. `omnigent-agent` in `omnigent`
-holds the `demo` API agent specification, whose YAML name is `opencode-demo`.
-Bootstrap creates both; no key is
-committed. The image built from `image/` starts from the digest-pinned official
+holds the `automation-developer` API agent specification, whose YAML name is
+also `automation-developer`. Bootstrap creates both; no key is committed. The
+image built from `image/` starts from the digest-pinned official
 Ansible Development Tools image (26.9.0), which includes Molecule, pytest-ansible,
 ansible-builder, ansible-creator, and ansible-navigator. It installs Omnigent
 v0.15.0 in `/opt/omnigent` so its Python dependencies stay separate from the
@@ -21,6 +21,11 @@ same Omnigent v0.15.0 release. The Sandbox has a 5 GiB
 HOME claim, which survives idle suspension, and uses the cluster's normal
 container runtime. This demo has no
 warm pool or separate sandbox network policy.
+
+The agent is a reusable template. Each managed session gets its own Sandbox
+with a generated `omnigent-managed-*` name, rather than a fixed Sandbox bound
+to the agent. New Sandboxes carry the label
+`omnigent.ai/agent=automation-developer`.
 
 From the repository root, build the sandbox image locally with:
 
@@ -42,6 +47,8 @@ Check the resources with the selected kubeconfig:
 ```bash
 KUBECONFIG="$HOME/.kube/config" oc -n omnigent rollout status deployment/omnigent
 KUBECONFIG="$HOME/.kube/config" oc -n omnigent-sandboxes get builds,imagestream,sandboxes,pods
+KUBECONFIG="$HOME/.kube/config" oc -n omnigent-sandboxes get sandboxes \
+  -l omnigent.ai/agent=automation-developer
 ```
 
 See [Omnigent's Kubernetes sandbox configuration](https://omnigent.ai/docs/reference/configuration/kubernetes)

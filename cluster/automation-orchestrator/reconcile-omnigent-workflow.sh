@@ -255,9 +255,9 @@ omnigent_url="https://$omnigent_host"
 http_code=$(ao_curl GET "$omnigent_url/v1/agents" --user "$client_id:$client_secret")
 unset client_secret
 ao_require_json 'list Omnigent agents' "$http_code"
-agent_id=$(jq -r '.data[] | select(.name == "demo") | .id' "$ao_response")
+agent_id=$(jq -r '.data[] | select(.name == "automation-developer") | .id' "$ao_response")
 if [[ -z ${agent_id:-} || $agent_id == null ]]; then
-  echo 'The Omnigent demo agent was not found.' >&2
+  echo 'The Omnigent automation-developer agent was not found.' >&2
   exit 1
 fi
 

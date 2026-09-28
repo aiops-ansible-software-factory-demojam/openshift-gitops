@@ -9,10 +9,12 @@ if [[ -n ${MODEL_PROVIDER:-} ]]; then
 fi
 go_base_url=https://opencode.ai/zen/go/v1
 go_model=glm-5.3-flash
+agent_name=automation-developer
+agent_file=${agent_name}.yaml
 write_agent_spec() {
   local model=$1
   cat <<EOF
-name: opencode-demo
+name: $agent_name
 prompt: |
   You are a coding assistant for Ansible collection feature work.
   Follow the task and repository AGENTS.md instructions. Work in the session
@@ -44,11 +46,11 @@ if [[ -z ${MODEL_API_KEY:-} && -z ${MODEL_BASE_URL:-} &&
   agent_spec=$(write_agent_spec "${current_model#demo/}")
   agent_encoded=$(printf '%s\n' "$agent_spec" | base64 -w0)
   current_agent_encoded=$(oc -n omnigent get secret omnigent-agent \
-    -o jsonpath='{.data.demo\.yaml}')
+    -o "jsonpath={.data.automation-developer\\.yaml}")
   if [[ $agent_encoded != "$current_agent_encoded" ]]; then
     oc -n omnigent patch secret omnigent-agent --type merge \
-      -p "$(jq -cn --arg value "$agent_encoded" \
-        '{data:{"demo.yaml":$value}}')" >/dev/null
+      -p "$(jq -cn --arg key "$agent_file" --arg value "$agent_encoded" \
+        '{data:{($key):$value}}')" >/dev/null
     if oc -n omnigent get deployment omnigent >/dev/null 2>&1; then
       oc -n omnigent rollout restart deployment/omnigent
     fi
@@ -138,13 +140,13 @@ jq -cn --arg base "$base_url" --arg model "$model" '
   }
 ' | tr -d '\n' >"$scratch/opencode-config.json"
 
-write_agent_spec "$model" >"$scratch/demo.yaml"
+write_agent_spec "$model" >"$scratch/$agent_file"
 
 oc -n omnigent-sandboxes create secret generic omnigent-model \
   --from-file=OPENAI_API_KEY="$scratch/api-key" \
   --from-file=OPENCODE_CONFIG_CONTENT="$scratch/opencode-config.json" \
   --dry-run=client -o yaml | oc apply -f -
 oc -n omnigent create secret generic omnigent-agent \
-  --from-file=demo.yaml="$scratch/demo.yaml" \
+  --from-file="$agent_file=$scratch/$agent_file" \
   --dry-run=client -o yaml | oc apply -f -
 echo "Omnigent is configured for $base_url model $model."

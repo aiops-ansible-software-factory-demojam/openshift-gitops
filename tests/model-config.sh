@@ -41,8 +41,8 @@ case "$*" in
   *'create secret generic omnigent-agent'*)
     for arg in "$@"; do
       case "$arg" in
-        --from-file=demo.yaml=*)
-          cp "${arg#--from-file=demo.yaml=}" "$MODEL_TEST_DIR/agent.yaml" ;;
+        --from-file=automation-developer.yaml=*)
+          cp "${arg#--from-file=automation-developer.yaml=}" "$MODEL_TEST_DIR/agent.yaml" ;;
       esac
     done
     printf 'apiVersion: v1\nkind: Secret\n' ;;
@@ -65,6 +65,7 @@ run_case() {
     .provider.demo.models[$model].name == $model
   ' "$scratch/config.json" >/dev/null
   test "$(yq -r '.executor.model' "$scratch/agent.yaml")" == "demo/$model"
+  test "$(yq -r '.name' "$scratch/agent.yaml")" == automation-developer
 }
 
 run_case https://opencode.ai/zen/go/v1 glm-5.3-flash
@@ -91,8 +92,10 @@ jq -e '
   .model == "demo/glm-5.3-flash" and
   (.provider.demo.models | keys == ["glm-5.3-flash"])
 ' "$scratch/model-patch.json" >/dev/null
-jq -er '.data["demo.yaml"] | @base64d' "$scratch/agent-patch.json" |
+jq -er '.data["automation-developer.yaml"] | @base64d' "$scratch/agent-patch.json" |
   yq -r '.executor.model' | rg -Fxq 'demo/glm-5.3-flash'
+jq -er '.data["automation-developer.yaml"] | @base64d' "$scratch/agent-patch.json" |
+  yq -r '.name' | rg -Fxq automation-developer
 
 jq -cn --arg value "$(base64 -w0 <"$scratch/config.json")" \
   '{data:{OPENCODE_CONFIG_CONTENT:$value}}' >"$scratch/existing-secret.json"

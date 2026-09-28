@@ -97,6 +97,7 @@ test "$(rg -c 'rollout status deployment/openshift-gitops-operator-controller-ma
 test "$(rg -c 'get crd sandboxes.agents.x-k8s.io' "$BOOTSTRAP_TEST_LOG")" -eq 1
 test "$(rg -c 'rollout status deployment/omnigent' "$BOOTSTRAP_TEST_LOG")" -eq 2
 test "$(rg -c 'rollout restart deployment/omnigent' "$BOOTSTRAP_TEST_LOG")" -eq 2
+test "$(rg -c 'exec deployment/omnigent -c omnigent -- printenv OMNIGENT_BUILTIN_AGENT_DIRS' "$BOOTSTRAP_TEST_LOG")" -eq 1
 rg -q 'root-url=https://forgejo-demo.apps.demo.example.test/' "$BOOTSTRAP_TEST_LOG"
 test "$(rg -c 'delete route .*--wait=true' "$BOOTSTRAP_TEST_LOG")" -eq 4
 

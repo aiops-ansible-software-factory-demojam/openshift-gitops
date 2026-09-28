@@ -267,8 +267,13 @@ desired_sandbox_image=$(yq -r '.data."config.yaml"' \
   yq -r '.sandbox.kubernetes.image')
 mounted_sandbox_image=$(oc -n omnigent exec deployment/omnigent -c omnigent -- \
   cat /etc/omnigent/config.yaml | yq -r '.sandbox.kubernetes.image')
-if [[ "$mounted_sandbox_image" != "$desired_sandbox_image" ]]; then
-  echo 'Reloading Omnigent to use the current sandbox image...'
+desired_agent_path=$(yq -r '.data.OMNIGENT_BUILTIN_AGENT_DIRS' \
+  "$repo_root/cluster/omnigent/omnigent-config-configmap.yaml")
+mounted_agent_path=$(oc -n omnigent exec deployment/omnigent -c omnigent -- \
+  printenv OMNIGENT_BUILTIN_AGENT_DIRS)
+if [[ "$mounted_sandbox_image" != "$desired_sandbox_image" ||
+      "$mounted_agent_path" != "$desired_agent_path" ]]; then
+  echo 'Reloading Omnigent to use the current sandbox image and agent...'
   oc -n omnigent rollout restart deployment/omnigent
   oc -n omnigent rollout status deployment/omnigent --timeout=10m
 fi
