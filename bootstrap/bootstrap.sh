@@ -113,7 +113,6 @@ oc apply -f "$repo_root/cluster/omnigent/omnigent-namespace.yaml"
 oc apply -f "$repo_root/cluster/omnigent/omnigent-sandboxes-namespace.yaml"
 oc apply -f "$repo_root/cluster/automation-orchestrator/automation-orchestrator-namespace.yaml"
 oc apply -f "$repo_root/cluster/forgejo-demo/forgejo-demo-namespace.yaml"
-oc apply -f "$repo_root/cluster/rhdh/rhdh-namespace.yaml"
 oc -n forgejo-demo create configmap forgejo-demo-url \
   --from-literal="root-url=https://forgejo-demo.$ingress_domain/" \
   --dry-run=client -o yaml | oc -n forgejo-demo apply -f -
@@ -141,7 +140,7 @@ done
 deadline=$((SECONDS + 3600))
 # OpenShift preserves an explicit Route host when a manifest starts requesting
 # a subdomain. Refresh each affected child app before recreating legacy Routes.
-for app in rhbk forgejo-demo omnigent rhdh automation-orchestrator; do
+for app in rhbk forgejo-demo omnigent automation-orchestrator; do
   until oc -n "$gitops_namespace" get application "$app" >/dev/null 2>&1; do
     if (( SECONDS >= deadline )); then
       echo "Timed out waiting for the $app Application." >&2
@@ -164,7 +163,7 @@ for app in rhbk forgejo-demo omnigent rhdh automation-orchestrator; do
   fi
 done
 for route_ref in keycloak/keycloak forgejo-demo/forgejo-demo \
-  omnigent/omnigent rhdh/backstage-rhdh-developer-hub \
+  omnigent/omnigent \
   automation-orchestrator/automation-orchestrator; do
   route_namespace=${route_ref%%/*}
   route_name=${route_ref#*/}
@@ -175,15 +174,10 @@ for route_ref in keycloak/keycloak forgejo-demo/forgejo-demo \
       -o jsonpath='{.status.ingress[0].host}')
     if [[ -n "$route_host" && "$route_host" != *".$ingress_domain" ]] || \
       [[ -n "$assigned_host" && "$assigned_host" != *".$ingress_domain" ]] || \
-      { [[ "$route_ref" != rhdh/* && "$route_ref" != automation-orchestrator/* ]] && \
+      { [[ "$route_ref" != automation-orchestrator/* ]] && \
         [[ -n "$route_host" ]]; }; then
       echo "Recreating $route_ref to release its old Route host."
       oc -n "$route_namespace" delete route "$route_name" --wait=true
-      if [[ "$route_ref" == rhdh/* ]]; then
-        # The RHDH operator reconciles on Backstage changes, not Route deletion.
-        oc -n rhdh annotate backstage rhdh-developer-hub \
-          demo.openshift-gitops.io/route-reconcile="$target_revision" --overwrite
-      fi
     fi
   fi
   until route_json=$(oc -n "$route_namespace" get route "$route_name" \
@@ -191,7 +185,7 @@ for route_ref in keycloak/keycloak forgejo-demo/forgejo-demo \
     assigned_host=$(jq -r '.status.ingress[0].host // ""' <<<"$route_json") && \
     route_host=$(jq -r '.spec.host // ""' <<<"$route_json") && \
     [[ "$assigned_host" == *".$ingress_domain" ]] && \
-    { [[ "$route_ref" == rhdh/* || "$route_ref" == automation-orchestrator/* ]] || \
+    { [[ "$route_ref" == automation-orchestrator/* ]] || \
       [[ -z "$route_host" ]]; }; do
     if (( SECONDS >= deadline )); then
       echo "Timed out waiting for $route_ref on $ingress_domain." >&2

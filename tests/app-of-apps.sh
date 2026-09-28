@@ -9,7 +9,7 @@ yq_docs() {
 
 test "$(yq_docs 'select(.kind == "AppProject") | .metadata.name' "$rendered")" = cluster-config
 test "$(yq_docs 'select(.kind == "AppProject") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered")" = -1
-test "$(yq_docs 'select(.kind == "Application") | .metadata.name' "$rendered" | wc -l)" -eq 7
+test "$(yq_docs 'select(.kind == "Application") | .metadata.name' "$rendered" | wc -l)" -eq 6
 test "$(yq_docs 'select(.kind == "Application" and .metadata.name == "cloudnative-pg") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered")" = 0
 test "$(yq_docs 'select(.kind == "Application" and .metadata.name == "agent-sandbox-operator") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered")" = 10
 test "$(yq_docs 'select(.kind == "Application" and .metadata.name == "omnigent") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered")" = 30
@@ -53,5 +53,5 @@ test "$(yq_docs 'select(.kind == "ImageStream") | .metadata.annotations."argocd.
   "$(yq_docs 'select(.kind == "BuildConfig") | .metadata.annotations."argocd.argoproj.io/sync-wave"' .rendered/omnigent.yaml)"
 test "$(yq_docs 'select(.kind == "ConfigMap" and .metadata.name == "omnigent-sandbox-config") | .data."config.yaml"' .rendered/omnigent.yaml | yq -r '.sandbox.provider')" = agent_sandbox
 
-echo 'The app-of-apps chart renders the project, seven paths and expected waves.'
+echo 'The app-of-apps chart renders the project, six active paths and expected waves.'
 echo 'RHBK adopts the environment Keycloak without managing its database, data or secrets.'

@@ -10,7 +10,8 @@ AO workflow -> Omnigent API -> Sandbox in omnigent-sandboxes
 ```
 
 Forgejo and Developer Hub manifests remain available for the later collection
-feature demo. This stage proves that AO can create and task an OpenCode session.
+feature demo. The Developer Hub Application is disabled in `cluster/values.yaml`
+until that stage. This stage proves that AO can create and task an OpenCode session.
 It does not seed a collection repository or run the feature pipeline.
 
 ## Requirements
@@ -41,8 +42,8 @@ The script installs OpenShift GitOps, creates the bootstrap-owned model and
 machine-credential Secrets, starts the app-of-apps, waits for the OpenCode
 image and Omnigent deployment, and publishes AO's `omnigent-dispatch` workflow.
 It is safe to rerun. It skips Forgejo data seeding and Backstage template
-verification by default; use `BOOTSTRAP_SEED_DEMO=true` and
-`BOOTSTRAP_VERIFY_GOLDENPATHS=true` in the later feature stage.
+verification by default. The Developer Hub app, seed credentials, and catalog
+checks are deferred to the later feature stage.
 
 The default model is OpenCode Go `glm-5.3-flash` at
 `https://opencode.ai/zen/go/v1`. Bootstrap reads
