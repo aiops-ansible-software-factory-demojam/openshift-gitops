@@ -1,7 +1,7 @@
 FROM ghcr.io/ansible/community-ansible-dev-tools@sha256:775c81d53058009dd47b97872f4a86d3b0a9ce16ad9af3cc48514ce4197aa787
 
 # Keep Omnigent's dependencies separate from the Ansible tools in the base image.
-RUN dnf5 install -y nodejs npm tmux \
+RUN dnf5 install -y bubblewrap nodejs npm tmux \
     && dnf5 clean all \
     && /usr/bin/python3 -m venv /opt/omnigent \
     && /opt/omnigent/bin/python -m pip install --no-cache-dir omnigent==0.15.0 \
@@ -12,4 +12,4 @@ ENV PATH="${PATH}:/opt/omnigent/bin"
 RUN npm install --global opencode-ai@1.18.32
 
 COPY opencode-profile.sh /etc/profile.d/omnigent-opencode.sh
-RUN bash -lc 'command -v omnigent && command -v tmux && command -v ansible && command -v molecule && command -v opencode'
+RUN bash -lc 'command -v omnigent && command -v bwrap && command -v tmux && command -v ansible && command -v molecule && command -v opencode'
