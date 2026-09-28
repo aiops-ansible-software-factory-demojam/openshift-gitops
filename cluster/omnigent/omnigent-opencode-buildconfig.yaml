@@ -20,6 +20,6 @@ spec:
   output:
     to:
       kind: ImageStreamTag
-      name: omnigent-opencode:1.18.32-adt26.9.0
+      name: omnigent-opencode:1.18.32-adt26.9.0-v2
   triggers:
     - type: ConfigChange
