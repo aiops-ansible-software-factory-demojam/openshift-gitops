@@ -52,6 +52,9 @@ if [[ "$*" == *' branch --show-current' ]]; then
   printf '%s\n' "$BOOTSTRAP_BRANCH"
 elif [[ "$*" == *' ls-remote origin refs/heads/'* ]]; then
   printf '%s\t%s\n' "$(/usr/bin/git rev-parse HEAD)" "${*##* }"
+elif [[ "$*" == *' add -- '* || "$*" == *' commit -m '* ||
+        "$*" == *' push -u origin '* ]]; then
+  exit 0
 else
   exec /usr/bin/git "$@"
 fi
@@ -83,7 +86,7 @@ test "$forgejo_url_line" -lt "$root_line"
 test "$model_line" -lt "$root_line"
 test "$root_line" -lt "$image_line"
 test "$(rg -c 'rollout status deployment/openshift-gitops-operator-controller-manager' "$BOOTSTRAP_TEST_LOG")" -eq 1
-test "$(rg -c 'rollout status statefulset/openshell' "$BOOTSTRAP_TEST_LOG")" -eq 1
+test "$(rg -c 'get crd sandboxes.agents.x-k8s.io' "$BOOTSTRAP_TEST_LOG")" -eq 1
 test "$(rg -c 'rollout status deployment/omnigent' "$BOOTSTRAP_TEST_LOG")" -eq 1
 rg -q 'root-url=https://forgejo-demo.apps.demo.example.test/' "$BOOTSTRAP_TEST_LOG"
 test "$(rg -c 'delete route .*--wait=true' "$BOOTSTRAP_TEST_LOG")" -eq 5

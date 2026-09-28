@@ -20,7 +20,7 @@ branch = sys.argv[2]
 for relative, field in (
     ("bootstrap/config/root-application.yaml", "targetRevision"),
     ("cluster/values.yaml", "targetRevision"),
-    ("cluster/openshell/omnigent-opencode-buildconfig.yaml", "ref"),
+    ("cluster/omnigent/omnigent-opencode-buildconfig.yaml", "ref"),
 ):
     path = root / relative
     content = path.read_text()

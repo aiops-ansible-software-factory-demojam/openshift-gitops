@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Keep model credentials outside Git. The two Secrets are referenced by the
-# GitOps-managed Omnigent Deployment and survive repeat bootstrap runs.
+# Keep the model key outside Git. The runner Secret lives with Sandboxes;
+# the agent spec Secret is mounted by the Omnigent server.
 if [[ -n ${MODEL_PROVIDER:-} ]]; then
   echo 'Use MODEL_BASE_URL and MODEL_NAME instead of MODEL_PROVIDER.' >&2
   exit 2
@@ -14,13 +14,9 @@ write_agent_spec() {
   cat <<EOF
 name: opencode-demo
 prompt: |
-  You are a coding assistant working in a disposable Ansible collection demo.
-  For a Forgejo issue, use demo-goldenpath issue ISSUE_NUMBER to read it.
-  Then use demo-goldenpath feature ISSUE_NUMBER before editing.
-  It invokes the real Backstage scaffolder and creates the issue branch.
-  Clone the collection with git, check out that branch, implement and test
-  the issue, then push and run demo-goldenpath pr ISSUE_NUMBER TITLE.
-  Do not merge the pull request. Follow repository AGENTS.md instructions.
+  You are a coding assistant for Ansible collection feature work.
+  Follow the task and repository AGENTS.md instructions. Work in the session
+  workspace, explain changes, and run relevant tests. Do not merge changes.
   Never print credentials or put them in repository files.
 executor:
   harness: opencode
@@ -30,11 +26,9 @@ EOF
 
 if [[ -z ${MODEL_API_KEY:-} && -z ${MODEL_BASE_URL:-} &&
       -z ${MODEL_NAME:-} ]] &&
-   oc -n omnigent get secret omnigent-model >/dev/null 2>&1 &&
+   oc -n omnigent-sandboxes get secret omnigent-model >/dev/null 2>&1 &&
    oc -n omnigent get secret omnigent-agent >/dev/null 2>&1; then
-  # OpenShell accepts environment values only on one line. Normalize Secrets
-  # created by an earlier bootstrap without changing the existing API key.
-  current_encoded=$(oc -n omnigent get secret omnigent-model -o json |
+  current_encoded=$(oc -n omnigent-sandboxes get secret omnigent-model -o json |
     jq -er '.data.OPENCODE_CONFIG_CONTENT')
   config=$(printf '%s' "$current_encoded" | base64 -d | jq -c .)
   current_base_url=$(jq -r '.provider.demo.options.baseURL // empty' <<<"$config")
@@ -62,21 +56,13 @@ if [[ -z ${MODEL_API_KEY:-} && -z ${MODEL_BASE_URL:-} &&
   unset agent_spec agent_encoded current_agent_encoded
   encoded_config=$(printf '%s' "$config" | base64 -w0)
   if [[ "$current_encoded" != "$encoded_config" ]]; then
-    oc -n omnigent patch secret omnigent-model --type merge \
+    oc -n omnigent-sandboxes patch secret omnigent-model --type merge \
       -p "$(jq -cn --arg value "$encoded_config" \
         '{data:{OPENCODE_CONFIG_CONTENT:$value}}')" >/dev/null
-    if oc -n omnigent get deployment omnigent >/dev/null 2>&1; then
-      oc -n omnigent rollout restart deployment/omnigent
-    fi
   fi
   unset current_encoded config encoded_config current_base_url current_model
   echo 'Using the existing Omnigent model configuration.'
   exit 0
-fi
-
-model_secret_exists=false
-if oc -n omnigent get secret omnigent-model >/dev/null 2>&1; then
-  model_secret_exists=true
 fi
 
 base_url=${MODEL_BASE_URL:-$go_base_url}
@@ -154,15 +140,11 @@ jq -cn --arg base "$base_url" --arg model "$model" '
 
 write_agent_spec "$model" >"$scratch/demo.yaml"
 
-oc -n omnigent create secret generic omnigent-model \
+oc -n omnigent-sandboxes create secret generic omnigent-model \
   --from-file=OPENAI_API_KEY="$scratch/api-key" \
   --from-file=OPENCODE_CONFIG_CONTENT="$scratch/opencode-config.json" \
   --dry-run=client -o yaml | oc apply -f -
 oc -n omnigent create secret generic omnigent-agent \
   --from-file=demo.yaml="$scratch/demo.yaml" \
   --dry-run=client -o yaml | oc apply -f -
-if [[ "$model_secret_exists" == true ]] &&
-   oc -n omnigent get deployment omnigent >/dev/null 2>&1; then
-  oc -n omnigent rollout restart deployment/omnigent
-fi
 echo "Omnigent is configured for $base_url model $model."

@@ -255,7 +255,7 @@ omnigent_url="https://$omnigent_host"
 http_code=$(ao_curl GET "$omnigent_url/v1/agents" --user "$client_id:$client_secret")
 unset client_secret
 ao_require_json 'list Omnigent agents' "$http_code"
-agent_id=$(jq -r '.data[] | select(.name == "demo") | .id' "$ao_response")
+agent_id=$(jq -r '.data[] | select(.name == "opencode-demo") | .id' "$ao_response")
 if [[ -z ${agent_id:-} || $agent_id == null ]]; then
   echo 'The Omnigent demo agent was not found.' >&2
   exit 1
@@ -266,7 +266,6 @@ workflow_definition=$(yq -c '.' "$workflow_file" | jq -c \
   '.nodes |= map(if .id == "create_session" then
       .parameters.credential_id = $credential_id |
       .parameters.body.agent_id = $agent_id
-    elif .id == "send_task" then .parameters.credential_id = $credential_id
     else . end)')
 validation_payload=$(jq -n --argjson definition "$workflow_definition" \
   '{workflow_definition: $definition}')

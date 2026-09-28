@@ -6,16 +6,24 @@ metadata:
 data:
   config.yaml: |
     sandbox:
-      provider: openshell
+      provider: agent_sandbox
       server_url: http://omnigent.omnigent.svc.cluster.local:8000
-      openshell:
-        cluster: demo
-        image: image-registry.openshift-image-registry.svc:5000/openshell/omnigent-opencode:1.18.32
+      kubernetes:
+        namespace: omnigent-sandboxes
+        service_account: omnigent-runner
+        secret_name: omnigent-model
+        image: image-registry.openshift-image-registry.svc:5000/omnigent-sandboxes/omnigent-opencode:1.18.32
+        in_cluster: true
+        pod_ready_timeout_s: 300
+        home_size_limit: 4Gi
         env:
-          - OPENAI_API_KEY
-          - OPENCODE_CONFIG_CONTENT
-          - FORGEJO_TOKEN
-          - FORGEJO_URL
-          - FORGEJO_USERNAME
-          - BACKSTAGE_URL
           - OMNIGENT_RUNNER_ENV_PASSTHROUGH
+        resources:
+          requests:
+            cpu: 250m
+            memory: 384Mi
+            ephemeral-storage: 2Gi
+          limits:
+            cpu: '2'
+            memory: 2Gi
+            ephemeral-storage: 6Gi

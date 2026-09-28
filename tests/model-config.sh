@@ -107,11 +107,6 @@ if MODEL_BASE_URL=https://opencode.ai/zen/go/v1 \
   echo 'OpenCode Go accepted a model other than glm-5.3-flash.' >&2
   exit 1
 fi
-for host in opencode.ai maas-rhdp.apps.maas.redhatworkshops.io; do
-  yq -r '.network_policies[].endpoints[].host' \
-    cluster/openshell/image/policy.yaml | rg -Fxq "$host"
-done
-
 if MODEL_BASE_URL=https://maas-rhdp.apps.maas.redhatworkshops.io/v1/chat/completions \
    MODEL_NAME=gpt-oss-120b MODEL_API_KEY=test-key \
    PATH="$scratch:$PATH" bash bootstrap/model-config.sh >/dev/null 2>&1; then

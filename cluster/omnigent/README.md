@@ -1,25 +1,31 @@
-# Omnigent
+# Omnigent and Agent Sandbox
 
-Omnigent's server creates managed sessions through the internal OpenShell
-gateway. Its session database is a single CNPG instance and artifacts live on a
-5 GiB PVC. The server uses the OpenShell-specific image with the SDK installed;
-it has no Kubernetes runner Job permissions or Kata node selector. Managed hosts
-and runners use Omnigent's single-user callback over the internal Service. An
-NGINX sidecar protects the HTTPS Route with Basic Auth; bootstrap creates its
-credential for Automation Orchestrator. The Route is the only public API path.
+Omnigent serves the API in `omnigent` and uses the Red Hat Agent Sandbox
+operator to create one `Sandbox` per managed session in `omnigent-sandboxes`.
+The server ServiceAccount can manage Sandboxes, inspect their Pods, and create
+short-lived launch-token Secrets only in that runner namespace. The runner has
+no Kubernetes API token. Its fixed non-root UID uses the `nonroot-v2` SCC.
 
-Bootstrap creates two Secrets: `omnigent-model` contains the OpenCode inference
-key and generated OpenCode provider config, and `omnigent-agent` contains the
-seeded `opencode-demo` agent specification. The same base URL, model name, and
-API key inputs configure OpenCode Go (`glm-5.3-flash`) or LiteLLM MaaS
-(`gpt-oss-120b` in the supplied example). Both use OpenCode's
-`@ai-sdk/openai-compatible` adapter for `/v1/chat/completions`.
-The key is injected into each OpenShell sandbox and forwarded to OpenCode.
-The sandbox image writes the generated provider definition to the sandbox user's
-OpenCode config on login; Omnigent imports it into each isolated native session.
+`omnigent-model` in `omnigent-sandboxes` holds the OpenCode Go key and inline
+OpenCode configuration for `demo/glm-5.3-flash`. `omnigent-agent` in `omnigent`
+holds the `opencode-demo` agent specification. Bootstrap creates both; no key is
+committed. The image built from `image/` adds OpenCode and Ansible tooling to
+Omnigent's host image. The server and host base images use the same Omnigent
+v0.15.0 release. The Sandbox has a 5 GiB HOME claim, which survives idle
+suspension, and uses the cluster's normal container runtime. This demo has no
+warm pool or separate sandbox network policy.
 
-The gateway registration is a plaintext internal Service endpoint stored in
-`omnigent-gateway-config`. Omnigent's managed host image has an OpenShell egress
-policy admitting the Omnigent callback, selected model endpoints, package
-registry, and the Forgejo demo Service. Open the Omnigent Route with the generated
-machine credential to inspect sessions in the UI.
+The `omnigent-dispatch` Automation Orchestrator workflow calls the internal
+Omnigent API to create a managed session with an initial task. A sidecar
+protects Omnigent's Route with the same machine credential for inspection.
+The Forgejo and Backstage feature flow is a later stage of this demo.
+
+Check the resources with the selected kubeconfig:
+
+```bash
+KUBECONFIG="$HOME/.kube/config" oc -n omnigent rollout status deployment/omnigent
+KUBECONFIG="$HOME/.kube/config" oc -n omnigent-sandboxes get builds,imagestream,sandboxes,pods
+```
+
+See [Omnigent's Kubernetes sandbox configuration](https://omnigent.ai/docs/reference/configuration/kubernetes)
+for the provider's lifecycle and optional warm-pool settings.

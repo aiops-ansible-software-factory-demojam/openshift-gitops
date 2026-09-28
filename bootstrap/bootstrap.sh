@@ -108,24 +108,15 @@ done
 # the operator grants the application controller rights to adopt Keycloak.
 oc label namespace keycloak argocd.argoproj.io/managed-by=openshift-gitops --overwrite
 # These namespaces also hold bootstrap-owned Secrets. Create them before the
-# root app so the first child sync can mount the model and encryption keys.
-oc apply -f "$repo_root/cluster/openshell/openshell-namespace.yaml"
+# root app so the first child sync can mount the model and agent spec.
 oc apply -f "$repo_root/cluster/omnigent/omnigent-namespace.yaml"
+oc apply -f "$repo_root/cluster/omnigent/omnigent-sandboxes-namespace.yaml"
 oc apply -f "$repo_root/cluster/automation-orchestrator/automation-orchestrator-namespace.yaml"
 oc apply -f "$repo_root/cluster/forgejo-demo/forgejo-demo-namespace.yaml"
 oc apply -f "$repo_root/cluster/rhdh/rhdh-namespace.yaml"
 oc -n forgejo-demo create configmap forgejo-demo-url \
   --from-literal="root-url=https://forgejo-demo.$ingress_domain/" \
   --dry-run=client -o yaml | oc -n forgejo-demo apply -f -
-if ! oc -n openshell get secret openshell-credential-encryption-key >/dev/null 2>&1; then
-  umask 077
-  scratch=$(mktemp -d)
-  trap 'find "$scratch" -type f -delete; rmdir "$scratch"' EXIT
-  openssl rand -base64 32 >"$scratch/key-encryption-key"
-  oc -n openshell create secret generic openshell-credential-encryption-key \
-    --from-file=key-encryption-key="$scratch/key-encryption-key" \
-    --dry-run=client -o yaml | oc apply -f -
-fi
 bash "$bootstrap_dir/model-config.sh"
 bash "$bootstrap_dir/omnigent-auth.sh"
 
@@ -168,7 +159,7 @@ for app in rhbk forgejo-demo omnigent rhdh automation-orchestrator; do
     fi
     sleep 5
   done
-  if [[ $app == forgejo-demo && ${BOOTSTRAP_SEED_DEMO:-true} == true ]]; then
+  if [[ $app == forgejo-demo && ${BOOTSTRAP_SEED_DEMO:-false} == true ]]; then
     bash "$bootstrap_dir/forgejo-backstage.sh" "$ingress_domain"
   fi
 done
@@ -227,7 +218,7 @@ done
 oc -n "$gitops_namespace" get applications \
   -o custom-columns=NAME:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status
 
-for app in openshell omnigent automation-orchestrator; do
+for app in agent-sandbox-operator omnigent automation-orchestrator; do
   oc -n "$gitops_namespace" annotate application "$app" \
     argocd.argoproj.io/refresh=hard --overwrite
   deadline=$((SECONDS + 1800))
@@ -247,8 +238,8 @@ done
 
 echo 'Waiting for the OpenCode sandbox image build...'
 deadline=$((SECONDS + 1800))
-until oc -n openshell get imagestreamtag omnigent-opencode:1.18.32 >/dev/null 2>&1; do
-  oc -n openshell get builds -l buildconfig=omnigent-opencode \
+until oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:1.18.32 >/dev/null 2>&1; do
+  oc -n omnigent-sandboxes get builds -l buildconfig=omnigent-opencode \
     -o custom-columns=NAME:.metadata.name,PHASE:.status.phase --no-headers || true
   if (( SECONDS >= deadline )); then
     echo 'Timed out waiting for the OpenCode sandbox image.' >&2
@@ -258,21 +249,21 @@ until oc -n openshell get imagestreamtag omnigent-opencode:1.18.32 >/dev/null 2>
 done
 sandbox_image_current() {
   local built_revision
-  built_revision=$(oc -n openshell get builds -l buildconfig=omnigent-opencode \
+  built_revision=$(oc -n omnigent-sandboxes get builds -l buildconfig=omnigent-opencode \
     -o json | jq -r '[.items[] | select(.status.phase == "Complete")] |
       sort_by(.metadata.creationTimestamp) | last | .spec.revision.git.commit // empty')
   [[ "$built_revision" =~ ^[0-9a-f]{40}$ ]] &&
     git -C "$repo_root" diff --quiet "$built_revision" HEAD -- \
-      cluster/openshell/image
+      cluster/omnigent/image
 }
 if ! sandbox_image_current; then
   echo 'Building the OpenCode sandbox image from the current Git revision...'
-  oc -n openshell start-build buildconfig/omnigent-opencode --wait --follow
+  oc -n omnigent-sandboxes start-build buildconfig/omnigent-opencode --wait --follow
 fi
 sandbox_image_current
-oc -n openshell rollout status statefulset/openshell --timeout=10m
+oc get crd sandboxes.agents.x-k8s.io
 oc -n omnigent rollout status deployment/omnigent --timeout=10m
-if [[ ${BOOTSTRAP_VERIFY_GOLDENPATHS:-true} == true ]]; then
+if [[ ${BOOTSTRAP_VERIFY_GOLDENPATHS:-false} == true ]]; then
   bash "$bootstrap_dir/verify-goldenpaths.sh"
 fi
 # The Argo CD health check only requires the AutomationOrchestrator Ready
@@ -288,4 +279,4 @@ oc -n omnigent delete secret omnigent-auth omnigent-machine-client \
 if [[ ${BOOTSTRAP_RECONCILE_WORKFLOW:-true} == true ]]; then
   bash "$repo_root/cluster/automation-orchestrator/reconcile-omnigent-workflow.sh"
 fi
-echo "The app-of-apps rollout, sandbox image, and dispatch workflow are ready on $gitops_branch."
+echo "The app-of-apps rollout, Agent Sandbox image, and dispatch workflow are ready on $gitops_branch."

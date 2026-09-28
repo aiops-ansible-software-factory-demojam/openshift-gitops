@@ -9,14 +9,14 @@ yq_docs() {
 
 test "$(yq_docs 'select(.kind == "AppProject") | .metadata.name' "$rendered")" = cluster-config
 test "$(yq_docs 'select(.kind == "AppProject") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered")" = -1
-test "$(yq_docs 'select(.kind == "Application") | .metadata.name' "$rendered" | wc -l)" -eq 8
+test "$(yq_docs 'select(.kind == "Application") | .metadata.name' "$rendered" | wc -l)" -eq 7
 test "$(yq_docs 'select(.kind == "Application" and .metadata.name == "cloudnative-pg") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered")" = 0
-test "$(yq_docs 'select(.kind == "Application" and .metadata.name == "openshell") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered")" = 20
+test "$(yq_docs 'select(.kind == "Application" and .metadata.name == "agent-sandbox-operator") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered")" = 10
 test "$(yq_docs 'select(.kind == "Application" and .metadata.name == "omnigent") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered")" = 30
 test "$(yq_docs 'select(.kind == "Application" and .metadata.name == "automation-orchestrator") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered")" = 30
 test "$(yq_docs 'select(.kind == "Application" and .metadata.name == "forgejo-demo") | .spec.source.path' "$rendered")" = cluster/forgejo-demo
 test "$(yq_docs 'select(.kind == "Application" and .metadata.name == "forgejo-demo") | .spec.ignoreDifferences[].jsonPointers[]' "$rendered")" = /spec/replicas
-test "$(yq_docs 'select(.kind == "Application" and .metadata.name != "cloudnative-pg" and .metadata.name != "openshell" and .metadata.name != "omnigent" and .metadata.name != "automation-orchestrator") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered" | sort -u)" = 10
+test "$(yq_docs 'select(.kind == "Application" and .metadata.name != "cloudnative-pg" and .metadata.name != "omnigent" and .metadata.name != "automation-orchestrator") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered" | sort -u)" = 10
 
 while read -r name path; do
   test "$path" = "cluster/$name"
@@ -49,8 +49,9 @@ for app in forgejo-demo omnigent; do
   test "$(yq_docs 'select(.kind == "PersistentVolumeClaim") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered_app")" = \
     "$(yq_docs 'select(.kind == "Deployment") | .metadata.annotations."argocd.argoproj.io/sync-wave"' "$rendered_app")"
 done
-test "$(yq_docs 'select(.kind == "ImageStream") | .metadata.annotations."argocd.argoproj.io/sync-wave"' .rendered/openshell.yaml)" = \
-  "$(yq_docs 'select(.kind == "BuildConfig") | .metadata.annotations."argocd.argoproj.io/sync-wave"' .rendered/openshell.yaml)"
+test "$(yq_docs 'select(.kind == "ImageStream") | .metadata.annotations."argocd.argoproj.io/sync-wave"' .rendered/omnigent.yaml)" = \
+  "$(yq_docs 'select(.kind == "BuildConfig") | .metadata.annotations."argocd.argoproj.io/sync-wave"' .rendered/omnigent.yaml)"
+test "$(yq_docs 'select(.kind == "ConfigMap" and .metadata.name == "omnigent-sandbox-config") | .data."config.yaml"' .rendered/omnigent.yaml | yq -r '.sandbox.provider')" = agent_sandbox
 
-echo 'The app-of-apps chart renders the project, eight paths and expected waves.'
+echo 'The app-of-apps chart renders the project, seven paths and expected waves.'
 echo 'RHBK adopts the environment Keycloak without managing its database, data or secrets.'
