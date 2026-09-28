@@ -113,6 +113,14 @@ def submit(number, body_file):
         (pull for pull in pulls if pull.get("head", {}).get("ref") == branch), None
     )
     if existing:
+        if existing.get("state") != "open":
+            raise RuntimeError(f"Existing PR #{existing['number']} is closed")
+        if existing.get("body") != body:
+            existing = api(
+                "PATCH",
+                f"/repos/{REPOSITORY}/pulls/{existing['number']}",
+                {"body": body},
+            )
         print(existing["html_url"])
         return
     pull = api(

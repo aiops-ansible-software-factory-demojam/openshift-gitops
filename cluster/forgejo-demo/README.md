@@ -45,7 +45,8 @@ AO launches the `automation-developer` OpenCode agent in a new Agent Sandbox.
 The agent runs `forgejo-issue start 1` to read the issue and clone the repo,
 then implements, checks, commits, and runs `forgejo-issue submit 1 --body-file
 <path>` to push and open a PR against `main`. The PR body references the
-issue. AO completes when the task reaches Omnigent; the PR is asynchronous.
+issue. Repeating `submit` updates the body of the open PR after review fixes.
+AO completes when the task reaches Omnigent; the PR is asynchronous.
 Inspect the Omnigent session for its outcome. There is no webhook trigger or
 CI runner in this stage.
 

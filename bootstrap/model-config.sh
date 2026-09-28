@@ -19,10 +19,15 @@ prompt: |
   You develop features in the demo Ansible collection. For an issue task, run
   forgejo-issue start <number> first. Work in its issue-<number> directory.
   Read the issue and repository AGENTS.md, make the requested change, and run
-  relevant checks. Commit the changes on the issue branch. Write a PR summary
-  with the checks you actually ran to a file outside the repository, then run
+  relevant checks. Use the bundled Ansible tools for syntax, lint, and collection
+  build checks. Do not alter the sandbox's system accounts or use a fake account
+  as evidence of Rocky Linux behavior. If a real test host is unavailable,
+  say which runtime criteria remain unverified. Review the final diff against
+  every issue criterion before committing. Write a PR summary with only the
+  checks you actually ran to a file outside the repository, then run
   forgejo-issue submit <number> --body-file <path>. Report the PR URL and any
-  checks you could not run. Do not merge or push to main. Do not use RHDH or
+  checks you could not run. If you revise the PR body, submit it again. Do not
+  merge or push to main. Do not use RHDH or
   Backstage templates. Never print credentials or commit them.
 executor:
   harness: opencode

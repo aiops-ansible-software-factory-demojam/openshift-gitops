@@ -43,7 +43,7 @@ podman build -f cluster/omnigent/image/Containerfile \
 The `omnigent-dispatch` Automation Orchestrator workflow accepts a Forgejo
 issue number, creates a managed session, and asks the agent to read that issue,
 work on a branch, and open a PR. `forgejo-issue start` clones using Git askpass;
-`forgejo-issue submit` pushes and calls Forgejo's PR API. Credentials do not
+`forgejo-issue submit` pushes and creates or updates the open PR. Credentials do not
 appear in Git URLs. A sidecar protects Omnigent's Route with the same machine
 credential for inspection. RHDH is outside this flow.
 

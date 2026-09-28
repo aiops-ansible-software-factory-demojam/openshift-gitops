@@ -75,6 +75,43 @@ class ForgejoIssueTests(unittest.TestCase):
 
             self.assertIn(("push", "-u", "origin", "issue-7"), calls)
 
+    def test_submit_updates_existing_pr_body(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            workspace = Path(scratch)
+            body_file = workspace / "pr.md"
+            body_file.write_text("Corrected verification.\n\nCloses #7\n")
+            calls = []
+
+            def git(_directory, *args, capture=False):
+                if args[:3] == ("remote", "get-url", "origin"):
+                    return "http://forgejo.internal/demo-owner/ansible-collection-demo.git"
+                if args[:2] == ("branch", "--show-current"):
+                    return "issue-7"
+                if args[:2] == ("rev-list", "--count"):
+                    return "1"
+                return ""
+
+            def api(method, path, body=None):
+                calls.append((method, path, body))
+                if path.endswith("/issues/7"):
+                    return {"title": "Feature", "state": "open"}
+                if "/pulls?" in path:
+                    return [{"number": 2, "state": "open", "body": "Old verification",
+                             "head": {"ref": "issue-7"},
+                             "html_url": "https://forgejo.example/pr/2"}]
+                self.assertEqual(method, "PATCH")
+                self.assertEqual(path, "/repos/demo-owner/ansible-collection-demo/pulls/2")
+                self.assertEqual(body, {"body": "Corrected verification.\n\nCloses #7"})
+                return {"html_url": "https://forgejo.example/pr/2"}
+
+            with patch.dict("os.environ", {"FORGEJO_URL": "http://forgejo.internal"}), \
+                    patch.object(forgejo_issue.Path, "cwd", return_value=workspace), \
+                    patch.object(forgejo_issue, "git", side_effect=git), \
+                    patch.object(forgejo_issue, "api", side_effect=api):
+                forgejo_issue.submit(7, body_file)
+
+            self.assertEqual([method for method, _, _ in calls], ["GET", "GET", "PATCH"])
+
 
 if __name__ == "__main__":
     unittest.main()
