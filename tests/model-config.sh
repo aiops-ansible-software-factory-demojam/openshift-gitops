@@ -29,7 +29,10 @@ case "$*" in
       fi
       previous=$arg
     done ;;
-  *'get deployment omnigent'*) exit 1 ;;
+  *'get deployment omnigent'*)
+    [[ ${MODEL_TEST_DEPLOYMENT:-false} == true ]] ;;
+  *'rollout restart deployment/omnigent'*)
+    printf '%s\n' restarted >"$MODEL_TEST_DIR/restart" ;;
   *'create secret generic omnigent-model'*)
     for arg in "$@"; do
       case "$arg" in
@@ -70,6 +73,9 @@ run_case() {
 
 run_case https://opencode.ai/zen/go/v1 gpt-6-luna @ai-sdk/openai
 run_case https://maas-rhdp.apps.maas.redhatworkshops.io/v1 gpt-oss-120b @ai-sdk/openai-compatible
+MODEL_TEST_DEPLOYMENT=true MODEL_API_KEY=test-key PATH="$scratch:$PATH" \
+  bash bootstrap/model-config.sh >/dev/null
+test "$(<"$scratch/restart")" == restarted
 MODEL_API_KEY=test-key PATH="$scratch:$PATH" \
   bash bootstrap/model-config.sh >/dev/null
 jq -e '.model == "demo/gpt-6-luna" and

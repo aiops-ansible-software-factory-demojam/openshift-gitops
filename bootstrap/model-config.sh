@@ -169,4 +169,7 @@ oc -n omnigent-sandboxes create secret generic omnigent-model \
 oc -n omnigent create secret generic omnigent-agent \
   --from-file="$agent_file=$scratch/$agent_file" \
   --dry-run=client -o yaml | oc apply -f -
+if oc -n omnigent get deployment omnigent >/dev/null 2>&1; then
+  oc -n omnigent rollout restart deployment/omnigent
+fi
 echo "Omnigent is configured for $base_url model $model."
