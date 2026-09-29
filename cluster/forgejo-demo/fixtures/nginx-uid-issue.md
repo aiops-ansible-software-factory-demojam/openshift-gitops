@@ -12,8 +12,10 @@ Acceptance criteria:
   65535 is valid when unoccupied).
 - Handle changing an existing installation from UID 1500 to 1501: update necessary
   nginx-owned writable paths recursively, including existing files under
-  `/var/log/nginx` and `/var/cache/nginx`; restart when needed, and keep HTTP
-  service functional. Leave configuration and static content root-owned.
+  `/var/log/nginx` and `/var/cache/nginx`; stop running nginx workers before
+  changing their account UID, then restore HTTP service. Linux `usermod`
+  rejects UID changes while that user has running processes. Leave configuration
+  and static content root-owned.
 - A second run with the same UID reports no changes.
 - Add/update role defaults, argument specs, and README examples.
 - Report how you verified default behavior, a custom UID, UID changes,

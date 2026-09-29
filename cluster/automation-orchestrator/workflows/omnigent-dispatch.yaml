@@ -65,6 +65,8 @@ nodes:
                 Exercise UID-dependent Ansible conditions with a YAML integer
                 nginx_uid: 1500 using ansible-playbook; syntax checks alone
                 cannot detect runtime template errors.
+                Review the 1500-to-1501 transition: stop running nginx workers
+                before changing their account UID, then restore the service.
                 Run ansible-lint, default yamllint, and a collection build.
                 Do not change sandbox system accounts or attempt nested Podman
                 to simulate a Rocky Linux host. Report unavailable runtime
