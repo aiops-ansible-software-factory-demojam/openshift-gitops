@@ -40,6 +40,14 @@ bootstrap() {
   else
     oc -n "$namespace" exec deploy/forgejo-demo -- forgejo --config /var/lib/gitea/custom/conf/app.ini admin user change-password --username demo-admin --password demo-admin --must-change-password=false >/dev/null
   fi
+  if [[ -s $state/admin-token ]]; then
+    token_status=$(curl -sS -o /dev/null -w '%{http_code}' \
+      -H "Authorization: token $(<"$state/admin-token")" \
+      "$FORGEJO_URL/api/v1/admin/users?limit=1")
+    if [[ $token_status == 401 || $token_status == 403 ]]; then
+      rm -f "$state/admin-token" "$state/agent-token" "$state/rhdh-token"
+    fi
+  fi
   if [[ ! -s $state/admin-token ]]; then
     oc -n "$namespace" exec deploy/forgejo-demo -- forgejo --config /var/lib/gitea/custom/conf/app.ini admin user generate-access-token --username demo-admin --token-name "demo-bootstrap-$(date +%s)" --scopes all --raw > "$state/admin-token.tmp"
     mv "$state/admin-token.tmp" "$state/admin-token"
