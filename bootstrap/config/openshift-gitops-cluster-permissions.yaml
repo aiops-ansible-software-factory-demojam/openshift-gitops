@@ -70,6 +70,19 @@ rules:
       - keycloakrealmimports
     verbs:
       - "*"
+  - apiGroups:
+      - monitoring.coreos.com
+    resources:
+      - probes
+      - servicemonitors
+    verbs:
+      - "*"
+  - apiGroups:
+      - aap.ansible.com
+    resources:
+      - ansibleautomationplatforms
+    verbs:
+      - "*"
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
