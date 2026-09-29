@@ -12,7 +12,7 @@ host=${FORGEJO_URL#https://}
   echo 'FORGEJO_URL must be an HTTPS URL with a DNS hostname and no path or port.' >&2; exit 2;
 }
 export FORGEJO_URL
-state=$root/.state
+state=${FORGEJO_STATE_DIR:-$root/.state}
 umask 077
 mkdir -p "$state"
 cluster() {

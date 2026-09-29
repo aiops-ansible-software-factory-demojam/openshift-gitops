@@ -2,11 +2,19 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - omnigent-namespace.yaml
+  - omnigent-sandboxes-namespace.yaml
   - omnigent-pg-cluster.yaml
   - omnigent-artifacts-pvc.yaml
   - omnigent-config-configmap.yaml
   - omnigent-sandbox-config-configmap.yaml
-  - omnigent-gateway-config-configmap.yaml
+  - omnigent-server-serviceaccount.yaml
+  - omnigent-runner-serviceaccount.yaml
+  - omnigent-sandbox-manager-role.yaml
+  - omnigent-sandbox-manager-rolebinding.yaml
+  - omnigent-runner-nonroot-role.yaml
+  - omnigent-runner-nonroot-rolebinding.yaml
+  - omnigent-opencode-imagestream.yaml
+  - omnigent-opencode-buildconfig.yaml
   - omnigent-proxy-config-configmap.yaml
   - omnigent-deployment.yaml
   - omnigent-service.yaml

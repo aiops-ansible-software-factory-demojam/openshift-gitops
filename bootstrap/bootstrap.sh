@@ -5,7 +5,7 @@ bootstrap_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 repo_root=$(cd -- "$bootstrap_dir/.." && pwd)
 operator_namespace=openshift-gitops-operator
 gitops_namespace=openshift-gitops
-export KUBECONFIG=${KUBECONFIG:-"$HOME/.kube/config"}
+: "${KUBECONFIG:?Set KUBECONFIG for the demo cluster}"
 
 oc whoami --show-server
 oc whoami
@@ -44,14 +44,19 @@ root_revision=$(yq -r '.spec.source.targetRevision' \
   "$bootstrap_dir/config/root-application.yaml")
 values_revision=$(yq -r '.default.app.source.targetRevision' \
   "$repo_root/cluster/values.yaml")
+build_revision=$(yq -r '.spec.source.git.ref' \
+  "$repo_root/cluster/omnigent/omnigent-opencode-buildconfig.yaml")
 if [[ $root_revision != "$gitops_branch" ||
-      $values_revision != "$gitops_branch" ]]; then
+      $values_revision != "$gitops_branch" ||
+      $build_revision != "$gitops_branch" ]]; then
   bash "$repo_root/scripts/set-gitops-branch.sh" "$gitops_branch"
 fi
 if [[ -n $(git -C "$repo_root" status --porcelain -- \
-  bootstrap/config/root-application.yaml cluster/values.yaml) ]]; then
+  bootstrap/config/root-application.yaml cluster/values.yaml \
+  cluster/omnigent/omnigent-opencode-buildconfig.yaml) ]]; then
   git -C "$repo_root" add -- \
-    bootstrap/config/root-application.yaml cluster/values.yaml
+    bootstrap/config/root-application.yaml cluster/values.yaml \
+    cluster/omnigent/omnigent-opencode-buildconfig.yaml
   git -C "$repo_root" commit -m \
     "Point GitOps apps at branch $gitops_branch"
   git -C "$repo_root" push -u origin "HEAD:$gitops_branch"
@@ -108,23 +113,14 @@ done
 # the operator grants the application controller rights to adopt Keycloak.
 oc label namespace keycloak argocd.argoproj.io/managed-by=openshift-gitops --overwrite
 # These namespaces also hold bootstrap-owned Secrets. Create them before the
-# root app so the first child sync can mount the model and encryption keys.
-oc apply -f "$repo_root/cluster/openshell/openshell-namespace.yaml"
+# root app so the first child sync can mount the model and agent spec.
 oc apply -f "$repo_root/cluster/omnigent/omnigent-namespace.yaml"
+oc apply -f "$repo_root/cluster/omnigent/omnigent-sandboxes-namespace.yaml"
 oc apply -f "$repo_root/cluster/automation-orchestrator/automation-orchestrator-namespace.yaml"
 oc apply -f "$repo_root/cluster/forgejo-demo/forgejo-demo-namespace.yaml"
 oc -n forgejo-demo create configmap forgejo-demo-url \
   --from-literal="root-url=https://forgejo-demo.$ingress_domain/" \
   --dry-run=client -o yaml | oc -n forgejo-demo apply -f -
-if ! oc -n openshell get secret openshell-credential-encryption-key >/dev/null 2>&1; then
-  umask 077
-  scratch=$(mktemp -d)
-  trap 'find "$scratch" -type f -delete; rmdir "$scratch"' EXIT
-  openssl rand -base64 32 >"$scratch/key-encryption-key"
-  oc -n openshell create secret generic openshell-credential-encryption-key \
-    --from-file=key-encryption-key="$scratch/key-encryption-key" \
-    --dry-run=client -o yaml | oc apply -f -
-fi
 bash "$bootstrap_dir/model-config.sh"
 bash "$bootstrap_dir/omnigent-auth.sh"
 
@@ -149,7 +145,7 @@ done
 deadline=$((SECONDS + 3600))
 # OpenShift preserves an explicit Route host when a manifest starts requesting
 # a subdomain. Refresh each affected child app before recreating legacy Routes.
-for app in rhbk forgejo-demo omnigent rhdh automation-orchestrator; do
+for app in rhbk forgejo-demo omnigent automation-orchestrator; do
   until oc -n "$gitops_namespace" get application "$app" >/dev/null 2>&1; do
     if (( SECONDS >= deadline )); then
       echo "Timed out waiting for the $app Application." >&2
@@ -169,7 +165,7 @@ for app in rhbk forgejo-demo omnigent rhdh automation-orchestrator; do
   done
 done
 for route_ref in keycloak/keycloak forgejo-demo/forgejo-demo \
-  omnigent/omnigent rhdh/backstage-rhdh-developer-hub \
+  omnigent/omnigent \
   automation-orchestrator/automation-orchestrator; do
   route_namespace=${route_ref%%/*}
   route_name=${route_ref#*/}
@@ -180,15 +176,10 @@ for route_ref in keycloak/keycloak forgejo-demo/forgejo-demo \
       -o jsonpath='{.status.ingress[0].host}')
     if [[ -n "$route_host" && "$route_host" != *".$ingress_domain" ]] || \
       [[ -n "$assigned_host" && "$assigned_host" != *".$ingress_domain" ]] || \
-      { [[ "$route_ref" != rhdh/* && "$route_ref" != automation-orchestrator/* ]] && \
+      { [[ "$route_ref" != automation-orchestrator/* ]] && \
         [[ -n "$route_host" ]]; }; then
       echo "Recreating $route_ref to release its old Route host."
       oc -n "$route_namespace" delete route "$route_name" --wait=true
-      if [[ "$route_ref" == rhdh/* ]]; then
-        # The RHDH operator reconciles on Backstage changes, not Route deletion.
-        oc -n rhdh annotate backstage rhdh-developer-hub \
-          demo.openshift-gitops.io/route-reconcile="$target_revision" --overwrite
-      fi
     fi
   fi
   until route_json=$(oc -n "$route_namespace" get route "$route_name" \
@@ -196,7 +187,7 @@ for route_ref in keycloak/keycloak forgejo-demo/forgejo-demo \
     assigned_host=$(jq -r '.status.ingress[0].host // ""' <<<"$route_json") && \
     route_host=$(jq -r '.spec.host // ""' <<<"$route_json") && \
     [[ "$assigned_host" == *".$ingress_domain" ]] && \
-    { [[ "$route_ref" == rhdh/* || "$route_ref" == automation-orchestrator/* ]] || \
+    { [[ "$route_ref" == automation-orchestrator/* ]] || \
       [[ -z "$route_host" ]]; }; do
     if (( SECONDS >= deadline )); then
       echo "Timed out waiting for $route_ref on $ingress_domain." >&2
@@ -223,7 +214,7 @@ done
 oc -n "$gitops_namespace" get applications \
   -o custom-columns=NAME:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status
 
-for app in openshell omnigent automation-orchestrator; do
+for app in agent-sandbox-operator omnigent automation-orchestrator; do
   oc -n "$gitops_namespace" annotate application "$app" \
     argocd.argoproj.io/refresh=hard --overwrite
   deadline=$((SECONDS + 1800))
@@ -242,9 +233,14 @@ for app in openshell omnigent automation-orchestrator; do
 done
 
 echo 'Waiting for the OpenCode sandbox image build...'
+if ! oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32-v5 \
+  >/dev/null 2>&1; then
+  echo 'Building the missing OpenCode sandbox image tag...'
+  oc -n omnigent-sandboxes start-build buildconfig/omnigent-opencode --wait --follow
+fi
 deadline=$((SECONDS + 1800))
-until oc -n openshell get imagestreamtag omnigent-opencode:1.18.32 >/dev/null 2>&1; do
-  oc -n openshell get builds -l buildconfig=omnigent-opencode \
+until oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32-v5 >/dev/null 2>&1; do
+  oc -n omnigent-sandboxes get builds -l buildconfig=omnigent-opencode \
     -o custom-columns=NAME:.metadata.name,PHASE:.status.phase --no-headers || true
   if (( SECONDS >= deadline )); then
     echo 'Timed out waiting for the OpenCode sandbox image.' >&2
@@ -254,20 +250,39 @@ until oc -n openshell get imagestreamtag omnigent-opencode:1.18.32 >/dev/null 2>
 done
 sandbox_image_current() {
   local built_revision
-  built_revision=$(oc -n openshell get builds -l buildconfig=omnigent-opencode \
+  built_revision=$(oc -n omnigent-sandboxes get builds -l buildconfig=omnigent-opencode \
     -o json | jq -r '[.items[] | select(.status.phase == "Complete")] |
       sort_by(.metadata.creationTimestamp) | last | .spec.revision.git.commit // empty')
   [[ "$built_revision" =~ ^[0-9a-f]{40}$ ]] &&
     git -C "$repo_root" diff --quiet "$built_revision" HEAD -- \
-      cluster/openshell/image
+      cluster/omnigent/image
 }
-if ! sandbox_image_current; then
+if [[ ${BOOTSTRAP_FORCE_SANDBOX_BUILD:-false} == true ]] ||
+   ! sandbox_image_current; then
   echo 'Building the OpenCode sandbox image from the current Git revision...'
-  oc -n openshell start-build buildconfig/omnigent-opencode --wait --follow
+  oc -n omnigent-sandboxes start-build buildconfig/omnigent-opencode --wait --follow
 fi
 sandbox_image_current
-oc -n openshell rollout status statefulset/openshell --timeout=10m
+oc get crd sandboxes.agents.x-k8s.io
 oc -n omnigent rollout status deployment/omnigent --timeout=10m
+desired_sandbox_image=$(yq -r '.data."config.yaml"' \
+  "$repo_root/cluster/omnigent/omnigent-sandbox-config-configmap.yaml" |
+  yq -r '.sandbox.kubernetes.image')
+mounted_sandbox_image=$(oc -n omnigent exec deployment/omnigent -c omnigent -- \
+  cat /etc/omnigent/config.yaml | yq -r '.sandbox.kubernetes.image')
+desired_agent_path=$(yq -r '.data.OMNIGENT_BUILTIN_AGENT_DIRS' \
+  "$repo_root/cluster/omnigent/omnigent-config-configmap.yaml")
+mounted_agent_path=$(oc -n omnigent exec deployment/omnigent -c omnigent -- \
+  printenv OMNIGENT_BUILTIN_AGENT_DIRS)
+if [[ "$mounted_sandbox_image" != "$desired_sandbox_image" ||
+      "$mounted_agent_path" != "$desired_agent_path" ]]; then
+  echo 'Reloading Omnigent to use the current sandbox image and agent...'
+  oc -n omnigent rollout restart deployment/omnigent
+  oc -n omnigent rollout status deployment/omnigent --timeout=10m
+fi
+if [[ ${BOOTSTRAP_SEED_DEMO:-true} == true ]]; then
+  bash "$repo_root/scripts/feature-demo.sh" hydrate
+fi
 # The Argo CD health check only requires the AutomationOrchestrator Ready
 # condition. Wait for the UI and backend Deployments before publishing the
 # dispatch workflow so the Route has endpoints.
@@ -281,4 +296,4 @@ oc -n omnigent delete secret omnigent-auth omnigent-machine-client \
 if [[ ${BOOTSTRAP_RECONCILE_WORKFLOW:-true} == true ]]; then
   bash "$repo_root/cluster/automation-orchestrator/reconcile-omnigent-workflow.sh"
 fi
-echo "The app-of-apps rollout, sandbox image, and dispatch workflow are ready on $gitops_branch."
+echo "The app-of-apps rollout, Agent Sandbox image, and dispatch workflow are ready on $gitops_branch."

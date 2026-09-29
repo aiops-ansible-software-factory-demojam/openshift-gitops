@@ -15,20 +15,18 @@ spec:
       labels:
         app: omnigent
     spec:
-      automountServiceAccountToken: false
+      serviceAccountName: omnigent-server
       securityContext:
         runAsNonRoot: true
       containers:
         - name: omnigent
-          image: ghcr.io/omnigent-ai/omnigent-server-openshell@sha256:b1328b2f5c3aca1d350b5afe4588d645f85df6b2017a5401fbab7b0419bcf88e
+          image: ghcr.io/omnigent-ai/omnigent-server-kubernetes@sha256:ed3ae35d30572dcd929ba4e1edefdcec53ef178ab2f8147d11a8f2f33dded123
           ports:
             - name: http
               containerPort: 8000
           envFrom:
             - configMapRef:
                 name: omnigent-config
-            - secretRef:
-                name: omnigent-model
           env:
             - name: DATABASE_URL
               valueFrom:
@@ -53,9 +51,6 @@ spec:
               readOnly: true
             - name: agent
               mountPath: /etc/omnigent/agents
-              readOnly: true
-            - name: gateway-config
-              mountPath: /etc/omnigent-xdg/openshell
               readOnly: true
           resources:
             requests:
@@ -118,14 +113,6 @@ spec:
         - name: agent
           secret:
             secretName: omnigent-agent
-        - name: gateway-config
-          configMap:
-            name: omnigent-gateway-config
-            items:
-              - key: active_gateway
-                path: active_gateway
-              - key: metadata.json
-                path: gateways/demo/metadata.json
         - name: proxy-config
           configMap:
             name: omnigent-proxy-config
