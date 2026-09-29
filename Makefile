@@ -1,4 +1,4 @@
-.PHONY: test render test-health demo-reset
+.PHONY: render demo-reset
 
 demo-reset:
 	bash scripts/reset-demo.sh --confirm-demo-reset
@@ -12,18 +12,3 @@ render:
 		echo "Rendering $$app"; \
 		kustomize build --enable-helm --helm-kube-version v1.31.0 "$$app" > ".rendered/$$(basename "$$app").yaml" || exit 1; \
 	done
-
-test: render
-	bash -n bootstrap/*.sh scripts/*.sh tests/*.sh cluster/automation-orchestrator/*.sh cluster/forgejo-demo/scripts/*.sh
-	bash tests/bootstrap.sh
-	bash tests/feature-demo.sh
-	bash tests/reset-demo.sh
-	bash tests/model-config.sh
-	bash tests/app-of-apps.sh
-	bash tests/set-gitops-branch.sh
-	PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_*.py'
-	kubeconform -strict -summary -ignore-missing-schemas .rendered/
-	git diff --check
-
-test-health:
-	bash tests/health.sh

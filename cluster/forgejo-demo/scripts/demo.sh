@@ -84,7 +84,7 @@ case ${1:-help} in
     oc -n "$namespace" scale deploy/forgejo-demo --replicas=0
     oc -n "$namespace" wait --for=delete pod -l app=forgejo-demo --timeout=180s
     oc -n "$namespace" delete pvc forgejo-demo --wait=true --timeout=180s
-    rm -f "$state/admin-token" "$state/admin-token.tmp" "$state/agent-token" "$state/agent-token.tmp" "$state/rhdh-token" "$state/rhdh-token.tmp"
+    rm -f "$state/admin-token" "$state/admin-token.tmp" "$state/agent-token" "$state/agent-token.tmp"
     new_uid=
     for ((attempt = 0; attempt < 60; attempt++)); do
       new_uid=$(oc -n "$namespace" get pvc forgejo-demo -o jsonpath='{.metadata.uid}' 2>/dev/null || true)

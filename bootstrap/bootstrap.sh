@@ -44,14 +44,19 @@ root_revision=$(yq -r '.spec.source.targetRevision' \
   "$bootstrap_dir/config/root-application.yaml")
 values_revision=$(yq -r '.default.app.source.targetRevision' \
   "$repo_root/cluster/values.yaml")
+build_revision=$(yq -r '.spec.source.git.ref' \
+  "$repo_root/cluster/omnigent/omnigent-opencode-buildconfig.yaml")
 if [[ $root_revision != "$gitops_branch" ||
-      $values_revision != "$gitops_branch" ]]; then
+      $values_revision != "$gitops_branch" ||
+      $build_revision != "$gitops_branch" ]]; then
   bash "$repo_root/scripts/set-gitops-branch.sh" "$gitops_branch"
 fi
 if [[ -n $(git -C "$repo_root" status --porcelain -- \
-  bootstrap/config/root-application.yaml cluster/values.yaml) ]]; then
+  bootstrap/config/root-application.yaml cluster/values.yaml \
+  cluster/omnigent/omnigent-opencode-buildconfig.yaml) ]]; then
   git -C "$repo_root" add -- \
-    bootstrap/config/root-application.yaml cluster/values.yaml
+    bootstrap/config/root-application.yaml cluster/values.yaml \
+    cluster/omnigent/omnigent-opencode-buildconfig.yaml
   git -C "$repo_root" commit -m \
     "Point GitOps apps at branch $gitops_branch"
   git -C "$repo_root" push -u origin "HEAD:$gitops_branch"

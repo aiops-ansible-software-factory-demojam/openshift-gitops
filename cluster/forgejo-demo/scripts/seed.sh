@@ -63,8 +63,7 @@ while IFS= read -r repo; do
     git init -q -b main "$work"
     if [[ -n $source ]]; then
       # Snapshot tracked HEAD only; omit .git, untracked secrets, and old history.
-      if [[ $source == "$root/fixtures/collection" ||
-            $source == "$root/fixtures/collection-template" ]]; then
+      if [[ $source == "$root/fixtures/collection" ]]; then
         tar -C "$source" --exclude=.git --exclude=.venv --exclude=.ansible --exclude=.cache --exclude=__pycache__ --exclude='*.pyc' --exclude='*.tar.gz' -cf - . | tar -xf - -C "$work"
       else
         git -C "$source" archive HEAD | tar -x -C "$work"
@@ -72,8 +71,6 @@ while IFS= read -r repo; do
     else
       printf '# %s\n\n%s\n' "$name" "$(jq -r .description <<< "$repo")" > "$work/README.md"
     fi
-    find "$work" -type f -not -path '*/.git/*' -print0 |
-      xargs -0 -r sed -i "s|__FORGEJO_URL__|$FORGEJO_URL|g"
     git -C "$work" add .
     git -C "$work" -c user.name='Demo Maintainer' -c user.email=owner@example.test commit -qm 'Seed demo baseline'
     git -C "$work" -c credential.helper= push -q "$FORGEJO_URL/$owner/$name.git" main

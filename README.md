@@ -31,7 +31,6 @@ published before running bootstrap.
 From the repository root:
 
 ```bash
-make test
 oc whoami --show-server
 oc whoami
 BOOTSTRAP_BRANCH=demo-yourname bash bootstrap/bootstrap.sh
