@@ -61,6 +61,8 @@ wait_for_ao_instance() {
   echo 'Waiting for the Automation Orchestrator instance...'
   oc -n "$namespace" wait --for=condition=Ready \
     automationorchestrator/automation-orchestrator --timeout=15m
+  oc -n "$namespace" rollout status deployment/backstage-feature-gate \
+    --timeout=10m
   for deploy in automation-orchestrator-ui automation-orchestrator-backend; do
     if oc -n "$namespace" get "deployment/$deploy" >/dev/null 2>&1; then
       oc -n "$namespace" rollout status "deployment/$deploy" --timeout=10m

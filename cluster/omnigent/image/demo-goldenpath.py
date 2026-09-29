@@ -5,6 +5,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tempfile
@@ -92,9 +93,9 @@ def prepare_feature(number):
             token=os.environ["FORGEJO_TOKEN"],
         )
     except RuntimeError as error:
-        if "returned HTTP 404" not in str(error):
-            raise
-        run_template("ansible-collection-feature", {"issue_number": number})
+        if "returned HTTP 404" in str(error):
+            raise RuntimeError(f"{branch} does not exist; launch through AO first") from error
+        raise
     directory = Path.cwd() / f"issue-{number}"
     remote = f"{forgejo}/demo-owner/ansible-collection-demo.git"
     if not directory.exists():
@@ -112,7 +113,7 @@ def prepare_feature(number):
     print(f"Repository: {directory}\nBranch: {branch}")
 
 
-def open_pr(issue):
+def open_pr(issue, body_file):
     token = os.environ["FORGEJO_TOKEN"]
     owner = "demo-owner"
     repo = "ansible-collection-demo"
@@ -128,6 +129,11 @@ def open_pr(issue):
         raise RuntimeError("Commit or discard working tree changes before submitting")
     if git(directory, "rev-list", "--count", "origin/main..HEAD", capture=True) == "0":
         raise RuntimeError("The feature branch has no commits")
+    body = body_file.read_text().strip()
+    if not body:
+        raise RuntimeError("PR body file is empty")
+    if not re.search(rf"(?i)\bcloses\s+#{issue}\b", body):
+        body += f"\n\nCloses #{issue}"
     git(directory, "push", "-u", "origin", branch)
     existing = request(
         forgejo,
@@ -138,13 +144,21 @@ def open_pr(issue):
         if item.get("head", {}).get("ref") == branch:
             if item.get("state") != "open":
                 raise RuntimeError(f"Existing PR #{item['number']} is closed")
+            if item.get("body") != body:
+                item = request(
+                    forgejo,
+                    f"/api/v1/repos/{owner}/{repo}/pulls/{item['number']}",
+                    "PATCH",
+                    {"body": body},
+                    token,
+                )
             print(item["html_url"])
             return
     result = request(
         forgejo,
         f"/api/v1/repos/{owner}/{repo}/pulls",
         "POST",
-        {"base": "main", "head": branch, "title": show_issue(issue)["title"], "body": f"Closes #{issue}"},
+        {"base": "main", "head": branch, "title": show_issue(issue)["title"], "body": body},
         token,
     )
     print(result["html_url"])
@@ -167,17 +181,18 @@ subparsers = parser.add_subparsers(dest="command", required=True)
 new = subparsers.add_parser("new", help="Create and register a collection")
 new.add_argument("name")
 new.add_argument("description")
-feature = subparsers.add_parser("feature", help="Run Backstage template and check out its issue branch")
-feature.add_argument("issue", type=int)
+checkout = subparsers.add_parser("checkout", help="Check out an existing AO-prepared issue branch")
+checkout.add_argument("issue", type=int)
 issue = subparsers.add_parser("issue", help="Read the example collection issue")
 issue.add_argument("issue", type=int)
 pr = subparsers.add_parser("pr", help="Open a pull request for an issue branch")
 pr.add_argument("issue", type=int)
+pr.add_argument("--body-file", type=Path, required=True)
 args = parser.parse_args()
 for name in ("FORGEJO_URL", "FORGEJO_TOKEN", "FORGEJO_USERNAME"):
     if not os.environ.get(name):
         parser.error(f"{name} is missing; hydrate the demo first")
-if args.command in ("new", "feature") and not os.environ.get("BACKSTAGE_URL"):
+if args.command == "new" and not os.environ.get("BACKSTAGE_URL"):
     parser.error("BACKSTAGE_URL is missing; hydrate the demo first")
 if args.command != "new" and args.issue < 1:
     parser.error("issue must be positive")
@@ -187,12 +202,12 @@ forgejo = os.environ["FORGEJO_URL"].rstrip("/")
 try:
     if args.command == "new":
         run_template("ansible-collection", {"name": args.name, "description": args.description})
-    elif args.command == "feature":
+    elif args.command == "checkout":
         prepare_feature(args.issue)
     elif args.command == "issue":
         show_issue(args.issue)
     else:
-        open_pr(args.issue)
+        open_pr(args.issue, args.body_file)
 except (KeyError, ValueError, RuntimeError, urllib.error.URLError, OSError, subprocess.CalledProcessError) as error:
     print(f"demo-goldenpath: {error}", file=sys.stderr)
     sys.exit(1)

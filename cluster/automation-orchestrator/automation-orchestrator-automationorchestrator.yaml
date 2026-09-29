@@ -9,6 +9,7 @@ spec:
   workflowHttpRequestAllowedHosts:
     # The workflow validator blocks .svc.cluster.local before checking this list.
     - omnigent.omnigent.svc
+    - backstage-feature-gate.automation-orchestrator.svc
   postgres:
     host: orchestrator-pg-rw
     port: 5432

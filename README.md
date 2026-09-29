@@ -6,13 +6,15 @@ Omnigent, and Automation Orchestrator (AO). Omnigent uses the Kubernetes
 Agent Sandbox API directly:
 
 ```text
-AO workflow -> Omnigent API -> Sandbox in omnigent-sandboxes
-                             -> OpenCode with OpenCode Go gpt-6-luna
+AO workflow -> Backstage feature template -> Forgejo feature branch
+            -> Omnigent API -> Sandbox in omnigent-sandboxes
+                            -> OpenCode with OpenCode Go gpt-6-luna
 ```
 
 Forgejo supplies the seeded collection and issue for an issue-to-PR demo.
-Red Hat Developer Hub (Backstage) offers two optional Ansible collection
-templates. AO's default issue workflow continues to use Forgejo directly.
+Red Hat Developer Hub (Backstage) provides the mandatory issue branch golden
+path. AO waits for its Scaffolder task and verifies the branch before it
+launches the agent. The agent implements the change, pushes, and opens the PR.
 
 ## Requirements
 
@@ -75,7 +77,8 @@ includes a temporary CirrOS VM and a KVM acceleration check.
 `hydrate` is idempotent and prints the issue URL. Pass its issue number to
 `dispatch-issue.sh`; the script calls AO's published workflow through its API
 and prints the AO execution and Omnigent session IDs. AO completion means the
-agent accepted the task. Inspect the session for its branch, checks, and PR URL.
+branch exists and the agent accepted the task. Inspect the session for its
+checks and PR URL.
 Each session gets its own Sandbox. Delete the session when finished.
 
 To reset the full issue-to-PR demo, run:
@@ -95,5 +98,5 @@ Run `bash scripts/dispatch-issue.sh 1` afterward. See the
 The [Omnigent component guide](cluster/omnigent/README.md) describes the
 permissions, image, and session lifecycle. The [AO workflow guide](cluster/automation-orchestrator/workflows/README.md)
 describes workflow reconciliation.
-The [Developer Hub guide](cluster/rhdh/README.md) describes the optional
-templates and their relationship to the AO workflow.
+The [Developer Hub guide](cluster/rhdh/README.md) describes the templates
+and their relationship to the AO workflow.
