@@ -19,14 +19,13 @@ spec:
     postgres_storage_class: ocs-external-storagecluster-ceph-rbd
   controller:
     disabled: false
+    replicas: 1
     web_liveness_period: 0
   eda:
     disabled: false
     api:
       replicas: 1
     ui:
-      replicas: 1
-    scheduler:
       replicas: 1
     worker:
       replicas: 1
