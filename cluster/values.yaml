@@ -97,7 +97,6 @@ applications:
           - /spec/db/port
 
   rhdh:
-    enabled: false # Enable with the Forgejo/Backstage feature stage.
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: "10"

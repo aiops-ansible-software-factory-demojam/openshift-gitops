@@ -12,8 +12,16 @@ spec:
     appConfig:
       configMaps:
         - name: app-config-rhdh
+    extraFiles:
+      mountPath: /opt/app-root/src
+      configMaps:
+        - name: catalog-templates
+    dynamicPluginsConfigMapName: dynamic-plugins-rhdh
     extraEnvs:
+      configMaps:
+        - name: rhdh-demo-endpoints
       secrets:
         - name: rhdh-pg-credentials
+        - name: rhdh-forgejo-credentials
     route:
       subdomain: rhdh

@@ -118,6 +118,18 @@ oc apply -f "$repo_root/cluster/omnigent/omnigent-namespace.yaml"
 oc apply -f "$repo_root/cluster/omnigent/omnigent-sandboxes-namespace.yaml"
 oc apply -f "$repo_root/cluster/automation-orchestrator/automation-orchestrator-namespace.yaml"
 oc apply -f "$repo_root/cluster/forgejo-demo/forgejo-demo-namespace.yaml"
+oc apply -f "$repo_root/cluster/rhdh/rhdh-namespace.yaml"
+if ! oc -n rhdh get secret rhdh-pg-credentials >/dev/null 2>&1; then
+  umask 077
+  db_password_file=$(mktemp)
+  trap '[[ -z ${db_password_file:-} ]] || rm -f "$db_password_file"' EXIT
+  openssl rand -hex 32 | tr -d '\n' > "$db_password_file"
+  oc -n rhdh create secret generic rhdh-pg-credentials \
+    --from-literal=username=backstage \
+    --from-file=password="$db_password_file"
+  rm -f "$db_password_file"
+  db_password_file=
+fi
 oc -n forgejo-demo create configmap forgejo-demo-url \
   --from-literal="root-url=https://forgejo-demo.$ingress_domain/" \
   --dry-run=client -o yaml | oc -n forgejo-demo apply -f -
@@ -145,7 +157,7 @@ done
 deadline=$((SECONDS + 3600))
 # OpenShift preserves an explicit Route host when a manifest starts requesting
 # a subdomain. Refresh each affected child app before recreating legacy Routes.
-for app in rhbk forgejo-demo omnigent automation-orchestrator; do
+for app in rhbk forgejo-demo rhdh omnigent automation-orchestrator; do
   until oc -n "$gitops_namespace" get application "$app" >/dev/null 2>&1; do
     if (( SECONDS >= deadline )); then
       echo "Timed out waiting for the $app Application." >&2
@@ -163,6 +175,9 @@ for app in rhbk forgejo-demo omnigent automation-orchestrator; do
     fi
     sleep 5
   done
+  if [[ $app == forgejo-demo ]]; then
+    bash "$repo_root/scripts/feature-demo.sh" hydrate
+  fi
 done
 for route_ref in keycloak/keycloak forgejo-demo/forgejo-demo \
   omnigent/omnigent \
@@ -233,13 +248,13 @@ for app in agent-sandbox-operator openshift-virtualization omnigent automation-o
 done
 
 echo 'Waiting for the OpenCode sandbox image build...'
-if ! oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32-v5 \
+if ! oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32-v7 \
   >/dev/null 2>&1; then
   echo 'Building the missing OpenCode sandbox image tag...'
   oc -n omnigent-sandboxes start-build buildconfig/omnigent-opencode --wait --follow
 fi
 deadline=$((SECONDS + 1800))
-until oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32-v5 >/dev/null 2>&1; do
+until oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32-v7 >/dev/null 2>&1; do
   oc -n omnigent-sandboxes get builds -l buildconfig=omnigent-opencode \
     -o custom-columns=NAME:.metadata.name,PHASE:.status.phase --no-headers || true
   if (( SECONDS >= deadline )); then
@@ -280,9 +295,7 @@ if [[ "$mounted_sandbox_image" != "$desired_sandbox_image" ||
   oc -n omnigent rollout restart deployment/omnigent
   oc -n omnigent rollout status deployment/omnigent --timeout=10m
 fi
-if [[ ${BOOTSTRAP_SEED_DEMO:-true} == true ]]; then
-  bash "$repo_root/scripts/feature-demo.sh" hydrate
-fi
+bash "$bootstrap_dir/verify-goldenpaths.sh"
 # The Argo CD health check only requires the AutomationOrchestrator Ready
 # condition. Wait for the UI and backend Deployments before publishing the
 # dispatch workflow so the Route has endpoints.

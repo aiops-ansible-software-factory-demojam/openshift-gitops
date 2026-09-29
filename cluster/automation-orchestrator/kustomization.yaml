@@ -11,3 +11,9 @@ resources:
   - temporal-database.yaml
   - temporal-visibility-database.yaml
   - automation-orchestrator-automationorchestrator.yaml
+  - backstage-feature-gate.yaml
+configMapGenerator:
+  - name: backstage-feature-gate-code
+    namespace: automation-orchestrator
+    files:
+      - feature-gate.py
