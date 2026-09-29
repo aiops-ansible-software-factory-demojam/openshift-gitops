@@ -3,8 +3,10 @@
 The `forgejo-demo` namespace runs a disposable Forgejo instance with SQLite
 and Git data on one PVC. GitOps owns the deployment, Service, Route, and PVC.
 The fixture in `fixtures/collection` becomes the private
-`demo-owner/ansible-collection-demo` repository. The issue text is in
-`fixtures/readme-test-issue.md`. Developer Hub and its golden paths are not used.
+`demo-owner/ansible-collection-demo` repository. The fixture in
+`fixtures/collection-template` becomes the Forgejo template repository used
+by Developer Hub. The issue text is in `fixtures/readme-test-issue.md`.
+AO uses Forgejo directly; Developer Hub is available separately.
 
 ## Hydrate
 
@@ -17,17 +19,18 @@ bash scripts/feature-demo.sh hydrate
 ```
 
 Hydration waits for Forgejo, creates or repairs demo users and collaborators,
-seeds the collection if its repository is empty, and ensures the example issue
-exists. It creates a scoped `demo-agent` token and adds it to the existing
-`omnigent-model` Secret in `omnigent-sandboxes`. New agent Sandboxes receive
-that token with the model settings. Credentials stay in ignored
+seeds the collection and template source, and ensures the example issue
+exists. It creates scoped `demo-agent` tokens for the Sandbox and Developer
+Hub, then updates their Kubernetes Secrets. New agent Sandboxes receive
+the agent token with the model settings. Credentials stay in ignored
 `cluster/forgejo-demo/.state/<ingress-domain>/` and Kubernetes Secrets.
 
 The demo identities are `demo-owner`, `demo-agent`, and `demo-reviewer`; their
 passwords equal their usernames on this disposable instance. `demo-agent` is
 a write collaborator and its token has `write:repository`, `write:issue`, and
-`read:user` scopes. The agent can push a branch and open a PR. The seed does
-not touch populated repositories, so rerunning hydration preserves agent work.
+`read:user` scopes. The agent can push a branch and open a PR. Hydration only
+adds the catalog descriptor to a populated demo collection, preserving feature
+work. It reconciles the template source from its checked-in fixture.
 
 To seed a different collection checkout, set `COLLECTION_SOURCE` to its path
 before hydration. The seed takes a snapshot of tracked `HEAD` files and does
@@ -75,7 +78,7 @@ environment, so use a new session after reset. The reset script requires the
 GitOps Application to have self-heal enabled. A `Retain` storage reclaim
 policy may leave the old PV; reset is not secure erasure.
 
-`seed.json` declares the single collection repository and collaborators.
+`seed.json` declares the collection and collection template repositories.
 `fixtures/collection` is intentionally missing the requested README line so
 each reset presents the same work to the agent. Forgejo's optional webhook helper
 scripts remain available for a later event-driven demo, but this flow uses

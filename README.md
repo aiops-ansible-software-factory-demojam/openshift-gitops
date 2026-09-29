@@ -11,8 +11,8 @@ AO workflow -> Omnigent API -> Sandbox in omnigent-sandboxes
 ```
 
 Forgejo supplies the seeded collection and issue for an issue-to-PR demo.
-Developer Hub remains disabled in `cluster/values.yaml`; this flow uses no
-golden path or Backstage template.
+Red Hat Developer Hub (Backstage) offers two optional Ansible collection
+templates. AO's default issue workflow continues to use Forgejo directly.
 
 ## Requirements
 
@@ -39,13 +39,13 @@ oc whoami
 BOOTSTRAP_BRANCH=demo-yourname bash bootstrap/bootstrap.sh
 ```
 
-The script installs OpenShift GitOps, creates the bootstrap-owned model and
-machine-credential Secrets, starts the app-of-apps, waits for the OpenCode
-image and Omnigent deployment, hydrates Forgejo's collection and issue, and
-publishes AO's `omnigent-dispatch` workflow. It is safe to rerun. Set
-`BOOTSTRAP_SEED_DEMO=false` only when testing the platform without Forgejo
-data. Set `BOOTSTRAP_FORCE_SANDBOX_BUILD=true` to rebuild the image even when
-its source has not changed. Developer Hub stays disabled.
+The script installs OpenShift GitOps, creates the bootstrap-owned model,
+database, and machine-credential Secrets, starts the app-of-apps, hydrates
+Forgejo before Developer Hub starts, waits for the OpenCode image and
+Omnigent deployment, verifies the Backstage catalog, and publishes AO's
+`omnigent-dispatch` workflow. It is safe to rerun. Set
+`BOOTSTRAP_FORCE_SANDBOX_BUILD=true` to rebuild the image even when its source
+has not changed.
 
 The default model is OpenCode Go `gpt-6-luna` at
 `https://opencode.ai/zen/go/v1`. Bootstrap reads
@@ -86,10 +86,13 @@ make demo-reset
 
 This removes `automation-developer` sessions and Sandboxes, recreates its
 OpenCode Go model and agent Secrets, wipes the disposable Forgejo PVC, and
-reseeds the one-line README issue. Other Omnigent agents and sessions remain.
+reseeds the one-line README issue and Backstage collection template source.
+Other Omnigent agents and sessions remain.
 Run `bash scripts/dispatch-issue.sh 1` afterward. See the
 [Forgejo demo guide](cluster/forgejo-demo/README.md) for the fixture details.
 
 The [Omnigent component guide](cluster/omnigent/README.md) describes the
 permissions, image, and session lifecycle. The [AO workflow guide](cluster/automation-orchestrator/workflows/README.md)
 describes workflow reconciliation.
+The [Developer Hub guide](cluster/rhdh/README.md) describes the optional
+templates and their relationship to the AO workflow.

@@ -47,10 +47,29 @@ trap 'find "$scratch" -type f -delete; rmdir "$scratch"' EXIT
 tr -d '\r\n' <"$state_dir/agent-token" >"$scratch/agent-token"
 jq -n --rawfile token "$scratch/agent-token" \
   --arg url 'http://forgejo-demo.forgejo-demo.svc.cluster.local:3000' \
-  '{stringData:{FORGEJO_TOKEN:$token,FORGEJO_URL:$url,FORGEJO_USERNAME:"demo-agent"}}' \
+  --arg backstage 'http://backstage-rhdh-developer-hub.rhdh.svc.cluster.local:80' \
+  '{stringData:{FORGEJO_TOKEN:$token,FORGEJO_URL:$url,FORGEJO_USERNAME:"demo-agent",BACKSTAGE_URL:$backstage}}' \
   >"$scratch/forgejo-patch.json"
 oc -n omnigent-sandboxes patch secret omnigent-model --type=merge \
   --patch-file="$scratch/forgejo-patch.json" >/dev/null
 
+tr -d '\r\n' <"$state_dir/rhdh-token" >"$scratch/rhdh-token"
+endpoints_status=$(oc -n rhdh create configmap rhdh-demo-endpoints \
+  --from-literal="FORGEJO_HOST=$forgejo_host" \
+  --from-literal="FORGEJO_URL=$FORGEJO_URL" \
+  --from-literal="RHDH_URL=https://rhdh.$ingress_domain" \
+  --dry-run=client -o yaml | oc -n rhdh apply -f -)
+credentials_status=$(oc -n rhdh create secret generic rhdh-forgejo-credentials \
+  --from-file=FORGEJO_TOKEN="$scratch/rhdh-token" \
+  --from-literal=FORGEJO_USERNAME=demo-agent \
+  --dry-run=client -o yaml | oc -n rhdh apply -f -)
+printf '%s\n' "$endpoints_status" "$credentials_status"
+if [[ $endpoints_status != *' unchanged' ||
+      $credentials_status != *' unchanged' ]] &&
+   oc -n rhdh get deployment backstage-rhdh-developer-hub >/dev/null 2>&1; then
+  oc -n rhdh rollout restart deployment/backstage-rhdh-developer-hub
+  oc -n rhdh rollout status deployment/backstage-rhdh-developer-hub --timeout=15m
+fi
+
 printf 'Forgejo demo ready: %s\n' "$issue_url"
-echo 'New automation-developer sandboxes receive the current demo-agent token.'
+echo 'New automation-developer sandboxes and Backstage receive current Forgejo credentials.'
