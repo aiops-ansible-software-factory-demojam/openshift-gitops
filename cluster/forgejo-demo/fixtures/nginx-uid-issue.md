@@ -23,6 +23,10 @@ Acceptance criteria:
 - Exercise any UID-dependent Ansible condition or template with a YAML integer
   value (`nginx_uid: 1500`) using `ansible-playbook`. A syntax check or a
   rewritten approximation of the expression does not prove it executes.
+- If using Ansible `getent_passwd` facts, verify the UID field using an existing
+  account whose UID and primary GID differ. Apply that field consistently to
+  conflict detection and current-UID comparison; a second run must remain
+  unchanged after the UID differs from its original GID.
 - Run ansible-lint, default yamllint, and a collection build. If this sandbox
   cannot run a real Rocky Linux 9 service, mark those runtime checks unverified;
   do not modify the sandbox's account database to simulate them.

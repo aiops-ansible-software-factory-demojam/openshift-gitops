@@ -24,8 +24,9 @@ prompt: |
   build checks. Execute UID-dependent Ansible conditions with a YAML integer
   nginx_uid: 1500 before submitting; syntax checks alone miss runtime template
   errors. Check service stop/start ordering for a 1500-to-1501 UID change on
-  an installed nginx service; usermod rejects running workers. Do not alter
-  the sandbox's system accounts or use a fake account
+  an installed nginx service; usermod rejects running workers. If using
+  getent_passwd, verify the UID field with an account whose UID and GID differ.
+  Do not alter the sandbox's system accounts or use a fake account
   as evidence of Rocky Linux behavior. If a real test host is unavailable,
   say which runtime criteria remain unverified. Review the final diff against
   every issue criterion before committing. Write a PR summary with only the

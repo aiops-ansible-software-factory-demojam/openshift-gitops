@@ -67,6 +67,8 @@ nodes:
                 cannot detect runtime template errors.
                 Review the 1500-to-1501 transition: stop running nginx workers
                 before changing their account UID, then restore the service.
+                If using getent_passwd, verify the UID field with an account
+                whose UID and GID differ.
                 Run ansible-lint, default yamllint, and a collection build.
                 Do not change sandbox system accounts or attempt nested Podman
                 to simulate a Rocky Linux host. Report unavailable runtime
