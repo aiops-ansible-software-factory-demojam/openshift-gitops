@@ -42,6 +42,19 @@ spec:
           end
         end
         return hs
+    - group: hco.kubevirt.io
+      kind: HyperConverged
+      check: |
+        local hs = {status = "Progressing", message = "Waiting for OpenShift Virtualization"}
+        for _, c in ipairs((obj.status or {}).conditions or {}) do
+          if c.type == "Degraded" and c.status == "True" then
+            return {status = "Degraded", message = c.message or "OpenShift Virtualization is degraded"}
+          end
+          if c.type == "Available" and c.status == "True" then
+            hs = {status = "Healthy", message = c.message or "OpenShift Virtualization is available"}
+          end
+        end
+        return hs
     - group: postgresql.cnpg.io
       kind: Cluster
       check: |
