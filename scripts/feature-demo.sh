@@ -31,6 +31,8 @@ export FORGEJO_STATE_DIR="$state_dir"
 export FORGEJO_URL="https://$forgejo_host"
 export EXPECTED_SERVER="$server"
 if [[ $action == reset ]]; then
+  RHDH_URL="https://rhdh.$ingress_domain" FORGEJO_URL="$FORGEJO_URL" \
+    bash "$repo_root/cluster/rhdh/scripts/clear-demo-catalog.sh"
   bash "$repo_root/cluster/forgejo-demo/scripts/demo.sh" reset --confirm-forgejo-demo
 else
   bash "$repo_root/cluster/forgejo-demo/scripts/demo.sh" seed

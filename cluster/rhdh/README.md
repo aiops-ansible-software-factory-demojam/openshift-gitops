@@ -41,5 +41,8 @@ It does not call Backstage. This keeps the current smoke demo repeatable while
 the golden path is available for explicit agent sessions and later AO use.
 
 `make demo-reset` replaces the disposable Forgejo data and rehydrates both
-tokens and the template source. Bootstrap verifies the two catalog templates,
+tokens and the template source. It also removes catalog locations for
+collections generated in the disposable `demo-agent` Forgejo account, so
+their catalog entries do not outlive the wiped repositories. Bootstrap
+verifies the two catalog templates,
 demo collection entity, and scaffolder HTTP action before reporting ready.

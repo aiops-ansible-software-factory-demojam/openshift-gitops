@@ -87,7 +87,8 @@ make demo-reset
 This removes `automation-developer` sessions and Sandboxes, recreates its
 OpenCode Go model and agent Secrets, wipes the disposable Forgejo PVC, and
 reseeds the one-line README issue and Backstage collection template source.
-Other Omnigent agents and sessions remain.
+It removes catalog registrations for generated collections that the Forgejo
+wipe deletes. Other Omnigent agents and sessions remain.
 Run `bash scripts/dispatch-issue.sh 1` afterward. See the
 [Forgejo demo guide](cluster/forgejo-demo/README.md) for the fixture details.
 
