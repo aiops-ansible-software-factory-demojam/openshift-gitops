@@ -6,13 +6,15 @@ Omnigent, and Automation Orchestrator (AO). Omnigent uses the Kubernetes
 Agent Sandbox API directly:
 
 ```text
-AO workflow -> Omnigent API -> Sandbox in omnigent-sandboxes
-                             -> OpenCode with OpenCode Go gpt-6-luna
+AO workflow -> Backstage feature template -> Forgejo feature branch
+            -> Omnigent API -> Sandbox in omnigent-sandboxes
+                            -> OpenCode with OpenCode Go gpt-6-luna
 ```
 
 Forgejo supplies the seeded collection and issue for an issue-to-PR demo.
-Developer Hub remains disabled in `cluster/values.yaml`; this flow uses no
-golden path or Backstage template.
+Red Hat Developer Hub (Backstage) provides the mandatory issue branch golden
+path. AO waits for its Scaffolder task and verifies the branch before it
+launches the agent. The agent implements the change, pushes, and opens the PR.
 
 ## Requirements
 
@@ -39,13 +41,13 @@ oc whoami
 BOOTSTRAP_BRANCH=demo-yourname bash bootstrap/bootstrap.sh
 ```
 
-The script installs OpenShift GitOps, creates the bootstrap-owned model and
-machine-credential Secrets, starts the app-of-apps, waits for the OpenCode
-image and Omnigent deployment, hydrates Forgejo's collection and issue, and
-publishes AO's `omnigent-dispatch` workflow. It is safe to rerun. Set
-`BOOTSTRAP_SEED_DEMO=false` only when testing the platform without Forgejo
-data. Set `BOOTSTRAP_FORCE_SANDBOX_BUILD=true` to rebuild the image even when
-its source has not changed. Developer Hub stays disabled.
+The script installs OpenShift GitOps, creates the bootstrap-owned model,
+database, and machine-credential Secrets, starts the app-of-apps, hydrates
+Forgejo before Developer Hub starts, waits for the OpenCode image and
+Omnigent deployment, verifies the Backstage catalog, and publishes AO's
+`omnigent-dispatch` workflow. It is safe to rerun. Set
+`BOOTSTRAP_FORCE_SANDBOX_BUILD=true` to rebuild the image even when its source
+has not changed.
 
 The default model is OpenCode Go `gpt-6-luna` at
 `https://opencode.ai/zen/go/v1`. Bootstrap reads
@@ -75,7 +77,8 @@ includes a temporary CirrOS VM and a KVM acceleration check.
 `hydrate` is idempotent and prints the issue URL. Pass its issue number to
 `dispatch-issue.sh`; the script calls AO's published workflow through its API
 and prints the AO execution and Omnigent session IDs. AO completion means the
-agent accepted the task. Inspect the session for its branch, checks, and PR URL.
+branch exists and the agent accepted the task. Inspect the session for its
+checks and PR URL.
 Each session gets its own Sandbox. Delete the session when finished.
 
 To reset the full issue-to-PR demo, run:
@@ -86,10 +89,14 @@ make demo-reset
 
 This removes `automation-developer` sessions and Sandboxes, recreates its
 OpenCode Go model and agent Secrets, wipes the disposable Forgejo PVC, and
-reseeds the one-line README issue. Other Omnigent agents and sessions remain.
+reseeds the one-line README issue and Backstage collection template source.
+It removes catalog registrations for generated collections that the Forgejo
+wipe deletes. Other Omnigent agents and sessions remain.
 Run `bash scripts/dispatch-issue.sh 1` afterward. See the
 [Forgejo demo guide](cluster/forgejo-demo/README.md) for the fixture details.
 
 The [Omnigent component guide](cluster/omnigent/README.md) describes the
 permissions, image, and session lifecycle. The [AO workflow guide](cluster/automation-orchestrator/workflows/README.md)
 describes workflow reconciliation.
+The [Developer Hub guide](cluster/rhdh/README.md) describes the templates
+and their relationship to the AO workflow.

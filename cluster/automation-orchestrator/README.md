@@ -1,7 +1,11 @@
 # Automation Orchestrator
 
 This child application installs the standalone Automation Orchestrator. Its
-workflow worker is allowed to call the Omnigent cluster Service. Bootstrap
+workflow worker is allowed to call the Omnigent and Backstage feature gate
+cluster Services. The gate obtains a guest token from Developer Hub, validates
+the issue, invokes its feature template, and waits for the branch before AO
+creates a managed agent session. An existing issue branch is reused on a
+subsequent dispatch. The gate has no Forgejo credential or public Route. Bootstrap
 reconciles and publishes `workflows/omnigent-dispatch.yaml` after the Argo CD
 rollout and the Omnigent Deployment become ready:
 
@@ -19,7 +23,7 @@ base URL. Login tries `automation-orchestrator-admin-password` first, then
 `automation-orchestrator-initial-admin-password` if the Git-managed password
 no longer matches the live admin account.
 
-The manual workflow accepts a task, mints a short-lived machine token, calls
+The manual workflow accepts an issue number, waits for the golden path, calls
 `POST /v1/sessions` with `host_type: managed`, then sends the task to the seeded
 OpenCode agent. Bootstrap generates the machine client Secret and reconciles an
 encrypted HTTP Basic credential in Orchestrator. The workflow has zero retries

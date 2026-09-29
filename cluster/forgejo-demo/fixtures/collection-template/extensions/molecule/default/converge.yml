@@ -1,0 +1,11 @@
+---
+# Roles resolve by plain name via the committed roles -> ../../../roles
+# symlink (playbook-adjacent dirs lead ansible's role search), so this file
+# needs no per-repo templating and no env configuration.
+- name: Converge
+  hosts: molecule
+  gather_facts: true
+  tasks:
+    - name: Apply the example role
+      ansible.builtin.include_role:
+        name: example

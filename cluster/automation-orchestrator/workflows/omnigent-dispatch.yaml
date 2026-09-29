@@ -1,5 +1,5 @@
 name: omnigent-dispatch
-description: Launch automation-developer to implement a Forgejo collection issue.
+description: Prepare a Backstage feature branch, then launch automation-developer.
 schema_version: 2.0.0
 triggers:
   - id: start
@@ -19,11 +19,28 @@ triggers:
             title: Collection issue number
             minimum: 1
 nodes:
+  - id: prepare_feature
+    name: Run the Backstage feature golden path
+    type: http_request
+    position:
+      x: 300
+      y: 300
+    parameters:
+      method: POST
+      url: http://backstage-feature-gate.automation-orchestrator.svc:8080/prepare
+      headers:
+        Content-Type: application/json
+      body:
+        issue_number: ${trigger.issue_number}
+    settings:
+      timeout: 360
+      retry_policy:
+        max_retries: 0
   - id: create_session
     name: Create managed Agent Sandbox session
     type: http_request
     position:
-      x: 300
+      x: 600
       y: 300
     parameters:
       method: POST
@@ -43,7 +60,7 @@ nodes:
     name: Send task to agent
     type: http_request
     position:
-      x: 600
+      x: 900
       y: 300
     parameters:
       method: POST
@@ -57,14 +74,16 @@ nodes:
           content:
             - type: input_text
               text: |
-                Work on Forgejo issue #${trigger.issue_number} in
+                Backstage has prepared feature/issue-${trigger.issue_number}
+                for Forgejo issue #${trigger.issue_number} in
                 demo-owner/ansible-collection-demo. Run
-                forgejo-issue start ${trigger.issue_number} to review it and
-                prepare the feature branch. Follow the issue and AGENTS.md,
-                make only the requested change, and verify the result. Review
-                the diff and PR body for accuracy, commit the change, then use
-                forgejo-issue submit ${trigger.issue_number} --body-file <path>
-                to push and open a PR. Report the PR URL. Do not merge.
+                demo-goldenpath checkout ${trigger.issue_number} to check out
+                that existing branch and read the issue. Follow the issue and
+                AGENTS.md, make only the requested change, and verify it.
+                Review the diff, commit, and write an accurate PR summary to
+                a file outside the repository. Run demo-goldenpath pr
+                ${trigger.issue_number} --body-file <path> to push and open
+                the PR. Report its URL. Do not merge.
     settings:
       timeout: 360
       retry_policy:
@@ -74,6 +93,8 @@ nodes:
         backoff_coefficient: 1.5
 edges:
   - from: start
+    to: prepare_feature
+  - from: prepare_feature
     to: create_session
   - from: create_session
     to: send_task

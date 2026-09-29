@@ -41,7 +41,7 @@ execution_id=$(curl -fsS "https://$ao_host/api/v1/executions" \
 unset payload
 echo "AO execution: $execution_id"
 
-deadline=$((SECONDS + 420))
+deadline=$((SECONDS + 900))
 while :; do
   status=$(ao_get "executions/$execution_id" | jq -er '.status')
   case "$status" in
@@ -52,7 +52,7 @@ while :; do
       ;;
   esac
   if (( SECONDS >= deadline )); then
-    echo "AO execution is still $status after seven minutes." >&2
+    echo "AO execution is still $status after fifteen minutes." >&2
     exit 1
   fi
   sleep 5

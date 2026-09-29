@@ -17,13 +17,17 @@ Ansible Development Tools image (26.9.0), which includes Molecule, pytest-ansibl
 ansible-builder, ansible-creator, and ansible-navigator. It installs Omnigent
 v0.15.0 in `/opt/omnigent` so its Python dependencies stay separate from the
 Ansible tools, and adds Node.js, Bubblewrap, tmux, OpenCode 1.18.32, and the
-`forgejo-issue` helper. The Ansible tools supply
+`demo-goldenpath` helper. The Ansible tools supply
 development commands; running container or VM tests still needs a test target
 and its corresponding runtime or provisioner. The server and sandbox use the
 same Omnigent v0.15.0 release. The Sandbox has a 5 GiB
 HOME claim, which survives idle suspension, and uses the cluster's normal
 container runtime. This demo has no
 warm pool or separate sandbox network policy.
+
+The Sandbox Pod uses `IfNotPresent` image pulls. Bump the ImageStreamTag in
+the BuildConfig, sandbox config, and bootstrap together when changing `image/`,
+so new sessions cannot reuse a node-cached older image under the same tag.
 
 The agent is a reusable template. Each managed session gets its own Sandbox
 with a generated `omnigent-managed-*` name, rather than a fixed Sandbox bound
@@ -41,11 +45,12 @@ podman build -f cluster/omnigent/image/Containerfile \
 `/opt/omnigent/bin/python`.
 
 The `omnigent-dispatch` Automation Orchestrator workflow accepts a Forgejo
-issue number, creates a managed session, and asks the agent to read that issue,
-work on a branch, and open a PR. `forgejo-issue start` clones using Git askpass;
-`forgejo-issue submit` pushes and creates or updates the open PR. Credentials do not
-appear in Git URLs. A sidecar protects Omnigent's Route with the same machine
-credential for inspection. RHDH is outside this flow.
+issue number and waits for the Backstage feature template to create its branch
+before creating a managed session. The agent uses `demo-goldenpath checkout`
+to fetch that existing branch, then `demo-goldenpath pr` to push and open or
+update the PR. The helper cannot create the feature branch. Git askpass keeps
+credentials out of Git URLs. A sidecar protects Omnigent's Route with the
+same machine credential for inspection.
 
 Check the resources with the selected kubeconfig:
 

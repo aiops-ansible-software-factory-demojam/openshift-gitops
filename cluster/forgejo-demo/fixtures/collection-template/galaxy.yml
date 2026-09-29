@@ -1,0 +1,17 @@
+---
+namespace: demo
+name: ${REPO_NAME}
+version: 0.1.0
+readme: README.md
+authors:
+  - Demo Maintainer
+description: ${REPO_DESCRIPTION}
+license:
+  - MIT
+tags:
+  - infrastructure
+repository: __FORGEJO_URL__/${REPO_OWNER}/${REPO_NAME}
+build_ignore:
+  - .gitea
+  - devfile.yaml
+  - catalog-info.yaml

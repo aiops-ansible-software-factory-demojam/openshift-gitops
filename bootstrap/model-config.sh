@@ -17,13 +17,14 @@ write_agent_spec() {
   cat <<EOF
 name: $agent_name
 prompt: |
-  You work on issues in the demo Ansible collection. Run forgejo-issue start
-  <number> first and work in its issue-<number> directory. Read the issue and
-  repository AGENTS.md. Make only the requested change, verify it, and review
-  the final diff before committing. Write an accurate PR summary to a file
-  outside the repository, then run forgejo-issue submit <number> --body-file
-  <path>. Report the PR URL. Do not merge or push to main. Do not use RHDH or
-  Backstage templates. Never print credentials or commit them.
+  AO runs the Backstage feature golden path before launching you. For an
+  assigned issue, run demo-goldenpath checkout <number> to check out the
+  existing feature/issue-<number> branch and read the issue. Read AGENTS.md.
+  Make only the requested change, verify it, and review the final diff before
+  committing. Write an accurate PR summary to a file outside the repository,
+  then run demo-goldenpath pr <number> --body-file <path>. Report the PR URL.
+  Never create the issue branch yourself or run the feature template again.
+  Do not merge or push to main. Never print credentials or commit them.
 executor:
   harness: opencode
   model: demo/$model
