@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backstage-feature-gate
+  namespace: automation-orchestrator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backstage-feature-gate
+  template:
+    metadata:
+      labels:
+        app: backstage-feature-gate
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: gate
+          image: registry.access.redhat.com/ubi9/python-311:latest
+          command:
+            - python3
+            - /opt/app/feature-gate.py
+          env:
+            - name: BACKSTAGE_URL
+              value: http://backstage-rhdh-developer-hub.rhdh.svc:80
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          volumeMounts:
+            - name: code
+              mountPath: /opt/app
+              readOnly: true
+      volumes:
+        - name: code
+          configMap:
+            name: backstage-feature-gate-code
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backstage-feature-gate
+  namespace: automation-orchestrator
+spec:
+  selector:
+    app: backstage-feature-gate
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

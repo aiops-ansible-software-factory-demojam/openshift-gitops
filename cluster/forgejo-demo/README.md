@@ -6,7 +6,7 @@ The fixture in `fixtures/collection` becomes the private
 `demo-owner/ansible-collection-demo` repository. The fixture in
 `fixtures/collection-template` becomes the Forgejo template repository used
 by Developer Hub. The issue text is in `fixtures/readme-test-issue.md`.
-AO uses Forgejo directly; Developer Hub is available separately.
+AO runs the Developer Hub feature template before it starts the agent.
 
 ## Hydrate
 
@@ -45,8 +45,9 @@ bash scripts/dispatch-issue.sh 1
 ```
 
 AO launches the `automation-developer` OpenCode agent in a new Agent Sandbox.
-The agent runs `forgejo-issue start 1` to read the issue and clone the repo,
-then implements, checks, commits, and runs `forgejo-issue submit 1 --body-file
+Backstage creates `feature/issue-1` before the agent session starts. The agent
+runs `demo-goldenpath checkout 1` to read the issue and clone that branch,
+then implements, checks, commits, and runs `demo-goldenpath pr 1 --body-file
 <path>` to push and open a PR against `main`. The PR body references the
 issue. Repeating `submit` updates the body of the open PR after review fixes.
 The seeded issue asks for a single README line so reset and dispatch cycles
