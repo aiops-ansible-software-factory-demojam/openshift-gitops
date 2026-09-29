@@ -2,7 +2,8 @@
 
 This repository bootstraps a disposable OpenShift enablement cluster with
 OpenShift GitOps, OpenShift Virtualization, the Agent Sandbox operator,
-Omnigent, and Automation Orchestrator (AO). Omnigent uses the Kubernetes
+Omnigent, Automation Orchestrator (AO), Ansible Automation Platform, and user
+workload monitoring. Omnigent uses the Kubernetes
 Agent Sandbox API directly:
 
 ```text
@@ -100,3 +101,6 @@ permissions, image, and session lifecycle. The [AO workflow guide](cluster/autom
 describes workflow reconciliation.
 The [Developer Hub guide](cluster/rhdh/README.md) describes the templates
 and their relationship to the AO workflow.
+The [AAP guide](cluster/ansible-automation-platform/README.md) covers the
+single replica controller and EDA deployment. The [monitoring guide](cluster/user-workload-monitoring/README.md)
+covers the blackbox probe and user Alertmanager. No alert receiver is set yet.

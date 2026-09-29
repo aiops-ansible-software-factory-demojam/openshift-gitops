@@ -54,6 +54,33 @@ applications:
     source:
       path: cluster/cloudnative-pg
 
+  user-workload-monitoring:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: "5"
+    destination:
+      namespace: openshift-user-workload-monitoring
+    source:
+      path: cluster/user-workload-monitoring
+
+  ansible-automation-platform-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: "10"
+    destination:
+      namespace: ansible-automation-platform
+    source:
+      path: cluster/ansible-automation-platform-operator
+
+  ansible-automation-platform:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: "30"
+    destination:
+      namespace: ansible-automation-platform
+    source:
+      path: cluster/ansible-automation-platform
+
   automation-orchestrator:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
