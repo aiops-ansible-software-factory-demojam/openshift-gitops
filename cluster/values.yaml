@@ -72,6 +72,15 @@ applications:
     source:
       path: cluster/agent-sandbox-operator
 
+  openshift-virtualization:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: "10"
+    destination:
+      namespace: openshift-cnv
+    source:
+      path: cluster/openshift-virtualization
+
   rhbk:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
