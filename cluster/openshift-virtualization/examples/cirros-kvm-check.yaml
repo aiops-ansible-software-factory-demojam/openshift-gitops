@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: virt-nested-probe
+---
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: cirros-kvm-check
+  namespace: virt-nested-probe
+spec:
+  runStrategy: Always
+  template:
+    spec:
+      domain:
+        cpu:
+          cores: 1
+        devices:
+          disks:
+            - name: rootdisk
+              disk:
+                bus: virtio
+        resources:
+          requests:
+            memory: 512Mi
+      terminationGracePeriodSeconds: 0
+      volumes:
+        - name: rootdisk
+          containerDisk:
+            image: quay.io/kubevirt/cirros-container-disk-demo:latest

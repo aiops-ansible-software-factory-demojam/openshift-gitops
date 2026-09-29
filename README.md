@@ -1,8 +1,9 @@
 # Demo OpenShift GitOps
 
 This repository bootstraps a disposable OpenShift enablement cluster with
-OpenShift GitOps, the Agent Sandbox operator, Omnigent, and Automation
-Orchestrator (AO). Omnigent uses the Kubernetes Agent Sandbox API directly:
+OpenShift GitOps, OpenShift Virtualization, the Agent Sandbox operator,
+Omnigent, and Automation Orchestrator (AO). Omnigent uses the Kubernetes
+Agent Sandbox API directly:
 
 ```text
 AO workflow -> Omnigent API -> Sandbox in omnigent-sandboxes
@@ -17,9 +18,11 @@ golden path or Backstage template.
 
 Use a disposable OpenShift cluster with OLM, Red Hat and certified operator
 catalogs, ingress, a default RWO StorageClass, and enough capacity for the
-operators, databases, and applications. The active `KUBECONFIG` identity needs
-cluster-admin rights. Install `oc`, `kustomize`, `helm`, `yq`, `jq`, `openssl`,
-`curl`, `git`, and `op` (or supply `MODEL_API_KEY`).
+operators, databases, and applications. OpenShift Virtualization requires
+hardware KVM support on at least one node; bootstrap waits for its
+`HyperConverged` resource to become available. The active `KUBECONFIG`
+identity needs cluster-admin rights. Install `oc`, `kustomize`, `helm`, `yq`,
+`jq`, `openssl`, `curl`, `git`, and `op` (or supply `MODEL_API_KEY`).
 
 Argo CD reads this repository from its Git remote. Bootstrap publishes the
 checkout to a chosen branch, then points the root and child Applications to
@@ -59,11 +62,15 @@ operation. The Go default uses the Responses API through `@ai-sdk/openai`.
 ```bash
 oc -n openshift-gitops get applications
 oc -n agent-sandbox-system get csv
+oc -n openshift-cnv get hyperconverged,kubevirt
 oc -n omnigent rollout status deployment/omnigent
 oc -n omnigent-sandboxes get builds,imagestream,sandboxes,pods
 bash scripts/feature-demo.sh hydrate
 bash scripts/dispatch-issue.sh 1
 ```
+
+The [OpenShift Virtualization guide](cluster/openshift-virtualization/README.md)
+includes a temporary CirrOS VM and a KVM acceleration check.
 
 `hydrate` is idempotent and prints the issue URL. Pass its issue number to
 `dispatch-issue.sh`; the script calls AO's published workflow through its API

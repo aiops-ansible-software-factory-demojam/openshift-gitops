@@ -214,7 +214,7 @@ done
 oc -n "$gitops_namespace" get applications \
   -o custom-columns=NAME:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status
 
-for app in agent-sandbox-operator omnigent automation-orchestrator; do
+for app in agent-sandbox-operator openshift-virtualization omnigent automation-orchestrator; do
   oc -n "$gitops_namespace" annotate application "$app" \
     argocd.argoproj.io/refresh=hard --overwrite
   deadline=$((SECONDS + 1800))
