@@ -1,0 +1,12 @@
+---
+- name: Verify
+  hosts: molecule
+  gather_facts: false
+  tasks:
+    - name: Instance answers over Ansible connection
+      ansible.builtin.ping:
+
+    - name: Example role variable resolves
+      ansible.builtin.assert:
+        that:
+          - example_message == 'Hello from molecule in a container'

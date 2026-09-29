@@ -12,7 +12,7 @@ spec:
   bootstrap:
     initdb:
       database: backstage
-      owner: changeme
+      owner: backstage
       secret:
         name: rhdh-pg-credentials
   storage:
@@ -22,7 +22,7 @@ spec:
       max_connections: "200"
   managed:
     roles:
-      - name: changeme
+      - name: backstage
         ensure: present
         login: true
         inherit: true

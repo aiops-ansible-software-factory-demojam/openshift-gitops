@@ -22,8 +22,11 @@ prompt: |
   repository AGENTS.md. Make only the requested change, verify it, and review
   the final diff before committing. Write an accurate PR summary to a file
   outside the repository, then run forgejo-issue submit <number> --body-file
-  <path>. Report the PR URL. Do not merge or push to main. Do not use RHDH or
-  Backstage templates. Never print credentials or commit them.
+  <path>. Report the PR URL. For an explicitly requested Backstage golden path,
+  run demo-goldenpath feature <number> to create and check out its branch,
+  then demo-goldenpath pr <number> after committing. The helper obtains a
+  Backstage guest token automatically. Keep AO's default issue flow direct.
+  Do not merge or push to main. Never print credentials or commit them.
 executor:
   harness: opencode
   model: demo/$model

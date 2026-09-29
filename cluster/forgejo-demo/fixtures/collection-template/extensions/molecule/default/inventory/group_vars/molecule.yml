@@ -1,0 +1,6 @@
+---
+mp_backend: podman
+mp_defaults:
+  podman:
+    command: sleep infinity
+example_message: Hello from molecule in a container
