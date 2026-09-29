@@ -8,7 +8,8 @@ if [[ -n ${MODEL_PROVIDER:-} ]]; then
   exit 2
 fi
 go_base_url=https://opencode.ai/zen/go/v1
-go_model=glm-5.3-flash
+go_model=gpt-6-luna
+go_npm=@ai-sdk/openai
 agent_name=automation-developer
 agent_file=${agent_name}.yaml
 write_agent_spec() {
@@ -46,10 +47,13 @@ if [[ -z ${MODEL_API_KEY:-} && -z ${MODEL_BASE_URL:-} &&
   config=$(printf '%s' "$current_encoded" | base64 -d | jq -c .)
   current_base_url=$(jq -r '.provider.demo.options.baseURL // empty' <<<"$config")
   current_model=$(jq -r '.model // empty' <<<"$config")
+  current_npm=$(jq -r '.provider.demo.npm // empty' <<<"$config")
   if [[ "$current_base_url" == "$go_base_url" &&
-        "$current_model" != "demo/$go_model" ]]; then
-    config=$(jq -c --arg model "$go_model" '
+        ( "$current_model" != "demo/$go_model" ||
+          "$current_npm" != "$go_npm" ) ]]; then
+    config=$(jq -c --arg model "$go_model" --arg npm "$go_npm" '
       .model = ("demo/" + $model) |
+      .provider.demo.npm = $npm |
       .provider.demo.models = {($model): {name: $model}}
     ' <<<"$config")
     current_model="demo/$go_model"
@@ -73,7 +77,7 @@ if [[ -z ${MODEL_API_KEY:-} && -z ${MODEL_BASE_URL:-} &&
       -p "$(jq -cn --arg value "$encoded_config" \
         '{data:{OPENCODE_CONFIG_CONTENT:$value}}')" >/dev/null
   fi
-  unset current_encoded config encoded_config current_base_url current_model
+  unset current_encoded config encoded_config current_base_url current_model current_npm
   echo 'Using the existing Omnigent model configuration.'
   exit 0
 fi
@@ -81,8 +85,8 @@ fi
 base_url=${MODEL_BASE_URL:-$go_base_url}
 model=${MODEL_NAME:-$go_model}
 if [[ "$base_url" != https://* || "$base_url" == *[[:space:]?#]* ||
-      "$base_url" == */chat/completions ]]; then
-  echo 'MODEL_BASE_URL must be an HTTPS API base URL ending before /chat/completions.' >&2
+      "$base_url" == */chat/completions || "$base_url" == */responses ]]; then
+  echo 'MODEL_BASE_URL must be an HTTPS API base URL ending before the API operation.' >&2
   exit 2
 fi
 model_host=${base_url#https://}
@@ -129,13 +133,18 @@ printf '%s' "$model_key" >"$scratch/api-key"
 unset model_key
 # Keep the existing Secret key for in-place upgrades; the selected endpoint is
 # the baseURL below, not the name of this environment variable.
-jq -cn --arg base "$base_url" --arg model "$model" '
+jq -cn --arg base "$base_url" --arg model "$model" \
+  --arg npm "$(if [[ "$base_url" == "$go_base_url" ]]; then
+    printf '%s' "$go_npm"
+  else
+    printf '%s' '@ai-sdk/openai-compatible'
+  fi)" '
   {
     "$schema": "https://opencode.ai/config.json",
     model: ("demo/" + $model),
     provider: {
       demo: {
-        npm: "@ai-sdk/openai-compatible",
+        npm: $npm,
         name: "Demo inference",
         options: {
           baseURL: $base,

@@ -53,13 +53,13 @@ MOCK
 chmod +x "$scratch/oc"
 
 run_case() {
-  local base_url=$1 model=$2
+  local base_url=$1 model=$2 npm=$3
   rm -f "$scratch/config.json" "$scratch/agent.yaml"
   MODEL_BASE_URL="$base_url" MODEL_NAME="$model" MODEL_API_KEY=test-key \
     PATH="$scratch:$PATH" bash bootstrap/model-config.sh >/dev/null
-  jq -e --arg base "$base_url" --arg model "$model" '
+  jq -e --arg base "$base_url" --arg model "$model" --arg npm "$npm" '
     .model == ("demo/" + $model) and
-    .provider.demo.npm == "@ai-sdk/openai-compatible" and
+    .provider.demo.npm == $npm and
     .provider.demo.options.baseURL == $base and
     .provider.demo.options.apiKey == "{env:OPENAI_API_KEY}" and
     .provider.demo.models[$model].name == $model
@@ -68,11 +68,12 @@ run_case() {
   test "$(yq -r '.name' "$scratch/agent.yaml")" == automation-developer
 }
 
-run_case https://opencode.ai/zen/go/v1 glm-5.3-flash
-run_case https://maas-rhdp.apps.maas.redhatworkshops.io/v1 gpt-oss-120b
+run_case https://opencode.ai/zen/go/v1 gpt-6-luna @ai-sdk/openai
+run_case https://maas-rhdp.apps.maas.redhatworkshops.io/v1 gpt-oss-120b @ai-sdk/openai-compatible
 MODEL_API_KEY=test-key PATH="$scratch:$PATH" \
   bash bootstrap/model-config.sh >/dev/null
-jq -e '.model == "demo/glm-5.3-flash" and
+jq -e '.model == "demo/gpt-6-luna" and
+  .provider.demo.npm == "@ai-sdk/openai" and
   .provider.demo.options.baseURL == "https://opencode.ai/zen/go/v1"' \
   "$scratch/config.json" >/dev/null
 
@@ -89,11 +90,12 @@ MODEL_TEST_EXISTING_GO=true PATH="$scratch:$PATH" \
   bash bootstrap/model-config.sh >/dev/null
 jq -e '
   .data.OPENCODE_CONFIG_CONTENT | @base64d | fromjson |
-  .model == "demo/glm-5.3-flash" and
-  (.provider.demo.models | keys == ["glm-5.3-flash"])
+  .model == "demo/gpt-6-luna" and
+  .provider.demo.npm == "@ai-sdk/openai" and
+  (.provider.demo.models | keys == ["gpt-6-luna"])
 ' "$scratch/model-patch.json" >/dev/null
 jq -er '.data["automation-developer.yaml"] | @base64d' "$scratch/agent-patch.json" |
-  yq -r '.executor.model' | rg -Fxq 'demo/glm-5.3-flash'
+  yq -r '.executor.model' | rg -Fxq 'demo/gpt-6-luna'
 jq -er '.data["automation-developer.yaml"] | @base64d' "$scratch/agent-patch.json" |
   yq -r '.name' | rg -Fxq automation-developer
 
@@ -113,12 +115,12 @@ MOCK_OP
 chmod +x "$scratch/op"
 MODEL_API_KEY= MODEL_BASE_URL= MODEL_NAME= PATH="$scratch:$PATH" \
   bash bootstrap/model-config.sh >/dev/null
-jq -e '.model == "demo/glm-5.3-flash"' "$scratch/config.json" >/dev/null
+jq -e '.model == "demo/gpt-6-luna"' "$scratch/config.json" >/dev/null
 
 if MODEL_BASE_URL=https://opencode.ai/zen/go/v1 \
    MODEL_NAME=kimi-k3 MODEL_API_KEY=test-key \
    PATH="$scratch:$PATH" bash bootstrap/model-config.sh >/dev/null 2>&1; then
-  echo 'OpenCode Go accepted a model other than glm-5.3-flash.' >&2
+  echo 'OpenCode Go accepted a model other than gpt-6-luna.' >&2
   exit 1
 fi
 if MODEL_BASE_URL=https://maas-rhdp.apps.maas.redhatworkshops.io/v1/chat/completions \
@@ -127,12 +129,18 @@ if MODEL_BASE_URL=https://maas-rhdp.apps.maas.redhatworkshops.io/v1/chat/complet
   echo 'A chat completions URL was accepted as a base URL.' >&2
   exit 1
 fi
+if MODEL_BASE_URL=https://opencode.ai/zen/go/v1/responses \
+   MODEL_NAME=gpt-6-luna MODEL_API_KEY=test-key \
+   PATH="$scratch:$PATH" bash bootstrap/model-config.sh >/dev/null 2>&1; then
+  echo 'A responses URL was accepted as a base URL.' >&2
+  exit 1
+fi
 
 mkdir -p "$scratch/home"
-HOME="$scratch/home" OPENCODE_CONFIG_CONTENT='{"model":"demo/glm-5.3-flash"}' \
+HOME="$scratch/home" OPENCODE_CONFIG_CONTENT='{"model":"demo/gpt-6-luna"}' \
   bash -c 'source cluster/omnigent/image/opencode-profile.sh'
 test "$(jq -r '.model' "$scratch/home/.config/opencode/opencode.json")" = \
-  demo/glm-5.3-flash
+  demo/gpt-6-luna
 test "$(stat -c %a "$scratch/home/.config/opencode/opencode.json")" = 600
 
 echo 'OpenCode Go and LiteLLM MaaS share base URL, model, and API key inputs.'

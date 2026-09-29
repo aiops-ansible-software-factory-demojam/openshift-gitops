@@ -7,7 +7,7 @@ short-lived launch-token Secrets only in that runner namespace. The runner has
 no Kubernetes API token. Its fixed non-root UID uses the `nonroot-v2` SCC.
 
 `omnigent-model` in `omnigent-sandboxes` holds the OpenCode Go key and inline
-OpenCode configuration for `demo/glm-5.3-flash`. Forgejo hydration adds the
+OpenCode configuration for `demo/gpt-6-luna`. Forgejo hydration adds the
 scoped `demo-agent` token and internal URL to this Secret, so new Sandboxes
 can clone and push the demo collection. `omnigent-agent` in `omnigent`
 holds the `automation-developer` API agent specification, whose YAML name is

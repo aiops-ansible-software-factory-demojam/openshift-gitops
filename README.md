@@ -6,7 +6,7 @@ Orchestrator (AO). Omnigent uses the Kubernetes Agent Sandbox API directly:
 
 ```text
 AO workflow -> Omnigent API -> Sandbox in omnigent-sandboxes
-                             -> OpenCode with OpenCode Go glm-5.3-flash
+                             -> OpenCode with OpenCode Go gpt-6-luna
 ```
 
 Forgejo supplies the seeded collection and issue for an issue-to-PR demo.
@@ -42,17 +42,18 @@ machine-credential Secrets, starts the app-of-apps, waits for the OpenCode
 image and Omnigent deployment, hydrates Forgejo's collection and issue, and
 publishes AO's `omnigent-dispatch` workflow. It is safe to rerun. Set
 `BOOTSTRAP_SEED_DEMO=false` only when testing the platform without Forgejo
-data. Developer Hub stays disabled.
+data. Set `BOOTSTRAP_FORCE_SANDBOX_BUILD=true` to rebuild the image even when
+its source has not changed. Developer Hub stays disabled.
 
-The default model is OpenCode Go `glm-5.3-flash` at
+The default model is OpenCode Go `gpt-6-luna` at
 `https://opencode.ai/zen/go/v1`. Bootstrap reads
 `op://lab_agents/opencode-go-subscription-key/password` when `op` is available,
 or prompts for the key. For noninteractive use, set `MODEL_API_KEY` in the
 environment. The key is stored in a Kubernetes Secret in
 `omnigent-sandboxes`, never in Git. Repeat runs reuse the existing Secret.
 Set `MODEL_API_KEY` again to rotate it. `MODEL_BASE_URL` and `MODEL_NAME` can
-select another OpenAI-compatible endpoint; the base URL ends before
-`/chat/completions`.
+select another OpenAI-compatible endpoint; the base URL ends before its API
+operation. The Go default uses the Responses API through `@ai-sdk/openai`.
 
 ## Run an issue through AO
 
