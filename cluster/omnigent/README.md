@@ -25,6 +25,10 @@ HOME claim, which survives idle suspension, and uses the cluster's normal
 container runtime. This demo has no
 warm pool or separate sandbox network policy.
 
+The Sandbox Pod uses `IfNotPresent` image pulls. Bump the ImageStreamTag in
+the BuildConfig, sandbox config, and bootstrap together when changing `image/`,
+so new sessions cannot reuse a node-cached older image under the same tag.
+
 The agent is a reusable template. Each managed session gets its own Sandbox
 with a generated `omnigent-managed-*` name, rather than a fixed Sandbox bound
 to the agent. New Sandboxes carry the label
