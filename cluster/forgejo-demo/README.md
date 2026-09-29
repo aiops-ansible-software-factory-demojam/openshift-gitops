@@ -61,7 +61,8 @@ From the repository root, use `make demo-reset` for a complete repeatable
 cycle. It deletes only `automation-developer` sessions and Sandboxes, recreates
 the OpenCode Go model and agent configuration, resets Forgejo, and republishes
 AO's dispatch workflow. It needs the Go key through `op` or `MODEL_API_KEY`.
-Other Omnigent sessions are preserved.
+It also removes catalog entries for collections generated in this disposable
+Forgejo account. Other Omnigent sessions are preserved.
 
 To reset only Forgejo, first stop active agent sessions. This command confirms
 the cluster and Route, scales Forgejo down, deletes only the `forgejo-demo`
