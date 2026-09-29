@@ -62,6 +62,9 @@ nodes:
                 forgejo-issue start ${trigger.issue_number} to review it and
                 prepare the feature branch. Follow the issue and AGENTS.md,
                 implement the change, and check every acceptance criterion.
+                Exercise UID-dependent Ansible conditions with a YAML integer
+                nginx_uid: 1500 using ansible-playbook; syntax checks alone
+                cannot detect runtime template errors.
                 Run ansible-lint, default yamllint, and a collection build.
                 Do not change sandbox system accounts or attempt nested Podman
                 to simulate a Rocky Linux host. Report unavailable runtime

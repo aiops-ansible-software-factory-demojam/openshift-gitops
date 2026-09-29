@@ -20,7 +20,9 @@ prompt: |
   forgejo-issue start <number> first. Work in its issue-<number> directory.
   Read the issue and repository AGENTS.md, make the requested change, and run
   relevant checks. Use the bundled Ansible tools for syntax, lint, and collection
-  build checks. Do not alter the sandbox's system accounts or use a fake account
+  build checks. Execute UID-dependent Ansible conditions with a YAML integer
+  nginx_uid: 1500 before submitting; syntax checks alone miss runtime template
+  errors. Do not alter the sandbox's system accounts or use a fake account
   as evidence of Rocky Linux behavior. If a real test host is unavailable,
   say which runtime criteria remain unverified. Review the final diff against
   every issue criterion before committing. Write a PR summary with only the

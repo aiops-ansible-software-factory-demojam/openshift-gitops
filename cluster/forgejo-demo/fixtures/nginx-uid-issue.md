@@ -18,6 +18,9 @@ Acceptance criteria:
 - Add/update role defaults, argument specs, and README examples.
 - Report how you verified default behavior, a custom UID, UID changes,
   invalid/conflicting UIDs, HTTP 200, and the actual worker process UID.
+- Exercise any UID-dependent Ansible condition or template with a YAML integer
+  value (`nginx_uid: 1500`) using `ansible-playbook`. A syntax check or a
+  rewritten approximation of the expression does not prove it executes.
 - Run ansible-lint, default yamllint, and a collection build. If this sandbox
   cannot run a real Rocky Linux 9 service, mark those runtime checks unverified;
   do not modify the sandbox's account database to simulate them.
