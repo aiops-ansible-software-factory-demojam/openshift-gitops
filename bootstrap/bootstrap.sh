@@ -176,6 +176,13 @@ for app in rhbk forgejo-demo rhdh omnigent automation-orchestrator; do
     sleep 5
   done
   if [[ $app == forgejo-demo ]]; then
+    until oc -n forgejo-demo get deployment forgejo-demo >/dev/null 2>&1; do
+      if (( SECONDS >= deadline )); then
+        echo 'Timed out waiting for the Forgejo Deployment.' >&2
+        exit 1
+      fi
+      sleep 5
+    done
     bash "$repo_root/scripts/feature-demo.sh" hydrate
   fi
 done
