@@ -34,7 +34,7 @@ case "$*" in
     mkdir -p "$FORGEJO_STATE_DIR"
     printf 'admin-token' >"$FORGEJO_STATE_DIR/admin-token"
     printf '%s' "$FEATURE_TEST_TOKEN" >"$FORGEJO_STATE_DIR/agent-token" ;;
-  *'/scripts/ensure-nginx-uid-issue.sh')
+  *'/scripts/ensure-readme-test-issue.sh')
     printf 'https://forgejo-demo.apps.demo.example.test/demo-owner/ansible-collection-demo/issues/1\n' ;;
   *) echo "Unexpected bash command: $*" >&2; exit 1 ;;
 esac

@@ -1,4 +1,7 @@
-.PHONY: test render test-health
+.PHONY: test render test-health demo-reset
+
+demo-reset:
+	bash scripts/reset-demo.sh --confirm-demo-reset
 
 render:
 	@mkdir -p .rendered
@@ -14,6 +17,7 @@ test: render
 	bash -n bootstrap/*.sh scripts/*.sh tests/*.sh cluster/automation-orchestrator/*.sh cluster/forgejo-demo/scripts/*.sh
 	bash tests/bootstrap.sh
 	bash tests/feature-demo.sh
+	bash tests/reset-demo.sh
 	bash tests/model-config.sh
 	bash tests/app-of-apps.sh
 	bash tests/set-gitops-branch.sh

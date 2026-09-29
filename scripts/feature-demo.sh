@@ -38,7 +38,7 @@ fi
 
 FORGEJO_TOKEN=$(<"$state_dir/admin-token")
 export FORGEJO_TOKEN
-issue_url=$(bash "$repo_root/cluster/forgejo-demo/scripts/ensure-nginx-uid-issue.sh")
+issue_url=$(bash "$repo_root/cluster/forgejo-demo/scripts/ensure-readme-test-issue.sh")
 unset FORGEJO_TOKEN
 
 umask 077

@@ -72,16 +72,17 @@ and prints the AO execution and Omnigent session IDs. AO completion means the
 agent accepted the task. Inspect the session for its branch, checks, and PR URL.
 Each session gets its own Sandbox. Delete the session when finished.
 
-To return Forgejo to the fixture baseline and rotate the agent token, stop the
-session and run:
+To reset the full issue-to-PR demo, run:
 
 ```bash
-bash scripts/feature-demo.sh reset --confirm-forgejo-demo
+make demo-reset
 ```
 
-This erases only the disposable Forgejo PVC and re-creates the collection,
-issue, and sandbox credential. See the [Forgejo demo guide](cluster/forgejo-demo/README.md)
-for the reset guardrails and fixture details.
+This removes `automation-developer` sessions and Sandboxes, recreates its
+OpenCode Go model and agent Secrets, wipes the disposable Forgejo PVC, and
+reseeds the one-line README issue. Other Omnigent agents and sessions remain.
+Run `bash scripts/dispatch-issue.sh 1` afterward. See the
+[Forgejo demo guide](cluster/forgejo-demo/README.md) for the fixture details.
 
 The [Omnigent component guide](cluster/omnigent/README.md) describes the
 permissions, image, and session lifecycle. The [AO workflow guide](cluster/automation-orchestrator/workflows/README.md)

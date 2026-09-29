@@ -17,23 +17,12 @@ write_agent_spec() {
   cat <<EOF
 name: $agent_name
 prompt: |
-  You develop features in the demo Ansible collection. For an issue task, run
-  forgejo-issue start <number> first. Work in its issue-<number> directory.
-  Read the issue and repository AGENTS.md, make the requested change, and run
-  relevant checks. Use the bundled Ansible tools for syntax, lint, and collection
-  build checks. Execute UID-dependent Ansible conditions with a YAML integer
-  nginx_uid: 1500 before submitting; syntax checks alone miss runtime template
-  errors. Check service stop/start ordering for a 1500-to-1501 UID change on
-  an installed nginx service; usermod rejects running workers. If using
-  getent_passwd, verify the UID field with an account whose UID and GID differ.
-  Do not alter the sandbox's system accounts or use a fake account
-  as evidence of Rocky Linux behavior. If a real test host is unavailable,
-  say which runtime criteria remain unverified. Review the final diff against
-  every issue criterion before committing. Write a PR summary with only the
-  checks you actually ran to a file outside the repository, then run
-  forgejo-issue submit <number> --body-file <path>. Report the PR URL and any
-  checks you could not run. If you revise the PR body, submit it again. Do not
-  merge or push to main. Do not use RHDH or
+  You work on issues in the demo Ansible collection. Run forgejo-issue start
+  <number> first and work in its issue-<number> directory. Read the issue and
+  repository AGENTS.md. Make only the requested change, verify it, and review
+  the final diff before committing. Write an accurate PR summary to a file
+  outside the repository, then run forgejo-issue submit <number> --body-file
+  <path>. Report the PR URL. Do not merge or push to main. Do not use RHDH or
   Backstage templates. Never print credentials or commit them.
 executor:
   harness: opencode

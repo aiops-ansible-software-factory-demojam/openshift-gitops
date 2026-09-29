@@ -1,10 +1,10 @@
-# Forgejo collection feature demo
+# Forgejo collection smoke demo
 
 The `forgejo-demo` namespace runs a disposable Forgejo instance with SQLite
 and Git data on one PVC. GitOps owns the deployment, Service, Route, and PVC.
 The fixture in `fixtures/collection` becomes the private
 `demo-owner/ansible-collection-demo` repository. The issue text is in
-`fixtures/nginx-uid-issue.md`. Developer Hub and its golden paths are not used.
+`fixtures/readme-test-issue.md`. Developer Hub and its golden paths are not used.
 
 ## Hydrate
 
@@ -46,18 +46,24 @@ The agent runs `forgejo-issue start 1` to read the issue and clone the repo,
 then implements, checks, commits, and runs `forgejo-issue submit 1 --body-file
 <path>` to push and open a PR against `main`. The PR body references the
 issue. Repeating `submit` updates the body of the open PR after review fixes.
-The issue asks the agent to execute UID-dependent Ansible expressions with a
-numeric YAML value; lint and syntax checks do not evaluate task conditions.
+The seeded issue asks for a single README line so reset and dispatch cycles
+exercise the workflow without spending time on feature implementation.
 AO completes when the task reaches Omnigent; the PR is asynchronous.
 Inspect the Omnigent session for its outcome. There is no webhook trigger or
 CI runner in this stage.
 
 ## Reset
 
-Stop any active agent session before resetting. The command confirms the
-cluster and Route, scales Forgejo down, deletes only the `forgejo-demo` PVC,
-waits for GitOps to recreate it, then hydrates the collection, issue, and new
-agent token:
+From the repository root, use `make demo-reset` for a complete repeatable
+cycle. It deletes only `automation-developer` sessions and Sandboxes, recreates
+the OpenCode Go model and agent configuration, resets Forgejo, and republishes
+AO's dispatch workflow. It needs the Go key through `op` or `MODEL_API_KEY`.
+Other Omnigent sessions are preserved.
+
+To reset only Forgejo, first stop active agent sessions. This command confirms
+the cluster and Route, scales Forgejo down, deletes only the `forgejo-demo`
+PVC, waits for GitOps to recreate it, then hydrates the collection, issue, and
+new agent token:
 
 ```bash
 bash scripts/feature-demo.sh reset --confirm-forgejo-demo
@@ -70,7 +76,7 @@ GitOps Application to have self-heal enabled. A `Retain` storage reclaim
 policy may leave the old PV; reset is not secure erasure.
 
 `seed.json` declares the single collection repository and collaborators.
-`fixtures/collection` is intentionally missing the nginx UID feature so each
-reset presents the same work to the agent. Forgejo's optional webhook helper
+`fixtures/collection` is intentionally missing the requested README line so
+each reset presents the same work to the agent. Forgejo's optional webhook helper
 scripts remain available for a later event-driven demo, but this flow uses
 AO's explicit API launch.

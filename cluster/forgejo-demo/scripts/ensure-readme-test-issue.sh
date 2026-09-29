@@ -3,7 +3,7 @@ set -euo pipefail
 source "$(dirname "$0")/api.sh"
 root=$(cd -- "$(dirname "$0")/.." && pwd)
 repo=demo-owner/ansible-collection-demo
-title='Allow configuring the nginx worker UID'
+title='Add a test line to the README'
 issues=$(api GET "/repos/$repo/issues?state=all&limit=100")
 existing=$(jq -r --arg title "$title" \
   '.[] | select(.title == $title and .pull_request == null) | .html_url' \
@@ -11,5 +11,5 @@ existing=$(jq -r --arg title "$title" \
 if [[ -n $existing ]]; then
   printf '%s\n' "$existing"
 else
-  "$root/scripts/issue.sh" "$repo" "$title" "$root/fixtures/nginx-uid-issue.md"
+  "$root/scripts/issue.sh" "$repo" "$title" "$root/fixtures/readme-test-issue.md"
 fi
