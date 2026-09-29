@@ -1,9 +1,9 @@
 name: omnigent-dispatch
-description: Create an OpenShell-backed Omnigent agent and send it a task.
+description: Launch automation-developer to implement a Forgejo collection issue.
 schema_version: 2.0.0
 triggers:
   - id: start
-    name: Enter a task
+    name: Enter a Forgejo issue number
     type: manual_trigger
     position:
       x: 0
@@ -12,16 +12,15 @@ triggers:
       input_schema:
         type: object
         required:
-          - task
+          - issue_number
         properties:
-          task:
-            type: string
-            title: Agent task
-            minLength: 1
-            maxLength: 4000
+          issue_number:
+            type: integer
+            title: Collection issue number
+            minimum: 1
 nodes:
   - id: create_session
-    name: Create managed sandbox session
+    name: Create managed Agent Sandbox session
     type: http_request
     position:
       x: 300
@@ -34,9 +33,10 @@ nodes:
       body:
         agent_id: DEMO_AGENT_ID
         host_type: managed
-        title: Automation Orchestrator task
+        title: Collection feature issue
         initial_items: []
     settings:
+      timeout: 360
       retry_policy:
         max_retries: 0
   - id: send_task
@@ -56,11 +56,22 @@ nodes:
           role: user
           content:
             - type: input_text
-              text: ${trigger.task}
+              text: |
+                Work on Forgejo issue #${trigger.issue_number} in
+                demo-owner/ansible-collection-demo. Run
+                forgejo-issue start ${trigger.issue_number} to review it and
+                prepare the feature branch. Follow the issue and AGENTS.md,
+                make only the requested change, and verify the result. Review
+                the diff and PR body for accuracy, commit the change, then use
+                forgejo-issue submit ${trigger.issue_number} --body-file <path>
+                to push and open a PR. Report the PR URL. Do not merge.
     settings:
       timeout: 360
       retry_policy:
-        max_retries: 0
+        max_retries: 12
+        initial_interval: 5
+        max_interval: 20
+        backoff_coefficient: 1.5
 edges:
   - from: start
     to: create_session

@@ -1,117 +1,88 @@
 # Demo OpenShift GitOps
 
-This repository installs a disposable OpenShift demo with one Forgejo instance,
-OpenShell container sandboxes, Omnigent, and Automation Orchestrator. Argo CD
-installs the applications from `cluster/values.yaml`. The only sandbox runtime is
-the cluster's ordinary CRI-O container runtime; no Kata operator, RuntimeClass,
-worker labels, or warm pool is used.
+This repository bootstraps a disposable OpenShift enablement cluster with
+OpenShift GitOps, the Agent Sandbox operator, Omnigent, and Automation
+Orchestrator (AO). Omnigent uses the Kubernetes Agent Sandbox API directly:
+
+```text
+AO workflow -> Omnigent API -> Sandbox in omnigent-sandboxes
+                             -> OpenCode with OpenCode Go gpt-6-luna
+```
+
+Forgejo supplies the seeded collection and issue for an issue-to-PR demo.
+Developer Hub remains disabled in `cluster/values.yaml`; this flow uses no
+golden path or Backstage template.
+
+## Requirements
+
+Use a disposable OpenShift cluster with OLM, Red Hat and certified operator
+catalogs, ingress, a default RWO StorageClass, and enough capacity for the
+operators, databases, and applications. The active `KUBECONFIG` identity needs
+cluster-admin rights. Install `oc`, `kustomize`, `helm`, `yq`, `jq`, `openssl`,
+`curl`, `git`, and `op` (or supply `MODEL_API_KEY`).
+
+Argo CD reads this repository from its Git remote. Bootstrap publishes the
+checkout to a chosen branch, then points the root and child Applications to
+that branch. Use one branch per demo cluster. The checkout must be clean and
+published before running bootstrap.
 
 ## Bootstrap
 
-Use an OpenShift cluster with OLM, the Red Hat and certified operator catalogs,
-working ingress, a default RWO StorageClass, and enough capacity for
-Orchestrator, Developer Hub, Forgejo, Omnigent, and their databases. The account
-in `~/.kube/config` needs cluster-admin rights. Install `oc`, `kustomize`, `helm`,
-`yq`, `jq`, `openssl`, `curl`, and `git` locally. Argo CD reads the remote
-repository in `cluster/values.yaml`; bootstrap can publish the checkout to a
-branch you choose so concurrent demos do not fight over `main`.
-
-Run:
+From the repository root:
 
 ```bash
-bash bootstrap/bootstrap.sh
+oc whoami --show-server
+oc whoami
+BOOTSTRAP_BRANCH=demo-yourname bash bootstrap/bootstrap.sh
 ```
 
-When prompted, accept `main` or enter a personal branch such as `demo-alice`.
-Noninteractive runs can set the branch explicitly:
+The script installs OpenShift GitOps, creates the bootstrap-owned model and
+machine-credential Secrets, starts the app-of-apps, waits for the OpenCode
+image and Omnigent deployment, hydrates Forgejo's collection and issue, and
+publishes AO's `omnigent-dispatch` workflow. It is safe to rerun. Set
+`BOOTSTRAP_SEED_DEMO=false` only when testing the platform without Forgejo
+data. Set `BOOTSTRAP_FORCE_SANDBOX_BUILD=true` to rebuild the image even when
+its source has not changed. Developer Hub stays disabled.
+
+The default model is OpenCode Go `gpt-6-luna` at
+`https://opencode.ai/zen/go/v1`. Bootstrap reads
+`op://lab_agents/opencode-go-subscription-key/password` when `op` is available,
+or prompts for the key. For noninteractive use, set `MODEL_API_KEY` in the
+environment. The key is stored in a Kubernetes Secret in
+`omnigent-sandboxes`, never in Git. Repeat runs reuse the existing Secret.
+Set `MODEL_API_KEY` again to rotate it. `MODEL_BASE_URL` and `MODEL_NAME` can
+select another OpenAI-compatible endpoint; the base URL ends before its API
+operation. The Go default uses the Responses API through `@ai-sdk/openai`.
+
+## Run an issue through AO
 
 ```bash
-BOOTSTRAP_BRANCH=demo-alice bash bootstrap/bootstrap.sh
+oc -n openshift-gitops get applications
+oc -n agent-sandbox-system get csv
+oc -n omnigent rollout status deployment/omnigent
+oc -n omnigent-sandboxes get builds,imagestream,sandboxes,pods
+bash scripts/feature-demo.sh hydrate
+bash scripts/dispatch-issue.sh 1
 ```
 
-Bootstrap checks out or creates that branch, points Application
-`targetRevision` values at it, commits when needed, and pushes
-`origin/<branch>` before creating the root Argo CD Application. Use a distinct
-branch per cluster when multiple people bootstrap from the same repository.
+`hydrate` is idempotent and prints the issue URL. Pass its issue number to
+`dispatch-issue.sh`; the script calls AO's published workflow through its API
+and prints the AO execution and Omnigent session IDs. AO completion means the
+agent accepted the task. Inspect the session for its branch, checks, and PR URL.
+Each session gets its own Sandbox. Delete the session when finished.
 
-On the first run, bootstrap uses OpenCode Go at
-`https://opencode.ai/zen/go/v1` with model `glm-5.3-flash` and prompts for its API
-key. LiteLLM MaaS uses the same three parameters: base URL, model, and key.
-For the MaaS example in `/workspace/scratch/litellm.txt`, run:
+To reset the full issue-to-PR demo, run:
 
 ```bash
-MODEL_BASE_URL=https://maas-rhdp.apps.maas.redhatworkshops.io/v1 \
-  MODEL_NAME=gpt-oss-120b bash bootstrap/bootstrap.sh
+make demo-reset
 ```
 
-For a noninteractive run, set `MODEL_API_KEY` in the environment. The key is
-stored only in a Kubernetes Secret in `omnigent`, never in Git or a shell trace.
-Subsequent runs reuse the existing Secret. Set `MODEL_API_KEY` again to replace
-the key or change endpoints or models. Repeat `MODEL_BASE_URL` and `MODEL_NAME`
-when the desired values differ from the OpenCode Go defaults. The base URL ends
-at `/v1`, before `/chat/completions`. For another API host, add it to the
-sandbox egress policy in `cluster/openshell/image/policy.yaml`.
-OpenCode Go always uses `glm-5.3-flash`; repeat bootstrap runs update older Go
-model configurations while keeping their existing API key.
+This removes `automation-developer` sessions and Sandboxes, recreates its
+OpenCode Go model and agent Secrets, wipes the disposable Forgejo PVC, and
+reseeds the one-line README issue. Other Omnigent agents and sessions remain.
+Run `bash scripts/dispatch-issue.sh 1` afterward. See the
+[Forgejo demo guide](cluster/forgejo-demo/README.md) for the fixture details.
 
-Bootstrap reads the cluster's ingress domain. OpenShift assigns the requested
-Route subdomains, and bootstrap supplies Forgejo's public URL through a
-ConfigMap. It does not rewrite or commit cluster-specific hostnames. It installs
-the OpenShift GitOps operator, creates the model, gateway, and Omnigent Route
-credential Secrets, waits for the app-of-apps and OpenCode image build, then
-publishes the `omnigent-dispatch` workflow in Automation Orchestrator. Publish
-the checked-out revision to the chosen branch before running bootstrap. When
-upgrading a demo that used explicit Route hosts, bootstrap recreates those
-Routes after the new GitOps revision is read so OpenShift can assign hosts for
-this cluster. A dirty checkout must be clean before bootstrap can switch
-branches.
-
-## Sandbox interface
-
-Install the [OpenShell CLI](https://github.com/NVIDIA/OpenShell), then use the
-wrapper to reach the cluster-internal gateway through your authenticated `oc`
-session:
-
-```bash
-bash scripts/sandbox.sh create --name demo --detach
-bash scripts/sandbox.sh exec -n demo -- opencode --version
-bash scripts/sandbox.sh delete demo
-```
-
-The gateway has no public Route. The wrapper opens a short local port-forward for
-each command. Omnigent reaches the same gateway through the internal Service.
-OpenShell creates ordinary pods in `openshell`; the pinned host image adds the
-OpenCode CLI and a narrow egress policy. OpenShell 0.0.116 requires its sandbox
-ServiceAccount to use the privileged SCC, so this is a disposable demonstration
-rather than a production security boundary.
-
-## Dispatch path
-
-```text
-Automation Orchestrator workflow
-  -> Omnigent API (cluster Service)
-  -> OpenShell gateway (cluster Service)
-  -> OpenCode agent in a container sandbox
-  -> OpenCode Go or LiteLLM MaaS with the bootstrap key
-```
-
-In Automation Orchestrator, run `omnigent-dispatch` with a task. The workflow
-uses an HTTP Basic credential to mint a short-lived Omnigent token, creates a
-managed session through Omnigent's cluster Service, and sends the task to the
-seeded OpenCode agent. The Omnigent Route uses that generated credential for
-external access; the internal callback Service remains reachable by managed
-hosts and runners. Delete finished sessions in Omnigent to remove their
-sandboxes. The OpenShell gateway remains cluster-internal.
-
-The disposable [Forgejo demo](cluster/forgejo-demo/README.md) supplies the sample
-repository and issue. Bootstrap installs the Forgejo app; seed its users and
-repositories with its documented `demo.sh` commands when needed.
-
-## Validate and inspect
-
-```bash
-make test
-KUBECONFIG="$HOME/.kube/config" oc -n openshift-gitops get applications
-KUBECONFIG="$HOME/.kube/config" oc -n openshell get statefulset,builds,imagestream
-KUBECONFIG="$HOME/.kube/config" oc -n omnigent get deployment,cluster,pvc
-```
+The [Omnigent component guide](cluster/omnigent/README.md) describes the
+permissions, image, and session lifecycle. The [AO workflow guide](cluster/automation-orchestrator/workflows/README.md)
+describes workflow reconciliation.
