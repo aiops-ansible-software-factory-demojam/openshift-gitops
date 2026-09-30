@@ -23,17 +23,22 @@ yq '.' "$demo_repo_root/bootstrap/aap-configure-job.yaml" | jq \
     if .name == "CONFIG_REPO_URL" then .value = $repo
     elif .name == "AAP_EE_IMAGE" then .value = $image
     else . end)' | oc -n "$namespace" apply -f -
-oc -n "$namespace" wait --for=condition=Ready pod -l job-name=aap-configure --timeout=10m
-oc -n "$namespace" logs job/aap-configure --follow --pod-running-timeout=10m
-for ((attempt = 0; attempt < 60; attempt++)); do
-  job_status=$(oc -n "$namespace" get job aap-configure -o json)
+oc -n "$namespace" logs job/aap-configure --follow --pod-running-timeout=10m ||
+  echo 'Configuration log stream ended; waiting on the Job resource.' >&2
+deadline=$((SECONDS + 1800))
+while (( SECONDS < deadline )); do
+  if ! job_status=$(oc -n "$namespace" get job aap-configure --request-timeout=30s -o json); then
+    echo 'Configuration status is temporarily unavailable; retrying.' >&2
+    sleep 10
+    continue
+  fi
   if jq -e '(.status.failed // 0) > 0' <<< "$job_status" >/dev/null; then
     echo 'AAP dispatch failed; inspect the aap-configure Job.' >&2; exit 1
   fi
   if jq -e '(.status.succeeded // 0) > 0' <<< "$job_status" >/dev/null; then
     echo 'AAP configuration from Forgejo completed.'; exit
   fi
-  sleep 1
+  sleep 5
 done
 echo 'AAP Job did not report a final status.' >&2
 exit 1
