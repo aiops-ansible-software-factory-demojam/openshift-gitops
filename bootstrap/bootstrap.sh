@@ -124,6 +124,31 @@ oc -n "$gitops_namespace" annotate application cluster \
   argocd.argoproj.io/refresh=hard --overwrite
 
 echo 'Waiting for Argo CD to refresh the root application...'
+# Remove the discontinued AAP EE builder on upgrades (Argo pruning is disabled).
+# Sandbox image builds in omnigent-sandboxes are a separate workload.
+aap_namespace=ansible-automation-platform
+if oc -n "$aap_namespace" get pipeline demojam-ee --ignore-not-found -o name 2>/dev/null | grep -q .; then
+  oc -n "$gitops_namespace" annotate application ansible-automation-platform \
+    argocd.argoproj.io/refresh=hard --overwrite
+  deadline=$((SECONDS + 900))
+  until [[ $(oc -n "$gitops_namespace" get application ansible-automation-platform \
+    -o jsonpath='{.status.sync.revision}') == "$target_revision" ]]; do
+    (( SECONDS < deadline )) || { echo 'AAP has not read the new manifests.' >&2; exit 1; }
+    sleep 5
+  done
+  active_ee=$(oc -n "$aap_namespace" get pipelineruns -l tekton.dev/pipeline=demojam-ee -o json |
+    jq '[.items[] | select(.status.conditions[0].status == "Unknown")] | length')
+  [[ $active_ee == 0 ]] || { echo 'An obsolete AAP EE build is still active; cancel it before bootstrap.' >&2; exit 1; }
+  oc -n "$aap_namespace" delete pipelineruns -l tekton.dev/pipeline=demojam-ee --ignore-not-found
+  oc -n "$aap_namespace" delete pipeline demojam-ee --ignore-not-found
+  oc -n "$aap_namespace" delete task ansible-builder --ignore-not-found
+  oc -n "$aap_namespace" delete serviceaccount aap-ee-builder --ignore-not-found
+  oc -n "$aap_namespace" delete rolebinding aap-ee-builder-scc aap-ee-builder-registry aap-ee-base-importer --ignore-not-found
+  oc -n "$aap_namespace" delete role aap-ee-base-importer --ignore-not-found
+  oc -n "$aap_namespace" delete imagestream demo-aap-ee demo-aap-ee-base --ignore-not-found
+  oc -n "$aap_namespace" delete secret aap-ee-automation-hub --ignore-not-found
+fi
+
 until [[ $(oc -n "$gitops_namespace" get application cluster \
   -o jsonpath='{.metadata.annotations.argocd\.argoproj\.io/refresh}') != hard ]]; do
   sleep 2
@@ -276,22 +301,6 @@ oc -n omnigent delete secret omnigent-auth omnigent-machine-client \
   --ignore-not-found
 if [[ ${BOOTSTRAP_RECONCILE_WORKFLOW:-true} == true ]]; then
   bash "$repo_root/cluster/automation-orchestrator/reconcile-omnigent-workflow.sh"
-fi
-# Remove the discontinued AAP EE builder on upgrades (Argo pruning is disabled).
-# Sandbox image builds in omnigent-sandboxes are a separate workload.
-aap_namespace=ansible-automation-platform
-if oc -n "$aap_namespace" get pipeline demojam-ee --ignore-not-found -o name | grep -q .; then
-  active_ee=$(oc -n "$aap_namespace" get pipelineruns -l tekton.dev/pipeline=demojam-ee -o json |
-    jq '[.items[] | select(.status.conditions[0].status == "Unknown")] | length')
-  [[ $active_ee == 0 ]] || { echo 'An obsolete AAP EE build is still active; cancel it before bootstrap.' >&2; exit 1; }
-  oc -n "$aap_namespace" delete pipelineruns -l tekton.dev/pipeline=demojam-ee --ignore-not-found
-  oc -n "$aap_namespace" delete pipeline demojam-ee --ignore-not-found
-  oc -n "$aap_namespace" delete task ansible-builder --ignore-not-found
-  oc -n "$aap_namespace" delete serviceaccount aap-ee-builder --ignore-not-found
-  oc -n "$aap_namespace" delete rolebinding aap-ee-builder-scc aap-ee-builder-registry aap-ee-base-importer --ignore-not-found
-  oc -n "$aap_namespace" delete role aap-ee-base-importer --ignore-not-found
-  oc -n "$aap_namespace" delete imagestream demo-aap-ee demo-aap-ee-base --ignore-not-found
-  oc -n "$aap_namespace" delete secret aap-ee-automation-hub --ignore-not-found
 fi
 bash "$bootstrap_dir/aap-configure.sh"
 echo "GitOps, Agent Sandbox, AO, and AAP webapp automation are ready on $gitops_branch."
