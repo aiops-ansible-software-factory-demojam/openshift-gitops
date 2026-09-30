@@ -14,7 +14,7 @@ resources:
   - omnigent-runner-nonroot-role.yaml
   - omnigent-runner-nonroot-rolebinding.yaml
   - omnigent-opencode-imagestream.yaml
-  - omnigent-opencode-buildconfig.yaml
+  - image-build/
   - omnigent-proxy-config-configmap.yaml
   - omnigent-deployment.yaml
   - omnigent-service.yaml
