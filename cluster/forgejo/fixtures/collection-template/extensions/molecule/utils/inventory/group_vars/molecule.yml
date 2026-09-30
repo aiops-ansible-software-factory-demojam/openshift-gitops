@@ -13,4 +13,3 @@ mp_defaults:
       metadata:
         labels:
           app.kubernetes.io/part-of: molecule-tests
-example_message: Hello from molecule on a KubeVirt VM

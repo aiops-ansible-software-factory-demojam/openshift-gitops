@@ -7,15 +7,18 @@ dependency:
     requirements-file: extensions/molecule/requirements-test.yml
 
 ansible:
+  cfg:
+    defaults:
+      roles_path: ${MOLECULE_PROJECT_DIRECTORY}/roles
   executor:
     args:
       ansible_playbook:
-        - --inventory=inventory/
+        - --inventory=../utils/inventory/
         - --inventory=${MOLECULE_EPHEMERAL_DIRECTORY}/inventory/
   playbooks:
-    create: create.yml
-    destroy: destroy.yml
-    prepare: prepare.yml
+    create: ../utils/playbooks/create.yml
+    destroy: ../utils/playbooks/destroy.yml
+    prepare: ../utils/playbooks/prepare.yml
     converge: converge.yml
     verify: verify.yml
 

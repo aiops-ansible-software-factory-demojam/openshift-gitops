@@ -2,5 +2,6 @@
 
 ## 0.1.0
 
-- Initial collection scaffold with an example role and CentOS Stream 10 / RHEL 10
-  KubeVirt test hosts in one scenario backed by the cluster's existing CDI golden images.
+- Initial collection scaffold with an example role and a hello-world Molecule
+  scenario on CentOS Stream 10 / RHEL 10 CDI-backed KubeVirt hosts. Shared inventory
+  and lifecycle playbooks live under `extensions/molecule/utils/`.

@@ -38,15 +38,18 @@ The new collection golden path uses `david_igou.molecule_provisioners` pinned to
 molecule test
 ```
 
-Molecule installs test dependencies and provisions both hosts in the default
-YAML inventory: `instance` clones `centos-stream10`, and `instance-rhel10` clones
-`rhel10`. Each VM gets a 30 GiB disk in `molecule-tests`, two vCPUs, and 2 GiB RAM.
-One `molecule test` converges both hosts over SSH to their pod IPs, checks
-idempotence and each host's expected guest OS, then destroys both VMs. Preflight
+Molecule installs test dependencies and provisions both hosts in the shared
+`utils/inventory/`: `centos-stream10` and `rhel10` clone their corresponding CDI
+DataSources. Each VM gets a 30 GiB disk in `molecule-tests`, two vCPUs, and 2 GiB RAM.
+One `molecule test` prints hello world for both hosts, checks idempotence, SSH
+connectivity and each host's expected guest OS, then destroys both VMs. Preflight
 checks both DataSources before provisioning; boot sources and expected
 distribution facts are per-host inventory variables.
-The declarative YAML inventory uses fixed VM names `instance` and
-`instance-rhel10`. Collision risk is accepted temporarily: serialize runs
+Shared lifecycle and host-verification playbooks live in `utils/playbooks/`.
+Each scenario needs only `molecule.yml`, `converge.yml`, and `verify.yml`; shared
+`config.yml` provides inventory and lifecycle paths.
+The declarative YAML inventory uses fixed VM names `centos-stream10` and
+`rhel10`. Collision risk is accepted temporarily: serialize runs
 across all demo sandboxes, collections, and scenarios sharing `molecule-tests`.
 Overlapping runs can modify or delete each other's VM. The shared namespace
 quota allows four VMs and 120 GiB of disk requests; it does not make concurrent

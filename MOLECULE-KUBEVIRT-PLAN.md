@@ -10,7 +10,7 @@ SSH, and removes the test resources.
 - Target only the demo's Omnigent Agent Sandbox pods.
 - Use an existing OpenShift VM template or CDI golden image.
 - Share one dedicated `molecule-tests` namespace. YAML inventories use fixed VM
-  names `instance` and `instance-rhel10`; collision risk is accepted temporarily.
+  names `centos-stream10` and `rhel10`; collision risk is accepted temporarily.
 - Guest OS images: existing CentOS Stream 10 and RHEL 10 CDI DataSources, each
   with a 30 GiB disk.
 - Worktree: `/workspace/openshift-gitops-molecule-kubevirt`.
@@ -219,3 +219,25 @@ provisioner renderer to check both VM/DataVolume names and boot references,
 exercised six per-host guest checks, and checked four DataSource readiness cases
 including either image unready and a missing RHEL image. No live end-to-end run
 was performed for the two-host inventory.
+
+## Shared Molecule utilities and hello-world default
+
+Goal: follow the RouterOS consumer's shared `utils` layout so each scenario
+needs only `molecule.yml`, `converge.yml`, and `verify.yml`.
+
+1. Rename inventory hosts to `centos-stream10` and `rhel10`; move the versioned
+   image definitions and common group variables to `utils/inventory/`.
+2. Move create/prepare/destroy and reusable OS/connectivity verification to
+   `utils/playbooks/`; point shared `config.yml` to those paths.
+3. Make default convergence print hello world on both inventory hosts; remove
+   its role symlink and obsolete example-role variable verification.
+4. Update repo/docs guidance and verify inventory loading, default and an added
+   three-file scenario's syntax and hello-world convergence, lint, packaging,
+   and the shared host/boot-image assertion harness. Keep live VM tests separate.
+
+Fresh validation passed: renamed shared inventory loading; syntax and convergence
+for default plus an added three-file role scenario with VM provisioning skipped;
+production-profile lint; collection build; VM/DataVolume rendering; six guest
+assertion cases and four readiness cases using the moved shared playbooks.
+Shared `config.yml` explicitly supplies the root role search path because
+Molecule's generated configuration does not inherit the root `ansible.cfg` value.
