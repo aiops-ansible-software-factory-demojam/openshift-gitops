@@ -7,3 +7,4 @@ cluster/forgejo/.state/
 /.secrets/
 /aap_manifest.zip
 __pycache__/
+.venv/

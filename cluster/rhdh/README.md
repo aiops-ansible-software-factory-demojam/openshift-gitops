@@ -14,7 +14,10 @@ The catalog exposes two templates:
   `demo-owner/ansible-collection-demo` and creates `feature/issue-N`.
 
 The first template produces a collection with a starter role, a Molecule
-scenario, and a Devfile based on Ansible Development Tools. The second only
+scenario backed by the cluster's CentOS Stream 10 CDI image, and a Devfile based
+on Ansible Development Tools. In an Omnigent sandbox, `molecule test` from the
+generated collection root uses scoped access to disposable VMs in
+`molecule-tests`. The second only
 prepares a branch; it does not change code or open a PR.
 
 AO calls the internal Backstage feature gate before creating an agent session.

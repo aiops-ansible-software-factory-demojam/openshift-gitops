@@ -9,6 +9,9 @@ resources:
   - omnigent-sandbox-config-configmap.yaml
   - omnigent-server-serviceaccount.yaml
   - omnigent-runner-serviceaccount.yaml
+  - molecule-tests-namespace.yaml
+  - molecule-provisioner-serviceaccount.yaml
+  - molecule-provisioner-rbac.yaml
   - omnigent-sandbox-manager-role.yaml
   - omnigent-sandbox-manager-rolebinding.yaml
   - omnigent-runner-nonroot-role.yaml

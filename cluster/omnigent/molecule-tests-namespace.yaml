@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: molecule-tests
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: molecule-tests
+  namespace: molecule-tests
+spec:
+  hard:
+    count/virtualmachines.kubevirt.io: '4'
+    count/datavolumes.cdi.kubevirt.io: '4'
+    persistentvolumeclaims: '4'
+    requests.storage: 120Gi

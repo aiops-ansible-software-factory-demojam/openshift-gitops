@@ -231,7 +231,7 @@ sandbox_image_current() {
     git -C "$repo_root" diff --quiet "$built_revision" HEAD -- cluster/omnigent/image
 }
 if [[ ${BOOTSTRAP_FORCE_SANDBOX_BUILD:-false} == true ]] ||
-   ! oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32-v7 >/dev/null 2>&1 ||
+   ! oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32-v8 >/dev/null 2>&1 ||
    ! sandbox_image_current; then
   echo 'Building the OpenCode sandbox image from the current Git revision...'
   SANDBOX_BUILD_REVISION="$target_revision" bash "$bootstrap_dir/sandbox-image.sh"
