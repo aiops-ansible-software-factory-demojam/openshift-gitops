@@ -8,6 +8,7 @@ case "$action" in
   *) echo 'Usage: webapp-demo.sh create | nginx | delete | sync | verify' >&2; exit 2 ;;
 esac
 demo_verify_cluster
+demo_wait_for_api
 case "$action" in
   create) python3 "$demo_repo_root/bootstrap/aap-runtime.py" launch webapp_vm ;;
   nginx) python3 "$demo_repo_root/bootstrap/aap-runtime.py" launch webapp_nginx ;;

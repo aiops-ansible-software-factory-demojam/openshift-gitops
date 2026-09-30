@@ -20,3 +20,17 @@ demo_verify_cluster() {
     echo 'Unexpected cluster; check EXPECTED_SERVER in .env.' >&2; exit 2;
   }
 }
+
+# SNO API server rollouts can briefly interrupt Kubernetes jobs.
+demo_wait_for_api() {
+  local deadline=$((SECONDS + 900))
+  until oc get clusteroperator kube-apiserver --request-timeout=30s -o json |
+    jq -e '(.status.conditions | map({key: .type, value: .status}) | from_entries) as $c |
+      $c.Available == "True" and $c.Progressing == "False" and $c.Degraded == "False"' >/dev/null; do
+    if (( SECONDS >= deadline )); then
+      echo 'Timed out waiting for a stable OpenShift API server.' >&2; exit 1
+    fi
+    echo 'Waiting for the OpenShift API server to finish reconciling...'
+    sleep 10
+  done
+}

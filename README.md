@@ -88,6 +88,11 @@ It waits for project/inventory synchronization. Rerunning preserves the VM
 SSH identity and applies current config. `BOOTSTRAP_FORCE_SANDBOX_BUILD=true`
 forces a sandbox image rebuild.
 
+On SNO, scripts wait for the API server to finish reconciling before AAP work.
+EE builds tolerate interrupted log streams and status reads. AAP status checks
+retry brief network interruptions; launch requests are sent once. Inspect AAP
+before repeating a launch whose response was lost.
+
 ## Provision and automate the RHEL webapp
 
 Log into the AAP gateway Route as `admin`, using the operator-generated
