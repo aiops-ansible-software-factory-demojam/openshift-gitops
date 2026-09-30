@@ -20,7 +20,7 @@ cleanup() {
   # Leave credentials mounted if an interrupted script's build is still active.
   if [[ -n $run ]] && [[ $(oc -n "$namespace" get "$run" -o jsonpath='{.status.conditions[0].status}' 2>/dev/null) =~ ^(True|False)$ ]]; then
     oc -n "$namespace" delete pod,pvc -l "tekton.dev/pipelineRun=${run##*/}" --ignore-not-found >/dev/null
-    oc -n "$namespace" delete secret aap-ee-automation-hub aap-ee-registry-auth --ignore-not-found >/dev/null
+    oc -n "$namespace" delete secret aap-ee-automation-hub --ignore-not-found >/dev/null
   fi
 }
 trap cleanup EXIT
@@ -37,10 +37,6 @@ EOF
 oc -n "$namespace" create secret generic aap-ee-automation-hub \
   --from-file="ansible.cfg=$scratch/ansible.cfg" --dry-run=client -o json |
   oc -n "$namespace" apply -f - >/dev/null
-# The workshop already has registry credentials; never export them to disk/logs.
-oc -n openshift-config get secret pull-secret -o json | jq '
-  {apiVersion:"v1",kind:"Secret",metadata:{name:"aap-ee-registry-auth",namespace:"ansible-automation-platform"},
-   type:.type,data:.data}' | oc -n "$namespace" apply -f - >/dev/null
 # One deliberate run; no trigger or automatic CI is installed.
 run=$(oc -n "$namespace" create -f "$demo_repo_root/bootstrap/aap-ee-pipelinerun.yaml" -o name)
 echo "Started $run"

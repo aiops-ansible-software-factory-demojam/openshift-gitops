@@ -84,9 +84,6 @@ spec:
           - name: automation-hub
             secret:
               secretName: aap-ee-automation-hub
-          - name: registry-auth
-            secret:
-              secretName: aap-ee-registry-auth
         steps:
           - name: build-and-push
             image: quay.io/buildah/stable:v1.43.2
@@ -97,21 +94,13 @@ spec:
             env:
               - name: IMAGE
                 value: $(params.IMAGE)
-              - name: REGISTRY_AUTH_FILE
-                value: /tmp/registry-auth.json
             volumeMounts:
               - name: automation-hub
                 mountPath: /run/build-secrets/automation-hub
                 readOnly: true
-              - name: registry-auth
-                mountPath: /run/build-secrets/registry
-                readOnly: true
             script: |
               #!/bin/bash
               set -euo pipefail
-              cp /run/build-secrets/registry/.dockerconfigjson "$REGISTRY_AUTH_FILE"
-              chmod 600 "$REGISTRY_AUTH_FILE"
-              trap 'rm -f "$REGISTRY_AUTH_FILE"' EXIT
               buildah --storage-driver=overlay bud --isolation=chroot \
                 --secret id=automation-hub,src=/run/build-secrets/automation-hub/ansible.cfg \
                 -f Containerfile -t "$IMAGE" .
