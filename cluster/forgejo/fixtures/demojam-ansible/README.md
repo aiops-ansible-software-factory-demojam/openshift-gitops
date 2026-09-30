@@ -25,7 +25,7 @@ after populating its root `.env` and supplying `aap_manifest.zip`.
    discovers running VMs. There is no standalone Kubernetes configuration Job.
 
 There is no custom AAP image build or Automation Hub token. Root `requirements.yml`
-installs `infra.aap_configuration` from public Galaxy and `demo.greetings` from
+installs `infra.aap_configuration` from public Galaxy and `demo.webapp` from
 public Forgejo Git on project updates. Controller's isolated collection cache
 cannot see the supported image's collection path during installation, so four
 `type: dir` entries copy CaC's certified dependencies from that image into the
@@ -50,7 +50,7 @@ In AAP, launch **webapp_vm**, then **webapp_nginx**. The first clones the
 cluster's `rhel9` DataSource into `webapp-vms` and adds the generated public
 SSH key through cloud-init. The second refreshes discovery, waits for SSH,
 enables the entitled RHEL 9 BaseOS/AppStream repositories, and uses
-`demo.greetings.nginx` from the public example collection. Controller installs
+`demo.webapp.nginx` from the public example collection. Controller installs
 that collection from `requirements.yml` on project synchronization;
 No Galaxy upload is required.
 

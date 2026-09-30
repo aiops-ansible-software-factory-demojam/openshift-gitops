@@ -1,0 +1,82 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: molecule-provisioner
+  namespace: molecule-tests
+rules:
+  - apiGroups:
+      - kubevirt.io
+    resources:
+      - virtualmachines
+    verbs:
+      - get
+      - create
+      - patch
+      - update
+      - delete
+  - apiGroups:
+      - kubevirt.io
+    resources:
+      - virtualmachineinstances
+    verbs:
+      - get
+  - apiGroups:
+      - cdi.kubevirt.io
+    resources:
+      - datavolumes
+    verbs:
+      - get
+      - create
+      - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: molecule-provisioner
+  namespace: molecule-tests
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: molecule-provisioner
+subjects:
+  - kind: ServiceAccount
+    name: molecule-provisioner
+    namespace: omnigent-sandboxes
+---
+# CDI authorizes cross-namespace cloning through datavolumes/source, including
+# DataSources backed by VolumeSnapshots. The agent cannot change source images.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: molecule-image-cloner
+  namespace: openshift-virtualization-os-images
+rules:
+  - apiGroups:
+      - cdi.kubevirt.io
+    resources:
+      - datavolumes/source
+    verbs:
+      - create
+  - apiGroups:
+      - cdi.kubevirt.io
+    resources:
+      - datasources
+    resourceNames:
+      - centos-stream10
+      - rhel10
+    verbs:
+      - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: molecule-image-cloner
+  namespace: openshift-virtualization-os-images
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: molecule-image-cloner
+subjects:
+  - kind: ServiceAccount
+    name: molecule-provisioner
+    namespace: omnigent-sandboxes

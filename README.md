@@ -106,7 +106,7 @@ templates in order:
    bootstrap-generated public SSH key via cloud-init, and waits for VM Ready.
 2. **webapp_nginx** refreshes VM inventory, connects with the matching SSH key,
    enables RHEL repositories using the manifest entitlement, and runs
-   `demo.greetings.nginx` from the public example collection's Git repository.
+   `demo.webapp.nginx` from the public example collection's Git repository.
 
 GitOps owns the namespace, SSH/HTTP Services, HTTPS Route, RBAC and blackbox
 Probe. Inventory discovers `webapp-webapp-vms` in the `webapps` group. The

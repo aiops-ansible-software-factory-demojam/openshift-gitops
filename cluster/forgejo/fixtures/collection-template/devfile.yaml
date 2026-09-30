@@ -26,7 +26,7 @@ commands:
     exec:
       label: install collection dependencies
       component: tools
-      commandLine: ansible-galaxy collection install -r requirements.yml
+      commandLine: ansible-galaxy collection install -r extensions/molecule/requirements-test.yml
       workingDir: /projects/collection
       group:
         kind: build
@@ -42,10 +42,10 @@ commands:
         isDefault: true
   - id: molecule-test
     exec:
-      label: molecule test (Podman container)
+      label: molecule test (CentOS Stream 10 KubeVirt VM)
       component: tools
-      commandLine: molecule test
-      workingDir: /projects/collection/extensions
+      commandLine: make test
+      workingDir: /projects/collection
       group:
         kind: test
   - id: build

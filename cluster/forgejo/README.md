@@ -3,7 +3,12 @@
 The `forgejo` namespace runs a disposable Forgejo instance with SQLite
 and Git data on one PVC. GitOps owns the deployment, Service, Route, and PVC.
 The fixture in `fixtures/collection` becomes the private
-`demo-owner/ansible-collection-demo` repository. The fixture in
+`demo-owner/ansible-collection-demo` repository, containing `demo.webapp`. It
+follows the collection-template layout, with a default hello-world Molecule
+scenario and an `nginx` scenario that exercises `demo.webapp.nginx`. In a demo
+Omnigent sandbox, run `molecule test`, `molecule test -s nginx`, or `make test`
+from the collection root. Both scenarios use the shared CentOS Stream 10 YAML inventory;
+the RHEL 10 entry is commented out pending repository prerequisites; serialize runs because the VM names are fixed. The fixture in
 `fixtures/collection-template` becomes the Forgejo template repository used
 by Developer Hub. The issue text is in `fixtures/readme-test-issue.md`.
 AO runs the Developer Hub feature template before it starts the agent.

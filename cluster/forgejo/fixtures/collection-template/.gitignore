@@ -2,3 +2,5 @@
 tests/output/
 .ansible/
 __pycache__/
+.cache/
+.venv/

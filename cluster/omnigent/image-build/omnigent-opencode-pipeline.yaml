@@ -63,7 +63,7 @@ spec:
               privileged: true
             env:
               - name: IMAGE
-                value: image-registry.openshift-image-registry.svc:5000/omnigent-sandboxes/omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32-v7
+                value: image-registry.openshift-image-registry.svc:5000/omnigent-sandboxes/omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32-v9
             volumeMounts:
               - name: registry-ca
                 mountPath: /etc/containers/certs.d/image-registry.openshift-image-registry.svc:5000
