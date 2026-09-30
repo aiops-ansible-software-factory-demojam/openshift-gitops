@@ -15,7 +15,8 @@ kubeconfig. Keep the exact provisioner version in
 in `extensions/molecule/config.yml`. Use the provisioner collection's lifecycle
 playbooks and the existing CentOS Stream 10 DataSource with PodIP connections.
 
-Keep VM names unique using the scenario's persistent run ID. After a failed
-test, run `molecule destroy` in the same sandbox and checkout before deleting
-its cache. Never remove the run ID while its VM might still exist. Serialize
-concurrent runs of one scenario in a single checkout.
+Keep the declarative YAML inventory. Its fixed hostname `instance` is also the
+VM name in the shared `molecule-tests` namespace. Serialize test runs across all
+demo sandboxes and collections: overlapping runs can modify or delete each
+other's VM. After a failed test, run `molecule destroy` from the same collection
+once no other run is using that VM.

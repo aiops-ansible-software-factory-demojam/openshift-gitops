@@ -32,13 +32,13 @@ vCPUs, 2 GiB RAM, a disposable 30 GiB disk, and a generated SSH key. Connections
 use the VM's pod IP; no NodePort or cluster-wide node permissions are needed.
 The namespace quota permits up to four test VMs and 120 GiB of requested disks.
 
-Inventory allocates a random run ID in Molecule's ephemeral directory. It keeps
-the VM name stable through create and destroy, and removes the ID only after
-successful destruction. If a run is interrupted, run `molecule destroy` from the
-same collection and sandbox before deleting its cache. Do not delete `run-id` to
-fix a failed test: cleanup needs it to locate the VM. Distinct sandbox sessions
-and scenarios get independent names; concurrent runs of the same scenario in the
-same checkout still share Molecule state and must be serialized.
+The YAML inventory uses the fixed hostname `instance`, which the provisioner
+also uses as the VM name. Collision risk is accepted temporarily: serialize
+test runs across all demo sandboxes, collections, and scenarios sharing
+`molecule-tests`. Overlapping runs can modify or delete each other's VM. After
+an interrupted run, use `molecule destroy` from the same collection once no
+other run is using that VM. Provisioner-managed run naming is tracked in
+[molecule_provisioners issue #59](https://github.com/david-igou/ansible-collection-molecule_provisioners/issues/59).
 
 These VM tests are configured for the demo's agent sandboxes. Local devcontainers
 and standalone Devfile workspaces need their own credentials and VM network

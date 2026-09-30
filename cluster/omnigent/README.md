@@ -41,10 +41,14 @@ molecule test
 Molecule installs test dependencies, clones the existing `centos-stream10` CDI
 DataSource into a 30 GiB disk in `molecule-tests`, boots a two-vCPU/2 GiB VM,
 converges over SSH to its pod IP, checks idempotence and the guest OS, then
-destroys the VM. Inventory persists a random run ID for the entire lifecycle.
-Independent sessions and scenarios cannot collide on VM names. The shared
-namespace quota allows four VMs and 120 GiB of disk requests. This is shared test
-access; it does not isolate sessions from each other by Kubernetes authorization.
+destroys the VM. The declarative YAML inventory uses the fixed hostname and
+VM name `instance`. Collision risk is accepted temporarily: serialize runs
+across all demo sandboxes, collections, and scenarios sharing `molecule-tests`.
+Overlapping runs can modify or delete each other's VM. The shared namespace
+quota allows four VMs and 120 GiB of disk requests; it does not make concurrent
+runs safe or isolate sessions from each other by Kubernetes authorization.
+Provisioner-managed run naming is tracked in
+[molecule_provisioners issue #59](https://github.com/david-igou/ansible-collection-molecule_provisioners/issues/59).
 
 `molecule-provisioner` is a separate ServiceAccount in `omnigent-sandboxes`.
 Its controller-populated `molecule-provisioner-token` Secret is mounted read-only
@@ -65,8 +69,7 @@ collection removes them after VM deletion. Source-image updates can change the
 DataSource's snapshot; the scenario references its stable DataSource name.
 
 If a test fails or is interrupted, run `molecule destroy` in the same collection
-and sandbox. Preserve its ephemeral state until cleanup succeeds. Serialize
-runs of the same scenario in one checkout. A missing credential mount or an
+once no other run is using `instance`. A missing credential mount or an
 unready DataSource must be resolved before testing. Existing generated
 collections retain their previous scenarios; regenerate or update them to use
 this setup. The fixture for the demo's separate existing collection is unchanged.

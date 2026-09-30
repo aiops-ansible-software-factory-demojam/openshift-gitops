@@ -9,7 +9,8 @@ SSH, and removes the test resources.
 
 - Target only the demo's Omnigent Agent Sandbox pods.
 - Use an existing OpenShift VM template or CDI golden image.
-- Share one dedicated `molecule-tests` namespace, with unique names per run.
+- Share one dedicated `molecule-tests` namespace. The YAML inventory currently
+  uses the fixed name `instance`; collision risk is accepted temporarily.
 - Guest OS: the existing CentOS Stream 10 CDI DataSource, with a 30 GiB disk.
 - Worktree: `/workspace/openshift-gitops-molecule-kubevirt`.
 - Branch: `feature/sandbox-molecule-kubevirt`.
@@ -67,11 +68,10 @@ SSH, and removes the test resources.
    shared test requirements, centralize scenario configuration, and add the root
    Ansible configuration and Makefile expected by the provisioner guidance.
    Switch inventory to KubeVirt/DataSource/PodIP. Keep lifecycle operations in
-   `david_igou.molecule_provisioners`, with no custom VM provisioner. Persist a
-   unique run identifier in Molecule's ephemeral state so create, converge, verify,
-   and destroy agree on inventory hostnames and resource names. Ensure distinct
-   agent sessions, collections, and scenarios cannot collide. Include dependency
-   installation, idempotence, meaningful verification, and cleanup in the test
+   `david_igou.molecule_provisioners`, with no custom VM provisioner. Use the
+   declarative YAML inventory with the fixed hostname `instance`. Serialize runs
+   across the shared namespace until the provisioner supports run-scoped naming.
+   Include dependency installation, idempotence, meaningful verification, and cleanup in the test
    sequence. Update the Devfile and collection instructions so plain
    `molecule test` works from the collection root in a demo sandbox.
    Lint and build a generated collection, and inspect its effective Molecule config.
@@ -81,8 +81,9 @@ SSH, and removes the test resources.
    perform the declared lifecycle and is denied outside the intended namespaces.
    Run plain `molecule test`, then inspect the resulting test namespace directly
    with read-only `oc` commands. Confirm the guest was cloned from the selected
-   DataSource and that VM, DataVolume, and PVC cleanup finishes. Test two
-   concurrent sandbox runs and a failure followed by `molecule destroy`.
+   DataSource and that VM, DataVolume, and PVC cleanup finishes. Test a failure
+   followed by `molecule destroy`. Concurrent runs are deferred until
+   provisioner-managed naming is implemented.
    Keep lifecycle evidence free of credentials. Do not use AAP templates to run
    verification and do not reset unrelated demo state.
 
@@ -100,7 +101,7 @@ SSH, and removes the test resources.
 - Test namespace, quota, provisioner credentials, and source-image clone RBAC
   registered in the existing Omnigent component.
 - `cluster/forgejo/fixtures/collection-template/`: test requirements and shared
-  config, inventory/run identity, scenario, root tooling, Devfile, and docs.
+  config, YAML inventory, scenario, root tooling, Devfile, and docs.
 - `cluster/rhdh/README.md` and bootstrap image/config prerequisites as needed.
 - A relevant page in `igou-docs`, using an isolated worktree.
 
@@ -112,12 +113,17 @@ SSH, and removes the test resources.
 - Do not copy the operator's admin kubeconfig into agent pods.
 - Never print or commit credentials, tokens, raw kubeconfigs, or private SSH keys.
 - Write YAML in block style and keep secret lookup logic outside roles.
-- A shared test namespace provides collision avoidance, not security isolation
-  between agent sessions that share the provisioner identity.
+- The shared test namespace does not prevent name collisions or provide security
+  isolation between agent sessions that share the provisioner identity. Serialize
+  runs across all sandboxes, collections, and scenarios using the fixed VM name.
 - Handle a missing or unready source image, missing credentials, and denied clone
   permission with actionable errors before convergence.
 
 ## Local validation completed
+
+The following validation preceded the switch back to YAML inventory. The six
+Python inventory tests and simultaneous-run results below describe the removed
+workaround, not the current fixed-name inventory.
 
 - Built `localhost/demo-omnigent-molecule:centos10` from the changed Containerfile.
 - Passed all six inventory identity/concurrency tests in
@@ -169,3 +175,17 @@ SSH, and removes the test resources.
 The existing seeded nginx collection has no Molecule scenario; the changed
 scenario is supplied by the new-collection golden path. Already-generated
 collections and older running sandboxes must be updated or recreated.
+
+## Review follow-up — declarative inventory
+
+At the user's request, restored `inventory/hosts.yml` with the fixed hostname
+`instance`, removed the consumer-side Python inventory, its six tests, and the
+run-ID cleanup task. Updated the operational and generated-collection guidance
+to require serialized runs across the shared namespace; an overlapping run can
+modify or delete another run's VM. Tracking provisioner-managed run naming in
+[molecule_provisioners issue #59](https://github.com/david-igou/ansible-collection-molecule_provisioners/issues/59).
+
+Fresh local checks passed: Ansible loaded `instance` and its KubeVirt group
+variables, Molecule syntax passed, production-profile Ansible lint reported no
+failures or warnings, and the materialized collection built successfully. The
+latest YAML inventory has not been retested against the live cluster.
