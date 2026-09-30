@@ -5,7 +5,7 @@ bootstrap_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 repo_root=$(cd -- "$bootstrap_dir/.." && pwd)
 operator_namespace=openshift-gitops-operator
 gitops_namespace=openshift-gitops
-: "${KUBECONFIG:?Set KUBECONFIG for the demo cluster}"
+export KUBECONFIG=${KUBECONFIG:-$HOME/.kube/config}
 
 oc whoami --show-server
 oc whoami
@@ -46,17 +46,22 @@ values_revision=$(yq -r '.default.app.source.targetRevision' \
   "$repo_root/cluster/values.yaml")
 build_revision=$(yq -r '.spec.source.git.ref' \
   "$repo_root/cluster/omnigent/omnigent-opencode-buildconfig.yaml")
+aap_build_revision=$(yq -r '.spec.source.git.ref' \
+  "$repo_root/cluster/ansible-automation-platform/aap-ee-buildconfig.yaml")
 if [[ $root_revision != "$gitops_branch" ||
       $values_revision != "$gitops_branch" ||
-      $build_revision != "$gitops_branch" ]]; then
+      $build_revision != "$gitops_branch" ||
+      $aap_build_revision != "$gitops_branch" ]]; then
   bash "$repo_root/scripts/set-gitops-branch.sh" "$gitops_branch"
 fi
 if [[ -n $(git -C "$repo_root" status --porcelain -- \
   bootstrap/config/root-application.yaml cluster/values.yaml \
-  cluster/omnigent/omnigent-opencode-buildconfig.yaml) ]]; then
+  cluster/omnigent/omnigent-opencode-buildconfig.yaml \
+  cluster/ansible-automation-platform/aap-ee-buildconfig.yaml) ]]; then
   git -C "$repo_root" add -- \
     bootstrap/config/root-application.yaml cluster/values.yaml \
-    cluster/omnigent/omnigent-opencode-buildconfig.yaml
+    cluster/omnigent/omnigent-opencode-buildconfig.yaml \
+    cluster/ansible-automation-platform/aap-ee-buildconfig.yaml
   git -C "$repo_root" commit -m \
     "Point GitOps apps at branch $gitops_branch"
   git -C "$repo_root" push -u origin "HEAD:$gitops_branch"

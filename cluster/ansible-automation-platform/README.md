@@ -26,10 +26,13 @@ depend on it.
 Forgejo hydration also seeds `demo-owner/aap-config-as-code`. Its
 [guide](../forgejo-demo/fixtures/aap-config-as-code/README.md) explains the
 homelab-style dispatcher, EE build, runtime credentials, and VM lifecycle
-job template. This application creates a VM deployer service account in
-`automation-vms`, with permission to clone the standard OS DataSources.
-Applying GitOps installs the namespace and RBAC; applying AAP config and
-launching VM jobs are explicit subsequent steps.
+job template. This application creates the `aap-vm-admin` service account
+in `automation-vms` for both inventory discovery and VM deployment, including
+standard OS disk cloning. It also builds `demo-aap-ee:latest` through an
+OpenShift BuildConfig using the cluster's Red Hat registry credentials.
+Use `make aap-ee` to rebuild, then `make aap-configure` to import the root
+`aap_manifest.zip` and apply AAP objects from `.env`. Both shortcuts run the
+work in OpenShift. Launching a VM job remains an explicit subsequent step.
 
 The first install pulls several large images. If the node briefly reports
 `DiskPressure`, inspect its free space and wait for kubelet to clear the

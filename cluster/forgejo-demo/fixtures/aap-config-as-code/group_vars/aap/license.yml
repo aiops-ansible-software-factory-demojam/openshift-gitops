@@ -1,0 +1,5 @@
+---
+controller_license:
+  manifest_file: "{{ aap_license_file }}"
+  state: present
+controller_configuration_license_secure_logging: true

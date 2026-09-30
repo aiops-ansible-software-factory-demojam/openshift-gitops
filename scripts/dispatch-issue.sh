@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-: "${KUBECONFIG:?Set KUBECONFIG for the demo cluster}"
+export KUBECONFIG=${KUBECONFIG:-$HOME/.kube/config}
 
 # Call AO's published workflow API and print the launched Omnigent session.
 issue_number=${1:?Usage: dispatch-issue.sh ISSUE_NUMBER}

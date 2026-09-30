@@ -14,3 +14,19 @@ controller_inventory_sources:
     update_on_launch: true
     update_cache_timeout: 0
     execution_environment: demo-aap-ee
+    wait: true
+    timeout: 600
+  - name: demo-virtualmachines
+    organization: demo
+    inventory: demo-inventory
+    source: scm
+    source_project: demo-aap-config
+    source_path: dynamic/openshift-virtualization.kubevirt.yml
+    credential: demo-virtualmachine-admin
+    execution_environment: demo-aap-ee
+    overwrite: true
+    overwrite_vars: true
+    update_on_launch: true
+    update_cache_timeout: 0
+    wait: true
+    timeout: 600

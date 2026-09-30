@@ -1,0 +1,7 @@
+---
+plugin: redhat.openshift_virtualization.kubevirt
+namespaces:
+  - automation-vms
+host_format: "{name}-{namespace}"
+create_groups: true
+use_service: true

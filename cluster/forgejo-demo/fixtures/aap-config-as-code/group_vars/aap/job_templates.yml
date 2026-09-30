@@ -9,7 +9,7 @@ controller_templates:
     job_type: run
     playbook: playbooks/openshift_virtualization/virtualmachine-manage.yml
     credentials:
-      - demo-virtualmachine-deployer
+      - demo-virtualmachine-admin
     ask_variables_on_launch: true
     extra_vars:
       host: demo_cluster
