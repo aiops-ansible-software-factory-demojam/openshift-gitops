@@ -1,10 +1,25 @@
-.PHONY: render demo-reset aap-ee aap-configure
+.PHONY: render demo-reset aap-ee aap-configure aap-sync webapp-create webapp-nginx webapp-delete webapp-verify
+
+aap-sync:
+	bash scripts/webapp-demo.sh sync
+
+webapp-create:
+	bash scripts/webapp-demo.sh create
+
+webapp-nginx:
+	bash scripts/webapp-demo.sh nginx
+
+webapp-delete:
+	bash scripts/webapp-demo.sh delete
+
+webapp-verify:
+	bash scripts/webapp-demo.sh verify
 
 aap-ee:
-	bash cluster/forgejo-demo/fixtures/aap-config-as-code/scripts/aap.sh build
+	bash bootstrap/aap-ee.sh
 
 aap-configure:
-	bash cluster/forgejo-demo/fixtures/aap-config-as-code/scripts/aap.sh configure
+	bash bootstrap/aap-configure.sh
 
 demo-reset:
 	bash scripts/reset-demo.sh --confirm-demo-reset

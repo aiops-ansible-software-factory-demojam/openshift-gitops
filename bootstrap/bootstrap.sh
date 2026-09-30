@@ -5,67 +5,29 @@ bootstrap_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 repo_root=$(cd -- "$bootstrap_dir/.." && pwd)
 operator_namespace=openshift-gitops-operator
 gitops_namespace=openshift-gitops
-export KUBECONFIG=${KUBECONFIG:-$HOME/.kube/config}
+# shellcheck source=env.sh
+source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
 
-oc whoami --show-server
-oc whoami
+# shellcheck source=model-env.sh
+source "$bootstrap_dir/model-env.sh"
+unset model_key
+: "${RH_AUTOMATIONHUB_TOKEN:?Populate RH_AUTOMATIONHUB_TOKEN in .env}"
+[[ -r ${AAP_LICENSE_FILE:-$repo_root/aap_manifest.zip} ]] || {
+  echo 'Place aap_manifest.zip in the repo root before bootstrap.' >&2; exit 2;
+}
 
-# Each demo cluster can publish to its own branch so concurrent bootstraps do
-# not overwrite Application targetRevision on main.
-gitops_branch=${BOOTSTRAP_BRANCH:-}
-if [[ -z $gitops_branch ]]; then
-  if [[ -r /dev/tty ]]; then
-    read -r -p 'GitOps publish branch [main]: ' gitops_branch </dev/tty || true
-  fi
-  gitops_branch=${gitops_branch:-main}
-fi
-if ! git check-ref-format --branch "$gitops_branch"; then
-  echo "Invalid GitOps branch name: $gitops_branch" >&2
-  exit 1
-fi
+demo_verify_cluster
 
-current_branch=$(git -C "$repo_root" branch --show-current)
-if [[ $current_branch != "$gitops_branch" ]]; then
-  if [[ -n $(git -C "$repo_root" status --porcelain) ]]; then
-    echo "Checkout is dirty; commit or stash before switching to $gitops_branch." >&2
-    exit 1
-  fi
-  if git -C "$repo_root" show-ref --verify --quiet "refs/heads/$gitops_branch"; then
-    git -C "$repo_root" checkout "$gitops_branch"
-  elif git -C "$repo_root" show-ref --verify --quiet "refs/remotes/origin/$gitops_branch"; then
-    git -C "$repo_root" checkout --track "origin/$gitops_branch"
-  else
-    git -C "$repo_root" checkout -b "$gitops_branch"
-  fi
-fi
-echo "Publishing GitOps manifests on branch $gitops_branch."
-
-root_revision=$(yq -r '.spec.source.targetRevision' \
-  "$bootstrap_dir/config/root-application.yaml")
-values_revision=$(yq -r '.default.app.source.targetRevision' \
-  "$repo_root/cluster/values.yaml")
-build_revision=$(yq -r '.spec.source.git.ref' \
-  "$repo_root/cluster/omnigent/omnigent-opencode-buildconfig.yaml")
-aap_build_revision=$(yq -r '.spec.source.git.ref' \
-  "$repo_root/cluster/ansible-automation-platform/aap-ee-buildconfig.yaml")
-if [[ $root_revision != "$gitops_branch" ||
-      $values_revision != "$gitops_branch" ||
-      $build_revision != "$gitops_branch" ||
-      $aap_build_revision != "$gitops_branch" ]]; then
-  bash "$repo_root/scripts/set-gitops-branch.sh" "$gitops_branch"
-fi
-if [[ -n $(git -C "$repo_root" status --porcelain -- \
-  bootstrap/config/root-application.yaml cluster/values.yaml \
-  cluster/omnigent/omnigent-opencode-buildconfig.yaml \
-  cluster/ansible-automation-platform/aap-ee-buildconfig.yaml) ]]; then
-  git -C "$repo_root" add -- \
-    bootstrap/config/root-application.yaml cluster/values.yaml \
-    cluster/omnigent/omnigent-opencode-buildconfig.yaml \
-    cluster/ansible-automation-platform/aap-ee-buildconfig.yaml
-  git -C "$repo_root" commit -m \
-    "Point GitOps apps at branch $gitops_branch"
-  git -C "$repo_root" push -u origin "HEAD:$gitops_branch"
-fi
+# A demo branch can be tracked without committing branch-specific defaults.
+# The branch must already contain the checked-out commit on origin.
+gitops_branch=${BOOTSTRAP_BRANCH:-main}
+git check-ref-format --branch "$gitops_branch" >/dev/null
+target_revision=$(git -C "$repo_root" rev-parse HEAD)
+published_revision=$(git -C "$repo_root" ls-remote origin "refs/heads/$gitops_branch" | cut -f1)
+[[ $published_revision == "$target_revision" ]] || {
+  echo "Publish the checked-out revision to origin/$gitops_branch before bootstrap." >&2; exit 1;
+}
+echo "Tracking GitOps branch $gitops_branch."
 
 # The Route manifests request stable subdomains from this cluster's ingress
 # controller. Forgejo also needs its public URL for links and callbacks.
@@ -142,14 +104,14 @@ bash "$bootstrap_dir/model-config.sh"
 bash "$bootstrap_dir/omnigent-auth.sh"
 
 echo 'OpenShift GitOps is healthy; starting the app-of-apps rollout...'
-oc apply -f "$bootstrap_dir/config/root-application.yaml"
-target_revision=$(git -C "$repo_root" rev-parse HEAD)
-published_revision=$(git -C "$repo_root" ls-remote origin "refs/heads/$gitops_branch" |
-  cut -f1)
-if [[ "$published_revision" != "$target_revision" ]]; then
-  echo "Publish the checked-out revision to origin/$gitops_branch before bootstrap." >&2
-  exit 1
-fi
+# Native Argo Kustomize patches override child refs only on this cluster.
+# Checked-in defaults remain main and are safe to merge.
+yq '.' "$bootstrap_dir/config/root-application.yaml" | jq --arg branch "$gitops_branch" '
+  .spec.source.targetRevision = $branch |
+  .spec.source.kustomize.patches = [{
+    target: {group: "argoproj.io", version: "v1alpha1", kind: "Application"},
+    patch: ("- op: replace\n  path: /spec/source/targetRevision\n  value: " + ($branch | tojson) + "\n")
+  }]' | oc -n "$gitops_namespace" apply -f -
 oc -n "$gitops_namespace" annotate application cluster \
   argocd.argoproj.io/refresh=hard --overwrite
 
@@ -241,7 +203,7 @@ done
 oc -n "$gitops_namespace" get applications \
   -o custom-columns=NAME:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status
 
-for app in agent-sandbox-operator openshift-virtualization omnigent automation-orchestrator; do
+for app in agent-sandbox-operator openshift-virtualization omnigent automation-orchestrator ansible-automation-platform webapp-vms user-workload-monitoring; do
   oc -n "$gitops_namespace" annotate application "$app" \
     argocd.argoproj.io/refresh=hard --overwrite
   deadline=$((SECONDS + 1800))
@@ -263,7 +225,7 @@ echo 'Waiting for the OpenCode sandbox image build...'
 if ! oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32-v7 \
   >/dev/null 2>&1; then
   echo 'Building the missing OpenCode sandbox image tag...'
-  oc -n omnigent-sandboxes start-build buildconfig/omnigent-opencode --wait --follow
+  oc -n omnigent-sandboxes start-build buildconfig/omnigent-opencode --commit="$target_revision" --wait --follow
 fi
 deadline=$((SECONDS + 1800))
 until oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32-v7 >/dev/null 2>&1; do
@@ -287,7 +249,7 @@ sandbox_image_current() {
 if [[ ${BOOTSTRAP_FORCE_SANDBOX_BUILD:-false} == true ]] ||
    ! sandbox_image_current; then
   echo 'Building the OpenCode sandbox image from the current Git revision...'
-  oc -n omnigent-sandboxes start-build buildconfig/omnigent-opencode --wait --follow
+  oc -n omnigent-sandboxes start-build buildconfig/omnigent-opencode --commit="$target_revision" --wait --follow
 fi
 sandbox_image_current
 oc get crd sandboxes.agents.x-k8s.io
@@ -321,4 +283,7 @@ oc -n omnigent delete secret omnigent-auth omnigent-machine-client \
 if [[ ${BOOTSTRAP_RECONCILE_WORKFLOW:-true} == true ]]; then
   bash "$repo_root/cluster/automation-orchestrator/reconcile-omnigent-workflow.sh"
 fi
-echo "The app-of-apps rollout, Agent Sandbox image, and dispatch workflow are ready on $gitops_branch."
+bash "$bootstrap_dir/aap-ee.sh"
+bash "$bootstrap_dir/aap-configure.sh"
+echo "GitOps, Agent Sandbox, AO, and AAP webapp automation are ready on $gitops_branch."
+echo 'Log into AAP and launch webapp_vm, then webapp_nginx.'

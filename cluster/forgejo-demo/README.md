@@ -66,8 +66,8 @@ CI runner in this stage.
 
 From the repository root, use `make demo-reset` for a complete repeatable
 cycle. It deletes only `automation-developer` sessions and Sandboxes, recreates
-the OpenCode Go model and agent configuration, resets Forgejo, and republishes
-AO's dispatch workflow. It needs the Go key through `op` or `MODEL_API_KEY`.
+the selected `.env` model and agent configuration, resets Forgejo, and republishes
+AO's dispatch workflow. It loads the selected provider credentials from the root `.env`.
 It also removes catalog entries for collections generated in this disposable
 Forgejo account. Other Omnigent sessions are preserved.
 

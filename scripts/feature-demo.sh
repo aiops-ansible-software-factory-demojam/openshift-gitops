@@ -2,7 +2,8 @@
 # Reproduce the Forgejo issue and rotate the sandbox's demo-only Git credential.
 set -euo pipefail
 set +x
-export KUBECONFIG=${KUBECONFIG:-$HOME/.kube/config}
+# shellcheck source=../bootstrap/env.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../bootstrap/env.sh"
 
 repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 action=${1:-}

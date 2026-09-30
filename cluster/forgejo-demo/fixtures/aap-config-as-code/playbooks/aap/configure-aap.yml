@@ -11,33 +11,13 @@
           - aap_username | length > 0
           - aap_password | length > 0
           - aap_ee_image | length > 0
-          - forgejo_scm_token | length > 0
-          - vm_api_host | length > 0
-          - vm_api_token | length > 0
-          - vm_api_ca | length > 0
         fail_msg: Supply the environment variables documented in README.md.
-
-    - name: Check the subscription manifest file
-      ansible.builtin.stat:
-        path: "{{ aap_license_file }}"
-      register: aap_manifest
-
-    - name: Require the subscription manifest
-      ansible.builtin.assert:
-        that:
-          - aap_manifest.stat.isreg | default(false)
-        fail_msg: Place aap_manifest.zip in the repo root or set AAP_LICENSE_FILE.
-
-    - name: Import the subscription before configuring inventory sources
-      ansible.builtin.include_role:
-        name: infra.aap_configuration.controller_license
 
     - name: Apply inventory-defined AAP objects
       ansible.builtin.include_role:
         name: infra.aap_configuration.dispatch
       vars:
         aap_configuration_secure_logging: true
-        assign_galaxy_credentials_to_org: false
         assign_default_ee_to_org: false
         aap_configuration_async_retries: 120
         aap_configuration_async_delay: 2

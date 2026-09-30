@@ -1,16 +1,14 @@
 # Agent guide
 
-- AAP object definitions live in `group_vars/aap/`; apply them through
+- AAP objects are inventory data under `group_vars/aap/`; apply them through
   `playbooks/aap/configure-aap.yml` and `infra.aap_configuration.dispatch`.
-- Keep runtime credential lookups in inventory variables. Never commit
-  credentials or print their resolved values.
-- Use the custom EE built by OpenShift's `demo-aap-ee` BuildConfig. `make ee`
-  builds in the cluster; `make configure` runs config-as-code in an EE Job.
-  Use `ansible-navigator` for local syntax checks with an accessible EE image.
-  Run Ansible lint before submitting changes. There is no CI.
-- Write Ansible YAML in block style with FQCNs and named plays/tasks.
-- VM automation targets `automation-vms`. The `host` launch variable selects
-  the inventory host; the AAP template sets it to `demo_cluster`.
-- Verify the active cluster and identity before cluster operations, and
-  obtain current user authorization before applying AAP config or changing VMs.
-- Read `README.md` for the seed/reset boundary and token renewal procedure.
+- Runtime credentials are owned by openshift-gitops bootstrap scripts. Do not
+  manage their secret inputs through dispatch or commit secret values.
+- The custom EE is defined and built in openshift-gitops. Use that EE for syntax
+  checks and run Ansible lint. There is no CI.
+- Write block-style YAML with FQCNs and named plays/tasks. Inventory carries
+  runtime lookups; content consumes the values.
+- `webapp_vm` manages only webapp in webapp-vms. The generic VM playbook stays
+  confined to automation-vms. Preserve the `host: demo_cluster` launch variable.
+- Verify cluster identity and current user authorization before live changes.
+- Read README.md for bootstrap, public SCM, and reset behavior.

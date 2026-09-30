@@ -15,7 +15,7 @@ oc -n ansible-automation-platform get ansibleautomationplatform aap
 oc -n ansible-automation-platform get routes
 oc -n ansible-automation-platform get automationcontrollers,edas
 oc -n ansible-automation-platform get deployments,statefulsets,pods
-aap_host=$(oc -n ansible-automation-platform get route aap -o jsonpath='{.spec.host}')
+aap_host=$(oc -n ansible-automation-platform get route aap -o jsonpath='{.status.ingress[0].host}')
 curl -fsS "https://$aap_host/api/gateway/v1/ping/"
 ```
 
@@ -23,16 +23,24 @@ The operator is installed in sync wave 10, before the instance in wave 30.
 This is a standalone AAP deployment; AO's existing issue workflow does not
 depend on it.
 
-Forgejo hydration also seeds `demo-owner/aap-config-as-code`. Its
-[guide](../forgejo-demo/fixtures/aap-config-as-code/README.md) explains the
-homelab-style dispatcher, EE build, runtime credentials, and VM lifecycle
-job template. This application creates the `aap-vm-admin` service account
-in `automation-vms` for both inventory discovery and VM deployment, including
-standard OS disk cloning. It also builds `demo-aap-ee:latest` through an
-OpenShift BuildConfig using the cluster's Red Hat registry credentials.
-Use `make aap-ee` to rebuild, then `make aap-configure` to import the root
-`aap_manifest.zip` and apply AAP objects from `.env`. Both shortcuts run the
-work in OpenShift. Launching a VM job remains an explicit subsequent step.
+Forgejo hydration seeds the public `demo-owner/aap-config-as-code` repository.
+Its [guide](../forgejo-demo/fixtures/aap-config-as-code/README.md) describes the
+homelab-style dispatcher and VM lifecycle. GitOps owns `aap-vm-admin` and its
+RBAC in `automation-vms` and `webapp-vms`, plus OS disk clone permissions.
+Bootstrap creates its persistent API token and the AAP credential directly;
+config-as-code references that credential without owning its secret inputs.
+
+The root `execution-environment.yml` defines `demo-aap-ee`. Bootstrap generates
+its context with ansible-builder and builds it with OpenShift's binary
+BuildConfig. The cluster supplies Red Hat registry access; `.env` supplies the
+Automation Hub token as a build-only Secret. `make aap-ee` rebuilds explicitly.
+
+After GitOps settles, `make aap-configure` uses the generated AAP admin
+credential to import root `aap_manifest.zip` and create VM API, SSH, RHEL CDN
+entitlement and dispatch credentials by script. An EE Job then clones Forgejo
+without authentication and runs `infra.aap_configuration.dispatch` to create
+all other demo AAP objects. `webapp_vm`, `webapp_nginx` and `aap_configure_all`
+are ready after synchronization. VM creation remains an explicit AAP launch.
 
 The first install pulls several large images. If the node briefly reports
 `DiskPressure`, inspect its free space and wait for kubelet to clear the

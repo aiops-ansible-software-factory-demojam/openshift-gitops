@@ -10,18 +10,21 @@ spec:
   successfulBuildsHistoryLimit: 1
   failedBuildsHistoryLimit: 1
   source:
-    type: Git
-    git:
-      uri: https://github.com/aiops-ansible-software-factory-demojam/openshift-gitops.git
-      ref: main
-    contextDir: cluster/forgejo-demo/fixtures/aap-config-as-code
+    type: Binary
   strategy:
     type: Docker
     dockerStrategy:
       dockerfilePath: Containerfile
+      volumes:
+        - name: automation-hub
+          source:
+            type: Secret
+            secret:
+              secretName: aap-ee-automation-hub
+          mounts:
+            - destinationPath: /run/build-secrets/automation-hub
   output:
     to:
       kind: ImageStreamTag
       name: demo-aap-ee:latest
-  triggers:
-    - type: ConfigChange
+  triggers: []

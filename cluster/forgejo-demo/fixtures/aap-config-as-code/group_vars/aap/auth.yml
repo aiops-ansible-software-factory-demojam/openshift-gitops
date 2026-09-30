@@ -6,8 +6,3 @@ aap_password: "{{ lookup('ansible.builtin.env', 'AAP_PASSWORD') }}"
 aap_validate_certs: true
 aap_default_ee_image: image-registry.openshift-image-registry.svc:5000/ansible-automation-platform/demo-aap-ee:latest
 aap_ee_image: "{{ lookup('ansible.builtin.env', 'AAP_EE_IMAGE') | default(aap_default_ee_image, true) }}"
-forgejo_scm_token: "{{ lookup('ansible.builtin.env', 'FORGEJO_TOKEN') }}"
-vm_api_host: "{{ lookup('ansible.builtin.env', 'K8S_AUTH_HOST') }}"
-vm_api_token: "{{ lookup('ansible.builtin.env', 'K8S_AUTH_API_KEY') }}"
-vm_api_ca: "{{ lookup('ansible.builtin.env', 'AAP_K8S_CA_CERT') }}"
-aap_license_file: "{{ lookup('ansible.builtin.env', 'AAP_LICENSE_FILE') | default(inventory_dir ~ '/aap_manifest.zip', true) | expanduser }}"

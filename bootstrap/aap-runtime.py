@@ -1,0 +1,191 @@
+#!/usr/bin/env python3
+"""The small imperative seam: create runtime AAP credentials before Git dispatch."""
+import base64
+import io
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+import zipfile
+
+NAMESPACE = "ansible-automation-platform"
+
+
+def oc(*args, input_data=None):
+    return subprocess.check_output(["oc", *args], input=input_data, text=True).strip()
+
+
+def secret(namespace, name):
+    obj = json.loads(oc("-n", namespace, "get", "secret", name, "-o", "json"))
+    return {k: base64.b64decode(v).decode() for k, v in obj.get("data", {}).items()}
+
+
+def apply_secret(namespace, name, values, **extra):
+    obj = {"apiVersion": "v1", "kind": "Secret",
+           "metadata": {"name": name, "namespace": namespace}, "stringData": values, **extra}
+    oc("-n", namespace, "apply", "-f", "-", input_data=json.dumps(obj))
+
+
+class Controller:
+    def __init__(self):
+        self.host = os.environ.get("AAP_HOST") or "https://" + oc(
+            "-n", NAMESPACE, "get", "route", "aap", "-o", "jsonpath={.status.ingress[0].host}")
+        self.username = os.environ.get("AAP_USERNAME") or "admin"
+        self.password = os.environ.get("AAP_PASSWORD") or secret(NAMESPACE, "aap-admin-password")["password"]
+
+    def request(self, path, data=None, method=None):
+        auth = base64.b64encode(f"{self.username}:{self.password}".encode()).decode()
+        req = urllib.request.Request(self.host + "/api/controller/v2/" + path,
+            data=json.dumps(data).encode() if data is not None else None,
+            headers={"Authorization": "Basic " + auth, "Content-Type": "application/json"}, method=method)
+        try:
+            with urllib.request.urlopen(req, timeout=60) as response:
+                payload = response.read()
+                return json.loads(payload) if payload else {}
+        except urllib.error.HTTPError as error:
+            # API payloads can contain inputs. Keep credential errors out of logs.
+            raise RuntimeError(f"AAP {req.method} {path.split('?')[0]} returned HTTP {error.code}") from None
+
+    def find(self, endpoint, name):
+        result = self.request(endpoint + "?" + urllib.parse.urlencode({"name": name}))
+        return next(iter(result["results"]), None)
+
+    def upsert(self, endpoint, name, **fields):
+        existing = self.find(endpoint, name)
+        if existing:
+            if endpoint == "credential_types/" and all(existing.get(k) == v for k, v in fields.items()):
+                return existing
+            if endpoint == "credentials/" and existing["credential_type"] != fields["credential_type"]:
+                # One-time migration from the earlier demo credential schema.
+                self.request(f"{endpoint}{existing['id']}/", method="DELETE")
+            else:
+                return self.request(f"{endpoint}{existing['id']}/", fields, "PATCH")
+        return self.request(endpoint, {"name": name, **fields}, "POST")
+
+    def wait(self, path, timeout=1800):
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            job = self.request(path)
+            if job["status"] == "successful":
+                print(f"AAP {path} successful")
+                return job
+            if job["status"] in ("failed", "error", "canceled"):
+                raise RuntimeError(f"AAP {path} {job['status']}; inspect the job in AAP")
+            time.sleep(5)
+        raise RuntimeError(f"Timed out waiting for AAP {path}")
+
+
+def prepare_credentials(api):
+    manifest = Path(os.environ.get("AAP_LICENSE_FILE") or Path.cwd() / "aap_manifest.zip")
+    with zipfile.ZipFile(manifest) as outer, zipfile.ZipFile(io.BytesIO(outer.read("consumer_export.zip"))) as inner:
+        entitlement = next((inner.read(n).decode() for n in inner.namelist()
+                            if n.startswith("export/entitlement_certificates/")
+                            and b"PRIVATE KEY" in inner.read(n)), None)
+    if not entitlement:
+        raise RuntimeError("The manifest must include a RHEL entitlement certificate and private key")
+
+    token_name = "aap-vm-admin-token"
+    token_spec = {"apiVersion": "v1", "kind": "Secret", "type": "kubernetes.io/service-account-token",
+        "metadata": {"name": token_name, "namespace": "automation-vms",
+                     "annotations": {"kubernetes.io/service-account.name": "aap-vm-admin"}}}
+    oc("-n", "automation-vms", "apply", "-f", "-", input_data=json.dumps(token_spec))
+    for _ in range(60):
+        runtime = secret("automation-vms", token_name)
+        if runtime.get("token"):
+            break
+        time.sleep(1)
+    else:
+        raise RuntimeError("Service account token was not populated")
+
+    # Preserve the SSH identity across bootstrap reruns and Forgejo resets.
+    exists = oc("-n", NAMESPACE, "get", "secret", "aap-webapp-ssh", "--ignore-not-found", "-o", "name")
+    if not exists:
+        import tempfile
+        with tempfile.TemporaryDirectory() as directory:
+            key = Path(directory) / "id_ed25519"
+            subprocess.run(["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-C", "aap-webapp", "-f", str(key)], check=True)
+            apply_secret(NAMESPACE, "aap-webapp-ssh", {"private-key": key.read_text(), "public-key": key.with_suffix(".pub").read_text()})
+    ssh = secret(NAMESPACE, "aap-webapp-ssh")
+    org = api.upsert("organizations/", "demo", description="Disposable automation demo")
+    kind = api.upsert("credential_types/", "Demo VM API", kind="cloud",
+        inputs={"fields": [
+            {"id": "kube_api_host", "label": "Kubernetes API URL", "type": "string"},
+            {"id": "kube_api_token", "label": "Service account token", "type": "string", "secret": True},
+            {"id": "kube_api_ca", "label": "Kubernetes CA", "type": "string", "multiline": True},
+            {"id": "ssh_public_key", "label": "VM SSH public key", "type": "string"}],
+            "required": ["kube_api_host", "kube_api_token", "kube_api_ca", "ssh_public_key"]},
+        injectors={"file": {"template": "{{ kube_api_ca }}"}, "env": {
+            "K8S_AUTH_HOST": "{{ kube_api_host }}", "K8S_AUTH_API_KEY": "{{ kube_api_token }}",
+            "K8S_AUTH_SSL_CA_CERT": "{{ tower.filename }}", "K8S_AUTH_VERIFY_SSL": "true",
+            "VM_SSH_PUBLIC_KEY": "{{ ssh_public_key }}"}})
+    api.upsert("credentials/", "demo-virtualmachine-admin", organization=org["id"], credential_type=kind["id"],
+        inputs={"kube_api_host": oc("whoami", "--show-server"), "kube_api_token": runtime["token"],
+                "kube_api_ca": runtime["ca.crt"], "ssh_public_key": ssh["public-key"].strip()})
+    machine = api.find("credential_types/", "Machine")
+    api.upsert("credentials/", "demo-webapp-ssh", organization=org["id"], credential_type=machine["id"],
+        inputs={"username": "cloud-user", "ssh_key_data": ssh["private-key"], "become_method": "sudo"})
+    rhel = api.upsert("credential_types/", "Demo RHEL entitlement", kind="cloud",
+        inputs={"fields": [{"id": "entitlement_pem", "label": "RHEL entitlement PEM", "type": "string", "secret": True, "multiline": True}],
+                "required": ["entitlement_pem"]},
+        injectors={"file": {"template": "{{ entitlement_pem }}"}, "env": {"RHEL_ENTITLEMENT_FILE": "{{ tower.filename }}"}})
+    api.upsert("credentials/", "demo-rhel-entitlement", organization=org["id"], credential_type=rhel["id"],
+               inputs={"entitlement_pem": entitlement})
+    config = api.upsert("credential_types/", "Demo AAP dispatch", kind="cloud",
+        inputs={"fields": [
+            {"id": "host", "label": "AAP URL", "type": "string"},
+            {"id": "username", "label": "AAP username", "type": "string"},
+            {"id": "password", "label": "AAP password", "type": "string", "secret": True}],
+            "required": ["host", "username", "password"]},
+        injectors={"env": {"AAP_HOST": "{{ host }}", "AAP_USERNAME": "{{ username }}", "AAP_PASSWORD": "{{ password }}"}})
+    api.upsert("credentials/", "demo-aap-dispatch", organization=org["id"], credential_type=config["id"],
+               inputs={"host": api.host, "username": api.username, "password": api.password})
+    project = api.find("projects/", "demo-aap-config")
+    if project and project.get("credential"):
+        api.request(f"projects/{project['id']}/", {"credential": None}, "PATCH")
+    for obsolete in ("demo-forgejo-scm", "demo-virtualmachine-deployer"):
+        credential = api.find("credentials/", obsolete)
+        if credential:
+            api.request(f"credentials/{credential['id']}/", method="DELETE")
+    api.request("config/", {"manifest": base64.b64encode(manifest.read_bytes()).decode()})
+    apply_secret(NAMESPACE, "aap-bootstrap-inputs", {
+        "AAP_HOST": api.host, "AAP_USERNAME": api.username, "AAP_PASSWORD": api.password})
+    print("AAP license and runtime VM, SSH, entitlement, and dispatch credentials are ready")
+
+
+def launch(api, name, extra):
+    template = api.find("job_templates/", name)
+    if not template:
+        raise RuntimeError(f"Job template {name} was not found")
+    # Only the demo's three purposeful templates are exposed by this helper.
+    if name not in ("webapp_vm", "webapp_nginx", "aap_configure_all"):
+        raise RuntimeError("Only demo webapp and dispatch templates may be launched")
+    if name == "webapp_vm" and extra.get("vm_state") == "absent":
+        print("Deleting only webapp in webapp-vms")
+    result = api.request(f"job_templates/{template['id']}/launch/", {"extra_vars": extra})
+    print(f"Launched {name}: job {result['job']}")
+    api.wait(f"jobs/{result['job']}/")
+
+
+def main():
+    sys.stdout.reconfigure(line_buffering=True)
+    api = Controller()
+    action = sys.argv[1]
+    if action == "credentials":
+        prepare_credentials(api)
+    elif action == "launch":
+        launch(api, sys.argv[2], json.loads(sys.argv[3]) if len(sys.argv) > 3 else {})
+    else:
+        raise RuntimeError("Use credentials or launch TEMPLATE [JSON_EXTRA_VARS]")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (RuntimeError, urllib.error.URLError, subprocess.CalledProcessError, OSError, zipfile.BadZipFile) as error:
+        print(str(error), file=sys.stderr)
+        sys.exit(1)

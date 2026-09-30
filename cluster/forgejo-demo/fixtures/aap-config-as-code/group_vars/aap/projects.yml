@@ -2,7 +2,6 @@
 controller_projects:
   - name: demo-aap-config
     organization: demo
-    credential: demo-forgejo-scm
     scm_type: git
     scm_url: "{{ lookup('ansible.builtin.env', 'FORGEJO_URL') | default('__FORGEJO_URL__', true) }}/demo-owner/aap-config-as-code.git"
     scm_branch: main
