@@ -9,16 +9,8 @@ mp_defaults:
     memory: 2Gi
     ssh_service:
       type: PodIP
-    boot_source:
-      type: data_volume_source_ref
-      source_ref:
-        name: centos-stream10
-        namespace: openshift-virtualization-os-images
-      size: 30Gi
     vm_overrides:
       metadata:
         labels:
           app.kubernetes.io/part-of: molecule-tests
-molecule_expected_distribution: CentOS
-molecule_expected_distribution_major_version: "10"
 example_message: Hello from molecule on a KubeVirt VM

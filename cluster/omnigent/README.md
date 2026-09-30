@@ -38,13 +38,14 @@ The new collection golden path uses `david_igou.molecule_provisioners` pinned to
 molecule test
 ```
 
-Molecule installs test dependencies, clones the existing `centos-stream10` CDI
-DataSource into a 30 GiB disk in `molecule-tests`, boots a two-vCPU/2 GiB VM,
-converges over SSH to its pod IP, checks idempotence and the guest OS, then
-destroys the VM. `molecule test -s rhel10` runs the same lifecycle against the
-`rhel10` DataSource; `make test` runs both OS-image scenarios in sequence. Guest
-verification uses each scenario's expected distribution and major version.
-The declarative YAML inventories use fixed VM names `instance` and
+Molecule installs test dependencies and provisions both hosts in the default
+YAML inventory: `instance` clones `centos-stream10`, and `instance-rhel10` clones
+`rhel10`. Each VM gets a 30 GiB disk in `molecule-tests`, two vCPUs, and 2 GiB RAM.
+One `molecule test` converges both hosts over SSH to their pod IPs, checks
+idempotence and each host's expected guest OS, then destroys both VMs. Preflight
+checks both DataSources before provisioning; boot sources and expected
+distribution facts are per-host inventory variables.
+The declarative YAML inventory uses fixed VM names `instance` and
 `instance-rhel10`. Collision risk is accepted temporarily: serialize runs
 across all demo sandboxes, collections, and scenarios sharing `molecule-tests`.
 Overlapping runs can modify or delete each other's VM. The shared namespace
@@ -72,7 +73,7 @@ collection removes them after VM deletion. Source-image updates can change the
 DataSource's snapshot; the scenario references its stable DataSource name.
 
 If a test fails or is interrupted, run `molecule destroy` in the same collection
-once no other run is using that scenario's VM. A missing credential mount or an
+once no other run is using either VM. A missing credential mount or an
 unready DataSource must be resolved before testing. Existing generated
 collections retain their previous scenarios; regenerate or update them to use
 this setup. The fixture for the demo's separate existing collection is unchanged.

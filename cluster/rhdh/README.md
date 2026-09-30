@@ -13,8 +13,8 @@ The catalog exposes two templates:
 - **Contribute to the Demo Ansible Collection** reads an issue in
   `demo-owner/ansible-collection-demo` and creates `feature/issue-N`.
 
-The first template produces a collection with a starter role, Molecule
-scenarios backed by the cluster's CentOS Stream 10 and RHEL 10 CDI images, and a Devfile based
+The first template produces a collection with a starter role, one Molecule
+scenario with CentOS Stream 10 and RHEL 10 inventory hosts, and a Devfile based
 on Ansible Development Tools. In an Omnigent sandbox, `molecule test` from the
 generated collection root uses scoped access to disposable VMs in
 `molecule-tests`. The second only

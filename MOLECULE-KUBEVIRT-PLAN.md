@@ -191,29 +191,31 @@ variables, Molecule syntax passed, production-profile Ansible lint reported no
 failures or warnings, and the materialized collection built successfully. The
 latest YAML inventory has not been retested against the live cluster.
 
-## Multiple OS-image scenarios
+## Multiple OS-image inventory hosts
 
-Goal: support CentOS Stream 10 and RHEL 10 CDI boot images using declarative
-inventories and the existing provisioner lifecycle.
+Goal: test both CentOS Stream 10 and RHEL 10 in the default Molecule scenario,
+using one declarative YAML inventory and the existing provisioner lifecycle.
 
-The user confirmed separate OS-image scenarios. Both have fixed VM names;
-distinct agents running the same scenario can still collide.
+The user's latest correction requires both OS images in the same inventory.
+Remove the separate `rhel10` scenario. Both hosts have fixed VM names;
+distinct agent test runs can still collide.
 
-1. Keep `default` on CentOS Stream 10 and add `rhel10`, reusing the lifecycle
-   playbooks while declaring its own inventory and expected distribution facts.
-2. Make preflight errors name the selected DataSource and make guest verification
-   read expected OS facts from inventory. Add only `rhel10` to DataSource read RBAC.
-3. Document `molecule test -s rhel10`, `make test`, and how to add another image;
+1. Add both boot sources and expected distribution facts to inventory hosts;
+   keep compute, networking, and SSH defaults in group variables.
+2. Check every host's DataSource before provisioning, and verify OS facts per
+   host. Retain the `centos-stream10` / `rhel10` DataSource read grant.
+3. Document that one `molecule test` exercises both hosts and how to add another;
    retain the accepted collision risk and requirement to serialize shared runs.
-4. Validate both effective inventories, scenario syntax, guest-check behavior,
+4. Validate the two-host inventory, scenario syntax, preflight and guest checks,
    lint, collection packaging, and the Omnigent render. Inspect source image
    readiness read-only; no live VM provisioning is part of this follow-up.
 
 Read-only checks found both DataSources ready with 30 GiB source snapshots.
 
-Validation passed for both scenarios: Ansible inventory and group-variable
-resolution, `molecule syntax --all`, production-profile lint with no warnings,
-collection build, and Omnigent render with the two-name DataSource read grant.
-An offline container harness exercised the actual shared guest assertion with
-six matching/mismatched distribution and major-version cases; all behaved as
-expected. No live end-to-end run was performed for these scenarios.
+The corrected two-host inventory passed fresh local validation: inventory and
+group-variable loading, default scenario syntax, production-profile lint without
+warnings, and collection packaging. An offline container harness used the actual
+provisioner renderer to check both VM/DataVolume names and boot references,
+exercised six per-host guest checks, and checked four DataSource readiness cases
+including either image unready and a missing RHEL image. No live end-to-end run
+was performed for the two-host inventory.

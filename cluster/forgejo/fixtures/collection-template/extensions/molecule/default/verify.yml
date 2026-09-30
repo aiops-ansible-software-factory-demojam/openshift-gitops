@@ -17,7 +17,7 @@
         gather_subset:
           - distribution
 
-    - name: Verify the golden image guest matches the scenario
+    - name: Verify the golden image guest matches its inventory host
       ansible.builtin.assert:
         that:
           - ansible_facts['distribution'] == molecule_expected_distribution
