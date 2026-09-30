@@ -1,0 +1,6 @@
+---
+# Certified collections are already present in the supported AAP base image.
+# --no-deps prevents Galaxy from trying to fetch those certified collections.
+collections:
+  - name: infra.aap_configuration
+    version: 4.8.0
