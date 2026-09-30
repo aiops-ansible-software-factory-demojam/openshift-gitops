@@ -47,11 +47,16 @@ It is not needed for AAP configuration or job execution.
 creates a gateway token for the Resource Operator, and applies the bootstrap
 `AnsibleInventory` and `AnsibleProject` CRs. It waits for the real inventory and
 synced project in AAP, then applies the `JobTemplate` CR and verifies its API
-bindings. An EE Job then
-clones public Forgejo, installs project requirements, and runs configuration dispatch. The installed operator
-template role does not set an EE; dispatch attaches it and runtime credentials, and
-manages inventory sources and application templates. The CRs own the initial
-inventory and project. Subsequent sync uses `aap_configure_all`.
+bindings. Bootstrap then registers the supported EE, attaches it and the runtime
+dispatch credential to `aap_configure_all`, and syncs `inventory.yml` through an
+SCM inventory source. This supplies the `aap` host that the initially empty
+inventory CR does not contain. Bootstrap launches the template with
+`POST /api/controller/v2/job_templates/<id>/launch/` and waits for the Controller
+job to succeed. AAP's project update installs `requirements.yml`; dispatch
+manages the remaining inventory sources and application templates. The CRs own
+the initial inventory/project/template base fields. First and subsequent syncs
+both run through `aap_configure_all`; no standalone Kubernetes configuration Job
+or bootstrap password-copy Secret is created.
 
 The VM service account and token live in `ansible-automation-platform`, with
 RoleBindings granting access to `automation-vms` and `webapp-vms`. All AAP SCM
