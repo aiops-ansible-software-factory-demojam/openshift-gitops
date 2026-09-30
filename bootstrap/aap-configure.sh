@@ -26,7 +26,7 @@ oc apply -f "$demo_repo_root/bootstrap/aap-resources/aap-configure-all-jobtempla
 oc -n "$namespace" wait --for=condition=Successful jobtemplate/aap-configure-all --timeout=15m
 python3 "$demo_repo_root/bootstrap/aap-runtime.py" wait-resources
 forgejo_url=http://forgejo.forgejo.svc.cluster.local:3000
-image=${AAP_EE_IMAGE:-image-registry.openshift-image-registry.svc:5000/$namespace/demo-aap-ee:latest}
+image=$AAP_EE_IMAGE
 oc -n "$namespace" delete job aap-configure --ignore-not-found --wait=true >/dev/null
 yq '.' "$demo_repo_root/bootstrap/aap-configure-job.yaml" | jq \
   --arg image "$image" --arg repo "$forgejo_url/demo-owner/demojam-ansible.git" '

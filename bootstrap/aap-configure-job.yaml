@@ -18,7 +18,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: configure
-          image: image-registry.openshift-image-registry.svc:5000/ansible-automation-platform/demo-aap-ee:latest
+          image: registry.redhat.io/ansible-automation-platform-27/ee-supported-rhel9@sha256:d97a6fc9c34132bfddf5c8f0db93a24fea67ed3db2094d15f78d7f4eba724f1f
           imagePullPolicy: Always
           securityContext:
             allowPrivilegeEscalation: false
@@ -31,6 +31,7 @@ spec:
             - |
               git clone --depth 1 --branch main "$CONFIG_REPO_URL" /runner/project
               cd /runner/project
+              ansible-galaxy collection install -r requirements.yml
               exec ansible-playbook playbooks/aap/configure-aap.yml
           envFrom:
             - secretRef:

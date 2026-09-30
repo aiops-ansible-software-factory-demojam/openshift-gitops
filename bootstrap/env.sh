@@ -9,6 +9,7 @@ if [[ -f $demo_env_file ]]; then
   source "$demo_env_file"
   set +a
 fi
+export AAP_EE_IMAGE=${AAP_EE_IMAGE:-registry.redhat.io/ansible-automation-platform-27/ee-supported-rhel9@sha256:d97a6fc9c34132bfddf5c8f0db93a24fea67ed3db2094d15f78d7f4eba724f1f}
 export KUBECONFIG=${KUBECONFIG:-$HOME/.kube/config}
 
 demo_verify_cluster() {

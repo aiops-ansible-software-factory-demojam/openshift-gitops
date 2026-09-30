@@ -30,28 +30,25 @@ RBAC in `automation-vms` and `webapp-vms`, plus OS disk clone permissions.
 Bootstrap creates its persistent API token and the AAP credential directly;
 config-as-code references that credential without owning its secret inputs.
 
-The public `demojam-ansible` repo owns its `execution-environment.yml` and
-`requirements.yml` for the mutable Git collection. Certified collections are
-pinned in the EE definition. `make aap-ee` starts one
-Tekton PipelineRun: clone the public repo, render with ansible-builder, build
-with Buildah, and push `demo-aap-ee:latest` to the internal registry. The
-OpenShift Pipelines operator is installed by GitOps. This is an explicit build,
-with no CI trigger. Hub credentials are temporary mounted Secrets,
-never build arguments or task results. Bootstrap removes completed task pods,
-build workspaces and the Hub Secret after collecting the image digest.
-Failed task pods are retained for log inspection.
-Buildah does not inherit kubelet authentication. Instead, a pipeline step
-imports the repository-defined base into an ImageStream with local reference
-policy. OpenShift performs the authenticated import; Buildah pulls through the
-internal registry using its service account token. The namespace service CA
-verifies registry TLS. No global pull Secret is copied into the task.
+AAP uses the pinned Red Hat `ee-supported-rhel9` image directly. There is no
+custom AAP EE build or Automation Hub token. Public project `requirements.yml`
+installs `infra.aap_configuration` from Galaxy and the example collection from
+Forgejo Git. Controller's project sync isolates its collection cache from the
+image collection path. The requirements therefore copy CaC's four certified
+dependencies from `/usr/share/ansible/collections` in the supported image into
+that cache; no Hub download is performed. Project sync and execution use the
+supported image's Python/system dependencies and Virtualization collection.
+OpenShift pulls this image using its existing registry authentication.
+
+OpenShift Pipelines remains installed for the separate OpenCode sandbox image.
+It is not needed for AAP configuration or job execution.
 
 `make aap-configure` imports `aap_manifest.zip`, seeds runtime credentials,
 creates a gateway token for the Resource Operator, and applies the bootstrap
 `AnsibleInventory` and `AnsibleProject` CRs. It waits for the real inventory and
 synced project in AAP, then applies the `JobTemplate` CR and verifies its API
 bindings. An EE Job then
-clones public Forgejo and runs configuration dispatch. The installed operator
+clones public Forgejo, installs project requirements, and runs configuration dispatch. The installed operator
 template role does not set an EE; dispatch attaches it and runtime credentials, and
 manages inventory sources and application templates. The CRs own the initial
 inventory and project. Subsequent sync uses `aap_configure_all`.
@@ -59,8 +56,8 @@ inventory and project. Subsequent sync uses `aap_configure_all`.
 The VM service account and token live in `ansible-automation-platform`, with
 RoleBindings granting access to `automation-vms` and `webapp-vms`. All AAP SCM
 and Git collection reads use the internal Forgejo Service without credentials.
-Certified collections are built into the EE using temporary Hub authentication.
-Project updates use anonymous Forgejo and an anonymous Galaxy source; no runtime
+Certified collections are already bundled in the supported EE.
+Project updates use anonymous Forgejo and an anonymous Galaxy source; no
 Hub credential is needed.
 
 The first install pulls several large images. If the node briefly reports
