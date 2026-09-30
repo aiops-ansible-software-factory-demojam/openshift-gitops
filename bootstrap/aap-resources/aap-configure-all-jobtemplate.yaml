@@ -6,6 +6,7 @@ metadata:
 spec:
   connection_secret: aap-resource-connection
   name: aap_configure_all
+  organization: demo
   project: demojam-ansible
   inventory: demo-inventory
   playbook: playbooks/aap/configure-aap.yml
