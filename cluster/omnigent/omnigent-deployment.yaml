@@ -14,7 +14,7 @@ spec:
     metadata:
       annotations:
         # The config is a subPath mount; roll the server to load test credentials.
-        demo.igou.systems/sandbox-config-revision: molecule-v1
+        demo.igou.systems/sandbox-config-revision: molecule-v2
       labels:
         app: omnigent
     spec:
