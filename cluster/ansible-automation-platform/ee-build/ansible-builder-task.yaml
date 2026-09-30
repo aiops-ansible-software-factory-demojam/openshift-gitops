@@ -20,6 +20,6 @@ spec:
         set -euo pipefail
         ansible-builder create -f execution-environment.yml -c ../context --output-filename Containerfile
         # Builder emits the Galaxy RUN instructions. Mount authentication only there.
-        sed -i '/^RUN .*ansible-galaxy/s/^RUN /RUN --mount=type=secret,id=automation-hub /' ../context/Containerfile
+        sed -i '/^RUN .*ansible-galaxy/s/^RUN /RUN --mount=type=secret,id=automation-hub,target=\/run\/secrets\/automation-hub.cfg /' ../context/Containerfile
         base_image=$(awk -F= '/^ARG EE_BASE_IMAGE=/{print substr($0,index($0,"=")+1);exit}' ../context/Containerfile | tr -d '"')
         printf '%s' "$base_image" > "$(results.BASE_IMAGE.path)"

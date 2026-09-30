@@ -22,7 +22,7 @@ run=
 cleanup() {
   find "$scratch" -type f -delete
   find "$scratch" -depth -type d -empty -delete
-  # Keep logs/status, but release large task caches and the workspace disk.
+  # Keep run status, but release successful task caches and the workspace disk.
   # Leave credentials mounted if an interrupted script's build is still active.
   if [[ -n $run ]] && [[ $(oc -n "$namespace" get "$run" -o jsonpath='{.status.conditions[0].status}' 2>/dev/null) =~ ^(True|False)$ ]]; then
     if [[ $(oc -n "$namespace" get "$run" -o jsonpath='{.status.conditions[0].status}') == True ]]; then

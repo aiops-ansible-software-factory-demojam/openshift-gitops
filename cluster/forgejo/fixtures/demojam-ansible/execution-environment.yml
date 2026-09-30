@@ -19,4 +19,4 @@ build_arg_defaults:
 additional_build_steps:
   # Buildah mounts this secret only during RUN steps; it is never copied.
   prepend_galaxy:
-    - ENV ANSIBLE_CONFIG=/run/secrets/automation-hub
+    - ENV ANSIBLE_CONFIG=/run/secrets/automation-hub.cfg
