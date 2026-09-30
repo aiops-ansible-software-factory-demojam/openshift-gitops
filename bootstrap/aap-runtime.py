@@ -169,21 +169,16 @@ def prepare_credentials(api):
     api.upsert("credentials/", "demo-aap-dispatch", organization=org["id"], credential_type=config["id"],
                inputs={"host": api.host, "username": api.username, "password": api.password})
     galaxy = api.find("credential_types/", "Ansible Galaxy/Automation Hub API Token")
-    hub = api.upsert("credentials/", "demo-automation-hub", organization=org["id"], credential_type=galaxy["id"],
-        inputs={"url": "https://console.redhat.com/api/automation-hub/content/published/",
-                "auth_url": "https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token",
-                "token": os.environ["RH_AUTOMATIONHUB_TOKEN"]})
     community = api.upsert("credentials/", "demo-galaxy", organization=org["id"], credential_type=galaxy["id"],
         inputs={"url": "https://galaxy.ansible.com/"})
-    for credential in (hub, community):
-        api.request(f"organizations/{org['id']}/galaxy_credentials/", {"id": credential["id"], "associate": True})
+    api.request(f"organizations/{org['id']}/galaxy_credentials/", {"id": community["id"], "associate": True})
     if not oc("-n", NAMESPACE, "get", "secret", "aap-resource-connection", "--ignore-not-found", "-o", "name"):
         token = api.request("tokens/", {"description": "demojam resource operator", "scope": "write"}, prefix="/api/gateway/v1/")
         apply_secret(NAMESPACE, "aap-resource-connection", {"host": api.host, "token": token["token"]})
     project = api.find("projects/", "demojam-ansible", organization=org["id"])
     if project and project.get("credential"):
         api.request(f"projects/{project['id']}/", {"credential": None}, "PATCH")
-    for obsolete in ("demo-forgejo-scm", "demo-virtualmachine-deployer"):
+    for obsolete in ("demo-forgejo-scm", "demo-virtualmachine-deployer", "demo-automation-hub"):
         credential = api.find("credentials/", obsolete, organization=org["id"])
         if credential:
             api.request(f"credentials/{credential['id']}/", method="DELETE")

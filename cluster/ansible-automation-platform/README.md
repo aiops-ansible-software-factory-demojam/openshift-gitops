@@ -31,7 +31,8 @@ Bootstrap creates its persistent API token and the AAP credential directly;
 config-as-code references that credential without owning its secret inputs.
 
 The public `demojam-ansible` repo owns its `execution-environment.yml` and
-single `requirements.yml` (also linked under `collections/`). `make aap-ee` starts one
+`requirements.yml` for the mutable Git collection. Certified collections are
+pinned in the EE definition. `make aap-ee` starts one
 Tekton PipelineRun: clone the public repo, render with ansible-builder, build
 with Buildah, and push `demo-aap-ee:latest` to the internal registry. The
 OpenShift Pipelines operator is installed by GitOps. This is an explicit build,
@@ -47,16 +48,20 @@ verifies registry TLS. No global pull Secret is copied into the task.
 
 `make aap-configure` imports `aap_manifest.zip`, seeds runtime credentials,
 creates a gateway token for the Resource Operator, and applies the bootstrap
-`AnsibleInventory`, `AnsibleProject` and `JobTemplate` CRs. An EE Job then
+`AnsibleInventory` and `AnsibleProject` CRs. It waits for the real inventory and
+synced project in AAP, then applies the `JobTemplate` CR and verifies its API
+bindings. An EE Job then
 clones public Forgejo and runs configuration dispatch. The installed operator
-JobTemplate schema cannot set an EE or credentials; dispatch adds those and
+template role does not set an EE; dispatch attaches it and runtime credentials, and
 manages inventory sources and application templates. The CRs own the initial
 inventory and project. Subsequent sync uses `aap_configure_all`.
 
 The VM service account and token live in `ansible-automation-platform`, with
 RoleBindings granting access to `automation-vms` and `webapp-vms`. All AAP SCM
 and Git collection reads use the internal Forgejo Service without credentials.
-Certified collection updates use the runtime `demo-automation-hub` credential.
+Certified collections are built into the EE using temporary Hub authentication.
+Project updates use anonymous Forgejo and an anonymous Galaxy source; no runtime
+Hub credential is needed.
 
 The first install pulls several large images. If the node briefly reports
 `DiskPressure`, inspect its free space and wait for kubelet to clear the

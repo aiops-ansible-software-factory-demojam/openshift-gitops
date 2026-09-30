@@ -17,16 +17,17 @@ after populating its root `.env` and supplying `aap_manifest.zip`.
    into an ImageStream using cluster authentication; Buildah uses the internal
    registry and its service account token, without copying global pull secrets.
    It pushes the EE into
-   the cluster registry. The root `requirements.yml` is the single collection
-   dependency list used for both EE builds and AAP project synchronization.
+   the cluster registry. Certified collections are pinned in the EE definition. Root
+   `requirements.yml` installs the mutable example Git collection during AAP
+   project synchronization, keeping private Hub downloads in the EE build.
 3. Bootstrap imports the license and creates/reuses the VM API, SSH, RHEL
-   entitlement, Hub and dispatch credentials. It creates an OAuth connection
-   Secret and applies Resource Operator CRs for the project, inventory and
-   dispatch template. No credential values are seeded in Git.
+   entitlement and dispatch credentials. It creates an OAuth connection
+   Secret and applies the inventory/project CRs, waits for the real project
+   to sync, then creates the dispatch template CR. No credential values are seeded in Git.
 4. An EE Job clones this public repo and runs dispatch to configure the EE,
    inventory sources and templates. The Resource Operator owns the initial
-   project/inventory; dispatch attaches the EE and credentials missing from
-   the operator's JobTemplate schema. Static inventory supplies the VM API
+   project/inventory/template base fields; dispatch attaches the EE and runtime
+   credentials. Static inventory supplies the VM API
    target; dynamic inventory discovers running VMs.
 
 SCM and Git collection URLs use `http://forgejo.forgejo.svc.cluster.local:3000`.
@@ -50,7 +51,7 @@ SSH key through cloud-init. The second refreshes discovery, waits for SSH,
 enables the entitled RHEL 9 BaseOS/AppStream repositories, and uses
 `demo.greetings.nginx` from the public example collection. Controller installs
 that collection from `requirements.yml` on project synchronization;
-root `requirements.yml` links to the same file. No Galaxy upload is required.
+No Galaxy upload is required.
 
 VM inventory queries only `automation-vms` and `webapp-vms`. The webapp is
 `webapp-webapp-vms` in group `webapps`; its SSH hostname is the internal Service.

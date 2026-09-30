@@ -24,7 +24,7 @@
       vars:
         aap_configuration_secure_logging: true
         assign_default_ee_to_org: false
-        aap_configuration_async_retries: 120
+        aap_configuration_async_retries: 300
         aap_configuration_async_delay: 2
         # Same gateway compatibility workaround as the homelab dispatcher.
         aap_configuration_dispatcher_exclude_roles:

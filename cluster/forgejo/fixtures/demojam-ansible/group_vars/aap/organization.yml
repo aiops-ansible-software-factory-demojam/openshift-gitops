@@ -5,5 +5,4 @@ aap_organizations:
     description: Disposable automation demo
     state: present
     galaxy_credentials:
-      - demo-automation-hub
       - demo-galaxy
