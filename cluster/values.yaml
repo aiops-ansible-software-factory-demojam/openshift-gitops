@@ -92,7 +92,8 @@ applications:
 
   ansible-automation-platform:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      # Compare the desired resources including Tekton admission defaults.
+      argocd.argoproj.io/compare-options: IgnoreExtraneous,ServerSideDiff=true,IncludeMutationWebhook=true
       argocd.argoproj.io/sync-wave: "30"
     destination:
       namespace: ansible-automation-platform
