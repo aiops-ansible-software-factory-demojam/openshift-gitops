@@ -40,8 +40,27 @@ oc -n "$namespace" create secret generic aap-ee-automation-hub \
 ansible-builder create -f "$demo_repo_root/execution-environment.yml" \
   --context "$scratch/context" --output-filename Containerfile
 tar -czf "$scratch/context.tar.gz" -C "$scratch/context" .
-oc -n "$namespace" start-build demo-aap-ee \
-  --from-archive="$scratch/context.tar.gz" --follow --wait
+build=$(oc -n "$namespace" start-build demo-aap-ee \
+  --from-archive="$scratch/context.tar.gz" -o name)
+echo "Started $build"
+# A long log stream can close while the build continues. Build phase, rather
+# than the transport connection, determines whether bootstrap succeeds.
+oc -n "$namespace" logs "$build" --follow ||
+  echo 'Build log stream ended; waiting on the Build resource.' >&2
+deadline=$((SECONDS + 2700))
+while :; do
+  phase=$(oc -n "$namespace" get "$build" -o jsonpath='{.status.phase}')
+  case "$phase" in
+    Complete) break ;;
+    Failed|Error|Cancelled)
+      echo "$build ended with phase $phase." >&2; exit 1 ;;
+  esac
+  if (( SECONDS >= deadline )); then
+    echo "Timed out waiting for $build ($phase)." >&2; exit 1
+  fi
+  sleep 10
+done
+echo "$build completed."
 cleanup_build_pods
 # SNO may need kubelet's pressure transition period after unpacking large images.
 # Do not schedule AAP jobs until the node can admit them normally.
