@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """The small imperative seam: create runtime AAP credentials before Git dispatch."""
 import base64
+import http.client
 import io
 import json
 import os
@@ -43,13 +44,23 @@ class Controller:
         req = urllib.request.Request(self.host + "/api/controller/v2/" + path,
             data=json.dumps(data).encode() if data is not None else None,
             headers={"Authorization": "Basic " + auth, "Content-Type": "application/json"}, method=method)
-        try:
-            with urllib.request.urlopen(req, timeout=60) as response:
-                payload = response.read()
-                return json.loads(payload) if payload else {}
-        except urllib.error.HTTPError as error:
-            # API payloads can contain inputs. Keep credential errors out of logs.
-            raise RuntimeError(f"AAP {req.get_method()} {path.split('?')[0]} returned HTTP {error.code}") from None
+        # Polling must tolerate a brief ingress/network interruption. Never
+        # retry writes: a timed-out launch might already have created a job.
+        attempts = 3 if req.get_method() == "GET" else 1
+        for attempt in range(attempts):
+            try:
+                with urllib.request.urlopen(req, timeout=60) as response:
+                    payload = response.read()
+                    return json.loads(payload) if payload else {}
+            except urllib.error.HTTPError as error:
+                if error.code not in (502, 503, 504) or attempt == attempts - 1:
+                    # API payloads can contain inputs. Never print them.
+                    raise RuntimeError(f"AAP {req.get_method()} {path.split('?')[0]} returned HTTP {error.code}") from None
+            except (urllib.error.URLError, TimeoutError, http.client.RemoteDisconnected):
+                if attempt == attempts - 1:
+                    raise RuntimeError(f"AAP {req.get_method()} {path.split('?')[0]} could not complete after {attempts} attempt(s)") from None
+            print(f"AAP GET {path.split('?')[0]} interrupted; retrying")
+            time.sleep(5 * (attempt + 1))
 
     def find(self, endpoint, name, **filters):
         result = self.request(endpoint + "?" + urllib.parse.urlencode({"name": name, **filters}))
