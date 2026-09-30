@@ -2,106 +2,73 @@
 
 This repository follows the homelab `igou-inventory/group_vars/aap` model:
 declare AAP objects as inventory data and apply them with
-`infra.aap_configuration.dispatch`. It combines the inventory and playbooks
-in one repository so the demo needs one SCM project. Credentials come from
-the runner environment rather than the homelab's 1Password integrations.
+`infra.aap_configuration`. Inventory and playbooks share one SCM project.
+Credentials come from the runner environment rather than 1Password.
 
-The dispatcher creates a `demo` organization, Forgejo project, SCM inventory,
-execution environment, credentials, and the `openshift_virtualization_machine`
-job template. Project and inventory refresh on launch. There are no schedules
-or automatic CI jobs. Applying configuration does not launch a VM.
+The configuration creates a `demo` organization, Forgejo project, execution
+environment, credentials, inventory, and `openshift_virtualization_machine`
+job template. The inventory combines the static `demo_cluster` API target
+with VM discovery in `automation-vms`. There are no schedules or automatic CI.
+Applying configuration imports the subscription and syncs inventory; it does
+not launch a VM.
 
-## Required credentials
+## Build and configure from the GitOps repository
 
-- AAP admin authentication: the operator creates `aap-admin-password` in
-  `ansible-automation-platform`; supply its password through `AAP_PASSWORD`.
-- An active AAP subscription manifest must be installed before Controller
-  can run jobs. Operator installation alone does not license Controller.
-- Forgejo SCM token: hydration generates the `demo-agent` token used below.
-- Kubernetes API token: mint it from the GitOps-owned `aap-vm-deployer`
-  service account. The CA certificate is public configuration, not a secret.
-- Registry authentication: building needs access to the Red Hat supported
-  base; publishing needs a writable destination. A private EE destination
-  also needs registry pull authentication. For an external private registry,
-  attach a Container Registry credential in AAP.
+GitOps creates the `demo-aap-ee` BuildConfig and ImageStream in
+`ansible-automation-platform`. OpenShift pulls the pinned supported AAP 2.7
+base using its existing registry credentials, adds `infra.aap_configuration`,
+and pushes `demo-aap-ee:latest` to the internal registry. Certified Controller,
+Platform and OpenShift Virtualization collections come from the base.
+No local build, image tag input, or Red Hat registry password is needed.
 
-No guest SSH credential is required to create or delete a VM through the API.
-
-## Build the execution environment
-
-The pinned Red Hat supported AAP 2.7 base image supplies the certified
-Controller, Gateway, EDA, Hub, and OpenShift Virtualization collections.
-The build adds the pinned config-as-code collection. Its API module
-dependencies are already supplied by the supported base.
-Galaxy installation skips transitive certified dependencies because they
-are already in the base image. The dispatcher carries the same
-`controller_applications` compatibility exclusion and extended async waits
-as the homelab implementation.
-
-Authenticate Podman to `registry.redhat.io` and to the registry where you
-will publish the EE. Set `AAP_EE_IMAGE` to your writable registry image tag:
+From the GitOps repository root, populate `.env` with `AAP_PASSWORD` and the
+hydration-generated demo-agent `FORGEJO_TOKEN`. The operator's gateway admin
+password is in `aap-admin-password`. Place your subscription manifest at
+`aap_manifest.zip` in the same directory; both files are gitignored.
 
 ```bash
-make ee
-podman push "$AAP_EE_IMAGE"
+make aap-ee
+make aap-configure
 ```
 
-Use a registry image the demo cluster can pull. For an external private
-destination, attach an AAP Container Registry credential to the execution
-environment. The OpenShift internal registry can instead use the container
-group service account's pull permissions. This was verified for an image
-in the AAP namespace without a separate AAP registry credential.
+These explicit commands require `oc`, `yq`, `jq`, and `tar`. They load `.env`
+from the current directory, default `KUBECONFIG` to `$HOME/.kube/config`, and
+verify the cluster identity. `EXPECTED_SERVER` can pin the intended API URL.
+`AAP_LICENSE_FILE` overrides the default root manifest path. `AAP_EE_IMAGE`
+is an optional image override; the default is the internal BuildConfig output.
+From a clone of this Forgejo repository, use `make ee` and `make configure`
+instead, with the same `.env` and manifest conventions.
 
-## Apply AAP configuration
+Configuration runs in an explicit OpenShift Job using the built EE. It
+streams the manifest into the Job, uploads the project, and imports the license through
+`infra.aap_configuration.controller_license` **before** dispatching other
+objects. Missing manifests fail before a Job is created. Credential task
+output is protected, the temporary input Secret is deleted after the run,
+and the Job expires after an hour. Large manifests are supported without
+putting the ZIP in a size-limited Kubernetes Secret. This is an on-demand
+bootstrap operation.
 
-Clone `__FORGEJO_URL__/demo-owner/aap-config-as-code.git`; the demo identities
-are documented in the GitOps repository's Forgejo guide. Install
-`ansible-navigator`, `ansible-builder` 3.1 or later, and Podman on the runner.
+The helper discovers the AAP and Forgejo Routes, cluster API URL and public
+CA. It mints an eight-hour token from GitOps' `aap-vm-admin` service account
+when `K8S_AUTH_API_KEY` is unset. Rerun configuration to renew that token.
+`AAP_HOST`, `FORGEJO_URL`, `K8S_AUTH_HOST`, `K8S_AUTH_API_KEY`, and
+`AAP_K8S_CA_CERT` remain optional overrides in `.env`.
 
-GitOps creates `automation-vms`, the `aap-vm-deployer` service account, and
-namespace-scoped RBAC. The service account can manage VMs and DataVolumes
-there and clone OS disks from `openshift-virtualization-os-images`. It cannot
-create namespaces or change VMs in other namespaces.
+The same `demo-virtualmachine-admin` AAP credential is attached to the
+`demo-virtualmachines` inventory source and the VM job template. Its service
+account can manage VMs/DataVolumes in `automation-vms`, read their services,
+and clone standard OS disks. It cannot change VMs in other namespaces or
+create namespaces. Discovery uses the certified
+`redhat.openshift_virtualization.kubevirt` inventory plugin and explicitly
+limits its namespace to `automation-vms`. VM hosts use `<name>-<namespace>`.
+The static inventory remains available to create the first VM.
 
-With the demo cluster's `KUBECONFIG` active, verify the identity and supply
-runtime inputs without adding credentials to files tracked by Git:
-
-```bash
-oc whoami --show-server
-oc whoami
-export AAP_HOST="https://$(oc -n ansible-automation-platform get route aap -o jsonpath='{.spec.host}')"
-export AAP_USERNAME=admin
-read -rsp 'AAP admin password: ' AAP_PASSWORD
-export AAP_PASSWORD
-export K8S_AUTH_HOST=$(oc whoami --show-server)
-export K8S_AUTH_API_KEY=$(oc -n automation-vms create token aap-vm-deployer --duration=8h)
-export AAP_K8S_CA_CERT=$(oc -n automation-vms get configmap kube-root-ca.crt -o go-template='{{index .data "ca.crt"}}')
-```
-
-`AAP_K8S_CA_CERT` holds certificate contents for the AAP credential. Do not
-use `K8S_AUTH_CA_CERT` for these contents: Kubernetes modules treat that
-environment variable as a filename.
-
-Set `FORGEJO_TOKEN` to the demo-agent token written by GitOps hydration and
-keep the `AAP_EE_IMAGE` used for the build exported:
-
-```bash
-ingress_domain=$(oc -n openshift-ingress-operator get ingresscontroller default -o jsonpath='{.status.domain}')
-export FORGEJO_TOKEN=$(cat "/workspace/openshift-gitops/cluster/forgejo-demo/.state/$ingress_domain/agent-token")
-make configure
-```
-
-TLS verification is enabled for AAP and Kubernetes. If the AAP Route uses
-a private CA, add that CA to the EE trust store before building. The service
-account token expires; mint a replacement and rerun `make configure` before
-it expires or after a cluster reset. The dispatcher protects credential task
-output, and navigator playbook artifacts are disabled.
-
-A successful dispatch confirms that the objects were applied. It does not
-guarantee that the asynchronous SCM inventory update succeeded. Check the
-project and inventory source status in AAP before launching the VM template.
-An unlicensed Controller can sync the project and create the template, but
-its inventory update fails with `No license found!` and imports no hosts.
+Both inventory sources wait for their updates; configuration reports failed
+syncs instead of returning while they are pending. The dispatcher retains
+the homelab's `controller_applications` compatibility exclusion. AAP and
+Kubernetes TLS verification remain enabled. `AAP_K8S_CA_CERT` is certificate
+**contents** for the AAP credential; `K8S_AUTH_SSL_CA_CERT` is a **file path**
+for local navigator checks. Do not put PEM contents in `K8S_AUTH_CA_CERT`.
 
 ## Create and remove a VM
 
@@ -113,9 +80,9 @@ vm_name: automation-demo
 vm_state: present
 ```
 
-The default guest is CirrOS with one CPU, 512 MiB RAM, a container disk, and
-the pod network. The job waits for the VM to become Ready. The container
-disk is disposable: use a DataSource clone for a persistent Fedora VM:
+The default guest is CirrOS with one CPU, 512 MiB RAM, a disposable container
+disk, and the pod network. The job waits for Ready. For a persistent Fedora
+VM, use a DataSource clone:
 
 ```yaml
 host: demo_cluster
@@ -130,30 +97,24 @@ vm_user_data: |
   ssh_pwauth: false
 ```
 
-Add your public SSH key to `vm_user_data` when you need guest access. The
-DataSource must be Ready and the default StorageClass must support the disk.
-For deletion, launch with the same `host` and `vm_name`, and `vm_state: absent`.
-VM deletion also removes its owned DataVolume and PVC. Change disk source
-only after deleting the existing VM.
-
-To run the same playbook locally with navigator, write the non-secret CA
-certificate to the ignored project file and point the EE at that mounted file:
+Add a public SSH key to `vm_user_data` when guest login is needed. No guest
+SSH credential is needed for API creation/deletion. The DataSource must be
+Ready and the default StorageClass must support the disk. For deletion, use
+the same `host` and `vm_name` with `vm_state: absent`. VM deletion removes
+its owned DataVolume and PVC. Delete a VM before changing its disk source.
 
 ```bash
-printf '%s\n' "$AAP_K8S_CA_CERT" > cluster-ca.crt
-export K8S_AUTH_SSL_CA_CERT="$PWD/cluster-ca.crt"
-make vm VM_ARGS='-e vm_name=automation-demo -e vm_state=present'
-oc -n automation-vms get virtualmachines,virtualmachineinstances
-make vm VM_ARGS='-e vm_name=automation-demo -e vm_state=absent'
+oc -n automation-vms get virtualmachines,virtualmachineinstances,datavolumes
 ```
 
 ## Seed and reset
 
-The GitOps fixture supplies this repository only when it is empty. Normal
-hydration preserves its commits, branches, issues, and PRs. The existing
-`make demo-reset` wipes Forgejo and recreates the starting repository along
-with the collection fixtures. It does not reset AAP objects or delete VMs;
-delete a VM through the playbook and rerun configuration for AAP convergence.
+GitOps seeds this repository only when it is empty. Normal hydration
+preserves commits, branches, issues and PRs. `make demo-reset` wipes Forgejo
+and recreates the starting repositories. It does not reset AAP objects or
+delete VMs; delete VMs through the playbook and rerun configuration for AAP
+convergence. Manifest ZIPs, `.env` files and local runtime artifacts are
+excluded from fixture snapshots.
 
 References: [AAP configuration collection](https://github.com/redhat-cop/infra.aap_configuration),
 [OpenShift Virtualization collection](https://catalog.redhat.com/en/software/collection/redhat/openshift_virtualization),

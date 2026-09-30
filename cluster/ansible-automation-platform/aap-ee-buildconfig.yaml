@@ -1,0 +1,27 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: demo-aap-ee
+  namespace: ansible-automation-platform
+  annotations:
+    argocd.argoproj.io/sync-wave: '-1'
+spec:
+  runPolicy: Serial
+  successfulBuildsHistoryLimit: 1
+  failedBuildsHistoryLimit: 1
+  source:
+    type: Git
+    git:
+      uri: https://github.com/aiops-ansible-software-factory-demojam/openshift-gitops.git
+      ref: main
+    contextDir: cluster/forgejo-demo/fixtures/aap-config-as-code
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Containerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      name: demo-aap-ee:latest
+  triggers:
+    - type: ConfigChange

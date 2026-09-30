@@ -1,0 +1,83 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: aap-configure
+  namespace: ansible-automation-platform
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 900
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      serviceAccountName: aap-controller
+      automountServiceAccountToken: false
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: configure
+          image: image-registry.openshift-image-registry.svc:5000/ansible-automation-platform/demo-aap-ee:latest
+          imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          command:
+            - /bin/bash
+            - -ceu
+            - |
+              mkdir -p /runner/project
+              tar -xzf /runner/inputs/project.tar.gz -C /runner/project
+              cd /runner/project
+              until [[ -f /runner/manifest.ready ]]; do sleep 1; done
+              exec ansible-playbook playbooks/aap/configure-aap.yml
+          env:
+            - name: HOME
+              value: /runner
+            - name: AAP_HOST
+              value: ''
+            - name: AAP_USERNAME
+              value: admin
+            - name: AAP_EE_IMAGE
+              value: ''
+            - name: FORGEJO_URL
+              value: ''
+            - name: K8S_AUTH_HOST
+              value: ''
+            - name: AAP_LICENSE_FILE
+              value: /runner/aap_manifest.zip
+            - name: AAP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: aap-configure-inputs
+                  key: AAP_PASSWORD
+            - name: FORGEJO_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: aap-configure-inputs
+                  key: FORGEJO_TOKEN
+            - name: K8S_AUTH_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aap-configure-inputs
+                  key: K8S_AUTH_API_KEY
+            - name: AAP_K8S_CA_CERT
+              valueFrom:
+                secretKeyRef:
+                  name: aap-configure-inputs
+                  key: AAP_K8S_CA_CERT
+          volumeMounts:
+            - name: runner
+              mountPath: /runner
+            - name: inputs
+              mountPath: /runner/inputs
+              readOnly: true
+      volumes:
+        - name: runner
+          emptyDir: {}
+        - name: inputs
+          secret:
+            secretName: aap-configure-inputs

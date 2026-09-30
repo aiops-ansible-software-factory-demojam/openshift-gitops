@@ -42,10 +42,11 @@ cp .env.example .env  # Fresh checkout only; keep an existing populated .env.
 chmod 600 .env
 ```
 
-The `.env` file and `.secrets/` directory are gitignored. Quote values as
+The `.env` file, root `aap_manifest.zip`, and `.secrets/` directory are gitignored. Quote values as
 shown in the template; certificate contents can use multiline single quotes.
 The scripts read exported variables, so load the file from the repo root
-before bootstrap, reset, Forgejo API commands, or AAP configuration:
+before bootstrap, reset, or Forgejo API commands. The AAP shortcuts load
+`.env` themselves:
 
 ```bash
 set -a
@@ -53,29 +54,29 @@ source .env
 set +a
 ```
 
-For bootstrap/reset, fill `KUBECONFIG` and `MODEL_API_KEY`. For AAP config,
-fill the gateway/admin/EE inputs, `FORGEJO_TOKEN` with the demo-agent token,
-and the VM API inputs documented in the
+`KUBECONFIG` defaults to `$HOME/.kube/config`. For bootstrap/reset, fill
+`MODEL_API_KEY`. For AAP config, fill `AAP_PASSWORD` and `FORGEJO_TOKEN` with
+the demo-agent token. URLs, the internal EE image and VM API inputs have
+defaults described in the
 [AAP fixture guide](cluster/forgejo-demo/fixtures/aap-config-as-code/README.md).
-Load the root `.env` before changing into the cloned Forgejo repository to
-run `make configure`. Admin-only Forgejo API operations need the admin token
+Admin-only Forgejo API operations need the admin token
 instead. Bootstrap and operators still generate internal database and
 application credentials; hydration still manages Forgejo/Backstage tokens.
 
-Registry variables in the template support explicit Podman login:
+Place your subscription manifest at `aap_manifest.zip` in the repo root:
 
 ```bash
-printf '%s' "$REDHAT_REGISTRY_PASSWORD" | podman login registry.redhat.io \
-  --username "$REDHAT_REGISTRY_USERNAME" --password-stdin
-# Only when publishing to an external private EE registry:
-printf '%s' "$EE_REGISTRY_PASSWORD" | podman login "$EE_REGISTRY_HOST" \
-  --username "$EE_REGISTRY_USERNAME" --password-stdin
+make aap-ee
+make aap-configure
 ```
 
-`AAP_LICENSE_FILE` is a reference to the subscription manifest you upload
-to AAP, not an automatic license import. Keep an in-repo manifest under
-`.secrets/`; its contents are not environment variables. AAP needs an active
-subscription before its inventory updates and VM jobs can succeed.
+GitOps supplies the EE BuildConfig and ImageStream. Builds run in OpenShift
+using existing cluster registry credentials. The configuration shortcut runs
+the built EE in an explicit Job, imports the manifest through config-as-code,
+then configures AAP and waits for inventory syncs. `AAP_LICENSE_FILE` overrides
+the default root ZIP path. No local build or registry password is needed.
+GitOps also creates `aap-vm-admin`; its token serves both VM inventory
+discovery and deployment in `automation-vms`.
 
 ## Bootstrap
 

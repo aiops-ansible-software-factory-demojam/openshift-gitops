@@ -5,3 +5,4 @@ cluster/forgejo-demo/.state/
 /.env.*
 !/.env.example
 /.secrets/
+/aap_manifest.zip

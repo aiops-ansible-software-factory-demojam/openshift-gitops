@@ -4,8 +4,10 @@
   `playbooks/aap/configure-aap.yml` and `infra.aap_configuration.dispatch`.
 - Keep runtime credential lookups in inventory variables. Never commit
   credentials or print their resolved values.
-- Use the repository's execution environment and `ansible-navigator`.
-  Run Ansible lint and syntax checks before submitting changes. There is no CI.
+- Use the custom EE built by OpenShift's `demo-aap-ee` BuildConfig. `make ee`
+  builds in the cluster; `make configure` runs config-as-code in an EE Job.
+  Use `ansible-navigator` for local syntax checks with an accessible EE image.
+  Run Ansible lint before submitting changes. There is no CI.
 - Write Ansible YAML in block style with FQCNs and named plays/tasks.
 - VM automation targets `automation-vms`. The `host` launch variable selects
   the inventory host; the AAP template sets it to `demo_cluster`.

@@ -2,7 +2,7 @@
 # Reset only the disposable Forgejo repo and automation-developer sessions.
 set -euo pipefail
 set +x
-: "${KUBECONFIG:?Set KUBECONFIG for the demo cluster}"
+export KUBECONFIG=${KUBECONFIG:-$HOME/.kube/config}
 [[ ${1:-} == --confirm-demo-reset && $# -eq 1 ]] || {
   echo 'Usage: reset-demo.sh --confirm-demo-reset' >&2
   exit 2
@@ -20,12 +20,12 @@ omnigent_host=$(oc -n omnigent get route omnigent \
   exit 2
 }
 if [[ -z ${MODEL_API_KEY:-} ]]; then
-  command -v op >/dev/null &&
-    op item get opencode-go-subscription-key --vault lab_agents \
-      --format json >/dev/null || {
+  if ! command -v op >/dev/null ||
+     ! op item get opencode-go-subscription-key --vault lab_agents \
+       --format json >/dev/null; then
     echo 'An OpenCode Go key must be available through op or MODEL_API_KEY.' >&2
     exit 2
-  }
+  fi
 fi
 
 client_id=$(oc -n automation-orchestrator get secret \
@@ -65,7 +65,7 @@ printf 'Removed %s automation-developer sessions.\n' "${#session_ids[@]}"
 oc -n omnigent-sandboxes delete secret omnigent-model --ignore-not-found
 oc -n omnigent delete secret omnigent-agent --ignore-not-found
 MODEL_BASE_URL=https://opencode.ai/zen/go/v1 MODEL_NAME=gpt-6-luna \
-  MODEL_PROVIDER= bash "$repo_root/bootstrap/model-config.sh"
+  MODEL_PROVIDER='' bash "$repo_root/bootstrap/model-config.sh"
 oc -n omnigent rollout status deployment/omnigent --timeout=5m
 
 COLLECTION_SOURCE="$repo_root/cluster/forgejo-demo/fixtures/collection" \

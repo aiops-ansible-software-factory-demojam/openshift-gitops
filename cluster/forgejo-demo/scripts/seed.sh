@@ -71,7 +71,9 @@ while IFS= read -r repo; do
         tar -C "$source" --exclude=.git --exclude=.venv --exclude=.ansible \
           --exclude=.cache --exclude=__pycache__ --exclude='*.pyc' \
           --exclude='*.tar.gz' --exclude='*.log' --exclude=context --exclude=artifacts \
-          --exclude=cluster-ca.crt -cf - . | tar -xf - -C "$work"
+          --exclude=cluster-ca.crt --exclude=aap_manifest.zip \
+          --exclude=.env --exclude='.env.*' --exclude=.secrets \
+          -cf - . | tar -xf - -C "$work"
       else
         git -C "$source" archive HEAD | tar -x -C "$work"
       fi

@@ -1,4 +1,10 @@
-.PHONY: render demo-reset
+.PHONY: render demo-reset aap-ee aap-configure
+
+aap-ee:
+	bash cluster/forgejo-demo/fixtures/aap-config-as-code/scripts/aap.sh build
+
+aap-configure:
+	bash cluster/forgejo-demo/fixtures/aap-config-as-code/scripts/aap.sh configure
 
 demo-reset:
 	bash scripts/reset-demo.sh --confirm-demo-reset
