@@ -13,9 +13,9 @@ SSH, and removes the test resources.
 - Guest OS: the existing CentOS Stream 10 CDI DataSource, with a 30 GiB disk.
 - Worktree: `/workspace/openshift-gitops-molecule-kubevirt`.
 - Branch: `feature/sandbox-molecule-kubevirt`.
-- Base: demo commit `d635bbc`, from `feature/aap-config-seed`.
-- Prepare declarative changes and local checks first. Deployment and live VM
-  tests require an explicit current request authorizing those operations.
+- Base: `origin/main` at `97f8eed`, after demo PR #10 merged.
+- The user authorized rollout and live tests against `~/.kube/config` on
+  2026-09-30. Other sessions' checkouts and Application revisions stay intact.
 
 ## Confirmed inputs
 
@@ -60,7 +60,7 @@ SSH, and removes the test resources.
    has the Kubernetes client and required SSH tools. Keep Omnigent's Python
    environment separate. Configure test credential paths and collection-root
    scenario discovery in the sandbox. Validate file access for its fixed non-root
-   UID. Bump the sandbox image tag consistently in the pipeline, config, and
+  OpenShift-assigned UID. Bump the sandbox image tag consistently in the pipeline, config, and
    bootstrap if the image changes. Check the image tools and configuration locally.
 
 4. **Update the collection golden path.** Move the exact provisioner pin into
@@ -134,7 +134,38 @@ SSH, and removes the test resources.
 - Rendered the Omnigent component and app-of-apps, checked YAML and shell syntax,
   and verified the edited documentation note's metadata and wikilinks.
 
-No cluster resources have been changed. Publishing/rollout, the full VM test,
-two live concurrent runs, and failure cleanup remain pending explicit live-test
-authorization. The existing seeded nginx collection has no Molecule scenario;
-the changed scenario is supplied by the new-collection golden path.
+## Live rollout and validation (2026-09-30)
+
+- Verified the workshop server selected by the supplied kubeconfig and its
+  `admin` identity before rollout.
+- Added a named Omnigent revision override to the root Application's existing
+  Kustomize patches. Only Omnigent follows `feature/sandbox-molecule-kubevirt`;
+  the other Applications remain on `feature/aap-config-seed`.
+- Reconciled the Forgejo collection template through the sandbox's scoped Git
+  identity, preserving the separate seeded collection and existing branches.
+- Created `molecule_smoke_20260930` through the real Developer Hub scaffolder.
+- Passed a full root-level `molecule test` in a managed sandbox after fixing the
+  arbitrary-UID SSH failure. Omnigent overrides ADT's entrypoint, so the image
+  now registers a missing UID in the existing writable passwd file at login.
+- Passed two simultaneous full tests through native OpenCode's environment
+  filter, creating different VMs from the CentOS DataSource in the shared
+  namespace. Both runs passed convergence, idempotence, guest verification,
+  and destruction.
+- Deliberately failed convergence, observed its nonzero exit, then passed
+  `molecule destroy` and confirmed removal of the VM, VMI, DataVolume, and PVC.
+- Built and published the final v9 image from `ccea978`, digest
+  `sha256:c91746c4730ee67b04e9dbc40247b48528f0af18785cbbdfce4027e7441c5644`.
+  Rolled Omnigent to reload its subPath-mounted image configuration.
+- Confirmed an unmodified v9 managed sandbox resolves UID `1000660000`, can
+  invoke OpenSSH, and discovers the scenario through native OpenCode's filter.
+  Its full root-level `molecule test` passed all lifecycle phases, and
+  production-profile Ansible lint passed without warnings.
+- Verified the test identity is denied VM creation in `webapp-vms`, Secret
+  reads in the test namespace, and cluster-wide node access.
+- Removed this session's earlier verification sandboxes and temporary build
+  PVCs. A transient node DiskPressure condition cleared through kubelet garbage
+  collection; no node configuration or taints were changed.
+
+The existing seeded nginx collection has no Molecule scenario; the changed
+scenario is supplied by the new-collection golden path. Already-generated
+collections and older running sandboxes must be updated or recreated.
