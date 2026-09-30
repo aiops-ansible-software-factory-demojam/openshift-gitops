@@ -1,0 +1,80 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: omnigent-opencode
+  namespace: omnigent-sandboxes
+spec:
+  description: Build the ADT/OpenCode sandbox image with image storage on a PVC.
+  params:
+    - name: REVISION
+      type: string
+      default: main
+  workspaces:
+    - name: source
+  results:
+    - name: IMAGE_DIGEST
+      value: $(tasks.build-image.results.IMAGE_DIGEST)
+    - name: SOURCE_COMMIT
+      value: $(tasks.build-image.results.SOURCE_COMMIT)
+  tasks:
+    - name: build-image
+      params:
+        - name: REVISION
+          value: $(params.REVISION)
+      workspaces:
+        - name: source
+          workspace: source
+      taskSpec:
+        params:
+          - name: REVISION
+            type: string
+        workspaces:
+          - name: source
+        results:
+          - name: IMAGE_DIGEST
+          - name: SOURCE_COMMIT
+        volumes:
+          - name: registry-ca
+            configMap:
+              name: openshift-service-ca.crt
+        steps:
+          - name: clone
+            image: ghcr.io/ansible/community-ansible-dev-tools@sha256:775c81d53058009dd47b97872f4a86d3b0a9ce16ad9af3cc48514ce4197aa787
+            securityContext:
+              runAsUser: 0
+            env:
+              - name: HOME
+                value: /tekton/home
+              - name: REVISION
+                value: $(params.REVISION)
+            script: |
+              #!/bin/bash
+              set -euo pipefail
+              git init "$(workspaces.source.path)/repo"
+              git -C "$(workspaces.source.path)/repo" fetch --depth 1 \
+                https://github.com/aiops-ansible-software-factory-demojam/openshift-gitops.git "$REVISION"
+              git -C "$(workspaces.source.path)/repo" checkout --detach FETCH_HEAD
+              git -C "$(workspaces.source.path)/repo" rev-parse HEAD | tr -d '\n' > "$(results.SOURCE_COMMIT.path)"
+          - name: build-and-push
+            image: quay.io/buildah/stable:v1.43.2@sha256:704af5d17babbd88bd93c06ecea7554001a2e9570e1fd54687188d3ae5de0e55
+            workingDir: $(workspaces.source.path)/repo/cluster/omnigent/image
+            securityContext:
+              runAsUser: 0
+              privileged: true
+            env:
+              - name: IMAGE
+                value: image-registry.openshift-image-registry.svc:5000/omnigent-sandboxes/omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32-v7
+            volumeMounts:
+              - name: registry-ca
+                mountPath: /etc/containers/certs.d/image-registry.openshift-image-registry.svc:5000
+                readOnly: true
+            script: |
+              #!/bin/bash
+              set -euo pipefail
+              registry=${IMAGE%%/*}
+              graph_root="$(workspaces.source.path)/buildah"
+              cat /var/run/secrets/kubernetes.io/serviceaccount/token | \
+                buildah login --username serviceaccount --password-stdin "$registry" >/dev/null
+              buildah --root "$graph_root" --storage-driver=overlay bud --isolation=chroot -f Containerfile -t "$IMAGE" .
+              buildah --root "$graph_root" --storage-driver=overlay push \
+                --digestfile "$(results.IMAGE_DIGEST.path)" "$IMAGE" "docker://$IMAGE"

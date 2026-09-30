@@ -1,0 +1,51 @@
+{
+  "users": [
+    {
+      "username": "demo-owner",
+      "email": "owner@example.test",
+      "full_name": "Demo Maintainer"
+    },
+    {
+      "username": "demo-agent",
+      "email": "agent@example.test",
+      "full_name": "Coding Agent"
+    },
+    {
+      "username": "demo-reviewer",
+      "email": "reviewer@example.test",
+      "full_name": "Demo Reviewer"
+    }
+  ],
+  "repositories": [
+    {
+      "owner": "demo-owner",
+      "name": "ansible-collection-demo",
+      "description": "Issue-to-PR Ansible collection demo",
+      "source": "",
+      "collaborators": [
+        "demo-agent",
+        "demo-reviewer"
+      ],
+      "private": false
+    },
+    {
+      "owner": "demo-agent",
+      "name": "ansible-collection-template",
+      "description": "Golden path source for new Ansible collections",
+      "source": "",
+      "collaborators": [],
+      "private": true
+    },
+    {
+      "owner": "demo-owner",
+      "name": "demojam-ansible",
+      "description": "Demo AAP configuration and OpenShift Virtualization automation",
+      "source": "",
+      "collaborators": [
+        "demo-agent",
+        "demo-reviewer"
+      ],
+      "private": false
+    }
+  ]
+}

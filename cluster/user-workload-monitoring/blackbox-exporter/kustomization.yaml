@@ -7,3 +7,4 @@ resources:
   - blackbox-exporter-service.yaml
   - blackbox-exporter-servicemonitor.yaml
   - forgejo-probe.yaml
+  - webapp-probe.yaml
