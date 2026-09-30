@@ -11,6 +11,7 @@ spec:
   failedBuildsHistoryLimit: 1
   source:
     type: Binary
+    binary: {}
   strategy:
     type: Docker
     dockerStrategy:
@@ -21,6 +22,7 @@ spec:
             type: Secret
             secret:
               secretName: aap-ee-automation-hub
+              defaultMode: 420
           mounts:
             - destinationPath: /run/build-secrets/automation-hub
   output:
