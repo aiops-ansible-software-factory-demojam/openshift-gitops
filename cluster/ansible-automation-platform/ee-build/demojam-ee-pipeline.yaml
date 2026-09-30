@@ -3,6 +3,9 @@ kind: Pipeline
 metadata:
   name: demojam-ee
   namespace: ansible-automation-platform
+  annotations:
+    # Include Tekton's admission defaults in the desired comparison.
+    argocd.argoproj.io/compare-options: ServerSideDiff=true,IncludeMutationWebhook=true
 spec:
   description: Clone public demojam-ansible, render its EE, then build and push with Buildah.
   params:
@@ -79,6 +82,8 @@ spec:
             securityContext:
               runAsUser: 1000
             env:
+              - name: HOME
+                value: /tekton/home
               - name: BASE_IMAGE
                 value: $(params.BASE_IMAGE)
             script: |
