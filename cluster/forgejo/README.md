@@ -88,6 +88,5 @@ policy may leave the old PV; reset is not secure erasure.
 
 `seed.json` declares the collection, collection template, and AAP config repositories.
 `fixtures/collection` is intentionally missing the requested README line so
-each reset presents the same work to the agent. Forgejo's optional webhook helper
-scripts remain available for a later event-driven demo, but this flow uses
-AO's explicit API launch.
+each reset presents the same work to the agent. Launch it through AO's explicit
+API workflow.

@@ -5,7 +5,7 @@ set +x
 root=$(cd "$(dirname "$0")/.." && pwd)
 namespace=forgejo
 : "${FORGEJO_URL:?Set FORGEJO_URL to the public HTTPS URL of this demo instance}"
-: "${EXPECTED_SERVER:?Set EXPECTED_SERVER to the target OpenShift API URL}"
+: "${DEMO_CLUSTER_SERVER:?Run scripts/feature-demo.sh from the repository root}"
 FORGEJO_URL=${FORGEJO_URL%/}
 host=${FORGEJO_URL#https://}
 [[ $FORGEJO_URL == https://* && $host =~ ^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]] || {
@@ -19,8 +19,8 @@ cluster() {
   local server
   server=$(oc whoami --show-server)
   oc whoami
-  [[ $server == "$EXPECTED_SERVER" ]] || {
-    echo 'Unexpected cluster; check EXPECTED_SERVER before continuing.' >&2; exit 2;
+  [[ $server == "$DEMO_CLUSTER_SERVER" ]] || {
+    echo 'The active cluster changed during this run; restart with the intended kubeconfig.' >&2; exit 2;
   }
 }
 route() {
@@ -68,18 +68,6 @@ seed() {
   fi
 }
 case ${1:-help} in
-  deploy)
-    cluster
-    oc -n openshift-gitops get applications.argoproj.io forgejo >/dev/null || {
-      echo 'Sync the root GitOps application to create forgejo first.' >&2; exit 2;
-    }
-    oc -n openshift-gitops wait --for=jsonpath='{.status.sync.status}'=Synced \
-      applications.argoproj.io/forgejo --timeout=600s
-    oc -n "$namespace" rollout status deploy/forgejo --timeout=300s
-    route
-    bootstrap
-    echo "Ready at $FORGEJO_URL; credentials in $state (mode 600)."
-    ;;
   seed) cluster; route; seed ;;
   reset)
     [[ ${2:-} == --confirm-forgejo ]] || { echo 'Usage: demo.sh reset --confirm-forgejo (erases demo data)' >&2; exit 2; }
@@ -112,5 +100,5 @@ case ${1:-help} in
     oc -n "$namespace" rollout status deploy/forgejo --timeout=300s
     seed
     ;;
-  *) echo 'Usage: demo.sh deploy | seed | reset --confirm-forgejo' ;;
+  *) echo 'Usage: demo.sh seed | reset --confirm-forgejo (via scripts/feature-demo.sh)' ;;
 esac

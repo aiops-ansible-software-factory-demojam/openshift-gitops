@@ -178,10 +178,6 @@ def prepare_credentials(api):
     project = api.find("projects/", "demojam-ansible", organization=org["id"])
     if project and project.get("credential"):
         api.request(f"projects/{project['id']}/", {"credential": None}, "PATCH")
-    for obsolete in ("demo-forgejo-scm", "demo-virtualmachine-deployer", "demo-automation-hub"):
-        credential = api.find("credentials/", obsolete, organization=org["id"])
-        if credential:
-            api.request(f"credentials/{credential['id']}/", method="DELETE")
     api.request("config/", {"manifest": base64.b64encode(manifest.read_bytes()).decode()})
     apply_secret(NAMESPACE, "aap-bootstrap-inputs", {
         "AAP_HOST": api.host, "AAP_USERNAME": api.username, "AAP_PASSWORD": api.password})

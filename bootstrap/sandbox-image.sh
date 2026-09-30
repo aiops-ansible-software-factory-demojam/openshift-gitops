@@ -13,13 +13,6 @@ while read -r completed; do
 done < <(oc -n "$namespace" get pipelineruns -l tekton.dev/pipeline=omnigent-opencode -o json |
   jq -r '.items[] | select(.status.conditions[0].status == "True" or .status.conditions[0].status == "False") | .metadata.name')
 oc wait nodes --all --for='jsonpath={.status.conditions[?(@.type=="DiskPressure")].status}=False' --timeout=15m
-# Remove the obsolete native builder after confirming it has no active build.
-if oc -n "$namespace" get buildconfig omnigent-opencode >/dev/null 2>&1; then
-  active_native=$(oc -n "$namespace" get builds -l buildconfig=omnigent-opencode -o json |
-    jq '[.items[] | select(.status.phase == "New" or .status.phase == "Pending" or .status.phase == "Running")] | length')
-  [[ $active_native == 0 ]] || { echo 'A native sandbox build is still active.' >&2; exit 1; }
-  oc -n "$namespace" delete buildconfig omnigent-opencode --ignore-not-found >/dev/null
-fi
 # One deliberate run; no trigger or automatic CI is installed.
 run=$(yq '.' "$demo_repo_root/bootstrap/sandbox-image-pipelinerun.yaml" |
   jq --arg revision "${SANDBOX_BUILD_REVISION:-$(git -C "$demo_repo_root" rev-parse HEAD)}" \
