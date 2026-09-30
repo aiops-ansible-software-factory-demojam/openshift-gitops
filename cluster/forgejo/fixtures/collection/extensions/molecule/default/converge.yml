@@ -1,0 +1,8 @@
+---
+- name: Say hello to the test hosts
+  hosts: molecule
+  gather_facts: false
+  tasks:
+    - name: Print hello world
+      ansible.builtin.debug:
+        msg: "Hello world from {{ inventory_hostname }}"

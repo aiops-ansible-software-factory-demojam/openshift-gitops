@@ -38,18 +38,17 @@ The new collection golden path uses `david_igou.molecule_provisioners` pinned to
 molecule test
 ```
 
-Molecule installs test dependencies and provisions both hosts in the shared
-`utils/inventory/`: `centos-stream10` and `rhel10` clone their corresponding CDI
-DataSources. Each VM gets a 30 GiB disk in `molecule-tests`, two vCPUs, and 2 GiB RAM.
-One `molecule test` prints hello world for both hosts, checks idempotence, SSH
-connectivity and each host's expected guest OS, then destroys both VMs. Preflight
-checks both DataSources before provisioning; boot sources and expected
-distribution facts are per-host inventory variables.
+Molecule installs test dependencies and provisions `centos-stream10` from the
+shared YAML inventory, cloning its CDI DataSource. The VM gets a 30 GiB disk
+in `molecule-tests`, two vCPUs, and 2 GiB RAM. The default scenario prints hello
+world, checks idempotence, SSH connectivity and the expected guest OS, then
+destroys the VM. Preflight checks its DataSource before provisioning. The
+`rhel10` inventory entry is commented out until RHEL package repository
+prerequisites are configured.
 Shared lifecycle and host-verification playbooks live in `utils/playbooks/`.
 Each scenario needs only `molecule.yml`, `converge.yml`, and `verify.yml`; shared
 `config.yml` provides inventory and lifecycle paths.
-The declarative YAML inventory uses fixed VM names `centos-stream10` and
-`rhel10`. Collision risk is accepted temporarily: serialize runs
+The declarative YAML inventory uses the fixed VM name `centos-stream10`. Collision risk is accepted temporarily: serialize runs
 across all demo sandboxes, collections, and scenarios sharing `molecule-tests`.
 Overlapping runs can modify or delete each other's VM. The shared namespace
 quota allows four VMs and 120 GiB of disk requests; it does not make concurrent
@@ -76,10 +75,14 @@ collection removes them after VM deletion. Source-image updates can change the
 DataSource's snapshot; the scenario references its stable DataSource name.
 
 If a test fails or is interrupted, run `molecule destroy` in the same collection
-once no other run is using either VM. A missing credential mount or an
+once no other run is using the test VM. A missing credential mount or an
 unready DataSource must be resolved before testing. Existing generated
 collections retain their previous scenarios; regenerate or update them to use
-this setup. The fixture for the demo's separate existing collection is unchanged.
+this setup. The seeded collection is now `demo.webapp` in the existing
+`demo-owner/ansible-collection-demo` repository. Its default scenario prints
+hello world, and `molecule test -s nginx` installs `demo.webapp.nginx` and
+verifies HTTP service and the nginx worker account. `make test` runs both
+scenarios sequentially from the collection root.
 
 Read-only operator checks with the selected kubeconfig:
 

@@ -241,3 +241,32 @@ production-profile lint; collection build; VM/DataVolume rendering; six guest
 assertion cases and four readiness cases using the moved shared playbooks.
 Shared `config.yml` explicitly supplies the root role search path because
 Molecule's generated configuration does not inherit the root `ansible.cfg` value.
+
+## Demo webapp collection migration
+
+- Rename the seeded collection package from `demo.greetings` to `demo.webapp`;
+  retain the Forgejo repository and catalog identity so existing issue/PR links survive.
+- Materialize the collection-template layout, retaining the existing nginx role.
+  Use the shared YAML CentOS Stream 10 / RHEL 10 inventory and lifecycle utilities.
+- Keep the default hello-world scenario; add a three-file nginx scenario that
+  installs the role and verifies HTTP service and nginx worker identity.
+- Update the AAP playbook's role FQCN. Update the live demo baseline with a normal
+  Git commit while preserving existing history, feature branches, and open PRs.
+- Launch a managed Omnigent sandbox, clone the demo repository, and run both
+  complete Molecule lifecycles. Resolve observed provisioning/package failures,
+  verify cleanup, and record evidence in the PR and demo documentation.
+
+### Final shipping scope
+
+RHEL 10 remains commented out in both shared inventories at the user's request.
+Its package repository prerequisites are deferred; no RHEL entitlement mount or
+bootstrap change is included. The temporary entitlement Secret created during
+diagnostics was removed. Both default and nginx scenarios target CentOS Stream
+10, and retain the commented RHEL image/version metadata for future enablement.
+
+Final validation: a fresh managed Omnigent sandbox cloned the live demo.webapp
+repository and ran `make test` (`molecule test --all`). Default and nginx passed
+all lifecycle actions on CentOS Stream 10, including idempotence, OS checks,
+HTTP 200, nginx worker identity, and VM/VMI/DataVolume/PVC cleanup. Production
+lint, collection build, both scenario syntax checks, and the renamed AAP caller
+passed. Forgejo's existing feature branch and PR #2 remained intact.
