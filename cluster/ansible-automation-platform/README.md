@@ -36,9 +36,12 @@ file here is a convenience symlink to that seed. `make aap-ee` starts one
 Tekton PipelineRun: clone the public repo, render with ansible-builder, build
 with Buildah, and push `demo-aap-ee:latest` to the internal registry. The
 OpenShift Pipelines operator is installed by GitOps. This is an explicit build,
-with no CI trigger. Hub and registry credentials are temporary mounted Secrets,
+with no CI trigger. Hub credentials are temporary mounted Secrets,
 never build arguments or task results. Bootstrap removes completed task pods,
-build workspaces and build Secrets after collecting the image digest.
+build workspaces and the Hub Secret after collecting the image digest.
+Base image pulls use the available cluster registry settings; no explicit pull
+Secret is copied. The build identity uses its runtime token for the internal
+registry push.
 
 `make aap-configure` imports `aap_manifest.zip`, seeds runtime credentials,
 creates a gateway token for the Resource Operator, and applies the bootstrap
