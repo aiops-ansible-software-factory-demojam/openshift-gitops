@@ -31,7 +31,7 @@ data:
     proxy:
       endpoints:
         '/forgejo':
-          target: http://forgejo-demo.forgejo-demo.svc:3000/api/v1
+          target: http://forgejo.forgejo.svc:3000/api/v1
           allowedMethods:
             - GET
             - POST

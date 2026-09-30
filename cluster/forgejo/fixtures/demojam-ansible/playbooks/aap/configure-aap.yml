@@ -1,0 +1,31 @@
+---
+- name: Configure the demo automation platform
+  hosts: aap
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Load the current Forgejo configuration data
+      ansible.builtin.include_vars:
+        dir: ../../group_vars/aap
+      no_log: true
+
+    - name: Check required runtime configuration
+      ansible.builtin.assert:
+        that:
+          - aap_hostname | length > 0
+          - aap_username | length > 0
+          - aap_password | length > 0
+          - aap_ee_image | length > 0
+        fail_msg: Supply the environment variables documented in README.md.
+
+    - name: Apply inventory-defined AAP objects
+      ansible.builtin.include_role:
+        name: infra.aap_configuration.dispatch
+      vars:
+        aap_configuration_secure_logging: true
+        assign_default_ee_to_org: false
+        aap_configuration_async_retries: 300
+        aap_configuration_async_delay: 2
+        # Same gateway compatibility workaround as the homelab dispatcher.
+        aap_configuration_dispatcher_exclude_roles:
+          - controller_applications

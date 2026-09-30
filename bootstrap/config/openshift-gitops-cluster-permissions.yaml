@@ -45,12 +45,6 @@ rules:
     verbs:
       - "*"
   - apiGroups:
-      - build.openshift.io
-    resources:
-      - buildconfigs
-    verbs:
-      - "*"
-  - apiGroups:
       - networking.k8s.io
     resources:
       - networkpolicies
@@ -83,6 +77,55 @@ rules:
       - ansibleautomationplatforms
     verbs:
       - "*"
+  - apiGroups:
+      - hco.kubevirt.io
+    resources:
+      - hyperconvergeds
+    verbs:
+      - '*'
+  - apiGroups:
+      - tekton.dev
+    resources:
+      - tasks
+      - pipelines
+    verbs:
+      - '*'
+  # Argo must also hold the permissions in the VM Roles it creates.
+  - apiGroups:
+      - kubevirt.io
+    resources:
+      - virtualmachines
+      - virtualmachineinstances
+    verbs:
+      - '*'
+  - apiGroups:
+      - cdi.kubevirt.io
+    resources:
+      - datavolumes
+      - datavolumes/source
+      - datasources
+    verbs:
+      - '*'
+  - apiGroups:
+      - ''
+    resources:
+      - pods
+      - events
+    verbs:
+      - get
+      - list
+      - watch
+  # Only the sandbox image builder identity receives these RoleBindings.
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterroles
+    resourceNames:
+      - system:openshift:scc:privileged
+      - system:image-builder
+    verbs:
+      - bind
+
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
