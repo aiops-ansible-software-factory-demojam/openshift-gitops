@@ -8,5 +8,7 @@ controller_projects:
     scm_url: http://forgejo.forgejo.svc.cluster.local:3000/demo-owner/demojam-ansible.git
     scm_branch: main
     scm_update_on_launch: true
+    # Share the refresh across a job and its two inventory dependencies.
+    scm_update_cache_timeout: 30
     update_project: true
     wait: true
