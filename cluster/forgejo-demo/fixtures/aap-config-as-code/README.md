@@ -22,7 +22,8 @@ or automatic CI jobs. Applying configuration does not launch a VM.
   service account. The CA certificate is public configuration, not a secret.
 - Registry authentication: building needs access to the Red Hat supported
   base; publishing needs a writable destination. A private EE destination
-  also needs a Container Registry credential in AAP.
+  also needs registry pull authentication. For an external private registry,
+  attach a Container Registry credential in AAP.
 
 No guest SSH credential is required to create or delete a VM through the API.
 
@@ -45,9 +46,11 @@ make ee
 podman push "$AAP_EE_IMAGE"
 ```
 
-Use a registry image the demo cluster can pull. A private destination also
-needs an AAP Container Registry credential attached to the execution
-environment. The shipped configuration assumes a public destination.
+Use a registry image the demo cluster can pull. For an external private
+destination, attach an AAP Container Registry credential to the execution
+environment. The OpenShift internal registry can instead use the container
+group service account's pull permissions. This was verified for an image
+in the AAP namespace without a separate AAP registry credential.
 
 ## Apply AAP configuration
 
@@ -93,6 +96,12 @@ a private CA, add that CA to the EE trust store before building. The service
 account token expires; mint a replacement and rerun `make configure` before
 it expires or after a cluster reset. The dispatcher protects credential task
 output, and navigator playbook artifacts are disabled.
+
+A successful dispatch confirms that the objects were applied. It does not
+guarantee that the asynchronous SCM inventory update succeeded. Check the
+project and inventory source status in AAP before launching the VM template.
+An unlicensed Controller can sync the project and create the template, but
+its inventory update fails with `No license found!` and imports no hosts.
 
 ## Create and remove a VM
 
