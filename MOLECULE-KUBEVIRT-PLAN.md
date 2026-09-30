@@ -9,9 +9,10 @@ SSH, and removes the test resources.
 
 - Target only the demo's Omnigent Agent Sandbox pods.
 - Use an existing OpenShift VM template or CDI golden image.
-- Share one dedicated `molecule-tests` namespace. The YAML inventory currently
-  uses the fixed name `instance`; collision risk is accepted temporarily.
-- Guest OS: the existing CentOS Stream 10 CDI DataSource, with a 30 GiB disk.
+- Share one dedicated `molecule-tests` namespace. YAML inventories use fixed VM
+  names `instance` and `instance-rhel10`; collision risk is accepted temporarily.
+- Guest OS images: existing CentOS Stream 10 and RHEL 10 CDI DataSources, each
+  with a 30 GiB disk.
 - Worktree: `/workspace/openshift-gitops-molecule-kubevirt`.
 - Branch: `feature/sandbox-molecule-kubevirt`.
 - Base: `origin/main` at `97f8eed`, after demo PR #10 merged.
@@ -69,7 +70,7 @@ SSH, and removes the test resources.
    Ansible configuration and Makefile expected by the provisioner guidance.
    Switch inventory to KubeVirt/DataSource/PodIP. Keep lifecycle operations in
    `david_igou.molecule_provisioners`, with no custom VM provisioner. Use the
-   declarative YAML inventory with the fixed hostname `instance`. Serialize runs
+   declarative YAML inventories with fixed hostnames. Serialize runs
    across the shared namespace until the provisioner supports run-scoped naming.
    Include dependency installation, idempotence, meaningful verification, and cleanup in the test
    sequence. Update the Devfile and collection instructions so plain
@@ -189,3 +190,30 @@ Fresh local checks passed: Ansible loaded `instance` and its KubeVirt group
 variables, Molecule syntax passed, production-profile Ansible lint reported no
 failures or warnings, and the materialized collection built successfully. The
 latest YAML inventory has not been retested against the live cluster.
+
+## Multiple OS-image scenarios
+
+Goal: support CentOS Stream 10 and RHEL 10 CDI boot images using declarative
+inventories and the existing provisioner lifecycle.
+
+The user confirmed separate OS-image scenarios. Both have fixed VM names;
+distinct agents running the same scenario can still collide.
+
+1. Keep `default` on CentOS Stream 10 and add `rhel10`, reusing the lifecycle
+   playbooks while declaring its own inventory and expected distribution facts.
+2. Make preflight errors name the selected DataSource and make guest verification
+   read expected OS facts from inventory. Add only `rhel10` to DataSource read RBAC.
+3. Document `molecule test -s rhel10`, `make test`, and how to add another image;
+   retain the accepted collision risk and requirement to serialize shared runs.
+4. Validate both effective inventories, scenario syntax, guest-check behavior,
+   lint, collection packaging, and the Omnigent render. Inspect source image
+   readiness read-only; no live VM provisioning is part of this follow-up.
+
+Read-only checks found both DataSources ready with 30 GiB source snapshots.
+
+Validation passed for both scenarios: Ansible inventory and group-variable
+resolution, `molecule syntax --all`, production-profile lint with no warnings,
+collection build, and Omnigent render with the two-name DataSource read grant.
+An offline container harness exercised the actual shared guest assertion with
+six matching/mismatched distribution and major-version cases; all behaved as
+expected. No live end-to-end run was performed for these scenarios.

@@ -28,7 +28,9 @@
             molecule_datasource.resources[0].status.conditions | default([])
             | selectattr('type', 'equalto', 'Ready')
             | selectattr('status', 'equalto', 'True') | list | length == 1
-        fail_msg: The CentOS Stream 10 DataSource must be ready before running Molecule.
+        fail_msg: >-
+          DataSource {{ molecule_boot_source.source_ref.namespace }}/{{ molecule_boot_source.source_ref.name }}
+          must be ready before running Molecule.
 
 - name: Provision molecule instances
   ansible.builtin.import_playbook: david_igou.molecule_provisioners.create

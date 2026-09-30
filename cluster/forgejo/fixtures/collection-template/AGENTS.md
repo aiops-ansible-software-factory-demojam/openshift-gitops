@@ -13,10 +13,13 @@ sandbox supplies `MOLECULE_GLOB`, the Kubernetes client, and a scoped test
 kubeconfig. Keep the exact provisioner version in
 `extensions/molecule/requirements-test.yml` and shared scenario configuration
 in `extensions/molecule/config.yml`. Use the provisioner collection's lifecycle
-playbooks and the existing CentOS Stream 10 DataSource with PodIP connections.
+playbooks and the existing CentOS Stream 10 / RHEL 10 DataSources with PodIP
+connections. `molecule test` uses CentOS; `molecule test -s rhel10` selects RHEL;
+`make test` runs both scenarios. Keep expected distribution facts in inventory.
 
-Keep the declarative YAML inventory. Its fixed hostname `instance` is also the
-VM name in the shared `molecule-tests` namespace. Serialize test runs across all
-demo sandboxes and collections: overlapping runs can modify or delete each
+Keep the declarative YAML inventories. Their fixed hostnames `instance` and
+`instance-rhel10` are also VM names in the shared `molecule-tests` namespace.
+Serialize test runs across all demo sandboxes and collections: overlapping
+runs can modify or delete each
 other's VM. After a failed test, run `molecule destroy` from the same collection
 once no other run is using that VM.

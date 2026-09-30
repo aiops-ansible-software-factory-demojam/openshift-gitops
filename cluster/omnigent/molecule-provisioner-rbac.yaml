@@ -63,6 +63,7 @@ rules:
       - datasources
     resourceNames:
       - centos-stream10
+      - rhel10
     verbs:
       - get
 ---

@@ -9,7 +9,7 @@
     - name: Example role variable resolves
       ansible.builtin.assert:
         that:
-          - example_message == 'Hello from molecule on CentOS Stream 10'
+          - example_message == 'Hello from molecule on a KubeVirt VM'
         fail_msg: The scenario did not load its expected role configuration.
 
     - name: Read the guest operating system
@@ -17,9 +17,11 @@
         gather_subset:
           - distribution
 
-    - name: Verify the golden image guest is CentOS Stream 10
+    - name: Verify the golden image guest matches the scenario
       ansible.builtin.assert:
         that:
-          - ansible_facts['distribution'] == 'CentOS'
-          - ansible_facts['distribution_major_version'] == '10'
-        fail_msg: Molecule must connect to the cloned CentOS Stream 10 guest.
+          - ansible_facts['distribution'] == molecule_expected_distribution
+          - ansible_facts['distribution_major_version'] == molecule_expected_distribution_major_version
+        fail_msg: >-
+          Molecule must connect to the cloned {{ molecule_expected_distribution }}
+          {{ molecule_expected_distribution_major_version }} guest.

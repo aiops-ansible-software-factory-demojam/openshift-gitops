@@ -1,0 +1,10 @@
+---
+scenario:
+  name: rhel10
+ansible:
+  playbooks:
+    create: ../default/create.yml
+    destroy: ../default/destroy.yml
+    prepare: ../default/prepare.yml
+    converge: ../default/converge.yml
+    verify: ../default/verify.yml

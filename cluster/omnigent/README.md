@@ -41,8 +41,11 @@ molecule test
 Molecule installs test dependencies, clones the existing `centos-stream10` CDI
 DataSource into a 30 GiB disk in `molecule-tests`, boots a two-vCPU/2 GiB VM,
 converges over SSH to its pod IP, checks idempotence and the guest OS, then
-destroys the VM. The declarative YAML inventory uses the fixed hostname and
-VM name `instance`. Collision risk is accepted temporarily: serialize runs
+destroys the VM. `molecule test -s rhel10` runs the same lifecycle against the
+`rhel10` DataSource; `make test` runs both OS-image scenarios in sequence. Guest
+verification uses each scenario's expected distribution and major version.
+The declarative YAML inventories use fixed VM names `instance` and
+`instance-rhel10`. Collision risk is accepted temporarily: serialize runs
 across all demo sandboxes, collections, and scenarios sharing `molecule-tests`.
 Overlapping runs can modify or delete each other's VM. The shared namespace
 quota allows four VMs and 120 GiB of disk requests; it does not make concurrent
@@ -62,14 +65,14 @@ Secret or ServiceAccount. Credential values and the operator's admin kubeconfig
 stay out of Git and out of the sandbox's configuration.
 
 The test identity can create/update/delete VMs and create/delete DataVolumes in
-`molecule-tests`, read VMIs there, read the CentOS DataSource, and request CDI
-cross-namespace clones. It cannot read nodes, manage Services, fetch Secrets, or
+`molecule-tests`, read VMIs there, read the CentOS Stream 10 / RHEL 10 DataSources,
+and request CDI cross-namespace clones. It cannot read nodes, manage Services, fetch Secrets, or
 manage VMs in application namespaces. CDI owns clone disks and Kubernetes garbage
 collection removes them after VM deletion. Source-image updates can change the
 DataSource's snapshot; the scenario references its stable DataSource name.
 
 If a test fails or is interrupted, run `molecule destroy` in the same collection
-once no other run is using `instance`. A missing credential mount or an
+once no other run is using that scenario's VM. A missing credential mount or an
 unready DataSource must be resolved before testing. Existing generated
 collections retain their previous scenarios; regenerate or update them to use
 this setup. The fixture for the demo's separate existing collection is unchanged.
@@ -77,7 +80,7 @@ this setup. The fixture for the demo's separate existing collection is unchanged
 Read-only operator checks with the selected kubeconfig:
 
 ```bash
-oc -n openshift-virtualization-os-images get datasource centos-stream10
+oc -n openshift-virtualization-os-images get datasource centos-stream10 rhel10
 oc -n molecule-tests get vm,vmi,datavolumes,pvc,resourcequota
 oc -n molecule-tests get events --sort-by=.lastTimestamp
 ```
