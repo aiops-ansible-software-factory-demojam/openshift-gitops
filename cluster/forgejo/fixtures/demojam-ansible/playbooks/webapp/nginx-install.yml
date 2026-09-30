@@ -46,7 +46,7 @@
         - baseos
         - appstream
   roles:
-    - role: demo.greetings.nginx
+    - role: demo.webapp.nginx
   tasks:
     - name: Check nginx serves HTTP inside the guest
       ansible.builtin.uri:
