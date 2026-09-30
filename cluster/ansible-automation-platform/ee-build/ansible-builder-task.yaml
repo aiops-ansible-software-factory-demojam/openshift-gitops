@@ -3,9 +3,6 @@ kind: Task
 metadata:
   name: ansible-builder
   namespace: ansible-automation-platform
-  annotations:
-    # Include Tekton's admission defaults in the desired comparison.
-    argocd.argoproj.io/compare-options: ServerSideDiff=true,IncludeMutationWebhook=true
 spec:
   description: Render the repository EE definition, following the homelab ansible-builder task.
   workspaces:
