@@ -21,8 +21,9 @@ if oc -n "$namespace" get buildconfig omnigent-opencode >/dev/null 2>&1; then
   oc -n "$namespace" delete buildconfig omnigent-opencode --ignore-not-found >/dev/null
 fi
 # One deliberate run; no trigger or automatic CI is installed.
-run=$(SANDBOX_BUILD_REVISION="${SANDBOX_BUILD_REVISION:-$(git -C "$demo_repo_root" rev-parse HEAD)}" \
-  yq '.spec.params[0].value = strenv(SANDBOX_BUILD_REVISION)' "$demo_repo_root/bootstrap/sandbox-image-pipelinerun.yaml" | \
+run=$(yq '.' "$demo_repo_root/bootstrap/sandbox-image-pipelinerun.yaml" |
+  jq --arg revision "${SANDBOX_BUILD_REVISION:-$(git -C "$demo_repo_root" rev-parse HEAD)}" \
+    '.spec.params[0].value = $revision' |
   oc -n "$namespace" create -f - -o name)
 echo "Started $run"
 deadline=$((SECONDS + 3600))
