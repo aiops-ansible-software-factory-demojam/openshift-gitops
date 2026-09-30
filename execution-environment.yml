@@ -10,7 +10,7 @@ dependencies:
   # The supported base already includes these collections' Python/system deps.
   exclude:
     all_from_collections:
-      - '*'
+      - '~.*'
 options:
   package_manager_path: /usr/bin/microdnf
   skip_pip_install: true

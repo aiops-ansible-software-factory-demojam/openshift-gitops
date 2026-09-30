@@ -23,7 +23,7 @@ prompt: |
   Do not merge or push to main. Never print credentials or commit them.
 executor:
   harness: opencode
-  model: demo/$model
+  model: "demo/$model"
 EOF
 }
 

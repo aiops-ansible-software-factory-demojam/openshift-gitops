@@ -4,6 +4,11 @@
   connection: local
   gather_facts: false
   tasks:
+    - name: Load the current Forgejo configuration data
+      ansible.builtin.include_vars:
+        dir: ../../group_vars/aap
+      no_log: true
+
     - name: Check required runtime configuration
       ansible.builtin.assert:
         that:

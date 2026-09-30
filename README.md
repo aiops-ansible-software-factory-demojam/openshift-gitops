@@ -25,7 +25,7 @@ operators, databases, and applications. OpenShift Virtualization requires
 hardware KVM support on at least one node; bootstrap waits for its
 `HyperConverged` resource to become available. The active `KUBECONFIG`
 identity needs cluster-admin rights. Install `oc`, `kustomize`, `helm`, `yq`,
-`jq`, `openssl`, `curl`, `git`, `python3`, `ssh-keygen`, and `ansible-builder` 3.x.
+`jq`, `openssl`, `curl`, `git`, `python3`, `ssh-keygen`, and `ansible-builder` 3.1+.
 
 Argo CD reads this repository from its Git remote. Publish your changes before
 bootstrap. `BOOTSTRAP_BRANCH` selects an already published branch; it defaults
