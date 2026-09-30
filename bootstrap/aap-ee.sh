@@ -19,7 +19,9 @@ cleanup() {
   # Keep logs/status, but release large task caches and the workspace disk.
   # Leave credentials mounted if an interrupted script's build is still active.
   if [[ -n $run ]] && [[ $(oc -n "$namespace" get "$run" -o jsonpath='{.status.conditions[0].status}' 2>/dev/null) =~ ^(True|False)$ ]]; then
-    oc -n "$namespace" delete pod,pvc -l "tekton.dev/pipelineRun=${run##*/}" --ignore-not-found >/dev/null
+    if [[ $(oc -n "$namespace" get "$run" -o jsonpath='{.status.conditions[0].status}') == True ]]; then
+      oc -n "$namespace" delete pod,pvc -l "tekton.dev/pipelineRun=${run##*/}" --ignore-not-found >/dev/null
+    fi
     oc -n "$namespace" delete secret aap-ee-automation-hub --ignore-not-found >/dev/null
   fi
 }

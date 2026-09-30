@@ -7,6 +7,8 @@ spec:
   description: Render the repository EE definition, following the homelab ansible-builder task.
   workspaces:
     - name: source
+  results:
+    - name: BASE_IMAGE
   steps:
     - name: render
       image: ghcr.io/ansible/community-ansible-dev-tools@sha256:775c81d53058009dd47b97872f4a86d3b0a9ce16ad9af3cc48514ce4197aa787
@@ -19,3 +21,4 @@ spec:
         ansible-builder create -f execution-environment.yml -c ../context --output-filename Containerfile
         # Builder emits the Galaxy RUN instructions. Mount authentication only there.
         sed -i '/^RUN .*ansible-galaxy/s/^RUN /RUN --mount=type=secret,id=automation-hub /' ../context/Containerfile
+        awk -F= '/^ARG EE_BASE_IMAGE=/{print substr($0,index($0,"=")+1);exit}' ../context/Containerfile > "$(results.BASE_IMAGE.path)"

@@ -63,9 +63,33 @@ spec:
       workspaces:
         - name: source
           workspace: source
-    - name: build-image
+    - name: import-base
       runAfter:
         - render-context
+      params:
+        - name: BASE_IMAGE
+          value: $(tasks.render-context.results.BASE_IMAGE)
+      taskSpec:
+        params:
+          - name: BASE_IMAGE
+            type: string
+        steps:
+          - name: import
+            image: registry.redhat.io/openshift4/ose-cli:latest@sha256:69762925e16053d77685ff3a08b3b45dd2bfa5d68277851bc6969b368bbd0cb9
+            securityContext:
+              runAsUser: 1000
+            env:
+              - name: BASE_IMAGE
+                value: $(params.BASE_IMAGE)
+            script: |
+              #!/bin/bash
+              set -euo pipefail
+              # OpenShift imports using its existing cluster registry credentials.
+              oc -n ansible-automation-platform import-image demo-aap-ee-base:latest \
+                --from="$BASE_IMAGE" --reference-policy=local --confirm >/dev/null
+    - name: build-image
+      runAfter:
+        - import-base
       params:
         - name: IMAGE
           value: $(params.IMAGE)
@@ -84,6 +108,9 @@ spec:
           - name: automation-hub
             secret:
               secretName: aap-ee-automation-hub
+          - name: registry-ca
+            configMap:
+              name: openshift-service-ca.crt
         steps:
           - name: build-and-push
             image: quay.io/buildah/stable:v1.43.2
@@ -98,15 +125,19 @@ spec:
               - name: automation-hub
                 mountPath: /run/build-secrets/automation-hub
                 readOnly: true
+              - name: registry-ca
+                mountPath: /etc/containers/certs.d/image-registry.openshift-image-registry.svc:5000
+                readOnly: true
             script: |
               #!/bin/bash
               set -euo pipefail
+              registry=${IMAGE%%/*}
+              # Runtime token is only sent to the internal registry, never printed.
+              cat /var/run/secrets/kubernetes.io/serviceaccount/token | \
+                buildah login --username serviceaccount --password-stdin "$registry" >/dev/null
               buildah --storage-driver=overlay bud --isolation=chroot \
                 --secret id=automation-hub,src=/run/build-secrets/automation-hub/ansible.cfg \
+                --build-arg "EE_BASE_IMAGE=$registry/ansible-automation-platform/demo-aap-ee-base:latest" \
                 -f Containerfile -t "$IMAGE" .
-              registry=${IMAGE%%/*}
-              # This short-lived service account token only authenticates the push.
-              cat /var/run/secrets/kubernetes.io/serviceaccount/token | \
-                buildah login --tls-verify=false --username serviceaccount --password-stdin "$registry" >/dev/null
-              buildah --storage-driver=overlay push --tls-verify=false \
+              buildah --storage-driver=overlay push \
                 --digestfile "$(results.IMAGE_DIGEST.path)" "$IMAGE" "docker://$IMAGE"
