@@ -24,7 +24,9 @@ development commands. The image also installs the Kubernetes Python client
 and configures root-level Molecule scenario discovery. The server and sandbox use the
 same Omnigent v0.15.0 release. The Sandbox has a 5 GiB
 HOME claim, which survives idle suspension, and uses the cluster's normal
-container runtime. This demo has no
+container runtime. A login profile registers OpenShift's assigned UID in the
+ADT image's writable passwd file, allowing OpenSSH and Ansible to resolve the
+sandbox user and HOME. This demo has no
 warm pool or separate sandbox network policy.
 
 ## KubeVirt Molecule tests
