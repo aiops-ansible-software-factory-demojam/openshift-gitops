@@ -103,6 +103,15 @@ oc -n forgejo create configmap forgejo-url \
 bash "$bootstrap_dir/model-config.sh"
 bash "$bootstrap_dir/omnigent-auth.sh"
 
+# Migrate the previous native builder before waiting for GitOps convergence.
+# App pruning is disabled, so this obsolete BuildConfig needs explicit removal.
+if oc -n omnigent-sandboxes get buildconfig omnigent-opencode >/dev/null 2>&1; then
+  active_native=$(oc -n omnigent-sandboxes get builds -l buildconfig=omnigent-opencode -o json |
+    jq '[.items[] | select(.status.phase == "New" or .status.phase == "Pending" or .status.phase == "Running")] | length')
+  [[ $active_native == 0 ]] || { echo 'A native sandbox build is still active.' >&2; exit 1; }
+  oc -n omnigent-sandboxes delete buildconfig omnigent-opencode --ignore-not-found
+fi
+
 echo 'OpenShift GitOps is healthy; starting the app-of-apps rollout...'
 # Native Argo Kustomize patches override child refs only on this cluster.
 # Checked-in defaults remain main and are safe to merge.
