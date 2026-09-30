@@ -90,7 +90,8 @@ make demo-reset
 
 This removes `automation-developer` sessions and Sandboxes, recreates its
 OpenCode Go model and agent Secrets, wipes the disposable Forgejo PVC, and
-reseeds the one-line README issue and Backstage collection template source.
+reseeds the one-line README issue, Backstage collection template source, and
+the `demo-owner/aap-config-as-code` repository.
 It removes catalog registrations for generated collections that the Forgejo
 wipe deletes. Other Omnigent agents and sessions remain.
 Run `bash scripts/dispatch-issue.sh 1` afterward. See the
@@ -102,5 +103,7 @@ describes workflow reconciliation.
 The [Developer Hub guide](cluster/rhdh/README.md) describes the templates
 and their relationship to the AO workflow.
 The [AAP guide](cluster/ansible-automation-platform/README.md) covers the
-single replica controller and EDA deployment. The [monitoring guide](cluster/user-workload-monitoring/README.md)
+single replica controller and EDA deployment. The seeded
+[AAP config-as-code guide](cluster/forgejo-demo/fixtures/aap-config-as-code/README.md)
+covers configuration and VM lifecycle automation. The [monitoring guide](cluster/user-workload-monitoring/README.md)
 covers the blackbox probe and user Alertmanager. No alert receiver is set yet.

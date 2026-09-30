@@ -23,6 +23,14 @@ The operator is installed in sync wave 10, before the instance in wave 30.
 This is a standalone AAP deployment; AO's existing issue workflow does not
 depend on it.
 
+Forgejo hydration also seeds `demo-owner/aap-config-as-code`. Its
+[guide](../forgejo-demo/fixtures/aap-config-as-code/README.md) explains the
+homelab-style dispatcher, EE build, runtime credentials, and VM lifecycle
+job template. This application creates a VM deployer service account in
+`automation-vms`, with permission to clone the standard OS DataSources.
+Applying GitOps installs the namespace and RBAC; applying AAP config and
+launching VM jobs are explicit subsequent steps.
+
 The first install pulls several large images. If the node briefly reports
 `DiskPressure`, inspect its free space and wait for kubelet to clear the
 condition before retrying the rollout. The cluster's kubelet uses a five

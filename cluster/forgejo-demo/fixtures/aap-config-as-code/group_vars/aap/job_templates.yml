@@ -1,0 +1,17 @@
+---
+controller_templates:
+  - name: openshift_virtualization_machine
+    description: Create or remove a demo VM in automation-vms
+    organization: demo
+    project: demo-aap-config
+    inventory: demo-inventory
+    execution_environment: demo-aap-ee
+    job_type: run
+    playbook: playbooks/openshift_virtualization/virtualmachine-manage.yml
+    credentials:
+      - demo-virtualmachine-deployer
+    ask_variables_on_launch: true
+    extra_vars:
+      host: demo_cluster
+      vm_name: automation-demo
+      vm_state: present

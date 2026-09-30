@@ -60,13 +60,18 @@ while IFS= read -r repo; do
     source=$(jq -r '.source // ""' <<< "$repo")
     [[ $name != ansible-collection-demo || -n $source ]] || source=$COLLECTION_SOURCE
     [[ $name != ansible-collection-template || -n $source ]] || source=$root/fixtures/collection-template
+    [[ $name != aap-config-as-code || -n $source ]] || source=$root/fixtures/aap-config-as-code
     work=$tmp/$name
     git init -q -b main "$work"
     if [[ -n $source ]]; then
       # Snapshot tracked HEAD only; omit .git, untracked secrets, and old history.
       if [[ $source == "$root/fixtures/collection" ||
-            $source == "$root/fixtures/collection-template" ]]; then
-        tar -C "$source" --exclude=.git --exclude=.venv --exclude=.ansible --exclude=.cache --exclude=__pycache__ --exclude='*.pyc' --exclude='*.tar.gz' -cf - . | tar -xf - -C "$work"
+            $source == "$root/fixtures/collection-template" ||
+            $source == "$root/fixtures/aap-config-as-code" ]]; then
+        tar -C "$source" --exclude=.git --exclude=.venv --exclude=.ansible \
+          --exclude=.cache --exclude=__pycache__ --exclude='*.pyc' \
+          --exclude='*.tar.gz' --exclude='*.log' --exclude=context --exclude=artifacts \
+          --exclude=cluster-ca.crt -cf - . | tar -xf - -C "$work"
       else
         git -C "$source" archive HEAD | tar -x -C "$work"
       fi

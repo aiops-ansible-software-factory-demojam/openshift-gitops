@@ -8,6 +8,12 @@ The fixture in `fixtures/collection` becomes the private
 by Developer Hub. The issue text is in `fixtures/readme-test-issue.md`.
 AO runs the Developer Hub feature template before it starts the agent.
 
+The fixture in [`fixtures/aap-config-as-code`](fixtures/aap-config-as-code/README.md)
+becomes `demo-owner/aap-config-as-code`. It contains inventory-driven AAP
+configuration and OpenShift Virtualization VM create/delete automation.
+`demo-agent` and `demo-reviewer` have write access. Normal hydration preserves
+this repository's feature work; a reset restores its checked-in baseline.
+
 ## Hydrate
 
 From the repository root, with `KUBECONFIG` set for the demo cluster:
@@ -19,7 +25,7 @@ bash scripts/feature-demo.sh hydrate
 ```
 
 Hydration waits for Forgejo, creates or repairs demo users and collaborators,
-seeds the collection and template source, and ensures the example issue
+seeds the collection, template source, and AAP config repository, and ensures the example issue
 exists. It creates scoped `demo-agent` tokens for the Sandbox and Developer
 Hub, then updates their Kubernetes Secrets. New agent Sandboxes receive
 the agent token with the model settings. Credentials stay in ignored
@@ -80,7 +86,7 @@ environment, so use a new session after reset. The reset script requires the
 GitOps Application to have self-heal enabled. A `Retain` storage reclaim
 policy may leave the old PV; reset is not secure erasure.
 
-`seed.json` declares the collection and collection template repositories.
+`seed.json` declares the collection, collection template, and AAP config repositories.
 `fixtures/collection` is intentionally missing the requested README line so
 each reset presents the same work to the agent. Forgejo's optional webhook helper
 scripts remain available for a later event-driven demo, but this flow uses
