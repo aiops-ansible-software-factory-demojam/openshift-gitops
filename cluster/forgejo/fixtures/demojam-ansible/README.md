@@ -49,7 +49,7 @@ cluster's `rhel9` DataSource into `webapp-vms` and adds the generated public
 SSH key through cloud-init. The second refreshes discovery, waits for SSH,
 enables the entitled RHEL 9 BaseOS/AppStream repositories, and uses
 `demo.greetings.nginx` from the public example collection. Controller installs
-that collection from `collections/requirements.yml` on project synchronization;
+that collection from `requirements.yml` on project synchronization;
 root `requirements.yml` links to the same file. No Galaxy upload is required.
 
 VM inventory queries only `automation-vms` and `webapp-vms`. The webapp is
