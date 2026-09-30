@@ -83,9 +83,21 @@ class Controller:
 def prepare_credentials(api):
     manifest = Path(os.environ.get("AAP_LICENSE_FILE") or Path.cwd() / "aap_manifest.zip")
     with zipfile.ZipFile(manifest) as outer, zipfile.ZipFile(io.BytesIO(outer.read("consumer_export.zip"))) as inner:
-        entitlement = next((inner.read(n).decode() for n in inner.namelist()
-                            if n.startswith("export/entitlement_certificates/")
-                            and b"PRIVATE KEY" in inner.read(n)), None)
+        entitlement = None
+        for name in inner.namelist():
+            if not name.startswith("export/entitlements/"):
+                continue
+            entry = json.loads(inner.read(name))
+            pool = entry.get("pool", {})
+            products = [pool.get("productName", "")] + [p.get("productName", "") for p in pool.get("providedProducts", [])]
+            if not any(p in products for p in ("Red Hat Enterprise Linux for x86_64", "Red Hat Enterprise Linux Server")):
+                continue
+            for certificate in entry.get("certificates", []):
+                if certificate.get("cert") and certificate.get("key"):
+                    entitlement = certificate["cert"] + "\n" + certificate["key"]
+                    break
+            if entitlement:
+                break
     if not entitlement:
         raise RuntimeError("The manifest must include a RHEL entitlement certificate and private key")
 

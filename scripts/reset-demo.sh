@@ -56,7 +56,7 @@ oc -n omnigent-sandboxes delete sandboxes \
   --ignore-not-found --wait=true --timeout=5m
 printf 'Removed %s automation-developer sessions.\n' "${#session_ids[@]}"
 
-# Recreate the bootstrap-owned model and agent configuration from the Go key.
+# Recreate the bootstrap-owned model and agent configuration from the selected provider.
 oc -n omnigent-sandboxes delete secret omnigent-model --ignore-not-found
 oc -n omnigent delete secret omnigent-agent --ignore-not-found
 bash "$repo_root/bootstrap/model-config.sh"

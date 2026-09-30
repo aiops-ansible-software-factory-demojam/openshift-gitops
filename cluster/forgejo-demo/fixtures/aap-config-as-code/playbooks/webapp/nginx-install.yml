@@ -3,6 +3,8 @@
   hosts: webapps
   become: true
   gather_facts: false
+  vars_files:
+    - ../../group_vars/webapps.yml
   pre_tasks:
     - name: Wait for cloud-init SSH access
       ansible.builtin.wait_for_connection:
