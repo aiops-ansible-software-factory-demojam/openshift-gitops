@@ -124,7 +124,10 @@ make webapp-delete
 
 To apply subsequent Forgejo config changes through AAP, run the
 **aap_configure_all** template or `make aap-sync`. To bootstrap only
-AAP, use `make aap-configure`. All demo templates and inventory sources use
+AAP, use `make aap-configure`. Bootstrap prepares the operator-created dispatch
+template and its SCM inventory, launches it through the AAP API, and waits for
+its Controller job to succeed. First and subsequent dispatches run inside AAP.
+All demo templates and inventory sources use
 Red Hat `ee-supported-rhel9`, pinned by digest. The seeded `demojam-ansible`
 repository's [requirements.yml](cluster/forgejo/fixtures/demojam-ansible/requirements.yml)
 installs `infra.aap_configuration` from public Galaxy and the example collection

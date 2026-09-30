@@ -5,7 +5,9 @@
 - Runtime credentials are owned by openshift-gitops bootstrap scripts. Do not
   manage their secret inputs through dispatch or commit secret values.
 - Resource Operator CRs own the initial project/inventory and dispatch template
-  base fields. Dispatch extends the template with its EE and credentials.
+  base fields. Bootstrap attaches the supported EE and dispatch credential and
+  syncs the static inventory before the first API launch. Dispatch reconciles
+  these settings and the remaining objects.
 - Use Red Hat ee-supported-rhel9 for playbook syntax checks. Run Ansible lint
   in the development tools environment. Project requirements install public
   Galaxy CaC and the public Git demo collection;

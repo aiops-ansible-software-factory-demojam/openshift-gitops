@@ -67,7 +67,7 @@ class Controller:
         return next(iter(result["results"]), None)
 
     def upsert(self, endpoint, name, **fields):
-        scope = {"organization": fields["organization"]} if "organization" in fields else {}
+        scope = {key: fields[key] for key in ("organization", "inventory") if key in fields}
         existing = self.find(endpoint, name, **scope)
         if existing:
             if endpoint == "credential_types/" and all(existing.get(k) == v for k, v in fields.items()):
@@ -179,8 +179,6 @@ def prepare_credentials(api):
     if project and project.get("credential"):
         api.request(f"projects/{project['id']}/", {"credential": None}, "PATCH")
     api.request("config/", {"manifest": base64.b64encode(manifest.read_bytes()).decode()})
-    apply_secret(NAMESPACE, "aap-bootstrap-inputs", {
-        "AAP_HOST": api.host, "AAP_USERNAME": api.username, "AAP_PASSWORD": api.password})
     print("AAP license and runtime VM, SSH, entitlement, and dispatch credentials are ready")
 
 
@@ -224,6 +222,36 @@ def launch(api, name, extra):
     api.wait(f"jobs/{result['job']}/")
 
 
+def dispatch(api):
+    """Prepare the operator-created template for its first Controller launch."""
+    wait_for_resources(api)
+    org = api.find("organizations/", "demo")
+    template = api.find("job_templates/", "aap_configure_all", organization=org["id"])
+    credential = api.find("credentials/", "demo-aap-dispatch", organization=org["id"])
+    if not credential:
+        raise RuntimeError("Seed the demo-aap-dispatch credential before dispatch")
+    image = os.environ.get("AAP_EE_IMAGE")
+    if not image:
+        raise RuntimeError("Load bootstrap/env.sh to select the supported AAP EE")
+    ee = api.upsert("execution_environments/", "demo-aap-ee", organization=org["id"], image=image, pull="always")
+    api.request(f"job_templates/{template['id']}/", {
+        "execution_environment": ee["id"],
+        # Retain an operator-selected image for subsequent aap_configure_all runs.
+        "extra_vars": json.dumps({"aap_ee_image": image})}, "PATCH")
+    api.request(f"job_templates/{template['id']}/credentials/", {"id": credential["id"], "associate": True})
+    # The inventory CR has no hosts. Import the aap group before the first play.
+    source = api.upsert("inventory_sources/", "demo-inventory-scm", inventory=template["inventory"],
+        source="scm", source_project=template["project"], source_path="inventory.yml",
+        execution_environment=ee["id"], overwrite=True, overwrite_vars=True,
+        update_on_launch=True, update_cache_timeout=0, timeout=900)
+    update = api.request(f"inventory_sources/{source['id']}/update/", {})
+    api.wait(f"inventory_updates/{update['id']}/")
+    group = api.find("groups/", "aap", inventory=template["inventory"])
+    if not group or not api.request(f"groups/{group['id']}/hosts/?name=aap_demo")["count"]:
+        raise RuntimeError("The bootstrap inventory sync did not import aap_demo into the aap group")
+    launch(api, "aap_configure_all", {})
+
+
 def main():
     sys.stdout.reconfigure(line_buffering=True)
     api = Controller()
@@ -232,12 +260,12 @@ def main():
         prepare_credentials(api)
     elif action == "wait-project":
         wait_for_resources(api, require_template=False)
-    elif action == "wait-resources":
-        wait_for_resources(api)
+    elif action == "dispatch":
+        dispatch(api)
     elif action == "launch":
         launch(api, sys.argv[2], json.loads(sys.argv[3]) if len(sys.argv) > 3 else {})
     else:
-        raise RuntimeError("Use credentials, wait-project, wait-resources, or launch TEMPLATE [JSON_EXTRA_VARS]")
+        raise RuntimeError("Use credentials, wait-project, dispatch, or launch TEMPLATE [JSON_EXTRA_VARS]")
 
 
 if __name__ == "__main__":
