@@ -121,8 +121,8 @@ make webapp-delete
 
 To apply subsequent Forgejo config changes through AAP, run the
 **aap_configure_all** template or `make aap-sync`. To rebuild/bootstrap only
-AAP, use `make aap-ee` then `make aap-configure`. The seeded `demojam-ansible` repository owns its EE definition (linked at the root
-[execution-environment.yml](execution-environment.yml)). It is converted to a build
+AAP, use `make aap-ee` then `make aap-configure`. The seeded `demojam-ansible` repository owns its
+[execution-environment.yml](cluster/forgejo/fixtures/demojam-ansible/execution-environment.yml). It is converted to a build
 context by the Tekton ansible-builder task; Buildah builds it and pushes
 to its internal registry. The Automation Hub token is a build-only mounted
 Secret, deleted after the build, and never copied into the image.
