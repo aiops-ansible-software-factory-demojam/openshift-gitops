@@ -1,7 +1,0 @@
-FROM registry.redhat.io/ansible-automation-platform-27/ee-supported-rhel9:latest@sha256:d97a6fc9c34132bfddf5c8f0db93a24fea67ed3db2094d15f78d7f4eba724f1f
-
-# The supported base supplies certified API collections and their dependencies.
-USER 0
-COPY requirements.yml /tmp/requirements.yml
-RUN ansible-galaxy collection install --no-deps -r /tmp/requirements.yml \
-    -p /usr/share/ansible/collections

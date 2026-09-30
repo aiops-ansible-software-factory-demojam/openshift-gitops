@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-export KUBECONFIG=${KUBECONFIG:-$HOME/.kube/config}
+# shellcheck source=../bootstrap/env.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../bootstrap/env.sh"
 
 # Call AO's published workflow API and print the launched Omnigent session.
 issue_number=${1:?Usage: dispatch-issue.sh ISSUE_NUMBER}
@@ -9,8 +10,7 @@ issue_number=${1:?Usage: dispatch-issue.sh ISSUE_NUMBER}
   exit 2
 }
 
-oc whoami --show-server
-oc whoami
+demo_verify_cluster
 
 ao_host=$(oc -n automation-orchestrator get route automation-orchestrator \
   -o jsonpath='{.status.ingress[0].host}')

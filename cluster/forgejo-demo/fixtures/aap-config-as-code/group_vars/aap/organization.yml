@@ -4,3 +4,5 @@ aap_organizations:
   - name: demo
     description: Disposable automation demo
     state: present
+    galaxy_credentials:
+      - demo-galaxy

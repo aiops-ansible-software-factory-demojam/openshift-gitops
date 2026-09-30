@@ -1,0 +1,56 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: aap-vm-admin
+  namespace: webapp-vms
+rules:
+  - apiGroups:
+      - kubevirt.io
+    resources:
+      - virtualmachines
+      - virtualmachineinstances
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - cdi.kubevirt.io
+    resources:
+      - datavolumes
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - ''
+    resources:
+      - pods
+      - persistentvolumeclaims
+      - events
+      - services
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: aap-vm-admin
+  namespace: webapp-vms
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: aap-vm-admin
+subjects:
+  - kind: ServiceAccount
+    name: aap-vm-admin
+    namespace: automation-vms

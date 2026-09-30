@@ -9,7 +9,7 @@ Agent Sandbox API directly:
 ```text
 AO workflow -> Backstage feature template -> Forgejo feature branch
             -> Omnigent API -> Sandbox in omnigent-sandboxes
-                            -> OpenCode with OpenCode Go gpt-6-luna
+                            -> OpenCode with the .env model provider
 ```
 
 Forgejo supplies the seeded collection and issue for an issue-to-PR demo.
@@ -25,58 +25,49 @@ operators, databases, and applications. OpenShift Virtualization requires
 hardware KVM support on at least one node; bootstrap waits for its
 `HyperConverged` resource to become available. The active `KUBECONFIG`
 identity needs cluster-admin rights. Install `oc`, `kustomize`, `helm`, `yq`,
-`jq`, `openssl`, `curl`, `git`, and `op` (or supply `MODEL_API_KEY`).
+`jq`, `openssl`, `curl`, `git`, `python3`, `ssh-keygen`, and `ansible-builder` 3.x.
 
-Argo CD reads this repository from its Git remote. Bootstrap publishes the
-checkout to a chosen branch, then points the root and child Applications to
-that branch. Use one branch per demo cluster. The checkout must be clean and
-published before running bootstrap.
+Argo CD reads this repository from its Git remote. Publish your changes before
+bootstrap. `BOOTSTRAP_BRANCH` selects an already published branch; it defaults
+to `main`. Bootstrap sets a cluster-local Argo Kustomize patch for child
+Applications so the checked-in defaults can remain on `main`.
 
 ## Local secrets
 
-Populate the repository-root `.env` with your local inputs. The checked-in
-[.env.example](.env.example) is the blank template for a fresh checkout:
+From the repo root, copy the template on a fresh checkout and populate it:
 
 ```bash
-cp .env.example .env  # Fresh checkout only; keep an existing populated .env.
+cp .env.example .env
 chmod 600 .env
 ```
 
-The `.env` file, root `aap_manifest.zip`, and `.secrets/` directory are gitignored. Quote values as
-shown in the template; certificate contents can use multiline single quotes.
-The scripts read exported variables, so load the file from the repo root
-before bootstrap, reset, or Forgejo API commands. The AAP shortcuts load
-`.env` themselves:
+All bootstrap and demo entry points load the root `.env`. Quote values as in
+the template. Set `KUBECONFIG` to your cluster config path (default
+`$HOME/.kube/config`), and optionally set `EXPECTED_SERVER` to its API URL.
+Place the subscription ZIP at root `aap_manifest.zip`; it must include AAP
+licensing and a RHEL CDN entitlement for the guest. Both files are gitignored.
+
+| Input | Purpose |
+| --- | --- |
+| `MODEL_PROVIDER=opencode-go` | Uses `OPENCODE_GO_API_KEY`, `OPENCODE_GO_ENDPOINT`, `OPENCODE_GO_MODEL` (default `gpt-6-luna`) |
+| `MODEL_PROVIDER=litellm` | Uses `LITELLM_API_KEY`, `LITELLM_ENDPOINT`, `LITELLM_MODEL` |
+| `RH_AUTOMATIONHUB_TOKEN` | Certified collection downloads during the EE build |
+| `AAP_LICENSE_FILE` | Optional override for the root subscription ZIP |
+
+Provider endpoints are HTTPS API base URLs, ending before `/responses` or
+`/chat/completions`. To switch providers, edit `.env`, then run:
 
 ```bash
-set -a
-source .env
-set +a
+bash bootstrap/model-config.sh
 ```
 
-`KUBECONFIG` defaults to `$HOME/.kube/config`. For bootstrap/reset, fill
-`MODEL_API_KEY`. For AAP config, fill `AAP_PASSWORD` and `FORGEJO_TOKEN` with
-the demo-agent token. URLs, the internal EE image and VM API inputs have
-defaults described in the
-[AAP fixture guide](cluster/forgejo-demo/fixtures/aap-config-as-code/README.md).
-Admin-only Forgejo API operations need the admin token
-instead. Bootstrap and operators still generate internal database and
-application credentials; hydration still manages Forgejo/Backstage tokens.
-
-Place your subscription manifest at `aap_manifest.zip` in the repo root:
-
-```bash
-make aap-ee
-make aap-configure
-```
-
-GitOps supplies the EE BuildConfig and ImageStream. Builds run in OpenShift
-using existing cluster registry credentials. The configuration shortcut runs
-the built EE in an explicit Job, imports the manifest through config-as-code,
-then configures AAP and waits for inventory syncs. `AAP_LICENSE_FILE` overrides
-the default root ZIP path. No local build or registry password is needed.
-GitOps also creates `aap-vm-admin`; its token serves both VM inventory
-discovery and deployment in `automation-vms`.
+New sessions use that configuration. Existing sessions keep their launch
+credentials; use `make demo-reset` when a clean issue-to-PR cycle is needed.
+Bootstrap handles generated secrets: database passwords, Forgejo/Backstage
+tokens, AAP admin credentials, a namespace-scoped VM API token, and a VM SSH
+key. It reuses runtime VM identities across reruns. The RHEL entitlement is
+extracted from the manifest into an AAP credential. No local registry login,
+Forgejo read token, or manually copied generated AAP password is required.
 
 ## Bootstrap
 
@@ -85,26 +76,54 @@ From the repository root:
 ```bash
 oc whoami --show-server
 oc whoami
-BOOTSTRAP_BRANCH=demo-yourname bash bootstrap/bootstrap.sh
+bash bootstrap/bootstrap.sh
 ```
 
-The script installs OpenShift GitOps, creates the bootstrap-owned model,
-database, and machine-credential Secrets, starts the app-of-apps, hydrates
-Forgejo before Developer Hub starts, waits for the OpenCode image and
-Omnigent deployment, verifies the Backstage catalog, and publishes AO's
-`omnigent-dispatch` workflow. It is safe to rerun. Set
-`BOOTSTRAP_FORCE_SANDBOX_BUILD=true` to rebuild the image even when its source
-has not changed.
+The script installs GitOps, creates the model and internal Secrets, rolls out
+all applications, hydrates Forgejo, builds the sandbox image, verifies golden
+paths, and publishes AO's issue workflow. After reconciliation it builds the
+AAP EE, creates runtime AAP credentials by script, imports the license, and
+runs dispatch in a Job that clones the public Forgejo config repository.
+It waits for project/inventory synchronization. Rerunning preserves the VM
+SSH identity and applies current config. `BOOTSTRAP_FORCE_SANDBOX_BUILD=true`
+forces a sandbox image rebuild.
 
-The default model is OpenCode Go `gpt-6-luna` at
-`https://opencode.ai/zen/go/v1`. Bootstrap reads
-`op://lab_agents/opencode-go-subscription-key/password` when `op` is available,
-or prompts for the key. For noninteractive use, set `MODEL_API_KEY` in the
-environment. The key is stored in a Kubernetes Secret in
-`omnigent-sandboxes`, never in Git. Repeat runs reuse the existing Secret.
-Set `MODEL_API_KEY` again to rotate it. `MODEL_BASE_URL` and `MODEL_NAME` can
-select another OpenAI-compatible endpoint; the base URL ends before its API
-operation. The Go default uses the Responses API through `@ai-sdk/openai`.
+## Provision and automate the RHEL webapp
+
+Log into the AAP gateway Route as `admin`, using the operator-generated
+`aap-admin-password` Secret in `ansible-automation-platform`. Launch these
+templates in order:
+
+1. **webapp_vm** clones the `rhel9` DataSource into `webapp-vms`, installs the
+   bootstrap-generated public SSH key via cloud-init, and waits for VM Ready.
+2. **webapp_nginx** refreshes VM inventory, connects with the matching SSH key,
+   enables RHEL repositories using the manifest entitlement, and runs
+   `demo.greetings.nginx` from the public example collection's Git repository.
+
+GitOps owns the namespace, SSH/HTTP Services, HTTPS Route, RBAC and blackbox
+Probe. Inventory discovers `webapp-webapp-vms` in the `webapps` group. The
+blackbox target is expected to be down until nginx is installed.
+
+The same operations are available from the repo root:
+
+```bash
+make webapp-create
+make webapp-nginx
+make webapp-verify
+# Remove only the webapp VM and its owned disk:
+make webapp-delete
+```
+
+To apply subsequent Forgejo config changes through AAP, run the
+**aap_configure_all** template or `make aap-sync`. To rebuild/bootstrap only
+AAP, use `make aap-ee` then `make aap-configure`. The root
+[execution-environment.yml](execution-environment.yml) is converted to a build
+context by `ansible-builder create`; OpenShift performs the build and pushes
+to its internal registry. The Automation Hub token is a build-only mounted
+Secret, deleted after the build, and never copied into the image.
+
+See the [AAP config guide](cluster/forgejo-demo/fixtures/aap-config-as-code/README.md)
+for the script/dispatch boundary and reset behavior.
 
 ## Run an issue through AO
 
@@ -135,7 +154,7 @@ make demo-reset
 ```
 
 This removes `automation-developer` sessions and Sandboxes, recreates its
-OpenCode Go model and agent Secrets, wipes the disposable Forgejo PVC, and
+selected `.env` model and agent Secrets, wipes the disposable Forgejo PVC, and
 reseeds the one-line README issue, Backstage collection template source, and
 the `demo-owner/aap-config-as-code` repository.
 It removes catalog registrations for generated collections that the Forgejo

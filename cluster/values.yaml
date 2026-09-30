@@ -45,6 +45,15 @@ projects:
           kind: '*'
 
 applications:
+  webapp-vms:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '20'
+    destination:
+      namespace: webapp-vms
+    source:
+      path: cluster/webapp-vms
+
   cloudnative-pg:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous

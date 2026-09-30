@@ -53,8 +53,9 @@ while IFS= read -r repo; do
     ((page+=1))
   done
   if [[ $found == false ]]; then
-    api POST "/admin/users/$owner/repos" "$(jq '{name,description,private:true,auto_init:false,default_branch:"main"}' <<< "$repo")" >/dev/null
+    api POST "/admin/users/$owner/repos" "$(jq '{name,description,private:(if has("private") then .private else true end),auto_init:false,default_branch:"main"}' <<< "$repo")" >/dev/null
   fi
+  api PATCH "/repos/$owner/$name" "$(jq '{private:(if has("private") then .private else true end)}' <<< "$repo")" >/dev/null
   refs=$(git -c credential.helper= ls-remote "$FORGEJO_URL/$owner/$name.git")
   if [[ -z $refs ]]; then
     source=$(jq -r '.source // ""' <<< "$repo")

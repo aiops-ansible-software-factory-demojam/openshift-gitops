@@ -21,7 +21,6 @@ for relative, field in (
     ("bootstrap/config/root-application.yaml", "targetRevision"),
     ("cluster/values.yaml", "targetRevision"),
     ("cluster/omnigent/omnigent-opencode-buildconfig.yaml", "ref"),
-    ("cluster/ansible-automation-platform/aap-ee-buildconfig.yaml", "ref"),
 ):
     path = root / relative
     content = path.read_text()
