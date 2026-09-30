@@ -92,20 +92,12 @@ applications:
 
   ansible-automation-platform:
     annotations:
-      # Compare the desired resources including Tekton admission defaults.
-      argocd.argoproj.io/compare-options: IgnoreExtraneous,ServerSideDiff=true,IncludeMutationWebhook=true
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: "30"
     destination:
       namespace: ansible-automation-platform
     source:
       path: cluster/ansible-automation-platform
-    ignoreDifferences:
-      - group: image.openshift.io
-        kind: ImageStream
-        name: demo-aap-ee-base
-        namespace: ansible-automation-platform
-        jsonPointers:
-          - /spec/tags
 
   automation-orchestrator:
     annotations:

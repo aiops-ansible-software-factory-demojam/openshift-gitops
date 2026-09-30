@@ -51,7 +51,6 @@ licensing and a RHEL CDN entitlement for the guest. Both files are gitignored.
 | --- | --- |
 | `MODEL_PROVIDER=opencode-go` | Uses `OPENCODE_GO_API_KEY`, `OPENCODE_GO_ENDPOINT`, `OPENCODE_GO_MODEL` (default `gpt-6-luna`) |
 | `MODEL_PROVIDER=litellm` | Uses `LITELLM_API_KEY`, `LITELLM_ENDPOINT`, `LITELLM_MODEL` |
-| `RH_AUTOMATIONHUB_TOKEN` | Certified collection downloads during the EE build |
 | `AAP_LICENSE_FILE` | Optional override for the root subscription ZIP |
 
 Provider endpoints are HTTPS API base URLs, ending before `/responses` or
@@ -81,15 +80,17 @@ bash bootstrap/bootstrap.sh
 
 The script installs GitOps, creates the model and internal Secrets, rolls out
 all applications, hydrates Forgejo, builds the sandbox image, verifies golden
-paths, and publishes AO's issue workflow. After reconciliation it builds the
-AAP EE, creates runtime AAP credentials by script, imports the license, and
-runs dispatch in a Job that clones the public Forgejo config repository.
+paths, and publishes AO's issue workflow. After reconciliation it creates
+runtime AAP credentials by script, imports the license, and runs dispatch in
+a Job using the pinned Red Hat supported EE. The Job clones public Forgejo
+and installs project requirements from Galaxy and Git. No custom AAP EE or
+Automation Hub token is required.
 It waits for project/inventory synchronization. Rerunning preserves the VM
 SSH identity and applies current config. `BOOTSTRAP_FORCE_SANDBOX_BUILD=true`
 forces a sandbox image rebuild.
 
 On SNO, scripts wait for the API server to finish reconciling before AAP work.
-EE builds tolerate interrupted log streams and status reads. AAP status checks
+Sandbox builds tolerate interrupted log streams and status reads. AAP status checks
 retry brief network interruptions; launch requests are sent once. Inspect AAP
 before repeating a launch whose response was lost.
 
@@ -121,11 +122,15 @@ make webapp-delete
 
 To apply subsequent Forgejo config changes through AAP, run the
 **aap_configure_all** template or `make aap-sync`. To rebuild/bootstrap only
-AAP, use `make aap-ee` then `make aap-configure`. The seeded `demojam-ansible` repository owns its
-[execution-environment.yml](cluster/forgejo/fixtures/demojam-ansible/execution-environment.yml). It is converted to a build
-context by the Tekton ansible-builder task; Buildah builds it and pushes
-to its internal registry. The Automation Hub token is a build-only mounted
-Secret, deleted after the build, and never copied into the image.
+AAP, use `make aap-configure`. All demo templates and inventory sources use
+Red Hat `ee-supported-rhel9`, pinned by digest. The seeded `demojam-ansible`
+repository's [requirements.yml](cluster/forgejo/fixtures/demojam-ansible/requirements.yml)
+installs `infra.aap_configuration` from public Galaxy and the example collection
+from public Forgejo. Controller isolates its collection cache, so requirements
+also copy CaC's certified dependencies from the supported image into that cache.
+They do not download certified content or require a Hub token. OpenShift uses
+its existing registry authentication to pull the supported EE. Tekton remains
+for the separate OpenCode sandbox image build.
 
 See the [AAP config guide](cluster/forgejo/fixtures/demojam-ansible/README.md)
 for the script/dispatch boundary and reset behavior.

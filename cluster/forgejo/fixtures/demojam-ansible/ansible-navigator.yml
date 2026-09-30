@@ -6,6 +6,7 @@ ansible-navigator:
     level: error
   execution-environment:
     enabled: true
+    image: registry.redhat.io/ansible-automation-platform-27/ee-supported-rhel9@sha256:d97a6fc9c34132bfddf5c8f0db93a24fea67ed3db2094d15f78d7f4eba724f1f
     container-engine: podman
     environment-variables:
       pass:

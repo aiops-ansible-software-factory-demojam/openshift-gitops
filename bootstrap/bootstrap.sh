@@ -11,7 +11,6 @@ source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
 # shellcheck source=model-env.sh
 source "$bootstrap_dir/model-env.sh"
 unset model_key
-: "${RH_AUTOMATIONHUB_TOKEN:?Populate RH_AUTOMATIONHUB_TOKEN in .env}"
 [[ -r ${AAP_LICENSE_FILE:-$repo_root/aap_manifest.zip} ]] || {
   echo 'Place aap_manifest.zip in the repo root before bootstrap.' >&2; exit 2;
 }
@@ -278,7 +277,22 @@ oc -n omnigent delete secret omnigent-auth omnigent-machine-client \
 if [[ ${BOOTSTRAP_RECONCILE_WORKFLOW:-true} == true ]]; then
   bash "$repo_root/cluster/automation-orchestrator/reconcile-omnigent-workflow.sh"
 fi
-bash "$bootstrap_dir/aap-ee.sh"
+# Remove the discontinued AAP EE builder on upgrades (Argo pruning is disabled).
+# Sandbox image builds in omnigent-sandboxes are a separate workload.
+aap_namespace=ansible-automation-platform
+if oc -n "$aap_namespace" get pipeline demojam-ee --ignore-not-found -o name | grep -q .; then
+  active_ee=$(oc -n "$aap_namespace" get pipelineruns -l tekton.dev/pipeline=demojam-ee -o json |
+    jq '[.items[] | select(.status.conditions[0].status == "Unknown")] | length')
+  [[ $active_ee == 0 ]] || { echo 'An obsolete AAP EE build is still active; cancel it before bootstrap.' >&2; exit 1; }
+  oc -n "$aap_namespace" delete pipelineruns -l tekton.dev/pipeline=demojam-ee --ignore-not-found
+  oc -n "$aap_namespace" delete pipeline demojam-ee --ignore-not-found
+  oc -n "$aap_namespace" delete task ansible-builder --ignore-not-found
+  oc -n "$aap_namespace" delete serviceaccount aap-ee-builder --ignore-not-found
+  oc -n "$aap_namespace" delete rolebinding aap-ee-builder-scc aap-ee-builder-registry aap-ee-base-importer --ignore-not-found
+  oc -n "$aap_namespace" delete role aap-ee-base-importer --ignore-not-found
+  oc -n "$aap_namespace" delete imagestream demo-aap-ee demo-aap-ee-base --ignore-not-found
+  oc -n "$aap_namespace" delete secret aap-ee-automation-hub --ignore-not-found
+fi
 bash "$bootstrap_dir/aap-configure.sh"
 echo "GitOps, Agent Sandbox, AO, and AAP webapp automation are ready on $gitops_branch."
 echo 'Log into AAP and launch webapp_vm, then webapp_nginx.'

@@ -1,4 +1,4 @@
-.PHONY: render demo-reset aap-ee aap-configure aap-sync webapp-create webapp-nginx webapp-delete webapp-verify
+.PHONY: render demo-reset aap-configure aap-sync webapp-create webapp-nginx webapp-delete webapp-verify
 
 aap-sync:
 	bash scripts/webapp-demo.sh sync
@@ -14,9 +14,6 @@ webapp-delete:
 
 webapp-verify:
 	bash scripts/webapp-demo.sh verify
-
-aap-ee:
-	bash bootstrap/aap-ee.sh
 
 aap-configure:
 	bash bootstrap/aap-configure.sh
