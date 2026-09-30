@@ -50,16 +50,21 @@ echo "Started $build"
 oc -n "$namespace" logs "$build" --follow ||
   echo 'Build log stream ended; waiting on the Build resource.' >&2
 deadline=$((SECONDS + 2700))
+phase=Unknown
 while :; do
-  phase=$(oc -n "$namespace" get "$build" -o jsonpath='{.status.phase}')
+  if (( SECONDS >= deadline )); then
+    echo "Timed out waiting for $build ($phase)." >&2; exit 1
+  fi
+  if ! phase=$(oc -n "$namespace" get "$build" --request-timeout=30s -o jsonpath='{.status.phase}'); then
+    echo 'Build status is temporarily unavailable; retrying.' >&2
+    sleep 10
+    continue
+  fi
   case "$phase" in
     Complete) break ;;
     Failed|Error|Cancelled)
       echo "$build ended with phase $phase." >&2; exit 1 ;;
   esac
-  if (( SECONDS >= deadline )); then
-    echo "Timed out waiting for $build ($phase)." >&2; exit 1
-  fi
   sleep 10
 done
 echo "$build completed."

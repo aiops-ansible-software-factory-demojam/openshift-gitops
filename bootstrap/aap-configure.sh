@@ -6,6 +6,7 @@ cd "$demo_repo_root"
 manifest=${AAP_LICENSE_FILE:-$demo_repo_root/aap_manifest.zip}
 [[ -r $manifest ]] || { echo 'Place aap_manifest.zip in the repo root.' >&2; exit 2; }
 demo_verify_cluster
+demo_wait_for_api
 namespace=ansible-automation-platform
 for deployment in aap-gateway aap-controller-web aap-controller-task; do
   oc -n "$namespace" rollout status "deployment/$deployment" --timeout=15m
