@@ -23,24 +23,35 @@ The operator is installed in sync wave 10, before the instance in wave 30.
 This is a standalone AAP deployment; AO's existing issue workflow does not
 depend on it.
 
-Forgejo hydration seeds the public `demo-owner/aap-config-as-code` repository.
-Its [guide](../forgejo-demo/fixtures/aap-config-as-code/README.md) describes the
+Forgejo hydration seeds the public `demo-owner/demojam-ansible` repository.
+Its [guide](../forgejo/fixtures/demojam-ansible/README.md) describes the
 homelab-style dispatcher and VM lifecycle. GitOps owns `aap-vm-admin` and its
 RBAC in `automation-vms` and `webapp-vms`, plus OS disk clone permissions.
 Bootstrap creates its persistent API token and the AAP credential directly;
 config-as-code references that credential without owning its secret inputs.
 
-The root `execution-environment.yml` defines `demo-aap-ee`. Bootstrap generates
-its context with ansible-builder and builds it with OpenShift's binary
-BuildConfig. The cluster supplies Red Hat registry access; `.env` supplies the
-Automation Hub token as a build-only Secret. `make aap-ee` rebuilds explicitly.
+The public `demojam-ansible` repo owns its `execution-environment.yml` and
+single `requirements.yml` (also linked under `collections/`). The root EE
+file here is a convenience symlink to that seed. `make aap-ee` starts one
+Tekton PipelineRun: clone the public repo, render with ansible-builder, build
+with Buildah, and push `demo-aap-ee:latest` to the internal registry. The
+OpenShift Pipelines operator is installed by GitOps. This is an explicit build,
+with no CI trigger. Hub and registry credentials are temporary mounted Secrets,
+never build arguments or task results. Bootstrap removes completed task pods,
+build workspaces and build Secrets after collecting the image digest.
 
-After GitOps settles, `make aap-configure` uses the generated AAP admin
-credential to import root `aap_manifest.zip` and create VM API, SSH, RHEL CDN
-entitlement and dispatch credentials by script. An EE Job then clones Forgejo
-without authentication and runs `infra.aap_configuration.dispatch` to create
-all other demo AAP objects. `webapp_vm`, `webapp_nginx` and `aap_configure_all`
-are ready after synchronization. VM creation remains an explicit AAP launch.
+`make aap-configure` imports `aap_manifest.zip`, seeds runtime credentials,
+creates a gateway token for the Resource Operator, and applies the bootstrap
+`AnsibleInventory`, `AnsibleProject` and `JobTemplate` CRs. An EE Job then
+clones public Forgejo and runs configuration dispatch. The installed operator
+JobTemplate schema cannot set an EE or credentials; dispatch adds those and
+manages inventory sources and application templates. The CRs own the initial
+inventory and project. Subsequent sync uses `aap_configure_all`.
+
+The VM service account and token live in `ansible-automation-platform`, with
+RoleBindings granting access to `automation-vms` and `webapp-vms`. All AAP SCM
+and Git collection reads use the internal Forgejo Service without credentials.
+Certified collection updates use the runtime `demo-automation-hub` credential.
 
 The first install pulls several large images. If the node briefly reports
 `DiskPressure`, inspect its free space and wait for kubelet to clear the

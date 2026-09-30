@@ -13,11 +13,16 @@ for deployment in aap-gateway aap-controller-web aap-controller-task; do
 done
 # Bootstrap creates these credentials directly; dispatch never owns their secrets.
 python3 "$demo_repo_root/bootstrap/aap-runtime.py" credentials
-forgejo_url=${FORGEJO_URL:-https://$(oc -n forgejo-demo get route forgejo-demo -o jsonpath='{.status.ingress[0].host}')}
+# Resource Operator owns the initial inventory/project/template base fields.
+oc apply -k "$demo_repo_root/bootstrap/aap-resources"
+for resource in ansibleinventory/demo-inventory ansibleproject/demojam-ansible jobtemplate/aap-configure-all; do
+  oc -n "$namespace" wait --for=condition=Successful "$resource" --timeout=15m
+done
+forgejo_url=http://forgejo.forgejo.svc.cluster.local:3000
 image=${AAP_EE_IMAGE:-image-registry.openshift-image-registry.svc:5000/$namespace/demo-aap-ee:latest}
 oc -n "$namespace" delete job aap-configure --ignore-not-found --wait=true >/dev/null
 yq '.' "$demo_repo_root/bootstrap/aap-configure-job.yaml" | jq \
-  --arg image "$image" --arg repo "$forgejo_url/demo-owner/aap-config-as-code.git" '
+  --arg image "$image" --arg repo "$forgejo_url/demo-owner/demojam-ansible.git" '
   .spec.template.spec.containers[0].image = $image |
   .spec.template.spec.containers[0].env |= map(
     if .name == "CONFIG_REPO_URL" then .value = $repo

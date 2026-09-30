@@ -39,9 +39,9 @@ class Controller:
         self.username = os.environ.get("AAP_USERNAME") or "admin"
         self.password = os.environ.get("AAP_PASSWORD") or secret(NAMESPACE, "aap-admin-password")["password"]
 
-    def request(self, path, data=None, method=None):
+    def request(self, path, data=None, method=None, prefix="/api/controller/v2/"):
         auth = base64.b64encode(f"{self.username}:{self.password}".encode()).decode()
-        req = urllib.request.Request(self.host + "/api/controller/v2/" + path,
+        req = urllib.request.Request(self.host + prefix + path,
             data=json.dumps(data).encode() if data is not None else None,
             headers={"Authorization": "Basic " + auth, "Content-Type": "application/json"}, method=method)
         # Polling must tolerate a brief ingress/network interruption. Never
@@ -115,11 +115,11 @@ def prepare_credentials(api):
 
     token_name = "aap-vm-admin-token"
     token_spec = {"apiVersion": "v1", "kind": "Secret", "type": "kubernetes.io/service-account-token",
-        "metadata": {"name": token_name, "namespace": "automation-vms",
+        "metadata": {"name": token_name, "namespace": NAMESPACE,
                      "annotations": {"kubernetes.io/service-account.name": "aap-vm-admin"}}}
-    oc("-n", "automation-vms", "apply", "-f", "-", input_data=json.dumps(token_spec))
+    oc("-n", NAMESPACE, "apply", "-f", "-", input_data=json.dumps(token_spec))
     for _ in range(60):
-        runtime = secret("automation-vms", token_name)
+        runtime = secret(NAMESPACE, token_name)
         if runtime.get("token"):
             break
         time.sleep(1)
@@ -168,7 +168,19 @@ def prepare_credentials(api):
         injectors={"env": {"AAP_HOST": "{{ host }}", "AAP_USERNAME": "{{ username }}", "AAP_PASSWORD": "{{ password }}"}})
     api.upsert("credentials/", "demo-aap-dispatch", organization=org["id"], credential_type=config["id"],
                inputs={"host": api.host, "username": api.username, "password": api.password})
-    project = api.find("projects/", "demo-aap-config", organization=org["id"])
+    galaxy = api.find("credential_types/", "Ansible Galaxy/Automation Hub API Token")
+    hub = api.upsert("credentials/", "demo-automation-hub", organization=org["id"], credential_type=galaxy["id"],
+        inputs={"url": "https://console.redhat.com/api/automation-hub/content/published/",
+                "auth_url": "https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token",
+                "token": os.environ["RH_AUTOMATIONHUB_TOKEN"]})
+    community = api.upsert("credentials/", "demo-galaxy", organization=org["id"], credential_type=galaxy["id"],
+        inputs={"url": "https://galaxy.ansible.com/"})
+    for credential in (hub, community):
+        api.request(f"organizations/{org['id']}/galaxy_credentials/", {"id": credential["id"], "associate": True})
+    if not oc("-n", NAMESPACE, "get", "secret", "aap-resource-connection", "--ignore-not-found", "-o", "name"):
+        token = api.request("tokens/", {"description": "demojam resource operator", "scope": "write"}, prefix="/api/gateway/v1/")
+        apply_secret(NAMESPACE, "aap-resource-connection", {"host": api.host, "token": token["token"]})
+    project = api.find("projects/", "demojam-ansible", organization=org["id"])
     if project and project.get("credential"):
         api.request(f"projects/{project['id']}/", {"credential": None}, "PATCH")
     for obsolete in ("demo-forgejo-scm", "demo-virtualmachine-deployer"):

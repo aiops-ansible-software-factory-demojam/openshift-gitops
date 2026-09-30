@@ -1,5 +1,0 @@
----
-collections:
-  - name: __FORGEJO_URL__/demo-owner/ansible-collection-demo.git
-    type: git
-    version: main

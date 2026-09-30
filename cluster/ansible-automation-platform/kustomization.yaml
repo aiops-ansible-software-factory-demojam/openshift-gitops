@@ -3,5 +3,5 @@ kind: Kustomization
 resources:
   - aap-ansibleautomationplatform.yaml
   - aap-ee-imagestream.yaml
-  - aap-ee-buildconfig.yaml
+  - ee-build/
   - aap-virtualmachine-rbac.yaml

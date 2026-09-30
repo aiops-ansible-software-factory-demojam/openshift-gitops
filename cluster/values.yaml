@@ -45,6 +45,15 @@ projects:
           kind: '*'
 
 applications:
+  openshift-pipelines:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '10'
+    destination:
+      namespace: openshift-operators
+    source:
+      path: cluster/openshift-pipelines
+
   webapp-vms:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
@@ -141,19 +150,19 @@ applications:
     source:
       path: cluster/rhdh
 
-  forgejo-demo:
+  forgejo:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: "10"
     destination:
-      namespace: forgejo-demo
+      namespace: forgejo
     source:
-      path: cluster/forgejo-demo
+      path: cluster/forgejo
     ignoreDifferences:
       - group: apps
         kind: Deployment
-        name: forgejo-demo
-        namespace: forgejo-demo
+        name: forgejo
+        namespace: forgejo
         jsonPointers:
           - /spec/replicas
 

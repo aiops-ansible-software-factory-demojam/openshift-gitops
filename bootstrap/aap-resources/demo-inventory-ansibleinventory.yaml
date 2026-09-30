@@ -1,0 +1,10 @@
+apiVersion: tower.ansible.com/v1alpha1
+kind: AnsibleInventory
+metadata:
+  name: demo-inventory
+  namespace: ansible-automation-platform
+spec:
+  connection_secret: aap-resource-connection
+  name: demo-inventory
+  organization: demo
+  state: present
