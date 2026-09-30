@@ -5,27 +5,25 @@ source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
 : "${RH_AUTOMATIONHUB_TOKEN:?Populate RH_AUTOMATIONHUB_TOKEN in .env}"
 demo_verify_cluster
 namespace=ansible-automation-platform
+active_runs=$(oc -n "$namespace" get pipelineruns -l tekton.dev/pipeline=demojam-ee -o json |
+  jq '[.items[] | select((.status.conditions[0].status // "Unknown") == "Unknown")] | length')
+[[ $active_runs == 0 ]] || { echo 'An EE build is already active; inspect it before restarting.' >&2; exit 1; }
 umask 077
 scratch=$(mktemp -d)
-cleanup_build_pods() {
-  local -a pods
-  mapfile -t pods < <(oc -n "$namespace" get pods -o json | jq -r '
-    .items[] | select(.metadata.name | test("^demo-aap-ee-[0-9]+-build$")) |
-    select(.status.phase == "Succeeded" or .status.phase == "Failed") | .metadata.name')
-  if (( ${#pods[@]} > 0 )); then
-    oc -n "$namespace" delete pod "${pods[@]}" --ignore-not-found >/dev/null
-  fi
-}
+run=
+# Invoked by the EXIT trap.
+# shellcheck disable=SC2317
 cleanup() {
   find "$scratch" -type f -delete
   find "$scratch" -depth -type d -empty -delete
-  oc -n "$namespace" delete secret aap-ee-automation-hub --ignore-not-found >/dev/null
-  # Build status and output images remain; terminal build pods hold large caches.
-  cleanup_build_pods
+  # Keep logs/status, but release large task caches and the workspace disk.
+  # Leave credentials mounted if an interrupted script's build is still active.
+  if [[ -n $run ]] && [[ $(oc -n "$namespace" get "$run" -o jsonpath='{.status.conditions[0].status}' 2>/dev/null) =~ ^(True|False)$ ]]; then
+    oc -n "$namespace" delete pod,pvc -l "tekton.dev/pipelineRun=${run##*/}" --ignore-not-found >/dev/null
+    oc -n "$namespace" delete secret aap-ee-automation-hub aap-ee-registry-auth --ignore-not-found >/dev/null
+  fi
 }
 trap cleanup EXIT
-# Also release caches left by a previous interrupted bootstrap.
-cleanup_build_pods
 cat > "$scratch/ansible.cfg" <<EOF
 [galaxy]
 server_list = rh_certified, community
@@ -39,38 +37,31 @@ EOF
 oc -n "$namespace" create secret generic aap-ee-automation-hub \
   --from-file="ansible.cfg=$scratch/ansible.cfg" --dry-run=client -o json |
   oc -n "$namespace" apply -f - >/dev/null
-ansible-builder create -f "$demo_repo_root/execution-environment.yml" \
-  --context "$scratch/context" --output-filename Containerfile
-tar -czf "$scratch/context.tar.gz" -C "$scratch/context" .
-build=$(oc -n "$namespace" start-build demo-aap-ee \
-  --from-archive="$scratch/context.tar.gz" -o name)
-echo "Started $build"
-# A long log stream can close while the build continues. Build phase, rather
-# than the transport connection, determines whether bootstrap succeeds.
-oc -n "$namespace" logs "$build" --follow ||
-  echo 'Build log stream ended; waiting on the Build resource.' >&2
-deadline=$((SECONDS + 2700))
-phase=Unknown
-while :; do
-  if (( SECONDS >= deadline )); then
-    echo "Timed out waiting for $build ($phase)." >&2; exit 1
-  fi
-  if ! phase=$(oc -n "$namespace" get "$build" --request-timeout=30s -o jsonpath='{.status.phase}'); then
-    echo 'Build status is temporarily unavailable; retrying.' >&2
+# The workshop already has registry credentials; never export them to disk/logs.
+oc -n openshift-config get secret pull-secret -o json | jq '
+  {apiVersion:"v1",kind:"Secret",metadata:{name:"aap-ee-registry-auth",namespace:"ansible-automation-platform"},
+   type:.type,data:.data}' | oc -n "$namespace" apply -f - >/dev/null
+# One deliberate run; no trigger or automatic CI is installed.
+run=$(oc -n "$namespace" create -f "$demo_repo_root/bootstrap/aap-ee-pipelinerun.yaml" -o name)
+echo "Started $run"
+deadline=$((SECONDS + 3600))
+while (( SECONDS < deadline )); do
+  if ! status=$(oc -n "$namespace" get "$run" --request-timeout=30s -o json); then
+    echo 'Pipeline status is temporarily unavailable; retrying.' >&2
     sleep 10
     continue
   fi
-  case "$phase" in
-    Complete) break ;;
-    Failed|Error|Cancelled)
-      echo "$build ended with phase $phase." >&2; exit 1 ;;
+  condition=$(jq -r '.status.conditions[]? | select(.type=="Succeeded") | .status' <<< "$status")
+  case "$condition" in
+    True)
+      jq -r '.status.results[]? | "\(.name)=\(.value)"' <<< "$status"
+      echo "$run completed."
+      exit ;;
+    False)
+      jq -r '.status.conditions[] | select(.type=="Succeeded") | .message' <<< "$status" >&2
+      echo "Inspect task logs for $run." >&2; exit 1 ;;
   esac
   sleep 10
 done
-echo "$build completed."
-cleanup_build_pods
-# SNO may need kubelet's pressure transition period after unpacking large images.
-# Do not schedule AAP jobs until the node can admit them normally.
-oc wait nodes --all \
-  --for='jsonpath={.status.conditions[?(@.type=="DiskPressure")].status}=False' \
-  --timeout=15m
+echo "Timed out waiting for $run; inspect it before starting another build." >&2
+exit 1

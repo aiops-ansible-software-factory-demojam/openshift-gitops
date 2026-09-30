@@ -25,7 +25,7 @@ operators, databases, and applications. OpenShift Virtualization requires
 hardware KVM support on at least one node; bootstrap waits for its
 `HyperConverged` resource to become available. The active `KUBECONFIG`
 identity needs cluster-admin rights. Install `oc`, `kustomize`, `helm`, `yq`,
-`jq`, `openssl`, `curl`, `git`, `python3`, `ssh-keygen`, and `ansible-builder` 3.1+.
+`jq`, `openssl`, `curl`, `git`, `python3`, `ssh-keygen`.
 
 Argo CD reads this repository from its Git remote. Publish your changes before
 bootstrap. `BOOTSTRAP_BRANCH` selects an already published branch; it defaults
@@ -121,13 +121,13 @@ make webapp-delete
 
 To apply subsequent Forgejo config changes through AAP, run the
 **aap_configure_all** template or `make aap-sync`. To rebuild/bootstrap only
-AAP, use `make aap-ee` then `make aap-configure`. The root
-[execution-environment.yml](execution-environment.yml) is converted to a build
-context by `ansible-builder create`; OpenShift performs the build and pushes
+AAP, use `make aap-ee` then `make aap-configure`. The seeded `demojam-ansible` repository owns its EE definition (linked at the root
+[execution-environment.yml](execution-environment.yml)). It is converted to a build
+context by the Tekton ansible-builder task; Buildah builds it and pushes
 to its internal registry. The Automation Hub token is a build-only mounted
 Secret, deleted after the build, and never copied into the image.
 
-See the [AAP config guide](cluster/forgejo-demo/fixtures/aap-config-as-code/README.md)
+See the [AAP config guide](cluster/forgejo/fixtures/demojam-ansible/README.md)
 for the script/dispatch boundary and reset behavior.
 
 ## Run an issue through AO
@@ -161,11 +161,11 @@ make demo-reset
 This removes `automation-developer` sessions and Sandboxes, recreates its
 selected `.env` model and agent Secrets, wipes the disposable Forgejo PVC, and
 reseeds the one-line README issue, Backstage collection template source, and
-the `demo-owner/aap-config-as-code` repository.
+the `demo-owner/demojam-ansible` repository.
 It removes catalog registrations for generated collections that the Forgejo
 wipe deletes. Other Omnigent agents and sessions remain.
 Run `bash scripts/dispatch-issue.sh 1` afterward. See the
-[Forgejo demo guide](cluster/forgejo-demo/README.md) for the fixture details.
+[Forgejo demo guide](cluster/forgejo/README.md) for the fixture details.
 
 The [Omnigent component guide](cluster/omnigent/README.md) describes the
 permissions, image, and session lifecycle. The [AO workflow guide](cluster/automation-orchestrator/workflows/README.md)
@@ -174,6 +174,6 @@ The [Developer Hub guide](cluster/rhdh/README.md) describes the templates
 and their relationship to the AO workflow.
 The [AAP guide](cluster/ansible-automation-platform/README.md) covers the
 single replica controller and EDA deployment. The seeded
-[AAP config-as-code guide](cluster/forgejo-demo/fixtures/aap-config-as-code/README.md)
+[AAP config-as-code guide](cluster/forgejo/fixtures/demojam-ansible/README.md)
 covers configuration and VM lifecycle automation. The [monitoring guide](cluster/user-workload-monitoring/README.md)
 covers the blackbox probe and user Alertmanager. No alert receiver is set yet.

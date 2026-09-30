@@ -1,10 +1,10 @@
 apiVersion: monitoring.coreos.com/v1
 kind: Probe
 metadata:
-  name: forgejo-demo
+  name: forgejo
   namespace: blackbox-exporter
 spec:
-  jobName: forgejo-demo
+  jobName: forgejo
   interval: 30s
   module: http_2xx
   prober:
@@ -12,4 +12,4 @@ spec:
   targets:
     staticConfig:
       static:
-        - http://forgejo-demo.forgejo-demo.svc.cluster.local:3000/
+        - http://forgejo.forgejo.svc.cluster.local:3000/

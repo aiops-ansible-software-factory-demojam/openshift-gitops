@@ -1,0 +1,21 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: ansible-builder
+  namespace: ansible-automation-platform
+spec:
+  description: Render the repository EE definition, following the homelab ansible-builder task.
+  workspaces:
+    - name: source
+  steps:
+    - name: render
+      image: ghcr.io/ansible/community-ansible-dev-tools@sha256:775c81d53058009dd47b97872f4a86d3b0a9ce16ad9af3cc48514ce4197aa787
+      securityContext:
+        runAsUser: 1000
+      workingDir: $(workspaces.source.path)/repo
+      script: |
+        #!/bin/bash
+        set -euo pipefail
+        ansible-builder create -f execution-environment.yml -c ../context --output-filename Containerfile
+        # Builder emits the Galaxy RUN instructions. Mount authentication only there.
+        sed -i '/^RUN .*ansible-galaxy/s/^RUN /RUN --mount=type=secret,id=automation-hub /' ../context/Containerfile

@@ -14,7 +14,7 @@ oc -n openshift-user-workload-monitoring get prometheus,thanosruler,alertmanager
 oc -n openshift-user-workload-monitoring get pods
 oc -n blackbox-exporter get deployment,servicemonitor,probe
 oc -n openshift-user-workload-monitoring exec prometheus-user-workload-0 -c prometheus -- \
-  wget -qO- 'http://127.0.0.1:9090/api/v1/query?query=probe_success%7Bjob%3D%22forgejo-demo%22%7D'
+  wget -qO- 'http://127.0.0.1:9090/api/v1/query?query=probe_success%7Bjob%3D%22forgejo%22%7D'
 ```
 
 When an alert target is available, configure a receiver for the dedicated

@@ -84,7 +84,7 @@ oc label namespace keycloak argocd.argoproj.io/managed-by=openshift-gitops --ove
 oc apply -f "$repo_root/cluster/omnigent/omnigent-namespace.yaml"
 oc apply -f "$repo_root/cluster/omnigent/omnigent-sandboxes-namespace.yaml"
 oc apply -f "$repo_root/cluster/automation-orchestrator/automation-orchestrator-namespace.yaml"
-oc apply -f "$repo_root/cluster/forgejo-demo/forgejo-demo-namespace.yaml"
+oc apply -f "$repo_root/cluster/forgejo/forgejo-namespace.yaml"
 oc apply -f "$repo_root/cluster/rhdh/rhdh-namespace.yaml"
 if ! oc -n rhdh get secret rhdh-pg-credentials >/dev/null 2>&1; then
   umask 077
@@ -97,9 +97,9 @@ if ! oc -n rhdh get secret rhdh-pg-credentials >/dev/null 2>&1; then
   rm -f "$db_password_file"
   db_password_file=
 fi
-oc -n forgejo-demo create configmap forgejo-demo-url \
-  --from-literal="root-url=https://forgejo-demo.$ingress_domain/" \
-  --dry-run=client -o yaml | oc -n forgejo-demo apply -f -
+oc -n forgejo create configmap forgejo-url \
+  --from-literal="root-url=https://forgejo.$ingress_domain/" \
+  --dry-run=client -o yaml | oc -n forgejo apply -f -
 bash "$bootstrap_dir/model-config.sh"
 bash "$bootstrap_dir/omnigent-auth.sh"
 
@@ -124,7 +124,7 @@ done
 deadline=$((SECONDS + 3600))
 # OpenShift preserves an explicit Route host when a manifest starts requesting
 # a subdomain. Refresh each affected child app before recreating legacy Routes.
-for app in rhbk forgejo-demo rhdh omnigent automation-orchestrator; do
+for app in rhbk forgejo rhdh omnigent automation-orchestrator; do
   until oc -n "$gitops_namespace" get application "$app" >/dev/null 2>&1; do
     if (( SECONDS >= deadline )); then
       echo "Timed out waiting for the $app Application." >&2
@@ -142,8 +142,8 @@ for app in rhbk forgejo-demo rhdh omnigent automation-orchestrator; do
     fi
     sleep 5
   done
-  if [[ $app == forgejo-demo ]]; then
-    until oc -n forgejo-demo get deployment forgejo-demo >/dev/null 2>&1; do
+  if [[ $app == forgejo ]]; then
+    until oc -n forgejo get deployment forgejo >/dev/null 2>&1; do
       if (( SECONDS >= deadline )); then
         echo 'Timed out waiting for the Forgejo Deployment.' >&2
         exit 1
@@ -153,7 +153,7 @@ for app in rhbk forgejo-demo rhdh omnigent automation-orchestrator; do
     bash "$repo_root/scripts/feature-demo.sh" hydrate
   fi
 done
-for route_ref in keycloak/keycloak forgejo-demo/forgejo-demo \
+for route_ref in keycloak/keycloak forgejo/forgejo \
   omnigent/omnigent \
   automation-orchestrator/automation-orchestrator; do
   route_namespace=${route_ref%%/*}
@@ -203,7 +203,7 @@ done
 oc -n "$gitops_namespace" get applications \
   -o custom-columns=NAME:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status
 
-for app in agent-sandbox-operator openshift-virtualization omnigent automation-orchestrator ansible-automation-platform webapp-vms user-workload-monitoring; do
+for app in openshift-pipelines agent-sandbox-operator openshift-virtualization omnigent automation-orchestrator ansible-automation-platform webapp-vms user-workload-monitoring; do
   oc -n "$gitops_namespace" annotate application "$app" \
     argocd.argoproj.io/refresh=hard --overwrite
   deadline=$((SECONDS + 1800))

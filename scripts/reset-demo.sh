@@ -62,7 +62,7 @@ oc -n omnigent delete secret omnigent-agent --ignore-not-found
 bash "$repo_root/bootstrap/model-config.sh"
 oc -n omnigent rollout status deployment/omnigent --timeout=5m
 
-COLLECTION_SOURCE="$repo_root/cluster/forgejo-demo/fixtures/collection" \
-  bash "$repo_root/scripts/feature-demo.sh" reset --confirm-forgejo-demo
+COLLECTION_SOURCE="$repo_root/cluster/forgejo/fixtures/collection" \
+  bash "$repo_root/scripts/feature-demo.sh" reset --confirm-forgejo
 bash "$repo_root/cluster/automation-orchestrator/reconcile-omnigent-workflow.sh"
 echo 'Demo reset complete: Forgejo reseeded and Omnigent ready for a new AO session.'

@@ -1,6 +1,6 @@
 /cluster/*/charts/
 .rendered/
-cluster/forgejo-demo/.state/
+cluster/forgejo/.state/
 /.env
 /.env.*
 !/.env.example
