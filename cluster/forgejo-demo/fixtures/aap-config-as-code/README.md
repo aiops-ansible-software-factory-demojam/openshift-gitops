@@ -11,6 +11,21 @@ execution environment, credentials, and the `openshift_virtualization_machine`
 job template. Project and inventory refresh on launch. There are no schedules
 or automatic CI jobs. Applying configuration does not launch a VM.
 
+## Required credentials
+
+- AAP admin authentication: the operator creates `aap-admin-password` in
+  `ansible-automation-platform`; supply its password through `AAP_PASSWORD`.
+- An active AAP subscription manifest must be installed before Controller
+  can run jobs. Operator installation alone does not license Controller.
+- Forgejo SCM token: hydration generates the `demo-agent` token used below.
+- Kubernetes API token: mint it from the GitOps-owned `aap-vm-deployer`
+  service account. The CA certificate is public configuration, not a secret.
+- Registry authentication: building needs access to the Red Hat supported
+  base; publishing needs a writable destination. A private EE destination
+  also needs a Container Registry credential in AAP.
+
+No guest SSH credential is required to create or delete a VM through the API.
+
 ## Build the execution environment
 
 The pinned Red Hat supported AAP 2.7 base image supplies the certified
@@ -57,8 +72,12 @@ read -rsp 'AAP admin password: ' AAP_PASSWORD
 export AAP_PASSWORD
 export K8S_AUTH_HOST=$(oc whoami --show-server)
 export K8S_AUTH_API_KEY=$(oc -n automation-vms create token aap-vm-deployer --duration=8h)
-export K8S_AUTH_CA_CERT=$(oc -n automation-vms get configmap kube-root-ca.crt -o go-template='{{index .data "ca.crt"}}')
+export AAP_K8S_CA_CERT=$(oc -n automation-vms get configmap kube-root-ca.crt -o go-template='{{index .data "ca.crt"}}')
 ```
+
+`AAP_K8S_CA_CERT` holds certificate contents for the AAP credential. Do not
+use `K8S_AUTH_CA_CERT` for these contents: Kubernetes modules treat that
+environment variable as a filename.
 
 Set `FORGEJO_TOKEN` to the demo-agent token written by GitOps hydration and
 keep the `AAP_EE_IMAGE` used for the build exported:
@@ -112,8 +131,8 @@ To run the same playbook locally with navigator, write the non-secret CA
 certificate to the ignored project file and point the EE at that mounted file:
 
 ```bash
-printf '%s\n' "$K8S_AUTH_CA_CERT" > cluster-ca.crt
-export K8S_AUTH_SSL_CA_CERT=/runner/project/cluster-ca.crt
+printf '%s\n' "$AAP_K8S_CA_CERT" > cluster-ca.crt
+export K8S_AUTH_SSL_CA_CERT="$PWD/cluster-ca.crt"
 make vm VM_ARGS='-e vm_name=automation-demo -e vm_state=present'
 oc -n automation-vms get virtualmachines,virtualmachineinstances
 make vm VM_ARGS='-e vm_name=automation-demo -e vm_state=absent'
