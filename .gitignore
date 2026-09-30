@@ -1,3 +1,7 @@
 /cluster/*/charts/
 .rendered/
 cluster/forgejo-demo/.state/
+/.env
+/.env.*
+!/.env.example
+/.secrets/

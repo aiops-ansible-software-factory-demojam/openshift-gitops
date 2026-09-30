@@ -32,6 +32,51 @@ checkout to a chosen branch, then points the root and child Applications to
 that branch. Use one branch per demo cluster. The checkout must be clean and
 published before running bootstrap.
 
+## Local secrets
+
+Populate the repository-root `.env` with your local inputs. The checked-in
+[.env.example](.env.example) is the blank template for a fresh checkout:
+
+```bash
+cp .env.example .env  # Fresh checkout only; keep an existing populated .env.
+chmod 600 .env
+```
+
+The `.env` file and `.secrets/` directory are gitignored. Quote values as
+shown in the template; certificate contents can use multiline single quotes.
+The scripts read exported variables, so load the file from the repo root
+before bootstrap, reset, Forgejo API commands, or AAP configuration:
+
+```bash
+set -a
+source .env
+set +a
+```
+
+For bootstrap/reset, fill `KUBECONFIG` and `MODEL_API_KEY`. For AAP config,
+fill the gateway/admin/EE inputs, `FORGEJO_TOKEN` with the demo-agent token,
+and the VM API inputs documented in the
+[AAP fixture guide](cluster/forgejo-demo/fixtures/aap-config-as-code/README.md).
+Load the root `.env` before changing into the cloned Forgejo repository to
+run `make configure`. Admin-only Forgejo API operations need the admin token
+instead. Bootstrap and operators still generate internal database and
+application credentials; hydration still manages Forgejo/Backstage tokens.
+
+Registry variables in the template support explicit Podman login:
+
+```bash
+printf '%s' "$REDHAT_REGISTRY_PASSWORD" | podman login registry.redhat.io \
+  --username "$REDHAT_REGISTRY_USERNAME" --password-stdin
+# Only when publishing to an external private EE registry:
+printf '%s' "$EE_REGISTRY_PASSWORD" | podman login "$EE_REGISTRY_HOST" \
+  --username "$EE_REGISTRY_USERNAME" --password-stdin
+```
+
+`AAP_LICENSE_FILE` is a reference to the subscription manifest you upload
+to AAP, not an automatic license import. Keep an in-repo manifest under
+`.secrets/`; its contents are not environment variables. AAP needs an active
+subscription before its inventory updates and VM jobs can succeed.
+
 ## Bootstrap
 
 From the repository root:
