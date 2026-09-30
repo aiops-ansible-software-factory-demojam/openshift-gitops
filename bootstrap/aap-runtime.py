@@ -49,14 +49,15 @@ class Controller:
                 return json.loads(payload) if payload else {}
         except urllib.error.HTTPError as error:
             # API payloads can contain inputs. Keep credential errors out of logs.
-            raise RuntimeError(f"AAP {req.method} {path.split('?')[0]} returned HTTP {error.code}") from None
+            raise RuntimeError(f"AAP {req.get_method()} {path.split('?')[0]} returned HTTP {error.code}") from None
 
-    def find(self, endpoint, name):
-        result = self.request(endpoint + "?" + urllib.parse.urlencode({"name": name}))
+    def find(self, endpoint, name, **filters):
+        result = self.request(endpoint + "?" + urllib.parse.urlencode({"name": name, **filters}))
         return next(iter(result["results"]), None)
 
     def upsert(self, endpoint, name, **fields):
-        existing = self.find(endpoint, name)
+        scope = {"organization": fields["organization"]} if "organization" in fields else {}
+        existing = self.find(endpoint, name, **scope)
         if existing:
             if endpoint == "credential_types/" and all(existing.get(k) == v for k, v in fields.items()):
                 return existing
@@ -156,11 +157,11 @@ def prepare_credentials(api):
         injectors={"env": {"AAP_HOST": "{{ host }}", "AAP_USERNAME": "{{ username }}", "AAP_PASSWORD": "{{ password }}"}})
     api.upsert("credentials/", "demo-aap-dispatch", organization=org["id"], credential_type=config["id"],
                inputs={"host": api.host, "username": api.username, "password": api.password})
-    project = api.find("projects/", "demo-aap-config")
+    project = api.find("projects/", "demo-aap-config", organization=org["id"])
     if project and project.get("credential"):
         api.request(f"projects/{project['id']}/", {"credential": None}, "PATCH")
     for obsolete in ("demo-forgejo-scm", "demo-virtualmachine-deployer"):
-        credential = api.find("credentials/", obsolete)
+        credential = api.find("credentials/", obsolete, organization=org["id"])
         if credential:
             api.request(f"credentials/{credential['id']}/", method="DELETE")
     api.request("config/", {"manifest": base64.b64encode(manifest.read_bytes()).decode()})
@@ -170,7 +171,10 @@ def prepare_credentials(api):
 
 
 def launch(api, name, extra):
-    template = api.find("job_templates/", name)
+    org = api.find("organizations/", "demo")
+    if not org:
+        raise RuntimeError("Bootstrap the demo organization before launching automation")
+    template = api.find("job_templates/", name, organization=org["id"])
     if not template:
         raise RuntimeError(f"Job template {name} was not found")
     # Only the demo's three purposeful templates are exposed by this helper.
