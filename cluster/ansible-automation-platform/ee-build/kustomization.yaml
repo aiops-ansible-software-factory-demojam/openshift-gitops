@@ -4,3 +4,4 @@ resources:
   - aap-ee-builder-rbac.yaml
   - ansible-builder-task.yaml
   - demojam-ee-pipeline.yaml
+  - aap-ee-base-imagestream.yaml

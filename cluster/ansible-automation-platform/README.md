@@ -38,9 +38,12 @@ OpenShift Pipelines operator is installed by GitOps. This is an explicit build,
 with no CI trigger. Hub credentials are temporary mounted Secrets,
 never build arguments or task results. Bootstrap removes completed task pods,
 build workspaces and the Hub Secret after collecting the image digest.
-Base image pulls use the available cluster registry settings; no explicit pull
-Secret is copied. The build identity uses its runtime token for the internal
-registry push.
+Failed task pods are retained for log inspection.
+Buildah does not inherit kubelet authentication. Instead, a pipeline step
+imports the repository-defined base into an ImageStream with local reference
+policy. OpenShift performs the authenticated import; Buildah pulls through the
+internal registry using its service account token. The namespace service CA
+verifies registry TLS. No global pull Secret is copied into the task.
 
 `make aap-configure` imports `aap_manifest.zip`, seeds runtime credentials,
 creates a gateway token for the Resource Operator, and applies the bootstrap

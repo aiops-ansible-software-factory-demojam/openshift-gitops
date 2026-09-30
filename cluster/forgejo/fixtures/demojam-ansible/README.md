@@ -13,7 +13,10 @@ after populating its root `.env` and supplying `aap_manifest.zip`.
    Forgejo and monitoring.
 2. A one-off Tekton pipeline clones this repository and renders its
    `execution-environment.yml` using ansible-builder. Buildah mounts Hub
-   authentication only for collection installation, then pushes the EE into
+   authentication only for collection installation. OpenShift imports the base
+   into an ImageStream using cluster authentication; Buildah uses the internal
+   registry and its service account token, without copying global pull secrets.
+   It pushes the EE into
    the cluster registry. The root `requirements.yml` is the single collection
    dependency list used for both EE builds and AAP project synchronization.
 3. Bootstrap imports the license and creates/reuses the VM API, SSH, RHEL

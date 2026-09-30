@@ -42,6 +42,7 @@ rules:
       - image.openshift.io
     resources:
       - imagestreams
+      - imagestreamimports
     verbs:
       - "*"
   - apiGroups:
