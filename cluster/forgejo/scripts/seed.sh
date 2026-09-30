@@ -120,7 +120,4 @@ while IFS= read -r repo; do
     api PUT "/repos/$owner/$name/collaborators/$collaborator" '{"permission":"write"}' >/dev/null
   done < <(jq -r '.collaborators[]' <<< "$repo")
 done < <(jq -c '.repositories[]' "$config")
-if [[ -n ${WEBHOOK_URL:-} ]]; then
-  "$root/scripts/webhook.sh" demo-owner/ansible-collection-demo "$WEBHOOK_URL"
-fi
 echo 'Seed complete. Create the trigger issue after the agent integration is ready.'

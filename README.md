@@ -43,7 +43,9 @@ chmod 600 .env
 
 All bootstrap and demo entry points load the root `.env`. Quote values as in
 the template. Set `KUBECONFIG` to your cluster config path (default
-`$HOME/.kube/config`), and optionally set `EXPECTED_SERVER` to its API URL.
+`$HOME/.kube/config`). Scripts discover the API server and identity from the
+active kubeconfig and retain that server through each workflow. No server URL
+needs to be entered.
 Place the subscription ZIP at root `aap_manifest.zip`; it must include AAP
 licensing and a RHEL CDN entitlement for the guest. Both files are gitignored.
 

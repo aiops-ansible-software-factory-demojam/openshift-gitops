@@ -42,13 +42,6 @@ rules:
       - image.openshift.io
     resources:
       - imagestreams
-      - imagestreamimports
-    verbs:
-      - "*"
-  - apiGroups:
-      - build.openshift.io
-    resources:
-      - buildconfigs
     verbs:
       - "*"
   - apiGroups:
@@ -122,7 +115,7 @@ rules:
       - get
       - list
       - watch
-  # Only the explicit EE builder identity receives these RoleBindings.
+  # Only the sandbox image builder identity receives these RoleBindings.
   - apiGroups:
       - rbac.authorization.k8s.io
     resources:

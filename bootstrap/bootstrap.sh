@@ -102,15 +102,6 @@ oc -n forgejo create configmap forgejo-url \
 bash "$bootstrap_dir/model-config.sh"
 bash "$bootstrap_dir/omnigent-auth.sh"
 
-# Migrate the previous native builder before waiting for GitOps convergence.
-# App pruning is disabled, so this obsolete BuildConfig needs explicit removal.
-if oc -n omnigent-sandboxes get buildconfig omnigent-opencode >/dev/null 2>&1; then
-  active_native=$(oc -n omnigent-sandboxes get builds -l buildconfig=omnigent-opencode -o json |
-    jq '[.items[] | select(.status.phase == "New" or .status.phase == "Pending" or .status.phase == "Running")] | length')
-  [[ $active_native == 0 ]] || { echo 'A native sandbox build is still active.' >&2; exit 1; }
-  oc -n omnigent-sandboxes delete buildconfig omnigent-opencode --ignore-not-found
-fi
-
 echo 'OpenShift GitOps is healthy; starting the app-of-apps rollout...'
 # Native Argo Kustomize patches override child refs only on this cluster.
 # Checked-in defaults remain main and are safe to merge.
@@ -124,31 +115,6 @@ oc -n "$gitops_namespace" annotate application cluster \
   argocd.argoproj.io/refresh=hard --overwrite
 
 echo 'Waiting for Argo CD to refresh the root application...'
-# Remove the discontinued AAP EE builder on upgrades (Argo pruning is disabled).
-# Sandbox image builds in omnigent-sandboxes are a separate workload.
-aap_namespace=ansible-automation-platform
-if oc -n "$aap_namespace" get pipeline demojam-ee --ignore-not-found -o name 2>/dev/null | grep -q .; then
-  oc -n "$gitops_namespace" annotate application ansible-automation-platform \
-    argocd.argoproj.io/refresh=hard --overwrite
-  deadline=$((SECONDS + 900))
-  until [[ $(oc -n "$gitops_namespace" get application ansible-automation-platform \
-    -o jsonpath='{.status.sync.revision}') == "$target_revision" ]]; do
-    (( SECONDS < deadline )) || { echo 'AAP has not read the new manifests.' >&2; exit 1; }
-    sleep 5
-  done
-  active_ee=$(oc -n "$aap_namespace" get pipelineruns -l tekton.dev/pipeline=demojam-ee -o json |
-    jq '[.items[] | select(.status.conditions[0].status == "Unknown")] | length')
-  [[ $active_ee == 0 ]] || { echo 'An obsolete AAP EE build is still active; cancel it before bootstrap.' >&2; exit 1; }
-  oc -n "$aap_namespace" delete pipelineruns -l tekton.dev/pipeline=demojam-ee --ignore-not-found
-  oc -n "$aap_namespace" delete pipeline demojam-ee --ignore-not-found
-  oc -n "$aap_namespace" delete task ansible-builder --ignore-not-found
-  oc -n "$aap_namespace" delete serviceaccount aap-ee-builder --ignore-not-found
-  oc -n "$aap_namespace" delete rolebinding aap-ee-builder-scc aap-ee-builder-registry aap-ee-base-importer --ignore-not-found
-  oc -n "$aap_namespace" delete role aap-ee-base-importer --ignore-not-found
-  oc -n "$aap_namespace" delete imagestream demo-aap-ee demo-aap-ee-base --ignore-not-found
-  oc -n "$aap_namespace" delete secret aap-ee-automation-hub --ignore-not-found
-fi
-
 until [[ $(oc -n "$gitops_namespace" get application cluster \
   -o jsonpath='{.metadata.annotations.argocd\.argoproj\.io/refresh}') != hard ]]; do
   sleep 2

@@ -13,8 +13,7 @@ case "$action" in
   *) echo 'Usage: feature-demo.sh hydrate | reset --confirm-forgejo' >&2; exit 2 ;;
 esac
 
-server=$(oc whoami --show-server)
-oc whoami
+demo_verify_cluster
 ingress_domain=$(oc -n openshift-ingress-operator get ingresscontroller default \
   -o jsonpath='{.status.domain}')
 [[ -n $ingress_domain ]] || { echo 'Ingress domain is unavailable.' >&2; exit 1; }
@@ -30,7 +29,6 @@ forgejo_host=$(oc -n forgejo get route forgejo \
 state_dir=${FORGEJO_STATE_DIR:-"$repo_root/cluster/forgejo/.state/$ingress_domain"}
 export FORGEJO_STATE_DIR="$state_dir"
 export FORGEJO_URL="https://$forgejo_host"
-export EXPECTED_SERVER="$server"
 if [[ $action == reset ]]; then
   RHDH_URL="https://rhdh.$ingress_domain" FORGEJO_URL="$FORGEJO_URL" \
     bash "$repo_root/cluster/rhdh/scripts/clear-demo-catalog.sh"

@@ -14,12 +14,15 @@ export KUBECONFIG=${KUBECONFIG:-$HOME/.kube/config}
 
 demo_verify_cluster() {
   local demo_server
-  demo_server=$(oc whoami --show-server)
+  demo_server=$(oc whoami --show-server) || return
   printf '%s\n' "$demo_server"
-  oc whoami
-  [[ -z ${EXPECTED_SERVER:-} || $demo_server == "$EXPECTED_SERVER" ]] || {
-    echo 'Unexpected cluster; check EXPECTED_SERVER in .env.' >&2; exit 2;
+  oc whoami || return
+  [[ -z ${DEMO_CLUSTER_SERVER:-} || $demo_server == "$DEMO_CLUSTER_SERVER" ]] || {
+    echo 'The active cluster changed during this run; restart with the intended kubeconfig.' >&2
+    return 2
   }
+  # Nested entry points retain the server discovered at the start of this run.
+  export DEMO_CLUSTER_SERVER="$demo_server"
 }
 
 # SNO API server rollouts can briefly interrupt Kubernetes jobs.
