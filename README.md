@@ -137,7 +137,7 @@ oc -n openshift-gitops get applications
 oc -n agent-sandbox-system get csv
 oc -n openshift-cnv get hyperconverged,kubevirt
 oc -n omnigent rollout status deployment/omnigent
-oc -n omnigent-sandboxes get builds,imagestream,sandboxes,pods
+oc -n omnigent-sandboxes get pipelineruns,imagestream,sandboxes,pods
 bash scripts/feature-demo.sh hydrate
 bash scripts/dispatch-issue.sh 1
 ```

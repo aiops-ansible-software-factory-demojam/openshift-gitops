@@ -26,7 +26,7 @@ container runtime. This demo has no
 warm pool or separate sandbox network policy.
 
 The Sandbox Pod uses `IfNotPresent` image pulls. Bump the ImageStreamTag in
-the BuildConfig, sandbox config, and bootstrap together when changing `image/`,
+the Tekton pipeline, sandbox config, and bootstrap together when changing `image/`,
 so new sessions cannot reuse a node-cached older image under the same tag.
 
 The agent is a reusable template. Each managed session gets its own Sandbox
@@ -34,7 +34,14 @@ with a generated `omnigent-managed-*` name, rather than a fixed Sandbox bound
 to the agent. New Sandboxes carry the label
 `omnigent.ai/agent=automation-developer`.
 
-From the repository root, build the sandbox image locally with:
+Bootstrap builds this image with a one-off Tekton run. Buildah keeps its layers
+on a temporary PVC to avoid filling the SNO node disk. To rebuild explicitly:
+
+```bash
+bash bootstrap/sandbox-image.sh
+```
+
+For local image development:
 
 ```bash
 podman build -f cluster/omnigent/image/Containerfile \
@@ -56,7 +63,7 @@ Check the resources with the selected kubeconfig:
 
 ```bash
 oc -n omnigent rollout status deployment/omnigent
-oc -n omnigent-sandboxes get builds,imagestream,sandboxes,pods
+oc -n omnigent-sandboxes get pipelineruns,imagestream,sandboxes,pods
 oc -n omnigent-sandboxes get sandboxes \
   -l omnigent.ai/agent=automation-developer
 ```

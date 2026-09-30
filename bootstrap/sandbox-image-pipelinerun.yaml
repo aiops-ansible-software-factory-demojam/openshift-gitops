@@ -1,0 +1,29 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: omnigent-opencode-
+  namespace: omnigent-sandboxes
+spec:
+  pipelineRef:
+    name: omnigent-opencode
+  params:
+    - name: REVISION
+      value: main
+  taskRunTemplate:
+    serviceAccountName: omnigent-image-builder
+    podTemplate:
+      automountServiceAccountToken: true
+      securityContext:
+        fsGroup: 1000
+        runAsNonRoot: false
+  timeouts:
+    pipeline: 1h0m0s
+  workspaces:
+    - name: source
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 40Gi

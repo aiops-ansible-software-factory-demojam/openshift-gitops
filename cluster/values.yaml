@@ -176,7 +176,7 @@ applications:
 
   omnigent:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/compare-options: IgnoreExtraneous,ServerSideDiff=true,IncludeMutationWebhook=true
       argocd.argoproj.io/sync-wave: "30"
     destination:
       namespace: omnigent
