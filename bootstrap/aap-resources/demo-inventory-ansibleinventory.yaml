@@ -6,5 +6,6 @@ metadata:
 spec:
   connection_secret: aap-resource-connection
   name: demo-inventory
+  description: Demo virtualization inventory
   organization: demo
   state: present
