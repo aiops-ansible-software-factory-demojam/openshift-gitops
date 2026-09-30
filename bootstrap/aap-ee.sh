@@ -8,6 +8,12 @@ namespace=ansible-automation-platform
 active_runs=$(oc -n "$namespace" get pipelineruns -l tekton.dev/pipeline=demojam-ee -o json |
   jq '[.items[] | select((.status.conditions[0].status // "Unknown") == "Unknown")] | length')
 [[ $active_runs == 0 ]] || { echo 'An EE build is already active; inspect it before restarting.' >&2; exit 1; }
+# Release caches from terminal runs, preserving the failed logs until this next run.
+while read -r completed; do
+  oc -n "$namespace" delete pod,pvc,statefulset -l "tekton.dev/pipelineRun=$completed" --ignore-not-found >/dev/null
+done < <(oc -n "$namespace" get pipelineruns -l tekton.dev/pipeline=demojam-ee -o json |
+  jq -r '.items[] | select(.status.conditions[0].status == "True" or .status.conditions[0].status == "False") | .metadata.name')
+oc wait nodes --all --for='jsonpath={.status.conditions[?(@.type=="DiskPressure")].status}=False' --timeout=15m
 umask 077
 scratch=$(mktemp -d)
 run=
@@ -20,7 +26,7 @@ cleanup() {
   # Leave credentials mounted if an interrupted script's build is still active.
   if [[ -n $run ]] && [[ $(oc -n "$namespace" get "$run" -o jsonpath='{.status.conditions[0].status}' 2>/dev/null) =~ ^(True|False)$ ]]; then
     if [[ $(oc -n "$namespace" get "$run" -o jsonpath='{.status.conditions[0].status}') == True ]]; then
-      oc -n "$namespace" delete pod,pvc -l "tekton.dev/pipelineRun=${run##*/}" --ignore-not-found >/dev/null
+      oc -n "$namespace" delete pod,pvc,statefulset -l "tekton.dev/pipelineRun=${run##*/}" --ignore-not-found >/dev/null
     fi
     oc -n "$namespace" delete secret aap-ee-automation-hub --ignore-not-found >/dev/null
   fi

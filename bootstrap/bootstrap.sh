@@ -221,11 +221,40 @@ for app in openshift-pipelines agent-sandbox-operator openshift-virtualization o
   done
 done
 
+# Build only after the operator rollout; release completed build caches on SNO.
+cleanup_sandbox_builds() {
+  local -a build_pods
+  mapfile -t build_pods < <(oc -n omnigent-sandboxes get pods -o json | jq -r '
+    .items[] | select(.metadata.name | test("^omnigent-opencode-[0-9]+-build$")) |
+    select(.status.phase != "Running" and .status.phase != "Pending") | .metadata.name')
+  if (( ${#build_pods[@]} > 0 )); then
+    oc -n omnigent-sandboxes delete pod "${build_pods[@]}" --ignore-not-found >/dev/null
+  fi
+}
+build_sandbox_image() {
+  local sandbox_build phase build_deadline
+  cleanup_sandbox_builds
+  oc wait nodes --all --for='jsonpath={.status.conditions[?(@.type=="DiskPressure")].status}=False' --timeout=15m
+  sandbox_build=$(oc -n omnigent-sandboxes start-build buildconfig/omnigent-opencode --commit="$target_revision" -o name)
+  oc -n omnigent-sandboxes logs "$sandbox_build" --follow ||
+    echo 'Sandbox build log stream ended; checking Build status.' >&2
+  build_deadline=$((SECONDS + 1800))
+  while (( SECONDS < build_deadline )); do
+    phase=$(oc -n omnigent-sandboxes get "$sandbox_build" --request-timeout=30s -o jsonpath='{.status.phase}') || { sleep 10; continue; }
+    case "$phase" in
+      Complete) cleanup_sandbox_builds; return ;;
+      Failed|Error|Cancelled) echo "$sandbox_build ended with phase $phase." >&2; return 1 ;;
+    esac
+    sleep 10
+  done
+  echo "Timed out waiting for $sandbox_build." >&2
+  return 1
+}
 echo 'Waiting for the OpenCode sandbox image build...'
 if ! oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32-v7 \
   >/dev/null 2>&1; then
   echo 'Building the missing OpenCode sandbox image tag...'
-  oc -n omnigent-sandboxes start-build buildconfig/omnigent-opencode --commit="$target_revision" --wait --follow
+  build_sandbox_image
 fi
 deadline=$((SECONDS + 1800))
 until oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32-v7 >/dev/null 2>&1; do
@@ -249,7 +278,7 @@ sandbox_image_current() {
 if [[ ${BOOTSTRAP_FORCE_SANDBOX_BUILD:-false} == true ]] ||
    ! sandbox_image_current; then
   echo 'Building the OpenCode sandbox image from the current Git revision...'
-  oc -n omnigent-sandboxes start-build buildconfig/omnigent-opencode --commit="$target_revision" --wait --follow
+  build_sandbox_image
 fi
 sandbox_image_current
 oc get crd sandboxes.agents.x-k8s.io
