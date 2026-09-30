@@ -24,6 +24,8 @@ cleanup() {
   cleanup_build_pods
 }
 trap cleanup EXIT
+# Also release caches left by a previous interrupted bootstrap.
+cleanup_build_pods
 cat > "$scratch/ansible.cfg" <<EOF
 [galaxy]
 server_list = rh_certified, community
