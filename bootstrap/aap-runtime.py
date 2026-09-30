@@ -193,6 +193,26 @@ def prepare_credentials(api):
     print("AAP license and runtime VM, SSH, entitlement, and dispatch credentials are ready")
 
 
+
+def wait_for_resources(api):
+    """Operator conditions can precede actual Controller object creation."""
+    deadline = time.monotonic() + 900
+    while time.monotonic() < deadline:
+        org = api.find("organizations/", "demo")
+        if org:
+            inventory = api.find("inventories/", "demo-inventory", organization=org["id"])
+            project = api.find("projects/", "demojam-ansible", organization=org["id"])
+            template = api.find("job_templates/", "aap_configure_all", organization=org["id"])
+            if (inventory and project and template and project["status"] == "successful"
+                    and template["inventory"] == inventory["id"]
+                    and template["project"] == project["id"]
+                    and template["playbook"] == "playbooks/aap/configure-aap.yml"):
+                print("Resource Operator inventory, synced project, and dispatch template exist in AAP")
+                return
+        time.sleep(5)
+    raise RuntimeError("Resource Operator objects did not become ready in AAP; inspect the CRs and project update")
+
+
 def launch(api, name, extra):
     org = api.find("organizations/", "demo")
     if not org:
@@ -216,10 +236,12 @@ def main():
     action = sys.argv[1]
     if action == "credentials":
         prepare_credentials(api)
+    elif action == "wait-resources":
+        wait_for_resources(api)
     elif action == "launch":
         launch(api, sys.argv[2], json.loads(sys.argv[3]) if len(sys.argv) > 3 else {})
     else:
-        raise RuntimeError("Use credentials or launch TEMPLATE [JSON_EXTRA_VARS]")
+        raise RuntimeError("Use credentials, wait-resources, or launch TEMPLATE [JSON_EXTRA_VARS]")
 
 
 if __name__ == "__main__":

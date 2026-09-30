@@ -18,6 +18,8 @@ oc apply -k "$demo_repo_root/bootstrap/aap-resources"
 for resource in ansibleinventory/demo-inventory ansibleproject/demojam-ansible jobtemplate/aap-configure-all; do
   oc -n "$namespace" wait --for=condition=Successful "$resource" --timeout=15m
 done
+# Verify real API objects: this operator can report Successful after ignored errors.
+python3 "$demo_repo_root/bootstrap/aap-runtime.py" wait-resources
 forgejo_url=http://forgejo.forgejo.svc.cluster.local:3000
 image=${AAP_EE_IMAGE:-image-registry.openshift-image-registry.svc:5000/$namespace/demo-aap-ee:latest}
 oc -n "$namespace" delete job aap-configure --ignore-not-found --wait=true >/dev/null
