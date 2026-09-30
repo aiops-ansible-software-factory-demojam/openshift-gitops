@@ -31,8 +31,7 @@ Bootstrap creates its persistent API token and the AAP credential directly;
 config-as-code references that credential without owning its secret inputs.
 
 The public `demojam-ansible` repo owns its `execution-environment.yml` and
-single `requirements.yml` (also linked under `collections/`). The root EE
-file here is a convenience symlink to that seed. `make aap-ee` starts one
+single `requirements.yml` (also linked under `collections/`). `make aap-ee` starts one
 Tekton PipelineRun: clone the public repo, render with ansible-builder, build
 with Buildah, and push `demo-aap-ee:latest` to the internal registry. The
 OpenShift Pipelines operator is installed by GitOps. This is an explicit build,
