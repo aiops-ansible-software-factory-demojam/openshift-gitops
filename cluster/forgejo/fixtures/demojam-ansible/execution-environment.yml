@@ -6,7 +6,17 @@ images:
 dependencies:
   python_interpreter:
     python_path: /usr/bin/python3.12
-  galaxy: requirements.yml
+  # Certified dependencies are baked once; SCM installs the mutable Git collection.
+  galaxy:
+    collections:
+      - name: ansible.controller
+        version: 4.8.9
+      - name: ansible.platform
+        version: 2.7.20260812
+      - name: redhat.openshift_virtualization
+        version: 2.3.0
+      - name: infra.aap_configuration
+        version: 4.8.0
   # The supported base already includes these collections' Python/system deps.
   exclude:
     all_from_collections:

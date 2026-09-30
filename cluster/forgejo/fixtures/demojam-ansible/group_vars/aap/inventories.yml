@@ -13,7 +13,7 @@ controller_inventory_sources:
     update_cache_timeout: 0
     execution_environment: demo-aap-ee
     wait: true
-    timeout: 600
+    timeout: 900
   - name: demo-virtualmachines
     organization: demo
     inventory: demo-inventory
@@ -27,4 +27,4 @@ controller_inventory_sources:
     update_on_launch: true
     update_cache_timeout: 0
     wait: true
-    timeout: 600
+    timeout: 900
