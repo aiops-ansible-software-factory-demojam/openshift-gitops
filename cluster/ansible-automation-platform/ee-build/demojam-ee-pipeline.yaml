@@ -54,7 +54,7 @@ spec:
               #!/bin/bash
               set -euo pipefail
               git clone --depth 1 --branch "$REVISION" "$REPO_URL" "$(workspaces.source.path)/repo"
-              git -C "$(workspaces.source.path)/repo" rev-parse HEAD > "$(results.SOURCE_COMMIT.path)"
+              git -C "$(workspaces.source.path)/repo" rev-parse HEAD | tr -d '\n' > "$(results.SOURCE_COMMIT.path)"
     - name: render-context
       runAfter:
         - fetch-source
@@ -132,12 +132,13 @@ spec:
               #!/bin/bash
               set -euo pipefail
               registry=${IMAGE%%/*}
+              graph_root="$(workspaces.source.path)/buildah"
               # Runtime token is only sent to the internal registry, never printed.
               cat /var/run/secrets/kubernetes.io/serviceaccount/token | \
                 buildah login --username serviceaccount --password-stdin "$registry" >/dev/null
-              buildah --storage-driver=overlay bud --isolation=chroot \
+              buildah --root "$graph_root" --storage-driver=overlay bud --isolation=chroot \
                 --secret id=automation-hub,src=/run/build-secrets/automation-hub/ansible.cfg \
                 --build-arg "EE_BASE_IMAGE=$registry/ansible-automation-platform/demo-aap-ee-base:latest" \
                 -f Containerfile -t "$IMAGE" .
-              buildah --storage-driver=overlay push \
+              buildah --root "$graph_root" --storage-driver=overlay push \
                 --digestfile "$(results.IMAGE_DIGEST.path)" "$IMAGE" "docker://$IMAGE"
