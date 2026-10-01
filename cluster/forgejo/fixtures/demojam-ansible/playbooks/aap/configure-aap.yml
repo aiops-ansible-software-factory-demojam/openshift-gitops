@@ -27,6 +27,38 @@
         fail_msg: Run bootstrap to supply the configuration credential documented in README.md.
       no_log: true
 
+    # EDA's scheduled shared-resource sync can lag organization creation by 15 minutes.
+    - name: Wait for the bootstrap organization in EDA
+      block:
+        - name: Check EDA organization synchronization
+          ansible.builtin.uri:
+            url: "{{ aap_hostname }}/api/eda/v1/organizations/?name=demo"
+            method: GET
+            url_username: "{{ aap_username }}"
+            url_password: "{{ aap_password }}"
+            force_basic_auth: true
+            validate_certs: "{{ aap_validate_certs }}"
+            return_content: true
+            status_code: 200
+            timeout: 10
+          register: demo_eda_organization
+          until:
+            - demo_eda_organization.status | default(0) == 200
+            - >-
+              demo_eda_organization.json.results | default([])
+              | selectattr('name', 'equalto', 'demo') | list | length == 1
+          retries: 120
+          delay: 10
+          changed_when: false
+          no_log: true
+      rescue:
+        - name: Report EDA organization readiness failure
+          ansible.builtin.fail:
+            msg: >-
+              EDA did not expose organization demo within the readiness window.
+              Check EDA worker health and gateway shared-resource synchronization,
+              then rerun make aap-configure. No config-as-code objects were applied.
+
     - name: Apply inventory-defined AAP objects
       ansible.builtin.include_role:
         name: infra.aap_configuration.dispatch
