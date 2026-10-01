@@ -220,6 +220,16 @@ for app in openshift-pipelines agent-sandbox-operator openshift-virtualization o
   done
 done
 
+# Operator health does not prove the guest images are ready for cloning.
+for datasource in centos-stream10 rhel9; do
+  echo "Waiting for the $datasource golden image..."
+  if ! oc -n openshift-virtualization-os-images wait --for=condition=Ready \
+    "datasource/$datasource" --timeout=15m; then
+    echo "Inspect CDI importers in openshift-virtualization-os-images before retrying bootstrap." >&2
+    exit 1
+  fi
+done
+
 # Build only after the operator rollout, keeping image storage on a PVC.
 sandbox_image_current() {
   local built_revision

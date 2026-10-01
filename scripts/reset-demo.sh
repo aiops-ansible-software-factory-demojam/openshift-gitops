@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Reset only the disposable Forgejo repo and automation-developer sessions.
+# Restore the disposable demo to its post-bootstrap starting point.
 set -euo pipefail
 set +x
 # shellcheck source=../bootstrap/env.sh
@@ -56,6 +56,21 @@ oc -n omnigent-sandboxes delete sandboxes \
   --ignore-not-found --wait=true --timeout=5m
 printf 'Removed %s automation-developer sessions.\n' "${#session_ids[@]}"
 
+# Use the managed AAP playbooks while their Forgejo project still exists.
+demo_wait_for_api
+python3 "$repo_root/bootstrap/aap-runtime.py" reset-vms
+# Stop developer sessions first so no test can recreate a VM during cleanup.
+oc -n molecule-tests delete virtualmachines \
+  -l app.kubernetes.io/part-of=molecule-tests \
+  --ignore-not-found --cascade=foreground --wait=true --timeout=5m
+for namespace in automation-vms webapp-vms molecule-tests; do
+  remaining=$(oc -n "$namespace" get virtualmachines,virtualmachineinstances,datavolumes,persistentvolumeclaims -o name)
+  [[ -z $remaining ]] || {
+    echo "Demo resources remain in $namespace; inspect them before retrying reset." >&2
+    exit 1
+  }
+done
+
 # Recreate the bootstrap-owned model and agent configuration from the selected provider.
 oc -n omnigent-sandboxes delete secret omnigent-model --ignore-not-found
 oc -n omnigent delete secret omnigent-agent --ignore-not-found
@@ -65,4 +80,6 @@ oc -n omnigent rollout status deployment/omnigent --timeout=5m
 COLLECTION_SOURCE="$repo_root/cluster/forgejo/fixtures/collection" \
   bash "$repo_root/scripts/feature-demo.sh" reset --confirm-forgejo
 bash "$repo_root/cluster/automation-orchestrator/reconcile-omnigent-workflow.sh"
-echo 'Demo reset complete: Forgejo reseeded and Omnigent ready for a new AO session.'
+# Refresh project, inventories and config against the new Forgejo baseline.
+bash "$repo_root/bootstrap/aap-configure.sh"
+echo 'Demo reset complete: VMs and test disks removed, Forgejo reseeded, AAP configured, and Omnigent ready.'
