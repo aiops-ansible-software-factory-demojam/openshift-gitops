@@ -1669,6 +1669,8 @@ demo_bootstrap() (
   demo_step 'Prepare demo identity credentials and user catalog'
   demo_identity_prepare
   demo_homepage_prepare
+  local argo_was_dex
+  argo_was_dex=$(oc -n "$gitops_namespace" get argocd openshift-gitops -o json | jq -r '.spec.sso != null')
   # The operator owns the initial Dex field. SSA omission/null cannot remove
   # another manager's value, and the CR forbids Dex plus native OIDC. Switch
   # both fields in one merge patch before applying the remaining desired spec.
@@ -1683,6 +1685,7 @@ demo_bootstrap() (
   oc apply -f "$bootstrap_dir/config/openshift-gitops-cluster-permissions.yaml"
   oc -n "$gitops_namespace" wait --for=jsonpath='{.status.phase}'=Available \
     argocd/openshift-gitops --timeout=15m
+  demo_identity_argocd_reload "$argo_was_dex"
   oc -n "$gitops_namespace" wait --for=condition=Ready pod --all --timeout=15m
 
   echo 'Waiting for the Argo CD cluster permissions...'
@@ -1693,7 +1696,7 @@ demo_bootstrap() (
   done
   # Identity preparation created the consumer namespaces. The sandbox runner
   # also needs its namespace before the first child sync can mount its Secrets.
-  oc apply -f "$repo_root/cluster/omnigent/omnigent-sandboxes-namespace.yaml"
+  oc apply --server-side --field-manager=demo-bootstrap -f "$repo_root/cluster/omnigent/omnigent-sandboxes-namespace.yaml"
   if ! oc -n rhdh get secret rhdh-pg-credentials >/dev/null 2>&1; then
     umask 077
     db_password_file=$(mktemp)
