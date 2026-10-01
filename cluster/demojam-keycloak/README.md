@@ -174,8 +174,12 @@ Local validation:
 
 ```bash
 make render
-shellcheck -S warning bootstrap/bootstrap.sh bootstrap/identity.sh
+shellcheck -S warning bootstrap/bootstrap.sh bootstrap/identity.sh bootstrap/homepage.sh
 ```
 
-A live rollout and browser login to each application are needed to verify the
-complete SSO experience.
+Browser login was verified on a fresh OpenShift 4.22.15 cluster on 2026-10-01
+for Keycloak account management, Homepage, OpenShift console, Argo CD, Developer
+Hub, Forgejo, Automation Orchestrator, Omnigent, AAP and the nginx webapp. The
+same Keycloak browser session was reused across application logins. AAP's
+organization mapping was applied through its Controller, and the RHEL VM,
+nginx installation and blackbox probe were verified live.
