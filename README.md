@@ -139,6 +139,13 @@ Argo CD reads this repository from its Git remote. Publish your changes before
 bootstrap. `BOOTSTRAP_BRANCH` selects an already published branch; it defaults
 to `main`. Bootstrap sets a cluster-local Argo Kustomize patch for child
 Applications so the checked-in defaults can remain on `main`.
+
+For a published feature-branch checkout, set `BOOTSTRAP_BRANCH` in `.env` or run:
+
+```bash
+BOOTSTRAP_BRANCH="$(git branch --show-current)" bash bootstrap/bootstrap.sh
+```
+
 `BOOTSTRAP_REPO_URL` optionally selects a public HTTPS repository instead of
 `origin`; the root Application, children, AppProject and sandbox build use the
 same source. `BOOTSTRAP_STORAGE_CLASS` optionally selects the AAP/monitoring
