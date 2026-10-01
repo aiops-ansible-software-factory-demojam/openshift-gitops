@@ -1669,6 +1669,13 @@ demo_bootstrap() (
   demo_step 'Prepare demo identity credentials and user catalog'
   demo_identity_prepare
   demo_homepage_prepare
+  # The operator owns the initial Dex field. SSA omission/null cannot remove
+  # another manager's value, and the CR forbids Dex plus native OIDC. Switch
+  # both fields in one merge patch before applying the remaining desired spec.
+  yq . "$bootstrap_dir/config/openshift-gitops-argocd.yaml" |
+    jq --arg issuer "https://demojam-keycloak.$ingress_domain/realms/demo" \
+      '{spec:{sso:null,oidcConfig:(.spec.oidcConfig | gsub("__DEMO_OIDC_ISSUER__"; $issuer))}}' |
+    oc -n "$gitops_namespace" patch argocd openshift-gitops --type=merge --patch-file=/dev/stdin
   yq . "$bootstrap_dir/config/openshift-gitops-argocd.yaml" |
     jq --arg issuer "https://demojam-keycloak.$ingress_domain/realms/demo" \
       '.spec.oidcConfig |= gsub("__DEMO_OIDC_ISSUER__"; $issuer)' |
