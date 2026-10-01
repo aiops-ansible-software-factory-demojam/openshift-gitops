@@ -42,13 +42,3 @@ controller_templates:
       - demo-rhel-entitlement
     become_enabled: true
     ask_variables_on_launch: false
-  - name: aap_configure_all
-    description: Sync all demo AAP configuration from Forgejo
-    organization: demo
-    project: demojam-ansible
-    inventory: demo-inventory
-    execution_environment: demo-aap-ee
-    job_type: run
-    playbook: playbooks/aap/configure-aap.yml
-    credentials:
-      - demo-aap-dispatch

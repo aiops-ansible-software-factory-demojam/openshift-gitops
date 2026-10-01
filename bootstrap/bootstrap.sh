@@ -1211,7 +1211,7 @@ demo_ao_reconcile() (
 )
 
 # -----------------------------------------------------------------------------
-# AAP API: runtime credentials and dispatch stay outside config-as-code ownership
+# AAP API: minimal foundation; config-as-code owns runtime credentials and demo jobs
 # -----------------------------------------------------------------------------
 
 # API response files and curl authentication are private and removed together.
@@ -1315,7 +1315,7 @@ aap_associate() {
 }
 
 aap_credentials() {
-  local namespace=ansible-automation-platform org kind machine rhel config galaxy community token project
+  local namespace=ansible-automation-platform org config galaxy community oidc_issuer
   demo_manifest "$aap_scratch" || demo_die 'The subscription ZIP must contain valid RHEL entitlement material.'
 
   # Persistent token and SSH identity survive ordinary reruns and demo resets.
@@ -1349,100 +1349,28 @@ YAML
     -o go-template='{{index .data "public-key" | base64decode}}' >"$aap_scratch/ssh-public"
 
   org=$(aap_upsert organizations/ demo '{"description":"Disposable automation demo"}' | jq -er .id)
-  kind=$(aap_upsert credential_types/ 'Demo VM API' "$(jq -n '{
-    kind:"cloud",
-    inputs:{
-      fields:[
-        {id:"kube_api_host",label:"Kubernetes API URL",type:"string"},
-        {id:"kube_api_token",label:"Service account token",type:"string",secret:true},
-        {id:"kube_api_ca",label:"Kubernetes CA",type:"string",multiline:true},
-        {id:"ssh_public_key",label:"VM SSH public key",type:"string"}
-      ],
-      required:["kube_api_host","kube_api_token","kube_api_ca","ssh_public_key"]
-    },
-    injectors:{
-      file:{template:"{{ kube_api_ca }}"},
-      env:{
-        K8S_AUTH_HOST:"{{ kube_api_host }}",K8S_AUTH_API_KEY:"{{ kube_api_token }}",
-        K8S_AUTH_SSL_CA_CERT:"{{ tower.filename }}",K8S_AUTH_VERIFY_SSL:"true",
-        VM_SSH_PUBLIC_KEY:"{{ ssh_public_key }}"
-      }
-    }
-  }')" | jq -er .id)
-  aap_upsert credentials/ demo-virtualmachine-admin "$(jq -n \
-    --argjson org "$org" --argjson kind "$kind" --arg host "$DEMO_CLUSTER_SERVER" \
-    --rawfile token "$aap_scratch/vm-token" --rawfile ca "$aap_scratch/ca.crt" \
-    --rawfile public "$aap_scratch/ssh-public" '{organization:$org,credential_type:$kind,
-      inputs:{kube_api_host:$host,kube_api_token:($token|rtrimstr("\n")),kube_api_ca:$ca,
-        ssh_public_key:($public|rtrimstr("\n"))}}')" >/dev/null
-  machine=$(aap_find credential_types/ Machine | jq -er .id)
-  aap_upsert credentials/ demo-webapp-ssh "$(jq -n --argjson org "$org" --argjson kind "$machine" \
-    --rawfile private "$aap_scratch/ssh-private" '{organization:$org,credential_type:$kind,
-      inputs:{username:"cloud-user",ssh_key_data:$private,become_method:"sudo"}}')" >/dev/null
-  rhel=$(aap_upsert credential_types/ 'Demo RHEL entitlement' "$(jq -n '{kind:"cloud",
-    inputs:{fields:[{id:"entitlement_pem",label:"RHEL entitlement PEM",type:"string",secret:true,multiline:true}],
-      required:["entitlement_pem"]},
-    injectors:{file:{template:"{{ entitlement_pem }}"},env:{RHEL_ENTITLEMENT_FILE:"{{ tower.filename }}"}}}')" | jq -er .id)
-  aap_upsert credentials/ demo-rhel-entitlement "$(jq -n --argjson org "$org" --argjson kind "$rhel" \
-    --rawfile pem "$aap_scratch/entitlement.pem" '{organization:$org,credential_type:$kind,inputs:{entitlement_pem:$pem}}')" >/dev/null
-  config=$(aap_upsert credential_types/ 'Demo AAP dispatch' "$(jq -n '{kind:"cloud",
-    inputs:{fields:[{id:"host",label:"AAP URL",type:"string"},{id:"username",label:"AAP username",type:"string"},
-      {id:"password",label:"AAP password",type:"string",secret:true},
-      {id:"oidc_issuer",label:"Demo OIDC issuer",type:"string"},
-      {id:"oidc_secret",label:"Demo OIDC client secret",type:"string",secret:true}],
-      required:["host","username","password","oidc_issuer","oidc_secret"]},
-    injectors:{env:{AAP_HOST:"{{ host }}",AAP_USERNAME:"{{ username }}",AAP_PASSWORD:"{{ password }}",
-      DEMO_OIDC_ISSUER:"{{ oidc_issuer }}",DEMO_OIDC_CLIENT_SECRET:"{{ oidc_secret }}"}}}')" | jq -er .id)
+  config=$(aap_upsert credential_types/ 'Demo AAP configuration' \
+    "$(yq . "$demo_repo_root/bootstrap/aap-dispatch-credential-type.yaml")" | jq -er .id)
   oc -n demojam-keycloak get secret identity-credentials \
     -o go-template='{{index .data "aap-client-secret" | base64decode}}' >"$aap_scratch/oidc-secret"
   oidc_issuer="https://$(oc -n demojam-keycloak get route keycloak -o jsonpath='{.status.ingress[0].host}')/realms/demo"
   aap_upsert credentials/ demo-aap-dispatch "$(jq -n --argjson org "$org" --argjson kind "$config" \
     --arg host "$aap_host" --arg username "$aap_username" --rawfile password "$aap_scratch/password" \
     --arg issuer "$oidc_issuer" --rawfile oidc_secret "$aap_scratch/oidc-secret" \
+    --arg ee_image "$AAP_EE_IMAGE" --arg vm_host "$DEMO_CLUSTER_SERVER" --rawfile vm_token "$aap_scratch/vm-token" \
+    --rawfile vm_ca "$aap_scratch/ca.crt" --rawfile ssh_private "$aap_scratch/ssh-private" \
+    --rawfile ssh_public "$aap_scratch/ssh-public" --rawfile entitlement "$aap_scratch/entitlement.pem" \
     '{organization:$org,credential_type:$kind,inputs:{host:$host,username:$username,password:$password,
-      oidc_issuer:$issuer,oidc_secret:$oidc_secret}}')" >/dev/null
+      oidc_issuer:$issuer,oidc_secret:$oidc_secret,ee_image:$ee_image,vm_host:$vm_host,vm_token:($vm_token|rtrimstr("\n")),
+      vm_ca:$vm_ca,ssh_private:$ssh_private,ssh_public:($ssh_public|rtrimstr("\n")),entitlement:$entitlement}}')" >/dev/null
   galaxy=$(aap_find credential_types/ 'Ansible Galaxy/Automation Hub API Token' | jq -er .id)
   community=$(aap_upsert credentials/ demo-galaxy "$(jq -n --argjson org "$org" --argjson kind "$galaxy" \
     '{organization:$org,credential_type:$kind,inputs:{url:"https://galaxy.ansible.com/"}}')" | jq -er .id)
   aap_associate "organizations/$org/galaxy_credentials/" "$community"
 
-  if [[ -z $(oc -n "$namespace" get secret aap-resource-connection --ignore-not-found -o name) ]]; then
-    token=$(aap_request POST tokens/ '{"description":"demojam resource operator","scope":"write"}' /api/gateway/v1/)
-    jq -er .token <<<"$token" | tr -d '\n' >"$aap_scratch/resource-token"
-    oc -n "$namespace" create secret generic aap-resource-connection \
-      --from-literal="host=$aap_host" --from-file=token="$aap_scratch/resource-token"
-  fi
-  project=$(aap_find projects/ demojam-ansible "$(jq -n --argjson org "$org" '{organization:$org}')")
-  if jq -e '.credential != null' <<<"$project" >/dev/null; then
-    aap_request PATCH "projects/$(jq -er .id <<<"$project")/" '{"credential":null}' >/dev/null
-  fi
   base64 <"$AAP_LICENSE_FILE" | tr -d '\n' >"$aap_scratch/manifest.b64"
   aap_request POST config/ "$(jq -n --rawfile manifest "$aap_scratch/manifest.b64" '{manifest:$manifest}')" >/dev/null
-  echo 'AAP license and runtime VM, SSH, entitlement, and dispatch credentials are ready.'
-}
-
-aap_wait_resources() {
-  local require_template=${1:-true} deadline=$((SECONDS + 900)) org inventory project template scope
-  while (( SECONDS < deadline )); do
-    org=$(aap_find organizations/ demo | jq -r '.id // empty')
-    if [[ -n $org ]]; then
-      scope=$(jq -n --argjson org "$org" '{organization:$org}')
-      inventory=$(aap_find inventories/ demo-inventory "$scope")
-      project=$(aap_find projects/ demojam-ansible "$scope")
-      if jq -e '.id != null' <<<"$inventory" >/dev/null && jq -e '.status == "successful"' <<<"$project" >/dev/null; then
-        [[ $require_template == true ]] || { echo 'Resource Operator inventory and synced project exist in AAP.'; return; }
-        template=$(aap_find job_templates/ aap_configure_all "$scope")
-        if jq -e --argjson inventory "$(jq .id <<<"$inventory")" --argjson project "$(jq .id <<<"$project")" \
-          '.id != null and .inventory == $inventory and .project == $project and
-            .playbook == "playbooks/aap/configure-aap.yml"' <<<"$template" >/dev/null; then
-          echo 'Resource Operator dispatch template exists in AAP.'
-          return
-        fi
-      fi
-    fi
-    sleep 5
-  done
-  demo_die 'Resource Operator objects did not become ready in AAP; inspect the CRs and project update.'
+  echo 'AAP license, persistent key material, and configuration credential are ready.'
 }
 
 aap_launch() {
@@ -1485,29 +1413,49 @@ aap_reset_vms() {
 }
 
 aap_dispatch() {
-  local org scope template credential ee source update group inventory project
-  aap_wait_resources
+  # Bootstrap exclusively owns the objects required to run config-as-code.
+  # Keep them out of group_vars/aap; dispatch owns everything downstream.
+  local org scope inventory project project_record ee template credential host group update
   org=$(aap_find organizations/ demo | jq -er .id)
   scope=$(jq -n --argjson org "$org" '{organization:$org}')
-  template=$(aap_find job_templates/ aap_configure_all "$scope")
-  credential=$(aap_find credentials/ demo-aap-dispatch "$scope" | jq -er .id)
   ee=$(aap_upsert execution_environments/ demo-aap-ee "$(jq -n --argjson org "$org" --arg image "$AAP_EE_IMAGE" \
     '{organization:$org,image:$image,pull:"always"}')" | jq -er .id)
-  aap_request PATCH "job_templates/$(jq -er .id <<<"$template")/" "$(jq -n --argjson ee "$ee" --arg image "$AAP_EE_IMAGE" \
-    '{execution_environment:$ee,extra_vars:({aap_ee_image:$image}|tojson)}')" >/dev/null
-  aap_associate "job_templates/$(jq -er .id <<<"$template")/credentials/" "$credential"
-  inventory=$(jq -er .inventory <<<"$template")
-  project=$(jq -er .project <<<"$template")
-  source=$(aap_upsert inventory_sources/ demo-inventory-scm "$(jq -n \
-    --argjson inventory "$inventory" --argjson project "$project" --argjson ee "$ee" '{
-      inventory:$inventory,source:"scm",source_project:$project,source_path:"inventory.yml",execution_environment:$ee,
-      overwrite:true,overwrite_vars:true,update_on_launch:true,update_cache_timeout:0,timeout:900}')" | jq -er .id)
-  update=$(aap_request POST "inventory_sources/$source/update/" '{}')
-  aap_wait "inventory_updates/$(jq -er .id <<<"$update")/"
-  group=$(aap_find groups/ aap "$(jq -n --argjson inventory "$inventory" '{inventory:$inventory}')" | jq -er .id)
-  aap_request GET "groups/$group/hosts/?name=aap_demo" | jq -e '.count > 0' >/dev/null ||
-    demo_die 'The bootstrap inventory sync did not import aap_demo into the aap group.'
+  project_record=$(aap_upsert projects/ demojam-ansible "$(jq -n --argjson org "$org" '{
+    organization:$org,scm_type:"git",scm_url:"http://forgejo.forgejo.svc.cluster.local:3000/demo-owner/demojam-ansible.git",
+    scm_branch:"main",credential:null,scm_update_on_launch:true,scm_update_cache_timeout:30}')")
+  project=$(jq -er .id <<<"$project_record")
+  if jq -e '.current_update != null' <<<"$project_record" >/dev/null; then
+    aap_wait "project_updates/$(jq -er .current_update <<<"$project_record")/"
+  fi
+  update=$(aap_request POST "projects/$project/update/" '{}')
+  aap_wait "project_updates/$(jq -er .id <<<"$update")/"
+  inventory=$(aap_upsert inventories/ demo-inventory "$scope" | jq -er .id)
+  host=$(aap_upsert hosts/ aap_demo "$(jq -n --argjson inventory "$inventory" \
+    '{inventory:$inventory,variables:({ansible_connection:"local"}|tojson)}')" | jq -er .id)
+  group=$(aap_upsert groups/ aap "$(jq -n --argjson inventory "$inventory" '{inventory:$inventory}')" | jq -er .id)
+  aap_associate "groups/$group/hosts/" "$host"
+  credential=$(aap_find credentials/ demo-aap-dispatch "$scope" | jq -er .id)
+  template=$(aap_upsert job_templates/ aap_configure_all "$(jq -n \
+    --argjson inventory "$inventory" --argjson project "$project" --argjson ee "$ee" \
+    '{inventory:$inventory,project:$project,execution_environment:$ee,job_type:"run",
+      playbook:"playbooks/aap/configure-aap.yml",ask_variables_on_launch:false,extra_vars:"{}",
+      description:"Sync all demo AAP configuration from Forgejo"}')" | jq -er .id)
+  aap_associate "job_templates/$template/credentials/" "$credential"
   aap_launch aap_configure_all
+}
+
+# Retire only the three legacy bootstrap CRs. No finalizer means deleting the
+# Kubernetes records cannot request deletion of their existing AAP objects.
+aap_retire_resource_crs() {
+  local resource object
+  for resource in jobtemplate/aap-configure-all ansibleproject/demojam-ansible ansibleinventory/demo-inventory; do
+    object=$(oc -n ansible-automation-platform get "$resource" --ignore-not-found -o json)
+    [[ -n $object ]] || continue
+    jq -e '(.metadata.finalizers // [] | length) == 0 and
+      .spec.connection_secret == "aap-resource-connection" and (.spec.state // "present") == "present"' <<<"$object" >/dev/null ||
+      demo_die "Refusing to retire unexpected or finalized Resource Operator object $resource."
+    oc -n ansible-automation-platform delete "$resource" --wait=true
+  done
 }
 
 # All AAP actions share one private session and the same supported EE selection.
@@ -1519,7 +1467,6 @@ demo_aap() (
   aap_connect
   case $1 in
     credentials) aap_credentials ;;
-    wait-project) aap_wait_resources false ;;
     dispatch) aap_dispatch ;;
     reset-vms) aap_reset_vms ;;
     launch) shift; aap_launch "$@" ;;
@@ -1531,17 +1478,9 @@ demo_aap_configure() {
   demo_verify_cluster
   demo_wait_for_api
   demo_readiness aap
+  aap_retire_resource_crs
   demo_aap credentials
 
-  # The Resource Operator needs the actual project before its dependent template.
-  oc apply -f "$demo_repo_root/bootstrap/aap-resources/demo-inventory-ansibleinventory.yaml" \
-    -f "$demo_repo_root/bootstrap/aap-resources/demojam-ansible-ansibleproject.yaml"
-  for resource in ansibleinventory/demo-inventory ansibleproject/demojam-ansible; do
-    oc -n ansible-automation-platform wait --for=condition=Successful "$resource" --timeout=15m
-  done
-  demo_aap wait-project
-  oc apply -f "$demo_repo_root/bootstrap/aap-resources/aap-configure-all-jobtemplate.yaml"
-  oc -n ansible-automation-platform wait --for=condition=Successful jobtemplate/aap-configure-all --timeout=15m
   demo_aap dispatch
   demo_identity_aap_callback
   echo 'AAP configuration from Forgejo completed.'
@@ -1649,11 +1588,25 @@ demo_bootstrap() (
   }
 
   # Follow the Red Hat CLI installation flow: namespace, OperatorGroup, then
-  # Subscription. The operator creates the default cluster-scoped Argo CD instance.
+  # Subscription. Create our own instance with native OIDC from its first start.
   demo_step 'Install OpenShift GitOps'
   oc apply -f "$bootstrap_dir/openshift-gitops-operator-namespace.yaml"
   oc apply -f "$bootstrap_dir/openshift-gitops-operator-operatorgroup.yaml"
+  oc apply -f "$bootstrap_dir/openshift-gitops-namespace.yaml"
+  local legacy_argo=''
+  if [[ -n $(oc get crd argocds.argoproj.io --ignore-not-found -o name) ]]; then
+    legacy_argo=$(oc -n "$gitops_namespace" get argocd openshift-gitops --ignore-not-found -o name)
+  fi
+  # Disabling the default instance deletes its controllers, not the Applications
+  # or their workloads. The operator uses shared settings names per namespace,
+  # so finish removing the old instance before creating the replacement.
   oc apply -f "$bootstrap_dir/openshift-gitops-operator-subscription.yaml"
+  if [[ -n $legacy_argo ]]; then
+    oc -n "$gitops_namespace" wait --for=delete argocd/openshift-gitops --timeout=15m
+    oc -n "$gitops_namespace" wait --for=delete \
+      deployment/openshift-gitops-server statefulset/openshift-gitops-application-controller \
+      configmap/argocd-cm configmap/argocd-rbac-cm secret/argocd-secret --timeout=15m
+  fi
 
   echo 'Waiting for the OpenShift GitOps operator installation...'
   deadline=$((SECONDS + 900))
@@ -1671,35 +1624,17 @@ demo_bootstrap() (
     oc -n "$operator_namespace" rollout status "deployment/$deployment" --timeout=10m
   done
 
-  echo 'Waiting for the operator-created default Argo CD instance...'
-  deadline=$((SECONDS + 900))
-  until oc -n "$gitops_namespace" get argocd openshift-gitops >/dev/null 2>&1; do
-    (( SECONDS < deadline )) || demo_die 'Timed out waiting for the default Argo CD instance.'
-    sleep 5
-  done
-
-  # Reconcile the default instance to the checked-in definition while retaining
-  # the special cluster-scoped permissions Red Hat grants to this instance.
   demo_step 'Prepare demo identity credentials and user catalog'
   demo_identity_prepare
   demo_homepage_prepare
-  local argo_was_dex
-  argo_was_dex=$(oc -n "$gitops_namespace" get argocd openshift-gitops -o json | jq -r '.spec.sso != null')
-  # The operator owns the initial Dex field. SSA omission/null cannot remove
-  # another manager's value, and the CR forbids Dex plus native OIDC. Switch
-  # both fields in one merge patch before applying the remaining desired spec.
-  yq . "$bootstrap_dir/config/openshift-gitops-argocd.yaml" |
-    jq --arg issuer "https://demojam-keycloak.$ingress_domain/realms/demo" \
-      '{spec:{sso:null,oidcConfig:(.spec.oidcConfig | gsub("__DEMO_OIDC_ISSUER__"; $issuer))}}' |
-    oc -n "$gitops_namespace" patch argocd openshift-gitops --type=merge --patch-file=/dev/stdin
   yq . "$bootstrap_dir/config/openshift-gitops-argocd.yaml" |
     jq --arg issuer "https://demojam-keycloak.$ingress_domain/realms/demo" \
       '.spec.oidcConfig |= gsub("__DEMO_OIDC_ISSUER__"; $issuer)' |
-    oc apply --server-side --force-conflicts -f -
+    oc apply --server-side --field-manager=demo-bootstrap -f -
   oc apply -f "$bootstrap_dir/config/openshift-gitops-cluster-permissions.yaml"
   oc -n "$gitops_namespace" wait --for=jsonpath='{.status.phase}'=Available \
-    argocd/openshift-gitops --timeout=15m
-  demo_identity_argocd_reload "$argo_was_dex"
+    argocd/demojam-gitops --timeout=15m
+  oc -n "$gitops_namespace" rollout status deployment/demojam-gitops-server --timeout=15m
   # Pod-wide waits capture terminating replicas during an operator rollout and
   # can wait on deleted pods. Follow the stable workload controllers instead.
   local gitops_workloads gitops_workload

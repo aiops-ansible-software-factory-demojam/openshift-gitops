@@ -16,6 +16,12 @@ ansible-navigator:
         - AAP_EE_IMAGE
         - DEMO_OIDC_ISSUER
         - DEMO_OIDC_CLIENT_SECRET
+        - DEMO_VM_API_HOST
+        - DEMO_VM_API_TOKEN
+        - DEMO_VM_API_CA
+        - DEMO_VM_SSH_PRIVATE
+        - DEMO_VM_SSH_PUBLIC
+        - DEMO_RHEL_ENTITLEMENT
         - FORGEJO_TOKEN
         - K8S_AUTH_HOST
         - K8S_AUTH_API_KEY
