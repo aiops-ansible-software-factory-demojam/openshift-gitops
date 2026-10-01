@@ -7,7 +7,7 @@ exposes only the proxy. Members of `demo-users` or `demo-admins` can sign in.
 Bootstrap creates the `homepage-endpoints` and `homepage-links` ConfigMaps,
 then fills `services.yaml` from the actual Routes after the stack is ready.
 The page links to the applications, OpenShift console and monitoring, Argo CD,
-and the demo realm's account page. Additional Routes in demo application
+and the demo realm's account and administration pages. Additional Routes in demo application
 namespaces are included automatically. No API credentials or Kubernetes service
 account permissions are needed by Homepage.
 
