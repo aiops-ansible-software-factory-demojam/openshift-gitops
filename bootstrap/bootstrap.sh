@@ -8,12 +8,7 @@ gitops_namespace=openshift-gitops
 # shellcheck source=env.sh
 source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
 
-# shellcheck source=model-env.sh
-source "$bootstrap_dir/model-env.sh"
-unset model_key
-[[ -r ${AAP_LICENSE_FILE:-$repo_root/aap_manifest.zip} ]] || {
-  echo 'Place aap_manifest.zip in the repo root before bootstrap.' >&2; exit 2;
-}
+bash "$bootstrap_dir/preflight.sh"
 
 demo_verify_cluster
 
@@ -220,15 +215,9 @@ for app in openshift-pipelines agent-sandbox-operator openshift-virtualization o
   done
 done
 
-# Operator health does not prove the guest images are ready for cloning.
-for datasource in centos-stream10 rhel9; do
-  echo "Waiting for the $datasource golden image..."
-  if ! oc -n openshift-virtualization-os-images wait --for=condition=Ready \
-    "datasource/$datasource" --timeout=15m; then
-    echo "Inspect CDI importers in openshift-virtualization-os-images before retrying bootstrap." >&2
-    exit 1
-  fi
-done
+# Operator health does not prove guest images or workload controllers are ready.
+bash "$bootstrap_dir/readiness.sh" sandbox
+bash "$bootstrap_dir/readiness.sh" aap
 
 # Build only after the operator rollout, keeping image storage on a PVC.
 sandbox_image_current() {

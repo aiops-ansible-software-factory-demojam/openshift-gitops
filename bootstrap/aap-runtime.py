@@ -2,7 +2,6 @@
 """The small imperative seam: create runtime AAP credentials before Git dispatch."""
 import base64
 import http.client
-import io
 import json
 import os
 from pathlib import Path
@@ -12,7 +11,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-import zipfile
+from manifest import read_rhel_entitlement
 
 NAMESPACE = "ansible-automation-platform"
 
@@ -94,24 +93,7 @@ class Controller:
 
 def prepare_credentials(api):
     manifest = Path(os.environ.get("AAP_LICENSE_FILE") or Path.cwd() / "aap_manifest.zip")
-    with zipfile.ZipFile(manifest) as outer, zipfile.ZipFile(io.BytesIO(outer.read("consumer_export.zip"))) as inner:
-        entitlement = None
-        for name in inner.namelist():
-            if not name.startswith("export/entitlements/"):
-                continue
-            entry = json.loads(inner.read(name))
-            pool = entry.get("pool", {})
-            products = [pool.get("productName", "")] + [p.get("productName", "") for p in pool.get("providedProducts", [])]
-            if not any(p in products for p in ("Red Hat Enterprise Linux for x86_64", "Red Hat Enterprise Linux Server")):
-                continue
-            for certificate in entry.get("certificates", []):
-                if certificate.get("cert") and certificate.get("key"):
-                    entitlement = certificate["cert"] + "\n" + certificate["key"]
-                    break
-            if entitlement:
-                break
-    if not entitlement:
-        raise RuntimeError("The manifest must include a RHEL entitlement certificate and private key")
+    entitlement = read_rhel_entitlement(manifest)
 
     token_name = "aap-vm-admin-token"
     token_spec = {"apiVersion": "v1", "kind": "Secret", "type": "kubernetes.io/service-account-token",
@@ -307,6 +289,6 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except (RuntimeError, urllib.error.URLError, subprocess.CalledProcessError, OSError, zipfile.BadZipFile) as error:
+    except (RuntimeError, urllib.error.URLError, subprocess.CalledProcessError, OSError) as error:
         print(str(error), file=sys.stderr)
         sys.exit(1)

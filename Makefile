@@ -1,4 +1,7 @@
-.PHONY: render demo-reset aap-configure aap-sync webapp-create webapp-nginx webapp-delete webapp-verify
+.PHONY: preflight render demo-reset aap-configure aap-sync webapp-create webapp-nginx webapp-delete webapp-verify
+
+preflight:
+	bash bootstrap/preflight.sh
 
 aap-sync:
 	bash scripts/webapp-demo.sh sync

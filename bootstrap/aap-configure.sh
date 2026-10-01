@@ -8,9 +8,7 @@ manifest=${AAP_LICENSE_FILE:-$demo_repo_root/aap_manifest.zip}
 demo_verify_cluster
 demo_wait_for_api
 namespace=ansible-automation-platform
-for deployment in aap-gateway aap-controller-web aap-controller-task; do
-  oc -n "$namespace" rollout status "deployment/$deployment" --timeout=15m
-done
+bash "$demo_repo_root/bootstrap/readiness.sh" aap
 # Bootstrap creates these credentials directly; dispatch never owns their secrets.
 python3 "$demo_repo_root/bootstrap/aap-runtime.py" credentials
 # Resource Operator owns the initial inventory/project/template base fields.
