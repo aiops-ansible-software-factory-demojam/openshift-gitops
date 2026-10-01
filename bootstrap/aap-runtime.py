@@ -194,15 +194,15 @@ def launch(api, name, extra, *, reset=False):
     template = api.find("job_templates/", name, organization=org["id"])
     if not template:
         raise RuntimeError(f"Job template {name} was not found")
-    # Only the demo's three purposeful templates are exposed by this helper.
-    if name not in ("webapp_vm", "webapp_nginx", "aap_configure_all") and not (reset and name == "openshift_virtualization_machine"):
+    # Demo entry points expose webapp/configuration templates; reset uses the seeded generic VM too.
+    allowed = name in ("webapp_vm", "webapp_nginx", "aap_configure_all")
+    if not allowed and not (reset and name == "openshift_virtualization_machine"):
         raise RuntimeError("Only demo webapp and dispatch templates may be launched")
     if name == "webapp_vm" and extra.get("vm_state") == "absent":
         print("Deleting only webapp in webapp-vms")
     result = api.request(f"job_templates/{template['id']}/launch/", {"extra_vars": extra})
     print(f"Launched {name}: job {result['job']}")
     api.wait(f"jobs/{result['job']}/")
-
 
 
 def reset_vms(api):
