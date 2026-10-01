@@ -7,7 +7,7 @@ demo_homepage_prepare() {
     --from-literal="allowed-hosts=homepage.$ingress_domain" --dry-run=client -o yaml |
     oc -n homepage apply -f - >/dev/null
   if ! oc -n homepage get configmap homepage-links >/dev/null 2>&1; then
-    oc -n homepage create configmap homepage-links --from-literal='services.yaml=[]' >/dev/null
+    oc -n homepage create configmap homepage-links --from-literal='services.yaml=[]' --save-config >/dev/null
   fi
 }
 
@@ -21,10 +21,10 @@ demo_homepage_configure() (
         "rhdh": {name:"Developer Hub",group:"Demo applications",icon:"backstage",description:"Software catalog and golden paths"},
         "forgejo": {name:"Forgejo",group:"Demo applications",icon:"forgejo",description:"Demo source, issues and pull requests"},
         "omnigent": {name:"Omnigent",group:"Demo applications",icon:"mdi-robot",description:"Agent sessions and activity"},
-        "automation-orchestrator": {name:"Automation Orchestrator",group:"Demo applications",icon:"mdi-workflow",description:"Issue-to-PR workflow"},
+        "automation-orchestrator": {name:"Automation Orchestrator",group:"Demo applications",icon:"mdi-sitemap",description:"Issue-to-PR workflow"},
         "ansible-automation-platform": {name:"Ansible Automation Platform",group:"Demo applications",icon:"ansible",description:"Automation jobs and configuration"},
         "webapp-vms": {name:"Webapp",group:"Demo applications",icon:"nginx",description:"RHEL web application"},
-        "openshift-gitops": {name:"Argo CD",group:"Platform",icon:"argocd",description:"GitOps application health"},
+        "openshift-gitops": {name:"Argo CD",group:"Platform",icon:"argo-cd",description:"GitOps application health"},
         "openshift-console": {name:"OpenShift Console",group:"Platform",icon:"openshift",description:"Cluster resources and workloads"},
         "demojam-keycloak": {name:"My Keycloak account",group:"Identity",icon:"keycloak",description:"Demo account and password",suffix:"/realms/demo/account/"}
       };

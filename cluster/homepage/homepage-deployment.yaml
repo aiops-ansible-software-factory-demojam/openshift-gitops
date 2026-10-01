@@ -29,6 +29,28 @@ spec:
           ports:
             - name: app
               containerPort: 3000
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - node
+                  - -e
+                  - |
+                    // Replace the image's prebuilt page with the mounted settings on every start.
+                    (async () => {
+                      for (let attempt = 0; attempt < 60; attempt++) {
+                        try {
+                          const response = await fetch('http://127.0.0.1:3000/api/revalidate', {
+                            headers: { Host: process.env.HOMEPAGE_ALLOWED_HOSTS },
+                            signal: AbortSignal.timeout(5000),
+                          });
+                          if (response.ok) return;
+                        } catch {}
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                      }
+                      console.error('Homepage could not load its mounted configuration.');
+                      process.exit(1);
+                    })();
           volumeMounts:
             - name: config
               mountPath: /app/config
