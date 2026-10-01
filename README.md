@@ -27,6 +27,42 @@ hardware KVM support on at least one node; bootstrap waits for its
 `rhel9` DataSources to become Ready before sandbox testing or webapp cloning. The active `KUBECONFIG`
 identity needs cluster-admin rights. Install `oc`, `kustomize`, `helm`, `yq`,
 `jq`, `openssl`, `curl`, `git`, `python3`, `ssh-keygen`.
+Use GNU Make for the command aliases and jq-wrapper `yq`: `yq '.'` must emit
+JSON that `jq` can read. Preflight checks that contract with a small YAML fixture.
+
+Validated tool versions on the workshop run (2026-10-01):
+
+| Tool | Version |
+| --- | --- |
+| oc | 4.21 client |
+| kustomize | 5.8.1 |
+| helm | 4.3.0 |
+| yq | 4.1.2, jq-wrapper contract |
+| jq | 1.7.1 (installed RPM; version banner reports `jq-`) |
+| Python | 3.12.14 |
+| OpenSSL | 3.5.8 |
+| curl | 8.12.1 |
+| git | 2.52.0 |
+| OpenSSH / ssh-keygen | 9.9p1 |
+| GNU Make | 4.4.1 |
+
+`make preflight` aggregates required failures and advisory uncertainty. It checks
+local tools, selected model inputs, both manifest ZIP layers and required RHEL
+certificate/key material, then verifies the cluster identity, admin permissions,
+ingress, default storage configuration, catalogs, registry, node pressure, and
+external Keycloak database/TLS references. Secret existence uses metadata-only
+API responses; it does not retrieve Secret data, contact AAP, or call a model.
+Bootstrap runs these checks before its first mutation. Keycloak's database,
+TLS and realm inputs remain external prerequisites tracked in
+[issue #17](https://github.com/aiops-ansible-software-factory-demojam/openshift-gitops/issues/17).
+
+ZIP checks establish local structure and RHEL material; AAP's import validates
+licensing. Preflight does not establish expiry, authenticity or CDN access.
+Storage metadata does not prove new provisioning/RWO support; registry status
+does not prove pulls; node metadata does not prove capacity or hardware KVM.
+Installed-later APIs may be absent before bootstrap. Read-only
+`bootstrap/readiness.sh` gates KubeVirt, Tekton, Sandbox controllers and CentOS
+before sandbox builds, and AAP workloads/RHEL 9 before AAP setup.
 
 Argo CD reads this repository from its Git remote. Publish your changes before
 bootstrap. `BOOTSTRAP_BRANCH` selects an already published branch; it defaults
@@ -43,8 +79,10 @@ chmod 600 .env
 ```
 
 All bootstrap and demo entry points load the root `.env`. Quote values as in
-the template. Set `KUBECONFIG` to your cluster config path (default
-`$HOME/.kube/config`). Scripts discover the API server and identity from the
+the template. Export a nonempty `KUBECONFIG` in your shell; that value takes
+precedence over `.env`. Otherwise set it explicitly in `.env`; missing
+configuration fails with remediation. Colon-separated lists and paths containing
+spaces are passed unchanged to `oc` for merging. Scripts discover the API server and identity from the
 active kubeconfig and retain that server through each workflow. No server URL
 needs to be entered.
 Place the subscription ZIP at root `aap_manifest.zip`; it must include AAP
