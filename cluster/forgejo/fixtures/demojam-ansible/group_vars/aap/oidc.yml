@@ -29,6 +29,7 @@ demo_oidc_authenticator_maps:
   - name: Demojam Keycloak organization
     map_type: organization
     organization: demo
+    role: Organization Member
     triggers:
       groups:
         has_or:

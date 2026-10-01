@@ -63,6 +63,7 @@
         name: "{{ item.name }}"
         map_type: "{{ item.map_type }}"
         organization: "{{ item.organization | default(omit) }}"
+        role: "{{ item.role | default(omit) }}"
         triggers: "{{ item.triggers }}"
         state: present
       loop: "{{ demo_oidc_authenticator_maps }}"

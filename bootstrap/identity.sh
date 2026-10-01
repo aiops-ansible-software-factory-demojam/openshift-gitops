@@ -354,7 +354,8 @@ demo_identity_aap_callback() (
   : "${aap_host:?AAP connection must resolve its public URL}"
   callback=$(aap_request GET 'authenticators/?name=Demojam%20Keycloak' '' /api/gateway/v1/ |
     jq -er '.results[0].configuration.CALLBACK_URL')
-  [[ $callback == "$aap_host/api/gateway/v1/sso/complete/"* ]] ||
+  [[ $callback == "$aap_host/api/gateway/social/complete/"* &&
+    ${callback#"$aap_host"} =~ ^/api/gateway/social/complete/[a-zA-Z0-9_-]+/$ ]] ||
     demo_die 'AAP returned an unexpected OIDC callback URL.'
   demo_identity_connect
   endpoints=$(jq -n --arg callback "$callback" '{aap:[$callback]}')
