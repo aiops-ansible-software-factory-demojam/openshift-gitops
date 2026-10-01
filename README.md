@@ -17,15 +17,101 @@ Red Hat Developer Hub (Backstage) provides the mandatory issue branch golden
 path. AO waits for its Scaffolder task and verifies the branch before it
 launches the agent. The agent implements the change, pushes, and opens the PR.
 
+## Quickstart
+
+On a fresh checkout, prepare operator inputs:
+
+```bash
+cp .env.example .env
+chmod 600 .env
+export KUBECONFIG="$HOME/.kube/config"
+```
+
+Fill the selected model provider inputs in `.env` and place the subscription
+ZIP at `aap_manifest.zip`. The workshop must already supply the external
+Keycloak inputs listed under Requirements.
+
+```bash
+make                  # Show commands without loading .env or contacting services
+make render           # Render manifests locally into .rendered/
+make preflight        # Read-only prerequisites; resolve required failures
+make bootstrap        # Roll out apps, seed repos, build sandbox image, configure AAP
+```
+
+Publish the checked-out revision to the selected `BOOTSTRAP_BRANCH` before
+bootstrap. Successful bootstrap reports healthy applications and configured AAP.
+`make sandbox-build` builds and publishes the sandbox image using the installed
+cluster's Tekton pipeline; `make render` writes local manifests.
+
+For the webapp flow:
+
+```bash
+make webapp-create    # Clone the RHEL 9 guest through AAP
+make webapp-nginx     # Configure nginx using demo.webapp.nginx
+make webapp-verify    # Require healthy VM, HTTPS response and blackbox probe
+```
+
+For the issue-to-PR flow:
+
+```bash
+make demo-hydrate     # Print the seeded issue URL and its number
+make demo ISSUE=N     # Replace N with that positive issue number
+```
+
+`demo` hydrates first, then prints the AO execution and Omnigent session IDs.
+Its success confirms agent handoff. The agent continues asynchronously;
+inspect its session for checks and the PR URL using the
+[Omnigent session guide](cluster/omnigent/README.md).
+Run `make demo-reset` to restore the configured starting point after either flow.
+See the detailed [AAP guide](cluster/forgejo/fixtures/demojam-ansible/README.md)
+and [Forgejo guide](cluster/forgejo/README.md).
+
 ## Requirements
 
 Use a disposable OpenShift cluster with OLM, Red Hat and certified operator
 catalogs, ingress, a default RWO StorageClass, and enough capacity for the
 operators, databases, and applications. OpenShift Virtualization requires
 hardware KVM support on at least one node; bootstrap waits for its
-`HyperConverged` resource to become available. The active `KUBECONFIG`
+`HyperConverged` resource to become available and the `centos-stream10` and
+`rhel9` DataSources to become Ready before sandbox testing or webapp cloning. The active `KUBECONFIG`
 identity needs cluster-admin rights. Install `oc`, `kustomize`, `helm`, `yq`,
 `jq`, `openssl`, `curl`, `git`, `python3`, `ssh-keygen`.
+Use GNU Make for the command aliases and jq-wrapper `yq`: `yq '.'` must emit
+JSON that `jq` can read. Preflight checks that contract with a small YAML fixture.
+
+Validated tool versions on the workshop run (2026-10-01):
+
+| Tool | Version |
+| --- | --- |
+| oc | 4.21 client |
+| kustomize | 5.8.1 |
+| helm | 4.3.0 |
+| yq | 4.1.2, jq-wrapper contract |
+| jq | 1.7.1 (installed RPM; version banner reports `jq-`) |
+| Python | 3.12.14 |
+| OpenSSL | 3.5.8 |
+| curl | 8.12.1 |
+| git | 2.52.0 |
+| OpenSSH / ssh-keygen | 9.9p1 |
+| GNU Make | 4.4.1 |
+
+`make preflight` aggregates required failures and advisory uncertainty. It checks
+local tools, selected model inputs, both manifest ZIP layers and required RHEL
+certificate/key material, then verifies the cluster identity, admin permissions,
+ingress, default storage configuration, catalogs, registry, node pressure, and
+external Keycloak database/TLS references. Secret existence uses metadata-only
+API responses; it does not retrieve Secret data, contact AAP, or call a model.
+Bootstrap runs these checks before its first mutation. Keycloak's database,
+TLS and realm inputs remain external prerequisites tracked in
+[issue #17](https://github.com/aiops-ansible-software-factory-demojam/openshift-gitops/issues/17).
+
+ZIP checks establish local structure and RHEL material; AAP's import validates
+licensing. Preflight does not establish expiry, authenticity or CDN access.
+Storage metadata does not prove new provisioning/RWO support; registry status
+does not prove pulls; node metadata does not prove capacity or hardware KVM.
+Installed-later APIs may be absent before bootstrap. Read-only
+`bootstrap/readiness.sh` gates KubeVirt, Tekton, Sandbox controllers and CentOS
+before sandbox builds, and AAP workloads/RHEL 9 before AAP setup or webapp creation.
 
 Argo CD reads this repository from its Git remote. Publish your changes before
 bootstrap. `BOOTSTRAP_BRANCH` selects an already published branch; it defaults
@@ -42,8 +128,11 @@ chmod 600 .env
 ```
 
 All bootstrap and demo entry points load the root `.env`. Quote values as in
-the template. Set `KUBECONFIG` to your cluster config path (default
-`$HOME/.kube/config`). Scripts discover the API server and identity from the
+the template. Export a nonempty `KUBECONFIG` in your shell; that value takes
+precedence over `.env`. Otherwise set it explicitly in `.env`; missing
+configuration fails with remediation. Colon-separated lists and paths containing
+spaces are passed unchanged to `oc` for merging. Scripts discover the API
+server and identity from the
 active kubeconfig and retain that server through each workflow. No server URL
 needs to be entered.
 Place the subscription ZIP at root `aap_manifest.zip`; it must include AAP
@@ -77,16 +166,16 @@ From the repository root:
 ```bash
 oc whoami --show-server
 oc whoami
-bash bootstrap/bootstrap.sh
+make bootstrap
 ```
 
 The script installs GitOps, creates the model and internal Secrets, rolls out
 all applications, hydrates Forgejo, builds the sandbox image, verifies golden
 paths, and publishes AO's issue workflow. After reconciliation it creates
-runtime AAP credentials by script, imports the license, and runs dispatch in
-a Job using the pinned Red Hat supported EE. The Job clones public Forgejo
-and installs project requirements from Galaxy and Git. No custom AAP EE or
-Automation Hub token is required.
+runtime AAP credentials by script, imports the license, and launches
+`aap_configure_all` inside AAP Controller using the pinned Red Hat supported EE.
+The Controller project clones public Forgejo and installs requirements from
+Galaxy and Git. No custom AAP EE or Automation Hub token is required.
 It waits for project/inventory synchronization. Rerunning preserves the VM
 SSH identity and applies current config. `BOOTSTRAP_FORCE_SANDBOX_BUILD=true`
 forces a sandbox image rebuild.
@@ -98,6 +187,7 @@ containers can pick up a newer build. See
 for rebuild and inspection commands.
 
 On SNO, scripts wait for the API server to finish reconciling before AAP work.
+Forgejo seeding waits for the public version API after Deployment readiness.
 Sandbox builds tolerate interrupted log streams and status reads. AAP status checks
 retry brief network interruptions; launch requests are sent once. Inspect AAP
 before repeating a launch whose response was lost.
@@ -154,15 +244,16 @@ oc -n agent-sandbox-system get csv
 oc -n openshift-cnv get hyperconverged,kubevirt
 oc -n omnigent rollout status deployment/omnigent
 oc -n omnigent-sandboxes get pipelineruns,imagestream,sandboxes,pods
-bash scripts/feature-demo.sh hydrate
-bash scripts/dispatch-issue.sh 1
+make demo-hydrate
+make demo ISSUE=N
 ```
 
 The [OpenShift Virtualization guide](cluster/openshift-virtualization/README.md)
 includes a temporary CirrOS VM and a KVM acceleration check.
 
-`hydrate` is idempotent and prints the issue URL. Pass its issue number to
-`dispatch-issue.sh`; the script calls AO's published workflow through its API
+`demo-hydrate` is idempotent and prints the issue URL. Replace `N` with its
+number. `demo` validates that number before hydration and calls AO's published
+workflow through its API
 and prints the AO execution and Omnigent session IDs. AO completion means the
 branch exists and the agent accepted the task. Inspect the session for its
 checks and PR URL.
@@ -174,13 +265,18 @@ To reset the full issue-to-PR demo, run:
 make demo-reset
 ```
 
-This removes `automation-developer` sessions and Sandboxes, recreates its
-selected `.env` model and agent Secrets, wipes the disposable Forgejo PVC, and
-reseeds the one-line README issue, Backstage collection template source, and
-the `demo-owner/demojam-ansible` repository.
-It removes catalog registrations for generated collections that the Forgejo
-wipe deletes. Other Omnigent agents and sessions remain.
-Run `bash scripts/dispatch-issue.sh 1` afterward. See the
+This restores the post-bootstrap demo baseline. It removes
+`automation-developer` sessions, Sandboxes and their home volumes; deletes
+`webapp` and `automation-demo` through the seeded AAP templates; and removes
+labelled Molecule VMs and their owned test disks from `molecule-tests`. It
+refuses to continue if VM or disk resources remain in the three demo VM
+namespaces. It recreates the selected `.env` model and agent Secrets, wipes
+the disposable Forgejo PVC, and reseeds the README issue, collection template,
+and `demo-owner/demojam-ansible` project. It then refreshes AAP's project,
+inventory and configuration against that baseline. Generated collection catalog
+registrations are removed. Other Omnigent agents and sessions remain.
+AAP job and AO execution history is retained.
+Use `make demo-hydrate` and `make demo ISSUE=N` afterward. See the
 [Forgejo demo guide](cluster/forgejo/README.md) for the fixture details.
 
 The [Omnigent component guide](cluster/omnigent/README.md) describes the

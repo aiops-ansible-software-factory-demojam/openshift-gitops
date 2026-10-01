@@ -10,7 +10,10 @@ esac
 demo_verify_cluster
 demo_wait_for_api
 case "$action" in
-  create) python3 "$demo_repo_root/bootstrap/aap-runtime.py" launch webapp_vm ;;
+  create)
+    bash "$demo_repo_root/bootstrap/readiness.sh" aap
+    python3 "$demo_repo_root/bootstrap/aap-runtime.py" launch webapp_vm
+    ;;
   nginx) python3 "$demo_repo_root/bootstrap/aap-runtime.py" launch webapp_nginx ;;
   delete) python3 "$demo_repo_root/bootstrap/aap-runtime.py" launch webapp_vm '{"vm_state":"absent"}' ;;
   sync) python3 "$demo_repo_root/bootstrap/aap-runtime.py" launch aap_configure_all ;;

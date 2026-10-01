@@ -9,12 +9,7 @@ gitops_namespace=openshift-gitops
 source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
 sandbox_image=$(demo_sandbox_image)
 
-# shellcheck source=model-env.sh
-source "$bootstrap_dir/model-env.sh"
-unset model_key
-[[ -r ${AAP_LICENSE_FILE:-$repo_root/aap_manifest.zip} ]] || {
-  echo 'Place aap_manifest.zip in the repo root before bootstrap.' >&2; exit 2;
-}
+bash "$bootstrap_dir/preflight.sh"
 
 demo_verify_cluster
 
@@ -220,6 +215,10 @@ for app in openshift-pipelines agent-sandbox-operator openshift-virtualization o
     sleep 10
   done
 done
+
+# Operator health does not prove guest images or workload controllers are ready.
+bash "$bootstrap_dir/readiness.sh" sandbox
+bash "$bootstrap_dir/readiness.sh" aap
 
 # Build only after the operator rollout, keeping image storage on a PVC.
 sandbox_image_current() {

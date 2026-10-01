@@ -53,7 +53,20 @@ bootstrap() {
     mv "$state/admin-token.tmp" "$state/admin-token"
   fi
 }
+wait_for_api() {
+  local deadline=$((SECONDS + 300))
+  until curl --fail --silent --connect-timeout 5 --max-time 10 \
+    "$FORGEJO_URL/api/v1/version" >/dev/null; do
+    if (( SECONDS >= deadline )); then
+      echo 'Forgejo API did not become ready; inspect its Route and endpoints.' >&2
+      return 1
+    fi
+    sleep 5
+  done
+}
 seed() {
+  # Pod readiness can precede the public Route accepting API requests.
+  wait_for_api
   bootstrap
   FORGEJO_TOKEN=$(cat "$state/admin-token")
   export FORGEJO_TOKEN
