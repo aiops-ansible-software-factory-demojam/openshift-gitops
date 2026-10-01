@@ -17,6 +17,27 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+        - name: writable-page-cache
+          image: ghcr.io/gethomepage/homepage:v1.13.2@sha256:a0b71c8e757298d02560186bab9fbe3fc2d375c523a62cc1019177b37e48aa28
+          command:
+            - sh
+            - -c
+            - cp -R /app/.next/. /cache/
+          volumeMounts:
+            - name: page-cache
+              mountPath: /cache
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
       containers:
         - name: homepage
           image: ghcr.io/gethomepage/homepage:v1.13.2@sha256:a0b71c8e757298d02560186bab9fbe3fc2d375c523a62cc1019177b37e48aa28
@@ -57,6 +78,8 @@ spec:
               readOnly: true
             - name: logs
               mountPath: /app/config/logs
+            - name: page-cache
+              mountPath: /app/.next
           readinessProbe:
             tcpSocket:
               port: app
@@ -147,4 +170,6 @@ spec:
               - configMap:
                   name: homepage-links
         - name: logs
+          emptyDir: {}
+        - name: page-cache
           emptyDir: {}

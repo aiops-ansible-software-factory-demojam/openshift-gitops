@@ -18,3 +18,5 @@ Generated links do not grant access; each destination enforces its own roles.
 
 On every container start, a lifecycle hook regenerates Homepage's prebuilt page
 from the mounted settings so the title and layout apply before users arrive.
+An init container copies the page cache to a writable volume for OpenShift's
+assigned user ID; the application runs without additional security privileges.
