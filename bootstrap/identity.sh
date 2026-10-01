@@ -64,10 +64,16 @@ demo_identity_prepare() (
       forgejo-client-secret aap-client-secret orchestrator-client-secret omnigent-client-secret openshift-client-secret webapp-client-secret homepage-client-secret omnigent-cookie-secret; do
       openssl rand -hex 32 | tr -d '\n' >"$scratch/$key"
     done
-    openssl rand -base64 32 | tr -d '\n' >"$scratch/webapp-cookie-secret"
-    openssl rand -base64 32 | tr -d '\n' >"$scratch/homepage-cookie-secret"
+    openssl rand -base64 32 | tr '+/' '-_' | tr -d '\n' >"$scratch/webapp-cookie-secret"
+    openssl rand -base64 32 | tr '+/' '-_' | tr -d '\n' >"$scratch/homepage-cookie-secret"
     oc -n demojam-keycloak create secret generic identity-credentials --from-file="$scratch" >/dev/null
   fi
+  # OAuth2 Proxy decodes URL-safe base64. Canonicalize older standard-base64
+  # values without changing their underlying random bytes or client secrets.
+  oc -n demojam-keycloak get secret identity-credentials -o json |
+    jq '{data:(.data | with_entries(select(.key == "webapp-cookie-secret" or .key == "homepage-cookie-secret") |
+      .value |= (@base64d | gsub("\\+";"-") | gsub("/";"_") | @base64)))}' >"$scratch/cookie-patch.json"
+  oc -n demojam-keycloak patch secret identity-credentials --type=merge --patch-file="$scratch/cookie-patch.json" >/dev/null
   oc -n demojam-keycloak get secret identity-credentials -o json |
     jq '.data | with_entries(.value |= @base64d)' >"$scratch/credentials.json"
   jq -e '. as $credentials | all(["admin-password","backstage-token","argocd-client-secret","rhdh-client-secret",
