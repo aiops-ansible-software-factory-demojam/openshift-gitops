@@ -1686,7 +1686,14 @@ demo_bootstrap() (
   oc -n "$gitops_namespace" wait --for=jsonpath='{.status.phase}'=Available \
     argocd/openshift-gitops --timeout=15m
   demo_identity_argocd_reload "$argo_was_dex"
-  oc -n "$gitops_namespace" wait --for=condition=Ready pod --all --timeout=15m
+  # Pod-wide waits capture terminating replicas during an operator rollout and
+  # can wait on deleted pods. Follow the stable workload controllers instead.
+  local gitops_workloads gitops_workload
+  gitops_workloads=$(oc -n "$gitops_namespace" get deployments,statefulsets -o json |
+    jq -r '.items[] | select(.metadata.deletionTimestamp == null) | (.kind | ascii_downcase) + "/" + .metadata.name')
+  while IFS= read -r gitops_workload; do
+    oc -n "$gitops_namespace" rollout status "$gitops_workload" --timeout=15m
+  done <<<"$gitops_workloads"
 
   echo 'Waiting for the Argo CD cluster permissions...'
   deadline=$((SECONDS + 300))
