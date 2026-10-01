@@ -94,9 +94,12 @@ oc -n molecule-tests get events --sort-by=.lastTimestamp
 
 ## Image and session lifecycle
 
-The Sandbox Pod uses `IfNotPresent` image pulls. Bump the ImageStreamTag in
-the Tekton pipeline, sandbox config, and bootstrap together when changing `image/`,
-so new sessions cannot reuse a node-cached older image under the same tag.
+The demo uses one mutable `omnigent-opencode:latest` image. Its reference in
+`omnigent-sandbox-config-configmap.yaml` also drives bootstrap's existence check
+and the Tekton build destination. Omnigent 0.15.0 omits the container pull policy;
+Kubernetes defaults new containers using `:latest` to `Always`, including the
+workspace init container. The registry is checked at each container start,
+while unchanged image layers can still be reused from the node cache.
 
 The agent is a reusable template. Each managed session gets its own Sandbox
 with a generated `omnigent-managed-*` name, rather than a fixed Sandbox bound
@@ -108,6 +111,35 @@ on a temporary PVC to avoid filling the SNO node disk. To rebuild explicitly:
 
 ```bash
 bash bootstrap/sandbox-image.sh
+```
+
+Publish image source changes before building; the script builds the checked-out
+Git commit unless `SANDBOX_BUILD_REVISION` selects another published revision.
+Wait for the build to succeed, then start a fresh demo session. Successful runs
+report `IMAGE`, `IMAGE_DIGEST`, and `SOURCE_COMMIT`. A failed build stops bootstrap
+before dispatch; inspect that PipelineRun before trying again. This mutable tag
+does not provide automatic rollback or preserve the previous registry mapping
+if a push completes before a later failure.
+
+Bootstrap reuses the tag when it exists and the latest successful build for that
+image has unchanged `image/` inputs. `BOOTSTRAP_FORCE_SANDBOX_BUILD=true` rebuilds
+and overwrites the same tag, allowing refreshed downloaded dependencies without
+a version bump. No image tag edits or Omnigent server restart are needed after a
+rebuild. The initial switch to `:latest` changes the subPath-mounted config;
+bootstrap reloads the server when its mounted image reference differs.
+
+Running containers keep their current image. New or restarted containers,
+including a session resumed after suspension, can use a newer build. Existing
+Sandbox templates with the old versioned tag keep their original selection;
+start a fresh session to switch to this policy. Do not rebuild during an active
+demo run if it must keep one image version throughout.
+
+To inspect image selection and the actual defaulted pull policies:
+
+```bash
+oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:latest
+oc -n omnigent-sandboxes get pods -l omnigent.ai/agent=automation-developer \
+  -o json | jq '.items[] | {pod: .metadata.name, containers: [.spec.initContainers[], .spec.containers[]] | map({name, image, imagePullPolicy})}'
 ```
 
 For local image development:

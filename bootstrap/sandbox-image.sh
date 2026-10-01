@@ -2,6 +2,7 @@
 set -euo pipefail
 # shellcheck source=env.sh
 source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
+sandbox_image=$(demo_sandbox_image)
 demo_verify_cluster
 namespace=omnigent-sandboxes
 active_runs=$(oc -n "$namespace" get pipelineruns -l tekton.dev/pipeline=omnigent-opencode -o json |
@@ -16,7 +17,11 @@ oc wait nodes --all --for='jsonpath={.status.conditions[?(@.type=="DiskPressure"
 # One deliberate run; no trigger or automatic CI is installed.
 run=$(yq '.' "$demo_repo_root/bootstrap/sandbox-image-pipelinerun.yaml" |
   jq --arg revision "${SANDBOX_BUILD_REVISION:-$(git -C "$demo_repo_root" rev-parse HEAD)}" \
-    '.spec.params[0].value = $revision' |
+    --arg image "$sandbox_image" \
+    '.spec.params |= map(
+      if .name == "REVISION" then .value = $revision
+      elif .name == "IMAGE" then .value = $image
+      else . end)' |
   oc -n "$namespace" create -f - -o name)
 echo "Started $run"
 deadline=$((SECONDS + 3600))
