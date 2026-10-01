@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Restore the disposable demo to its post-bootstrap starting point.
+# Restore the configured demo with its disposable VMs and disks removed.
 set -euo pipefail
 set +x
 # shellcheck source=../bootstrap/env.sh
@@ -58,7 +58,7 @@ printf 'Removed %s automation-developer sessions.\n' "${#session_ids[@]}"
 
 # Use the managed AAP playbooks while their Forgejo project still exists.
 demo_wait_for_api
-python3 "$repo_root/bootstrap/aap-runtime.py" reset-vms
+demo_aap reset-vms
 # Stop developer sessions first so no test can recreate a VM during cleanup.
 oc -n molecule-tests delete virtualmachines \
   -l app.kubernetes.io/part-of=molecule-tests \

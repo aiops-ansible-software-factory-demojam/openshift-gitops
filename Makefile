@@ -8,7 +8,7 @@ help:
 	  'make help          Show commands; needs only Make and a shell' \
 	  'make render        Render manifests locally into .rendered/' \
 	  'make preflight     Read-only local/cluster prerequisites; .env, manifest, KUBECONFIG' \
-	  'make bootstrap     Install/configure the demo cluster; publish branch first' \
+	  'make bootstrap     Install platform, provision RHEL/nginx, verify; publish branch first' \
 	  'make sandbox-build Build/publish the sandbox image in cluster; installed operators' \
 	  'make demo-hydrate  Seed Forgejo/refresh credentials; print the issue URL/number' \
 	  'make demo ISSUE=N  Hydrate, then hand positive issue N to AO; agent runs asynchronously' \
@@ -25,10 +25,10 @@ bootstrap:
 	bash bootstrap/bootstrap.sh
 
 sandbox-build:
-	bash bootstrap/sandbox-image.sh
+	bash bootstrap/bootstrap.sh sandbox-build
 
 demo-hydrate:
-	bash scripts/feature-demo.sh hydrate
+	bash bootstrap/bootstrap.sh hydrate
 
 demo:
 	@case "$${ISSUE:-}" in ''|0*|*[!0-9]*) \
@@ -37,25 +37,25 @@ demo:
 	bash scripts/feature-demo.sh hydrate && bash scripts/dispatch-issue.sh "$$ISSUE"
 
 preflight:
-	bash bootstrap/preflight.sh
+	bash bootstrap/bootstrap.sh preflight
 
 aap-sync:
-	bash scripts/webapp-demo.sh sync
+	bash bootstrap/bootstrap.sh webapp sync
 
 webapp-create:
-	bash scripts/webapp-demo.sh create
+	bash bootstrap/bootstrap.sh webapp create
 
 webapp-nginx:
-	bash scripts/webapp-demo.sh nginx
+	bash bootstrap/bootstrap.sh webapp nginx
 
 webapp-delete:
-	bash scripts/webapp-demo.sh delete
+	bash bootstrap/bootstrap.sh webapp delete
 
 webapp-verify:
-	bash scripts/webapp-demo.sh verify
+	bash bootstrap/bootstrap.sh webapp verify
 
 aap-configure:
-	bash bootstrap/aap-configure.sh
+	bash bootstrap/bootstrap.sh aap-configure
 
 demo-reset:
 	bash scripts/reset-demo.sh --confirm-demo-reset
