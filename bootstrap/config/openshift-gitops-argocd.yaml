@@ -4,8 +4,6 @@ metadata:
   name: openshift-gitops
   namespace: openshift-gitops
 spec:
-  # Clear the operator's initial Dex configuration when selecting native OIDC.
-  sso: null
   resourceTrackingMethod: annotation
   kustomizeBuildOptions: --enable-helm --helm-kube-version v1.31.0
   server:
