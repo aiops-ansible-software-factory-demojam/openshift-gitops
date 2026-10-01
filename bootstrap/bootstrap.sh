@@ -1478,6 +1478,24 @@ aap_dispatch() {
       description:"Sync all demo AAP configuration from Forgejo"}')" | jq -er .id)
   aap_associate "job_templates/$template/credentials/" "$credential"
   aap_launch aap_configure_all
+  aap_wait_eda
+}
+
+# An enabled activation record does not prove that its rulebook is running.
+aap_wait_eda() {
+  local name query status previous='' deadline=$((SECONDS + 600))
+  name=$(yq -er '.demo_eda_activation.name' \
+    "$demo_repo_root/cluster/forgejo/fixtures/demojam-ansible/group_vars/aap/eda.yml")
+  query=$(jq -rn --arg name "$name" '$name | @uri')
+  while (( SECONDS < deadline )); do
+    status=$(aap_request GET "activations/?name=$query" '' /api/eda/v1/ |
+      jq -er '.results[0].status // "absent"')
+    [[ $status != running ]] || { printf 'EDA activation %s is running.\n' "$name"; return; }
+    [[ $status == "$previous" ]] || printf 'Waiting for EDA activation %s: %s\n' "$name" "$status"
+    previous=$status
+    sleep 10
+  done
+  demo_die "Timed out waiting for EDA activation $name ($status); inspect its logs in AAP."
 }
 
 # Retire only the three legacy bootstrap CRs. No finalizer means deleting the
