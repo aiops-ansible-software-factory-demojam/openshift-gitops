@@ -40,5 +40,6 @@ The operator's optional `automation-orchestrator-admin-settings` ConfigMap enabl
 `APP_OIDC_ALLOW_PRIVATE_NETWORKS` because OpenShift ingress DNS resolves the demo
 Keycloak Route to a private address. This setting applies to OIDC providers;
 workflow HTTP hosts keep their separate allowlist and TLS verification remains
-enabled for the Keycloak provider. A backend annotation ensures an existing
-Deployment reloads the settings when this configuration is first installed.
+enabled for the Keycloak provider. Bootstrap restarts an existing backend only
+if its running process has not loaded this setting; fresh installations get
+the ConfigMap before the operator starts the backend.

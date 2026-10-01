@@ -29,9 +29,6 @@ spec:
       name: automation-orchestrator-admin-password
   backend:
     replicas: 1
-    additionalAnnotations:
-      # Reload the optional admin settings when upgrading an existing instance.
-      demojam.io/oidc-private-networks: "true"
   ui:
     replicas: 1
   worker:
