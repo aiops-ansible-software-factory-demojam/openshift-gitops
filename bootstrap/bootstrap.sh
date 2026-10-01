@@ -829,7 +829,7 @@ demo_ao_workflow_definition() {
     .nodes |= map(if .id == "authenticate_omnigent" then .parameters.credential_id=$credential_id
       elif .id == "create_session" then .parameters.body.agent_id=$agent_id else . end) |
     ([$users[0].users[] | select(.enabled != false)] | to_entries | map({
-      id:("share_session_" + .value.username),name:("Share session with " + .value.username),type:"http_request",
+      id:("share_session_" + (.key | tostring)),name:("Share session with " + .value.username),type:"http_request",
       position:{x:(900 + .key * 300),y:600},parameters:{method:"PUT",
         url:"http://omnigent.omnigent.svc:8000/v1/sessions/${create_session.body.id}/permissions",
         headers:{"Content-Type":"application/json",Authorization:"Bearer ${authenticate_omnigent.body.access_token}"},
@@ -1138,6 +1138,10 @@ demo_ao_reconcile() (
     '{workflow_definition: $definition}')
   http_code=$(ao_curl POST "$base_url/workflows/validate" -H "$auth_header" \
     -H 'Content-Type: application/json' --data-binary "$validation_payload")
+  if [[ $http_code == 422 ]] && ao_response_is_json; then
+    # The workflow contains credential references, never credential values.
+    jq -r '.validation_result.findings[]? | "\(.field_path): \(.message)"' "$ao_response" >&2
+  fi
   ao_require_json 'validate workflow' "$http_code"
   jq -e '.is_valid == true' "$ao_response" >/dev/null ||
     ao_fail_response 'validate workflow' "$http_code"

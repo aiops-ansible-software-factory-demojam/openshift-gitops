@@ -367,7 +367,7 @@ demo_identity_ao_payload() {
     name:"Demojam Keycloak",configuration:{provider_type:"oidc",idp_type:"custom",auto_discovery:true,
       issuer_url:$issuer,client_id:"orchestrator",client_secret:$secret,redirect_uri:$callback,
       scopes:"openid profile email",group_jmespath_expression:"groups[*]",
-      allow_all_authenticated:false,disable_tls_verify:false,
+      allow_all_authenticated:false,disable_tls_verify:false,enable_rp_initiated_logout:false,
       group_mapping_entries:[{idp_group_value:"demo-users",mapped_group_id:$users},
         {idp_group_value:"demo-admins",mapped_group_id:$admins}]}
   }'

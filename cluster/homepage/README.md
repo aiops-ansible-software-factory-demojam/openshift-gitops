@@ -15,3 +15,6 @@ Links refresh at bootstrap time. After adding or changing Routes, run
 `make homepage-refresh` to regenerate them and reload the page. Homepage's
 native discovery supports Ingress and HTTPRoute, rather than OpenShift Routes.
 Generated links do not grant access; each destination enforces its own roles.
+
+On every container start, a lifecycle hook regenerates Homepage's prebuilt page
+from the mounted settings so the title and layout apply before users arrive.
