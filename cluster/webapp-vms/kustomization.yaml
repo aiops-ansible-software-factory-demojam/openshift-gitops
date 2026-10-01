@@ -3,5 +3,6 @@ kind: Kustomization
 resources:
   - webapp-vms-namespace.yaml
   - webapp-services.yaml
+  - webapp-login.yaml
   - webapp-route.yaml
   - aap-vm-admin-rbac.yaml

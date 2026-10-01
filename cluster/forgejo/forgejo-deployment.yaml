@@ -43,6 +43,10 @@ spec:
               value: "true"
             - name: FORGEJO__service__DISABLE_REGISTRATION
               value: "true"
+            - name: FORGEJO__oauth2_client__ENABLE_AUTO_REGISTRATION
+              value: "true"
+            - name: FORGEJO__oauth2_client__ACCOUNT_LINKING
+              value: disabled
             - name: FORGEJO__server__ROOT_URL
               valueFrom:
                 configMapKeyRef:
@@ -77,9 +81,15 @@ spec:
             limits:
               memory: 1Gi
           volumeMounts:
+            - name: oidc
+              mountPath: /etc/demo-oidc
+              readOnly: true
             - name: state
               mountPath: /var/lib/gitea
       volumes:
+        - name: oidc
+          secret:
+            secretName: demo-oidc
         - name: state
           persistentVolumeClaim:
             claimName: forgejo

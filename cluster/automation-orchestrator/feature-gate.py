@@ -33,7 +33,7 @@ def backstage(path, method="GET", body=None, token=None, missing_ok=False):
 
 
 def prepare(number):
-    token = backstage("/api/auth/guest/refresh", "POST", {})["backstageIdentity"]["token"]
+    token = os.environ["BACKSTAGE_TOKEN"]
     issue = backstage(
         f"/api/proxy/forgejo/repos/{REPOSITORY}/issues/{number}",
         token=token,

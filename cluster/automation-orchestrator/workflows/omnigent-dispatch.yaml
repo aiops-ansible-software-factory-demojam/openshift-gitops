@@ -36,17 +36,34 @@ nodes:
       timeout: 360
       retry_policy:
         max_retries: 0
-  - id: create_session
-    name: Create managed Agent Sandbox session
+  - id: authenticate_omnigent
+    name: Obtain Omnigent machine access token
     type: http_request
     position:
       x: 600
       y: 300
     parameters:
       method: POST
-      url: http://omnigent.omnigent.svc:8080/v1/sessions
+      url: http://omnigent.omnigent.svc:8000/oauth/token
+      headers:
+        Content-Type: application/x-www-form-urlencoded
+      body: grant_type=client_credentials
+    settings:
+      timeout: 30
+      retry_policy:
+        max_retries: 0
+  - id: create_session
+    name: Create managed Agent Sandbox session
+    type: http_request
+    position:
+      x: 900
+      y: 300
+    parameters:
+      method: POST
+      url: http://omnigent.omnigent.svc:8000/v1/sessions
       headers:
         Content-Type: application/json
+        Authorization: Bearer ${authenticate_omnigent.body.access_token}
       body:
         agent_id: DEMO_AGENT_ID
         host_type: managed
@@ -60,30 +77,41 @@ nodes:
     name: Send task to agent
     type: http_request
     position:
-      x: 900
+      x: 1200
       y: 300
     parameters:
       method: POST
-      url: http://omnigent.omnigent.svc:8080/v1/sessions/${create_session.body.id}/events
+      url: http://omnigent.omnigent.svc:8000/v1/sessions/${create_session.body.id}/events
       headers:
         Content-Type: application/json
+        Authorization: Bearer ${authenticate_omnigent.body.access_token}
       body:
         type: message
         data:
           role: user
           content:
             - type: input_text
-              text: |
-                Backstage has prepared feature/issue-${trigger.issue_number}
+              text: 'Backstage has prepared feature/issue-${trigger.issue_number}
+
                 for Forgejo issue #${trigger.issue_number} in
+
                 demo-owner/ansible-collection-demo. Run
+
                 demo-goldenpath checkout ${trigger.issue_number} to check out
+
                 that existing branch and read the issue. Follow the issue and
+
                 AGENTS.md, make only the requested change, and verify it.
+
                 Review the diff, commit, and write an accurate PR summary to
+
                 a file outside the repository. Run demo-goldenpath pr
+
                 ${trigger.issue_number} --body-file <path> to push and open
+
                 the PR. Report its URL. Do not merge.
+
+                '
     settings:
       timeout: 360
       retry_policy:
@@ -95,6 +123,8 @@ edges:
   - from: start
     to: prepare_feature
   - from: prepare_feature
+    to: authenticate_omnigent
+  - from: authenticate_omnigent
     to: create_session
   - from: create_session
     to: send_task

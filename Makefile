@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 export ISSUE
 
-.PHONY: help preflight bootstrap sandbox-build demo-hydrate demo render demo-reset aap-configure aap-sync webapp-create webapp-nginx webapp-delete webapp-verify
+.PHONY: help preflight bootstrap identity homepage-refresh sandbox-build demo-hydrate demo render demo-reset aap-configure aap-sync webapp-create webapp-nginx webapp-delete webapp-verify
 
 help:
 	@printf '%s\n' \
@@ -9,6 +9,8 @@ help:
 	  'make render        Render manifests locally into .rendered/' \
 	  'make preflight     Read-only local/cluster prerequisites; .env, manifest, KUBECONFIG' \
 	  'make bootstrap     Install platform, provision RHEL/nginx, verify; publish branch first' \
+	  'make identity      Reconcile demo users and OIDC clients/providers on an installed stack' \
+	  'make homepage-refresh Regenerate navigation links from demo Routes' \
 	  'make sandbox-build Build/publish the sandbox image in cluster; installed operators' \
 	  'make demo-hydrate  Seed Forgejo/refresh credentials; print the issue URL/number' \
 	  'make demo ISSUE=N  Hydrate, then hand positive issue N to AO; agent runs asynchronously' \
@@ -23,6 +25,12 @@ help:
 
 bootstrap:
 	bash bootstrap/bootstrap.sh
+
+identity:
+	bash bootstrap/bootstrap.sh identity
+
+homepage-refresh:
+	bash bootstrap/bootstrap.sh homepage-refresh
 
 sandbox-build:
 	bash bootstrap/bootstrap.sh sandbox-build

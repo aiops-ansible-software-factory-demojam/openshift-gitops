@@ -4,6 +4,10 @@
 # Sourcing this file defines functions only; it never starts a cluster operation.
 
 demo_repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+# shellcheck source=bootstrap/identity.sh
+source "$demo_repo_root/bootstrap/identity.sh"
+# shellcheck source=bootstrap/homepage.sh
+source "$demo_repo_root/bootstrap/homepage.sh"
 
 # -----------------------------------------------------------------------------
 # Configuration, logging, and cleanup
@@ -156,30 +160,6 @@ demo_json_check() {
   oc "$@" --request-timeout=30s -o json | jq -e "$filter" >/dev/null
 }
 
-demo_secret_metadata() (
-  local scratch port deadline name
-  scratch=$(mktemp -d)
-  local proxy_pid=
-  trap '[[ -z $proxy_pid ]] || kill "$proxy_pid" 2>/dev/null || true; rm -rf -- "$scratch"' EXIT
-  oc -n keycloak proxy --port=0 --address=127.0.0.1 \
-    --accept-paths='^/api/v1/namespaces/keycloak/secrets/(keycloak-pgsql-user|keycloak-tls)$' \
-    >"$scratch/proxy.log" 2>/dev/null &
-  proxy_pid=$!
-  deadline=$((SECONDS + 15))
-  until port=$(sed -n 's/.*127\.0\.0\.1:\([0-9][0-9]*\).*/\1/p' "$scratch/proxy.log") && [[ -n $port ]]; do
-    kill -0 "$proxy_pid" 2>/dev/null && (( SECONDS < deadline )) || return 2
-    sleep 1
-  done
-  for name in keycloak-pgsql-user keycloak-tls; do
-    curl -fsS --noproxy '*' --max-time 15 \
-      -H 'Accept: application/json;as=PartialObjectMetadata;g=meta.k8s.io;v=v1' \
-      "http://127.0.0.1:$port/api/v1/namespaces/keycloak/secrets/$name" |
-      jq -e --arg name "$name" '.kind == "PartialObjectMetadata" and
-        (has("data") | not) and (has("stringData") | not) and .metadata.name == $name' >/dev/null || return
-  done
-  # Metadata may contain last-applied Secret annotations; never print the body.
-)
-
 demo_preflight() (
   umask 077
   local preflight_scratch preflight_failures=0 tool missing=false
@@ -200,6 +180,8 @@ demo_preflight() (
   demo_check 'yq/jq compatibility' 'Install jq-wrapper yq; yq must emit JSON.' \
     bash -c 'printf "check: true\n" | yq . | jq -e ".check == true" >/dev/null'
   demo_check 'model inputs' 'Fill the selected provider inputs in .env.' demo_model_inputs
+  demo_check 'demo users' 'Set DEMO_USERS_FILE to valid user metadata; see bootstrap/users.example.json.' \
+    demo_identity_validate_users "$(demo_identity_users_file)"
   demo_check 'manifest structure and RHEL material' 'Supply the subscription ZIP with consumer_export.zip and RHEL certificate/key.' \
     demo_manifest "$preflight_scratch"
   demo_check 'KUBECONFIG' 'Export KUBECONFIG or set an explicit path/list in .env.' test -n "${KUBECONFIG:-}"
@@ -237,9 +219,8 @@ demo_preflight() (
     demo_check 'node pressure' 'Resolve disk, memory, or PID pressure.' demo_json_check \
       'all(.items[].status.conditions[]; if (.type == "DiskPressure" or .type == "MemoryPressure" or .type == "PIDPressure")
         then .status != "True" else true end)' get nodes
-    demo_check 'external Keycloak database' 'Supply keycloak-pgsql Deployment/Service and a Bound PVC (issue #17).' \
-      demo_keycloak_database
-    demo_check 'external Keycloak Secret references' 'Supply Keycloak DB/TLS Secrets; metadata-only access is required.' demo_secret_metadata
+    demo_check 'workshop identity ownership' 'Orphan the old rhbk Application first; see cluster/demojam-keycloak/README.md. Preserve its resources.' \
+      demo_identity_legacy_detached
   else
     printf 'FAIL cluster identity: check the kubeconfig and oc authentication.\n'
     preflight_failures=$((preflight_failures + 1))
@@ -247,16 +228,10 @@ demo_preflight() (
 
   echo 'ADVISORY: ZIP structure does not prove license acceptance, expiry, or CDN access.'
   echo 'ADVISORY: Storage/registry/node metadata does not prove provisioning, image pulls, capacity, or KVM.'
-  echo 'ADVISORY: Keycloak credentials/realm state are external; installed-later APIs are checked before use.'
+  echo 'ADVISORY: Demo identity is provisioned after GitOps; the existing cluster login provider is independent.'
   printf 'Preflight: %s required failure(s)\n' "$preflight_failures"
   (( preflight_failures == 0 ))
 )
-
-demo_keycloak_database() {
-  demo_json_check '.status.availableReplicas >= 1' -n keycloak get deployment keycloak-pgsql &&
-    demo_json_check '.spec.ports | length > 0' -n keycloak get service keycloak-pgsql &&
-    demo_json_check '.status.phase == "Bound"' -n keycloak get pvc keycloak-pgsql-data
-}
 
 # Installed-later APIs must not be required on a fresh cluster's preflight.
 demo_readiness() {
@@ -356,6 +331,7 @@ EOF
 )
 
 demo_omnigent_auth() (
+  set +x
   umask 077
   scratch=$(mktemp -d)
   trap 'find "$scratch" -type f -delete; rmdir "$scratch"' EXIT
@@ -377,16 +353,23 @@ demo_omnigent_auth() (
   fi
 
   if [[ $(<"$scratch/username") != automation-orchestrator ]]; then
-    echo 'The Omnigent proxy credential has an unexpected username.' >&2
+    echo 'The Omnigent machine credential has an unexpected username.' >&2
     exit 1
   fi
-  printf 'automation-orchestrator:%s\n' \
-    "$(openssl passwd -apr1 -stdin <"$scratch/password")" \
-    >"$scratch/htpasswd"
-  oc -n omnigent create secret generic omnigent-proxy-auth \
-    --from-file=htpasswd="$scratch/htpasswd" \
-    --dry-run=client -o yaml | oc apply -f -
-  echo 'Omnigent Route proxy authentication is configured.'
+  local cookie_key
+  cookie_key=$(oc -n demojam-keycloak get secret identity-credentials \
+    -o go-template='{{index .data "omnigent-cookie-secret" | base64decode}}')
+  printf '%s' automation-orchestrator >"$scratch/OMNIGENT_MACHINE_CLIENT_ID"
+  printf '%s' automation-orchestrator@example.test >"$scratch/OMNIGENT_MACHINE_SUB"
+  openssl dgst -sha256 -mac HMAC -macopt "hexkey:$cookie_key" "$scratch/password" |
+    awk '{print $NF}' | tr -d '\n' >"$scratch/OMNIGENT_MACHINE_CLIENT_SECRET_HASH"
+  unset cookie_key
+  oc -n omnigent create secret generic omnigent-machine-auth \
+    --from-file=OMNIGENT_MACHINE_CLIENT_ID="$scratch/OMNIGENT_MACHINE_CLIENT_ID" \
+    --from-file=OMNIGENT_MACHINE_SUB="$scratch/OMNIGENT_MACHINE_SUB" \
+    --from-file=OMNIGENT_MACHINE_CLIENT_SECRET_HASH="$scratch/OMNIGENT_MACHINE_CLIENT_SECRET_HASH" \
+    --dry-run=client -o yaml | oc -n omnigent apply -f -
+  echo 'Omnigent native machine client-credentials authentication is configured.'
 )
 
 # -----------------------------------------------------------------------------
@@ -691,12 +674,14 @@ demo_hydrate() (
   export FORGEJO_STATE_DIR="$state_dir"
   export FORGEJO_URL="https://$forgejo_host"
   if [[ $action == reset ]]; then
-    RHDH_URL="https://rhdh.$ingress_domain" FORGEJO_URL="$FORGEJO_URL" \
+    BACKSTAGE_TOKEN=$(oc -n rhdh get secret backstage-machine-auth -o go-template='{{index .data "BACKSTAGE_TOKEN" | base64decode}}') \
+      RHDH_URL="https://rhdh.$ingress_domain" FORGEJO_URL="$FORGEJO_URL" \
       bash "$repo_root/cluster/rhdh/scripts/clear-demo-catalog.sh"
     demo_forgejo_lifecycle reset --confirm-forgejo
   else
     demo_forgejo_lifecycle seed
   fi
+  demo_identity_forgejo
 
   FORGEJO_TOKEN=$(<"$state_dir/admin-token")
   export FORGEJO_TOKEN
@@ -707,10 +692,13 @@ demo_hydrate() (
   scratch=$(mktemp -d)
   trap 'find "$scratch" -type f -delete; rmdir "$scratch"' EXIT
   tr -d '\r\n' <"$state_dir/agent-token" >"$scratch/agent-token"
+  oc -n rhdh get secret backstage-machine-auth \
+    -o go-template='{{index .data "BACKSTAGE_TOKEN" | base64decode}}' >"$scratch/backstage-token"
   jq -n --rawfile token "$scratch/agent-token" \
+    --rawfile backstage_token "$scratch/backstage-token" \
     --arg url 'http://forgejo.forgejo.svc.cluster.local:3000' \
     --arg backstage 'http://backstage-rhdh-developer-hub.rhdh.svc.cluster.local:80' \
-    '{stringData:{FORGEJO_TOKEN:$token,FORGEJO_URL:$url,FORGEJO_USERNAME:"demo-agent",BACKSTAGE_URL:$backstage}}' \
+    '{stringData:{FORGEJO_TOKEN:$token,FORGEJO_URL:$url,FORGEJO_USERNAME:"demo-agent",BACKSTAGE_URL:$backstage,BACKSTAGE_TOKEN:$backstage_token}}' \
     >"$scratch/forgejo-patch.json"
   oc -n omnigent-sandboxes patch secret omnigent-model --type=merge \
     --patch-file="$scratch/forgejo-patch.json" >/dev/null
@@ -798,13 +786,11 @@ demo_verify_goldenpaths() (
     -o jsonpath='{.status.ingress[0].host}')
   [[ -n $rhdh_host ]] || { echo 'RHDH Route has no host.' >&2; exit 1; }
   base_url="https://$rhdh_host"
+  token=$(oc -n rhdh get secret backstage-machine-auth \
+    -o go-template='{{index .data "BACKSTAGE_TOKEN" | base64decode}}')
 
   deadline=$((SECONDS + 600))
   while :; do
-    token=$(curl -fsS --max-time 20 -X POST \
-      -H 'Content-Type: application/json' -d '{}' \
-      "$base_url/api/auth/guest/refresh" 2>/dev/null |
-      jq -er '.backstageIdentity.token' 2>/dev/null) || token=
     if [[ -n $token ]] &&
        curl -fsS --max-time 20 -H "Authorization: Bearer $token" \
          "$base_url/api/scaffolder/v2/actions" 2>/dev/null |
@@ -837,7 +823,28 @@ demo_verify_goldenpaths() (
 # Automation Orchestrator workflow reconciliation
 # -----------------------------------------------------------------------------
 
+demo_ao_workflow_definition() {
+  yq -c . "$1" | jq -c --arg credential_id "$2" --arg agent_id "$3" \
+    --slurpfile users "$(demo_identity_users_file)" '
+    .nodes |= map(if .id == "authenticate_omnigent" then .parameters.credential_id=$credential_id
+      elif .id == "create_session" then .parameters.body.agent_id=$agent_id else . end) |
+    ([$users[0].users[] | select(.enabled != false)] | to_entries | map({
+      id:("share_session_" + .value.username),name:("Share session with " + .value.username),type:"http_request",
+      position:{x:(900 + .key * 300),y:600},parameters:{method:"PUT",
+        url:"http://omnigent.omnigent.svc:8000/v1/sessions/${create_session.body.id}/permissions",
+        headers:{"Content-Type":"application/json",Authorization:"Bearer ${authenticate_omnigent.body.access_token}"},
+        body:{user_id:.value.email,level:1}},settings:{timeout:30,retry_policy:{max_retries:0}}
+    })) as $shares |
+    .nodes += $shares |
+    .edges |= map(select(.from != "create_session" or .to != "send_task")) |
+    (["create_session"] + ($shares | map(.id)) + ["send_task"]) as $chain |
+    .edges += [range(0; ($chain | length) - 1) as $i | {from:$chain[$i],to:$chain[$i+1]}]'
+}
+
 demo_ao_reconcile() (
+  set +x
+  umask 077
+  demo_identity_validate_users "$(demo_identity_users_file)" || demo_die 'Invalid DEMO_USERS_FILE.'
   namespace=automation-orchestrator
   workflow_name=omnigent-dispatch
   script_dir="$demo_repo_root/cluster/automation-orchestrator"
@@ -848,10 +855,13 @@ demo_ao_reconcile() (
   oc whoami
 
   ao_response=$(mktemp)
+  local omnigent_scratch
+  omnigent_scratch=$(mktemp -d)
   pf_log=$(mktemp)
   pf_pid=
   trap '[[ -n ${pf_pid:-} ]] && kill "$pf_pid" 2>/dev/null || true
-    rm -f "$ao_response" "$pf_log"' EXIT
+    rm -f "$ao_response" "$pf_log"
+    rm -rf -- "$omnigent_scratch"' EXIT
 
   ao_response_is_json() {
     jq -e . "$ao_response" >/dev/null 2>&1
@@ -1043,6 +1053,31 @@ demo_ao_reconcile() (
   fi
   auth_header="Authorization: Bearer $ao_token"
 
+  http_code=$(ao_curl GET "$base_url/groups?limit=100" -H "$auth_header")
+  ao_require_json 'list OIDC target groups' "$http_code"
+  oidc_users_group=$(jq -er '.resources[] | select(.name == "users") | .id' "$ao_response")
+  oidc_admins_group=$(jq -er '.resources[] | select(.name == "admins") | .id' "$ao_response")
+  oidc_secret=$(oc -n "$namespace" get secret demo-oidc -o go-template='{{index .data "client-secret" | base64decode}}')
+  oidc_issuer=$(oc -n "$namespace" get secret demo-oidc -o go-template='{{index .data "issuer" | base64decode}}')
+  oidc_host=$(oc -n "$namespace" get route automation-orchestrator -o jsonpath='{.status.ingress[0].host}')
+  oidc_payload=$(demo_identity_ao_payload "$oidc_issuer" "$oidc_secret" \
+    "https://$oidc_host/api/v1/auth/oidc/callback" "$oidc_users_group" "$oidc_admins_group")
+  http_code=$(ao_curl GET "$base_url/identity_providers?limit=100" -H "$auth_header")
+  ao_require_json 'list identity providers' "$http_code"
+  oidc_id=$(jq -r '.resources[] | select(.name == "Demojam Keycloak") | .id' "$ao_response")
+  if [[ -n $oidc_id ]]; then
+    oidc_payload=$(jq '.enabled=true' <<<"$oidc_payload")
+    http_code=$(ao_curl PATCH "$base_url/identity_providers/$oidc_id" -H "$auth_header" \
+      -H 'Content-Type: application/json' --data-binary "$oidc_payload")
+  else
+    http_code=$(ao_curl POST "$base_url/identity_providers" -H "$auth_header" \
+      -H 'Content-Type: application/json' --data-binary "$oidc_payload")
+  fi
+  unset oidc_secret oidc_payload
+  ao_require_json 'configure Demojam Keycloak' "$http_code"
+  echo 'Automation Orchestrator OIDC and user/admin group mappings are configured.'
+  [[ ${1:-workflow} != identity-only ]] || exit 0
+
   http_code=$(ao_curl GET "$base_url/projects" -H "$auth_header")
   ao_require_json 'list projects' "$http_code"
   project_id=$(jq -r '.resources[] | select(.name == "default") | .id' \
@@ -1088,7 +1123,8 @@ demo_ao_reconcile() (
     -o jsonpath='{.status.ingress[0].host}')
   [[ -n "$omnigent_host" ]] || { echo 'Omnigent Route has no assigned host.' >&2; exit 1; }
   omnigent_url="https://$omnigent_host"
-  http_code=$(ao_curl GET "$omnigent_url/v1/agents" --user "$client_id:$client_secret")
+  demo_omnigent_connect "$omnigent_scratch" "$omnigent_url"
+  http_code=$(ao_curl GET "$omnigent_url/v1/agents" --config "$omnigent_scratch/omnigent.conf")
   unset client_secret
   ao_require_json 'list Omnigent agents' "$http_code"
   agent_id=$(jq -r '.data[] | select(.name == "automation-developer") | .id' "$ao_response")
@@ -1097,13 +1133,7 @@ demo_ao_reconcile() (
     exit 1
   fi
 
-  workflow_definition=$(yq -c '.' "$workflow_file" | jq -c \
-    --arg credential_id "$credential_id" --arg agent_id "$agent_id" \
-    '.nodes |= map(if .id == "create_session" then
-        .parameters.credential_id = $credential_id |
-        .parameters.body.agent_id = $agent_id
-      elif .id == "send_task" then .parameters.credential_id = $credential_id
-      else . end)')
+  workflow_definition=$(demo_ao_workflow_definition "$workflow_file" "$credential_id" "$agent_id")
   validation_payload=$(jq -n --argjson definition "$workflow_definition" \
     '{workflow_definition: $definition}')
   http_code=$(ao_curl POST "$base_url/workflows/validate" -H "$auth_header" \
@@ -1343,11 +1373,20 @@ YAML
     --rawfile pem "$aap_scratch/entitlement.pem" '{organization:$org,credential_type:$kind,inputs:{entitlement_pem:$pem}}')" >/dev/null
   config=$(aap_upsert credential_types/ 'Demo AAP dispatch' "$(jq -n '{kind:"cloud",
     inputs:{fields:[{id:"host",label:"AAP URL",type:"string"},{id:"username",label:"AAP username",type:"string"},
-      {id:"password",label:"AAP password",type:"string",secret:true}],required:["host","username","password"]},
-    injectors:{env:{AAP_HOST:"{{ host }}",AAP_USERNAME:"{{ username }}",AAP_PASSWORD:"{{ password }}"}}}')" | jq -er .id)
+      {id:"password",label:"AAP password",type:"string",secret:true},
+      {id:"oidc_issuer",label:"Demo OIDC issuer",type:"string"},
+      {id:"oidc_secret",label:"Demo OIDC client secret",type:"string",secret:true}],
+      required:["host","username","password","oidc_issuer","oidc_secret"]},
+    injectors:{env:{AAP_HOST:"{{ host }}",AAP_USERNAME:"{{ username }}",AAP_PASSWORD:"{{ password }}",
+      DEMO_OIDC_ISSUER:"{{ oidc_issuer }}",DEMO_OIDC_CLIENT_SECRET:"{{ oidc_secret }}"}}}')" | jq -er .id)
+  oc -n demojam-keycloak get secret identity-credentials \
+    -o go-template='{{index .data "aap-client-secret" | base64decode}}' >"$aap_scratch/oidc-secret"
+  oidc_issuer="https://$(oc -n demojam-keycloak get route keycloak -o jsonpath='{.status.ingress[0].host}')/realms/demo"
   aap_upsert credentials/ demo-aap-dispatch "$(jq -n --argjson org "$org" --argjson kind "$config" \
     --arg host "$aap_host" --arg username "$aap_username" --rawfile password "$aap_scratch/password" \
-    '{organization:$org,credential_type:$kind,inputs:{host:$host,username:$username,password:$password}}')" >/dev/null
+    --arg issuer "$oidc_issuer" --rawfile oidc_secret "$aap_scratch/oidc-secret" \
+    '{organization:$org,credential_type:$kind,inputs:{host:$host,username:$username,password:$password,
+      oidc_issuer:$issuer,oidc_secret:$oidc_secret}}')" >/dev/null
   galaxy=$(aap_find credential_types/ 'Ansible Galaxy/Automation Hub API Token' | jq -er .id)
   community=$(aap_upsert credentials/ demo-galaxy "$(jq -n --argjson org "$org" --argjson kind "$galaxy" \
     '{organization:$org,credential_type:$kind,inputs:{url:"https://galaxy.ansible.com/"}}')" | jq -er .id)
@@ -1490,6 +1529,7 @@ demo_aap_configure() {
   oc apply -f "$demo_repo_root/bootstrap/aap-resources/aap-configure-all-jobtemplate.yaml"
   oc -n ansible-automation-platform wait --for=condition=Successful jobtemplate/aap-configure-all --timeout=15m
   demo_aap dispatch
+  demo_identity_aap_callback
   echo 'AAP configuration from Forgejo completed.'
 }
 
@@ -1502,10 +1542,14 @@ demo_webapp() {
     delete) demo_aap launch webapp_vm '{"vm_state":"absent"}' ;;
     sync) demo_aap launch aap_configure_all ;;
     verify)
-      local host pod metrics
+      local host pod metrics login_redirect ingress_domain
       oc -n webapp-vms wait --for=condition=Ready vm/webapp --timeout=15m
       host=$(oc -n webapp-vms get route webapp -o jsonpath='{.status.ingress[0].host}')
-      curl --fail --silent --show-error --connect-timeout 10 --max-time 30 "https://$host/" >/dev/null
+      ingress_domain=$(oc -n openshift-ingress-operator get ingresscontroller default -o jsonpath='{.status.domain}')
+      login_redirect=$(curl --fail --silent --show-error --connect-timeout 10 --max-time 30 \
+        --write-out '%{http_code}\n%{redirect_url}' --output /dev/null "https://$host/")
+      [[ $login_redirect == $'302\n'"https://demojam-keycloak.$ingress_domain/realms/demo/protocol/openid-connect/auth?"* ]] ||
+        demo_die 'Webapp did not redirect an unauthenticated browser to demojam-keycloak.'
       pod=$(oc -n blackbox-exporter get pods -l app=blackbox-exporter -o jsonpath='{.items[0].metadata.name}')
       metrics=$(oc -n blackbox-exporter exec "$pod" -- wget -qO- \
         'http://127.0.0.1:9115/probe?module=http_2xx&target=http%3A%2F%2Fwebapp.webapp-vms.svc.cluster.local%2F')
@@ -1622,8 +1666,13 @@ demo_bootstrap() (
 
   # Reconcile the default instance to the checked-in definition while retaining
   # the special cluster-scoped permissions Red Hat grants to this instance.
-  oc apply --server-side --force-conflicts \
-    -f "$bootstrap_dir/config/openshift-gitops-argocd.yaml"
+  demo_step 'Prepare demo identity credentials and user catalog'
+  demo_identity_prepare
+  demo_homepage_prepare
+  yq . "$bootstrap_dir/config/openshift-gitops-argocd.yaml" |
+    jq --arg issuer "https://demojam-keycloak.$ingress_domain/realms/demo" \
+      '.spec.oidcConfig |= gsub("__DEMO_OIDC_ISSUER__"; $issuer)' |
+    oc apply --server-side --force-conflicts -f -
   oc apply -f "$bootstrap_dir/config/openshift-gitops-cluster-permissions.yaml"
   oc -n "$gitops_namespace" wait --for=jsonpath='{.status.phase}'=Available \
     argocd/openshift-gitops --timeout=15m
@@ -1635,16 +1684,9 @@ demo_bootstrap() (
     (( SECONDS < deadline )) || demo_die 'Timed out waiting for Argo CD permissions.'
     sleep 5
   done
-  # The environment-provided keycloak namespace exists before GitOps. Label it so
-  # the operator grants the application controller rights to adopt Keycloak.
-  oc label namespace keycloak argocd.argoproj.io/managed-by=openshift-gitops --overwrite
-  # These namespaces also hold bootstrap-owned Secrets. Create them before the
-  # root app so the first child sync can mount the model and agent spec.
-  oc apply -f "$repo_root/cluster/omnigent/omnigent-namespace.yaml"
+  # Identity preparation created the consumer namespaces. The sandbox runner
+  # also needs its namespace before the first child sync can mount its Secrets.
   oc apply -f "$repo_root/cluster/omnigent/omnigent-sandboxes-namespace.yaml"
-  oc apply -f "$repo_root/cluster/automation-orchestrator/automation-orchestrator-namespace.yaml"
-  oc apply -f "$repo_root/cluster/forgejo/forgejo-namespace.yaml"
-  oc apply -f "$repo_root/cluster/rhdh/rhdh-namespace.yaml"
   if ! oc -n rhdh get secret rhdh-pg-credentials >/dev/null 2>&1; then
     umask 077
     db_password_file=$(mktemp)
@@ -1679,9 +1721,10 @@ demo_bootstrap() (
   done
 
   deadline=$((SECONDS + 3600))
-  # OpenShift preserves an explicit Route host when a manifest starts requesting
-  # a subdomain. Refresh each affected child app before recreating legacy Routes.
-  for app in rhbk forgejo rhdh omnigent automation-orchestrator; do
+  demo_step 'Provision demo identity before application OIDC discovery'
+  demo_identity_configure
+  demo_identity_openshift
+  for app in demojam-keycloak forgejo rhdh omnigent automation-orchestrator; do
     until oc -n "$gitops_namespace" get application "$app" >/dev/null 2>&1; do
       if (( SECONDS >= deadline )); then
         echo "Timed out waiting for the $app Application." >&2
@@ -1710,31 +1753,15 @@ demo_bootstrap() (
       demo_hydrate hydrate
     fi
   done
-  for route_ref in keycloak/keycloak forgejo/forgejo \
+  for route_ref in demojam-keycloak/keycloak forgejo/forgejo \
     omnigent/omnigent \
     automation-orchestrator/automation-orchestrator; do
     route_namespace=${route_ref%%/*}
     route_name=${route_ref#*/}
-    if oc -n "$route_namespace" get route "$route_name" >/dev/null 2>&1; then
-      route_host=$(oc -n "$route_namespace" get route "$route_name" \
-        -o jsonpath='{.spec.host}')
-      assigned_host=$(oc -n "$route_namespace" get route "$route_name" \
-        -o jsonpath='{.status.ingress[0].host}')
-      if [[ -n "$route_host" && "$route_host" != *".$ingress_domain" ]] || \
-        [[ -n "$assigned_host" && "$assigned_host" != *".$ingress_domain" ]] || \
-        { [[ "$route_ref" != automation-orchestrator/* ]] && \
-          [[ -n "$route_host" ]]; }; then
-        echo "Recreating $route_ref to release its old Route host."
-        oc -n "$route_namespace" delete route "$route_name" --wait=true
-      fi
-    fi
     until route_json=$(oc -n "$route_namespace" get route "$route_name" \
       -o json 2>/dev/null) && \
       assigned_host=$(jq -r '.status.ingress[0].host // ""' <<<"$route_json") && \
-      route_host=$(jq -r '.spec.host // ""' <<<"$route_json") && \
-      [[ "$assigned_host" == *".$ingress_domain" ]] && \
-      { [[ "$route_ref" == automation-orchestrator/* ]] || \
-        [[ -z "$route_host" ]]; }; do
+      [[ "$assigned_host" == *".$ingress_domain" ]]; do
       if (( SECONDS >= deadline )); then
         echo "Timed out waiting for $route_ref on $ingress_domain." >&2
         exit 1
@@ -1760,7 +1787,7 @@ demo_bootstrap() (
   oc -n "$gitops_namespace" get applications \
     -o custom-columns=NAME:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status
 
-  for app in openshift-pipelines agent-sandbox-operator openshift-virtualization omnigent automation-orchestrator ansible-automation-platform webapp-vms user-workload-monitoring; do
+  for app in openshift-pipelines agent-sandbox-operator openshift-virtualization omnigent automation-orchestrator ansible-automation-platform webapp-vms user-workload-monitoring homepage; do
     oc -n "$gitops_namespace" annotate application "$app" \
       argocd.argoproj.io/refresh=hard --overwrite
     deadline=$((SECONDS + 1800))
@@ -1779,6 +1806,8 @@ demo_bootstrap() (
   done
 
   # Operator health does not prove guest images or workload controllers are ready.
+  # AO's generated Route is now available; register its exact OIDC callback.
+  demo_identity_configure
   demo_readiness sandbox
   demo_readiness aap
 
@@ -1833,6 +1862,8 @@ demo_bootstrap() (
   if [[ ${BOOTSTRAP_RECONCILE_WORKFLOW:-true} == true ]]; then
     demo_step 'Validate and publish the AO workflow'
     demo_ao_reconcile
+  else
+    demo_ao_reconcile identity-only
   fi
   demo_step 'Configure AAP through its Controller'
   demo_aap_configure
@@ -1843,13 +1874,16 @@ demo_bootstrap() (
   demo_webapp nginx
   demo_step 'Verify the webapp and monitoring probe'
   demo_webapp verify
+  demo_step 'Populate and verify Homepage navigation'
+  demo_homepage_configure
 
   printf '\nBootstrap completed on %s at %s.\n' "$gitops_branch" "$target_revision"
-  for ref in forgejo/forgejo rhdh/backstage-rhdh-developer-hub \
+  for ref in homepage/homepage demojam-keycloak/keycloak forgejo/forgejo rhdh/backstage-rhdh-developer-hub \
     omnigent/omnigent automation-orchestrator/automation-orchestrator ansible-automation-platform/aap; do
     host=$(oc -n "${ref%%/*}" get route "${ref#*/}" -o jsonpath='{.status.ingress[0].host}')
     printf '%-30s https://%s\n' "${ref%%/*}" "$host"
   done
+  echo 'Initial user passwords: Secret demojam-keycloak/demo-user-passwords (passwords.json).'
 )
 
 # -----------------------------------------------------------------------------
@@ -1866,6 +1900,8 @@ Usage: bash bootstrap/bootstrap.sh [COMMAND]
   preflight          Read-only input and pre-install cluster checks (also --check)
   sandbox-build      Build the configured :latest sandbox image
   model-config       Apply the selected model/agent configuration
+  identity           Reconcile demo users, clients and application login
+  homepage-refresh   Refresh Homepage links from the actual demo Routes
   hydrate            Seed Forgejo and refresh Backstage/agent credentials
   reconcile-workflow Validate and publish the AO workflow
   aap-configure      Prepare AAP credentials/license and run config-as-code
@@ -1887,6 +1923,19 @@ HELP
   demo_load_env
   case $command in
     bootstrap) [[ $# == 0 ]] || demo_die 'bootstrap takes no arguments'; demo_bootstrap ;;
+    homepage-refresh) [[ $# == 0 ]] || demo_die 'homepage-refresh takes no arguments'; demo_verify_cluster; demo_homepage_configure ;;
+    identity)
+      [[ $# == 0 ]] || demo_die 'identity takes no arguments'
+      demo_verify_cluster
+      ingress_domain=$(oc -n openshift-ingress-operator get ingresscontroller default -o jsonpath='{.status.domain}')
+      demo_identity_prepare
+      demo_identity_configure
+      demo_identity_openshift
+      demo_omnigent_auth
+      demo_identity_forgejo
+      demo_ao_reconcile
+      demo_identity_aap_callback
+      ;;
     preflight|--check) [[ $# == 0 ]] || demo_die 'preflight takes no arguments'; demo_preflight ;;
     sandbox-build) demo_sandbox_build ;;
     model-config) demo_model_config ;;

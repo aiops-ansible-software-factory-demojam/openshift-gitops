@@ -58,13 +58,6 @@ rules:
     verbs:
       - "*"
   - apiGroups:
-      - k8s.keycloak.org
-    resources:
-      - keycloaks
-      - keycloakrealmimports
-    verbs:
-      - "*"
-  - apiGroups:
       - monitoring.coreos.com
     resources:
       - probes

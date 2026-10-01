@@ -22,7 +22,9 @@ launches the agent. The agent implements the change, pushes, and opens the PR.
 After meeting [Requirements](#requirements), run this transcript for a fresh
 checkout. In the editor, populate the selected model provider's inputs and set
 `AAP_LICENSE_FILE` to your subscription ZIP. Its default is `aap_manifest.zip`
-in this checkout. The workshop must already supply the external Keycloak inputs.
+in this checkout. Bootstrap creates `demojam-keycloak` for OpenShift console
+and application login, retaining existing cluster providers for recovery.
+Set `DEMO_USER_PASSWORD` in `.env`; it defaults to `changeme` for new users.
 
 ```bash
 git clone https://github.com/aiops-ansible-software-factory-demojam/openshift-gitops.git
@@ -41,6 +43,12 @@ seeds Forgejo, builds the sandbox image, configures AAP, creates the RHEL 9 VM,
 installs nginx, and verifies HTTPS and monitoring. Wait for `Bootstrap completed`
 and the printed application URLs before starting the demo.
 
+Open the printed **Homepage** URL for a navigation page linking to all demo
+applications, the OpenShift console, GitOps and monitoring. It uses the homelab
+Homepage appearance and signs in through `demojam-keycloak`. Bootstrap generates
+the links from actual Routes; `make homepage-refresh` updates them later.
+See [Homepage configuration](cluster/homepage/README.md).
+
 For a subsequent run from the same checkout, retain your populated `.env`:
 
 ```bash
@@ -58,6 +66,7 @@ and a ready RHEL webapp with working HTTPS and blackbox monitoring.
 make                  # Show commands without contacting services
 make render           # Render manifests locally into .rendered/
 make preflight        # Check prerequisites without changing the cluster
+make identity         # Reconcile demo users, groups and application login
 make sandbox-build    # Rebuild the sandbox image through Tekton
 ```
 
@@ -88,7 +97,7 @@ and [Forgejo guide](cluster/forgejo/README.md).
 ## Requirements
 
 Use a disposable OpenShift cluster with OLM, Red Hat and certified operator
-catalogs, ingress, a default RWO StorageClass, and enough capacity for the
+catalogs, trusted HTTPS ingress, a default RWO StorageClass, and enough capacity for the
 operators, databases, and applications. OpenShift Virtualization requires
 hardware KVM support on at least one node; bootstrap waits for its
 `HyperConverged` resource to become available and the `centos-stream10` and
@@ -121,11 +130,14 @@ Validated tool versions on the workshop run (2026-10-01):
 local tools, selected model inputs, both manifest ZIP layers and required RHEL
 certificate/key material, then verifies the cluster identity, admin permissions,
 ingress, default storage configuration, catalogs, registry, node pressure, and
-external Keycloak database/TLS references. Secret existence uses metadata-only
+the configured demo users file and legacy workshop Keycloak ownership. Secret existence uses metadata-only
 API responses; it does not retrieve Secret data, contact AAP, or call a model.
-Bootstrap runs these checks before its first mutation. Keycloak's database,
-TLS and realm inputs remain external prerequisites tracked in
-[issue #17](https://github.com/aiops-ansible-software-factory-demojam/openshift-gitops/issues/17).
+Bootstrap runs these checks before its first mutation. The `demojam-keycloak` application
+owns Red Hat build of Keycloak 26.6, its CNPG database, and an edge Route using
+the default ingress certificate. Bootstrap provisions realm `demo`, generated
+credentials, users and OIDC clients. Application containers and the bootstrap
+host must trust the ingress certificate. See the [identity guide](cluster/demojam-keycloak/README.md)
+for user configuration and migration from the previous workshop setup.
 
 ZIP checks establish local structure and RHEL material; AAP's import validates
 licensing. Preflight does not establish expiry, authenticity or CDN access.
@@ -182,6 +194,7 @@ licensing and a RHEL CDN entitlement for the guest. Both files are gitignored.
 | `BOOTSTRAP_BRANCH` | Published branch, default `main`; a nonempty inherited value takes precedence |
 | `BOOTSTRAP_REPO_URL` | Public HTTPS GitOps source, default `origin` |
 | `BOOTSTRAP_STORAGE_CLASS` | AAP/monitoring StorageClass, default cluster default |
+| `DEMO_USERS_FILE` | JSON user definitions, default `bootstrap/users.example.json` |
 
 Provider endpoints are HTTPS API base URLs, ending before `/responses` or
 `/chat/completions`. To switch providers, edit `.env`, then run:
@@ -192,8 +205,9 @@ bash bootstrap/model-config.sh
 
 New sessions use that configuration. Existing sessions keep their launch
 credentials; use `make demo-reset` when a clean issue-to-PR cycle is needed.
-Bootstrap handles generated secrets: the RHDH database password, Forgejo/Backstage
-tokens, AAP admin credentials, a namespace-scoped VM API token, and a VM SSH
+Bootstrap handles generated secrets: Keycloak administration and OIDC client
+credentials, the RHDH database password,
+Forgejo/Backstage tokens, AAP admin credentials, a namespace-scoped VM API token, and a VM SSH
 key. It reuses runtime VM identities across reruns. The RHEL entitlement is
 extracted from the manifest into an AAP credential. No local registry login,
 Forgejo read token, or manually copied generated AAP password is required.
@@ -215,7 +229,8 @@ bash bootstrap/bootstrap.sh
 bash bootstrap/bootstrap.sh --help
 ```
 
-Its commented sections contain all setup logic. Existing helper script paths
+Its commented sections contain platform setup; `bootstrap/identity.sh` handles
+the independent identity provider. Existing helper script paths
 remain thin compatibility entry points. Maintenance commands such as `preflight`,
 `model-config`, `sandbox-build`, `aap-configure`, and `webapp verify` use that same
 implementation. A sourced script defines functions without executing setup.
