@@ -57,10 +57,10 @@ demo_identity_prepare() (
   for namespace in demojam-keycloak forgejo rhdh automation-orchestrator omnigent webapp-vms homepage; do
     namespace_file="$demo_repo_root/cluster/$namespace/$namespace-namespace.yaml"
     [[ $namespace != demojam-keycloak ]] || namespace_file="$demo_repo_root/cluster/demojam-keycloak/demojam-keycloak-namespace.yaml"
-    oc apply -f "$namespace_file" >/dev/null
+    oc apply --server-side --field-manager=demo-bootstrap -f "$namespace_file" >/dev/null
   done
   if ! oc -n demojam-keycloak get secret identity-credentials >/dev/null 2>&1; then
-    for key in admin-password backstage-token argocd-client-secret rhdh-client-secret \
+    for key in admin-password backstage-token argocd-client-secret rhdh-client-secret rhdh-session-secret \
       forgejo-client-secret aap-client-secret orchestrator-client-secret omnigent-client-secret openshift-client-secret webapp-client-secret homepage-client-secret omnigent-cookie-secret; do
       openssl rand -hex 32 | tr -d '\n' >"$scratch/$key"
     done
@@ -68,6 +68,20 @@ demo_identity_prepare() (
     openssl rand -base64 32 | tr '+/' '-_' | tr -d '\n' >"$scratch/homepage-cookie-secret"
     oc -n demojam-keycloak create secret generic identity-credentials --from-file="$scratch" >/dev/null
   fi
+  # New consumers can be added to an installed stack without rotating keys
+  # already in use. Only keys introduced by these additions are filled here.
+  oc -n demojam-keycloak get secret identity-credentials -o json >"$scratch/root.json"
+  for key in rhdh-session-secret homepage-client-secret homepage-cookie-secret; do
+    if ! jq -e --arg key "$key" '.data[$key] | type == "string" and length > 0' "$scratch/root.json" >/dev/null; then
+      if [[ $key == homepage-cookie-secret ]]; then
+        openssl rand -base64 32 | tr '+/' '-_' | tr -d '\n' >"$scratch/new-key"
+      else
+        openssl rand -hex 32 | tr -d '\n' >"$scratch/new-key"
+      fi
+      jq -n --arg key "$key" --rawfile value "$scratch/new-key" '{data:{($key):($value | @base64)}}' >"$scratch/key-patch.json"
+      oc -n demojam-keycloak patch secret identity-credentials --type=merge --patch-file="$scratch/key-patch.json" >/dev/null
+    fi
+  done
   # OAuth2 Proxy decodes URL-safe base64. Canonicalize older standard-base64
   # values without changing their underlying random bytes or client secrets.
   oc -n demojam-keycloak get secret identity-credentials -o json |
@@ -76,7 +90,7 @@ demo_identity_prepare() (
   oc -n demojam-keycloak patch secret identity-credentials --type=merge --patch-file="$scratch/cookie-patch.json" >/dev/null
   oc -n demojam-keycloak get secret identity-credentials -o json |
     jq '.data | with_entries(.value |= @base64d)' >"$scratch/credentials.json"
-  jq -e '. as $credentials | all(["admin-password","backstage-token","argocd-client-secret","rhdh-client-secret",
+  jq -e '. as $credentials | all(["admin-password","backstage-token","argocd-client-secret","rhdh-client-secret","rhdh-session-secret",
     "forgejo-client-secret","aap-client-secret","orchestrator-client-secret","omnigent-client-secret","openshift-client-secret","webapp-client-secret","homepage-client-secret","homepage-cookie-secret","omnigent-cookie-secret","webapp-cookie-secret"][];
     $credentials[.] | type == "string" and length > 0)' "$scratch/credentials.json" >/dev/null ||
     demo_die 'The demojam-keycloak identity-credentials Secret is incomplete; restore its original keys before retrying.'
@@ -111,9 +125,11 @@ demo_identity_prepare() (
     --dry-run=client -o yaml | oc -n omnigent apply -f - >/dev/null
   jq -rj '."backstage-token"' "$scratch/credentials.json" >"$scratch/BACKSTAGE_TOKEN"
   jq -rj '."rhdh-client-secret"' "$scratch/credentials.json" >"$scratch/DEMO_OIDC_CLIENT_SECRET"
+  jq -rj '."rhdh-session-secret"' "$scratch/credentials.json" >"$scratch/DEMO_OIDC_SESSION_SECRET"
   printf rhdh >"$scratch/DEMO_OIDC_CLIENT_ID"
   cp "$scratch/issuer" "$scratch/DEMO_OIDC_ISSUER"
   oc -n rhdh create secret generic rhdh-oidc-env \
+    --from-file=DEMO_OIDC_SESSION_SECRET="$scratch/DEMO_OIDC_SESSION_SECRET" \
     --from-file=DEMO_OIDC_CLIENT_SECRET="$scratch/DEMO_OIDC_CLIENT_SECRET" \
     --from-file=DEMO_OIDC_CLIENT_ID="$scratch/DEMO_OIDC_CLIENT_ID" \
     --from-file=DEMO_OIDC_ISSUER="$scratch/DEMO_OIDC_ISSUER" --dry-run=client -o yaml |

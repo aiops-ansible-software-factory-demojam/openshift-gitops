@@ -1721,6 +1721,7 @@ demo_bootstrap() (
 
   echo 'Waiting for Argo CD to refresh the root application...'
   deadline=$((SECONDS + 300))
+  local rollout_previous='' rollout_snapshot
   until [[ $(oc -n "$gitops_namespace" get application cluster \
     -o jsonpath='{.metadata.annotations.argocd\.argoproj\.io/refresh}') != hard ]]; do
     (( SECONDS < deadline )) || demo_die 'Timed out waiting for the root application refresh.'
@@ -1782,8 +1783,12 @@ demo_bootstrap() (
     -o jsonpath='{.status.health.status}') == Healthy ]] && \
     [[ $(oc -n "$gitops_namespace" get application cluster \
     -o jsonpath='{.status.sync.revision}') == "$target_revision" ]]; do
-    oc -n "$gitops_namespace" get applications \
-      -o custom-columns=NAME:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status
+    rollout_snapshot=$(oc -n "$gitops_namespace" get applications \
+      -o custom-columns=NAME:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status)
+    if [[ $rollout_snapshot != "$rollout_previous" ]]; then
+      printf '%s\n' "$rollout_snapshot"
+      rollout_previous=$rollout_snapshot
+    fi
     if (( SECONDS >= deadline )); then
       echo 'Timed out waiting for the app-of-apps rollout.' >&2
       exit 1

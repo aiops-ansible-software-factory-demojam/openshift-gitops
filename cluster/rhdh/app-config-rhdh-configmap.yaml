@@ -31,6 +31,8 @@ data:
           password: ${password}
     auth:
       environment: production
+      session:
+        secret: ${DEMO_OIDC_SESSION_SECRET}
       providers:
         oidc:
           production:
