@@ -21,7 +21,7 @@ ansible-navigator:
         - DEMO_VM_API_CA
         - DEMO_VM_SSH_PRIVATE
         - DEMO_VM_SSH_PUBLIC
-        - DEMO_RHEL_ENTITLEMENT
+        - DEMO_RHEL_ENTITLEMENT_FILE
         - FORGEJO_TOKEN
         - K8S_AUTH_HOST
         - K8S_AUTH_API_KEY
