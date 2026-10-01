@@ -53,6 +53,14 @@ and `DEMO_FORGEJO_TOKEN`. The entitlement is injected as a private file to avoid
 limits. These inputs are required;
 missing material fails before any AAP objects are changed.
 
+Before dispatch, `configure-aap.yml` waits until EDA's organization API can
+resolve `demo`. EDA synchronizes shared organizations on a 15-minute schedule,
+so the first configuration run allows 20 minutes for synchronization. The check
+only reads the API; bootstrap still owns organization creation. If readiness
+times out, the job fails with a synchronization message before applying
+config-as-code objects. Check EDA worker health and gateway synchronization,
+then rerun `make aap-configure`.
+
 `group_vars/aap/oidc.yml` defines the independent demo Keycloak authenticator
 and access maps. Bootstrap adds `DEMO_OIDC_ISSUER` and
 `DEMO_OIDC_CLIENT_SECRET` to the runtime dispatch credential; these values
