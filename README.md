@@ -23,7 +23,8 @@ Use a disposable OpenShift cluster with OLM, Red Hat and certified operator
 catalogs, ingress, a default RWO StorageClass, and enough capacity for the
 operators, databases, and applications. OpenShift Virtualization requires
 hardware KVM support on at least one node; bootstrap waits for its
-`HyperConverged` resource to become available. The active `KUBECONFIG`
+`HyperConverged` resource to become available and the `centos-stream10` and
+`rhel9` DataSources to become Ready before sandbox testing or webapp cloning. The active `KUBECONFIG`
 identity needs cluster-admin rights. Install `oc`, `kustomize`, `helm`, `yq`,
 `jq`, `openssl`, `curl`, `git`, `python3`, `ssh-keygen`.
 
@@ -168,12 +169,16 @@ To reset the full issue-to-PR demo, run:
 make demo-reset
 ```
 
-This removes `automation-developer` sessions and Sandboxes, recreates its
-selected `.env` model and agent Secrets, wipes the disposable Forgejo PVC, and
-reseeds the one-line README issue, Backstage collection template source, and
-the `demo-owner/demojam-ansible` repository.
-It removes catalog registrations for generated collections that the Forgejo
-wipe deletes. Other Omnigent agents and sessions remain.
+This restores the post-bootstrap demo baseline. It removes
+`automation-developer` sessions, Sandboxes and their home volumes; deletes
+`webapp` and `automation-demo` through the seeded AAP templates; and removes
+labelled Molecule VMs and their owned test disks from `molecule-tests`. It
+refuses to continue if VM or disk resources remain in the three demo VM
+namespaces. It recreates the selected `.env` model and agent Secrets, wipes
+the disposable Forgejo PVC, and reseeds the README issue, collection template,
+and `demo-owner/demojam-ansible` project. It then refreshes AAP's project,
+inventory and configuration against that baseline. Generated collection catalog
+registrations are removed. Other Omnigent agents and sessions remain.
 Run `bash scripts/dispatch-issue.sh 1` afterward. See the
 [Forgejo demo guide](cluster/forgejo/README.md) for the fixture details.
 
