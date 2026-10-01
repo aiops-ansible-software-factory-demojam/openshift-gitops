@@ -11,6 +11,9 @@ spec:
       default: main
     - name: IMAGE
       type: string
+    - name: REPO_URL
+      type: string
+      default: https://github.com/aiops-ansible-software-factory-demojam/openshift-gitops.git
   workspaces:
     - name: source
   results:
@@ -27,6 +30,8 @@ spec:
           value: $(params.REVISION)
         - name: IMAGE
           value: $(params.IMAGE)
+        - name: REPO_URL
+          value: $(params.REPO_URL)
       workspaces:
         - name: source
           workspace: source
@@ -35,6 +40,8 @@ spec:
           - name: REVISION
             type: string
           - name: IMAGE
+            type: string
+          - name: REPO_URL
             type: string
         workspaces:
           - name: source
@@ -56,12 +63,14 @@ spec:
                 value: /tekton/home
               - name: REVISION
                 value: $(params.REVISION)
+              - name: REPO_URL
+                value: $(params.REPO_URL)
             script: |
               #!/bin/bash
               set -euo pipefail
               git init "$(workspaces.source.path)/repo"
               git -C "$(workspaces.source.path)/repo" fetch --depth 1 \
-                https://github.com/aiops-ansible-software-factory-demojam/openshift-gitops.git "$REVISION"
+                "$REPO_URL" "$REVISION"
               git -C "$(workspaces.source.path)/repo" checkout --detach FETCH_HEAD
               git -C "$(workspaces.source.path)/repo" rev-parse HEAD | tr -d '\n' > "$(results.SOURCE_COMMIT.path)"
           - name: build-and-push

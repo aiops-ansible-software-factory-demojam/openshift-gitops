@@ -1,15 +1,4 @@
 #!/usr/bin/env bash
+# Compatibility entry point; all implementation lives in bootstrap/bootstrap.sh.
 set -euo pipefail
-source "$(dirname "$0")/api.sh"
-root=$(cd -- "$(dirname "$0")/.." && pwd)
-repo=demo-owner/ansible-collection-demo
-title='Add a test line to the README'
-issues=$(api GET "/repos/$repo/issues?state=all&limit=100")
-existing=$(jq -r --arg title "$title" \
-  '.[] | select(.title == $title and .pull_request == null) | .html_url' \
-  <<<"$issues" | head -1)
-if [[ -n $existing ]]; then
-  printf '%s\n' "$existing"
-else
-  "$root/scripts/issue.sh" "$repo" "$title" "$root/fixtures/readme-test-issue.md"
-fi
+exec bash "$(dirname -- "${BASH_SOURCE[0]}")/../../../bootstrap/bootstrap.sh" forgejo-issue "$@"

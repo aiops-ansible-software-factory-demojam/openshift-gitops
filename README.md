@@ -35,15 +35,17 @@ Keycloak inputs listed under Requirements.
 make                  # Show commands without loading .env or contacting services
 make render           # Render manifests locally into .rendered/
 make preflight        # Read-only prerequisites; resolve required failures
-make bootstrap        # Roll out apps, seed repos, build sandbox image, configure AAP
+make bootstrap        # Roll out apps, configure AAP, create RHEL VM/nginx, verify
 ```
 
 Publish the checked-out revision to the selected `BOOTSTRAP_BRANCH` before
-bootstrap. Successful bootstrap reports healthy applications and configured AAP.
+bootstrap. Successful bootstrap reports healthy applications, configured AAP,
+and a ready RHEL webapp with working HTTPS and blackbox monitoring.
 `make sandbox-build` builds and publishes the sandbox image using the installed
 cluster's Tekton pipeline; `make render` writes local manifests.
 
-For the webapp flow:
+Bootstrap runs the complete webapp flow. These commands remain available for
+subsequent maintenance:
 
 ```bash
 make webapp-create    # Clone the RHEL 9 guest through AAP
@@ -75,7 +77,9 @@ hardware KVM support on at least one node; bootstrap waits for its
 `HyperConverged` resource to become available and the `centos-stream10` and
 `rhel9` DataSources to become Ready before sandbox testing or webapp cloning. The active `KUBECONFIG`
 identity needs cluster-admin rights. Install `oc`, `kustomize`, `helm`, `yq`,
-`jq`, `openssl`, `curl`, `git`, `python3`, `ssh-keygen`.
+`jq`, `openssl`, `curl`, `git`, `unzip`, `ssh-keygen`, and standard GNU utilities
+(`base64`, `tar`, `sed`, `awk`, `find`, `xargs`). The local bootstrap implementation
+is Bash throughout; JSON/YAML and HTTP use the listed CLI tools.
 Use GNU Make for the command aliases and jq-wrapper `yq`: `yq '.'` must emit
 JSON that `jq` can read. Preflight checks that contract with a small YAML fixture.
 
@@ -109,14 +113,19 @@ ZIP checks establish local structure and RHEL material; AAP's import validates
 licensing. Preflight does not establish expiry, authenticity or CDN access.
 Storage metadata does not prove new provisioning/RWO support; registry status
 does not prove pulls; node metadata does not prove capacity or hardware KVM.
-Installed-later APIs may be absent before bootstrap. Read-only
-`bootstrap/readiness.sh` gates KubeVirt, Tekton, Sandbox controllers and CentOS
-before sandbox builds, and AAP workloads/RHEL 9 before AAP setup or webapp creation.
+Installed-later APIs may be absent before bootstrap. The shared script's read-only
+readiness functions gate KubeVirt, Tekton, Sandbox controllers and CentOS before
+sandbox builds, and AAP workloads/RHEL 9 before AAP setup or webapp creation.
 
 Argo CD reads this repository from its Git remote. Publish your changes before
 bootstrap. `BOOTSTRAP_BRANCH` selects an already published branch; it defaults
 to `main`. Bootstrap sets a cluster-local Argo Kustomize patch for child
 Applications so the checked-in defaults can remain on `main`.
+`BOOTSTRAP_REPO_URL` optionally selects a public HTTPS repository instead of
+`origin`; the root Application, children, AppProject and sandbox build use the
+same source. `BOOTSTRAP_STORAGE_CLASS` optionally selects the AAP/monitoring
+StorageClass; otherwise bootstrap discovers the cluster default. These overrides
+are managed through Argo's Kustomize patches rather than temporary live edits.
 
 ## Local secrets
 
@@ -127,8 +136,10 @@ cp .env.example .env
 chmod 600 .env
 ```
 
-All bootstrap and demo entry points load the root `.env`. Quote values as in
-the template. Export a nonempty `KUBECONFIG` in your shell; that value takes
+All bootstrap and demo entry points load the root `.env`. This is trusted Bash
+configuration; quote values as in the template. Repository-relative license
+paths and template expansions resolve from the checkout, even when invoked from
+another directory. Export a nonempty `KUBECONFIG` in your shell; that value takes
 precedence over `.env`. Otherwise set it explicitly in `.env`; missing
 configuration fails with remediation. Colon-separated lists and paths containing
 spaces are passed unchanged to `oc` for merging. Scripts discover the API
@@ -143,6 +154,9 @@ licensing and a RHEL CDN entitlement for the guest. Both files are gitignored.
 | `MODEL_PROVIDER=opencode-go` | Uses `OPENCODE_GO_API_KEY`, `OPENCODE_GO_ENDPOINT`, `OPENCODE_GO_MODEL` (default `gpt-6-luna`) |
 | `MODEL_PROVIDER=litellm` | Uses `LITELLM_API_KEY`, `LITELLM_ENDPOINT`, `LITELLM_MODEL` |
 | `AAP_LICENSE_FILE` | Optional override for the root subscription ZIP |
+| `BOOTSTRAP_BRANCH` | Published branch, default `main`; a nonempty inherited value takes precedence |
+| `BOOTSTRAP_REPO_URL` | Public HTTPS GitOps source, default `origin` |
+| `BOOTSTRAP_STORAGE_CLASS` | AAP/monitoring StorageClass, default cluster default |
 
 Provider endpoints are HTTPS API base URLs, ending before `/responses` or
 `/chat/completions`. To switch providers, edit `.env`, then run:
@@ -153,7 +167,7 @@ bash bootstrap/model-config.sh
 
 New sessions use that configuration. Existing sessions keep their launch
 credentials; use `make demo-reset` when a clean issue-to-PR cycle is needed.
-Bootstrap handles generated secrets: database passwords, Forgejo/Backstage
+Bootstrap handles generated secrets: the RHDH database password, Forgejo/Backstage
 tokens, AAP admin credentials, a namespace-scoped VM API token, and a VM SSH
 key. It reuses runtime VM identities across reruns. The RHEL entitlement is
 extracted from the manifest into an AAP credential. No local registry login,
@@ -169,6 +183,18 @@ oc whoami
 make bootstrap
 ```
 
+The same entry point works without Make:
+
+```bash
+bash bootstrap/bootstrap.sh
+bash bootstrap/bootstrap.sh --help
+```
+
+Its commented sections contain all setup logic. Existing helper script paths
+remain thin compatibility entry points. Maintenance commands such as `preflight`,
+`model-config`, `sandbox-build`, `aap-configure`, and `webapp verify` use that same
+implementation. A sourced script defines functions without executing setup.
+
 The script installs GitOps, creates the model and internal Secrets, rolls out
 all applications, hydrates Forgejo, builds the sandbox image, verifies golden
 paths, and publishes AO's issue workflow. After reconciliation it creates
@@ -177,7 +203,10 @@ runtime AAP credentials by script, imports the license, and launches
 The Controller project clones public Forgejo and installs requirements from
 Galaxy and Git. No custom AAP EE or Automation Hub token is required.
 It waits for project/inventory synchronization. Rerunning preserves the VM
-SSH identity and applies current config. `BOOTSTRAP_FORCE_SANDBOX_BUILD=true`
+SSH identity and applies current config. It then launches `webapp_vm` and
+`webapp_nginx`, waits for their Controller jobs, and requires VM readiness,
+HTTPS access and a successful blackbox probe before reporting completion.
+`BOOTSTRAP_FORCE_SANDBOX_BUILD=true`
 forces a sandbox image rebuild.
 Sandbox builds overwrite one `:latest` tag; new sandbox containers use Kubernetes'
 `Always` pull policy. Publish image changes, finish the build, then start a fresh
@@ -194,9 +223,9 @@ before repeating a launch whose response was lost.
 
 ## Provision and automate the RHEL webapp
 
-Log into the AAP gateway Route as `admin`, using the operator-generated
-`aap-admin-password` Secret in `ansible-automation-platform`. Launch these
-templates in order:
+Bootstrap launches these templates in order. To run them again through the UI,
+log into the AAP gateway Route as `admin`, using the operator-generated
+`aap-admin-password` Secret in `ansible-automation-platform`:
 
 1. **webapp_vm** clones the `rhel9` DataSource into `webapp-vms`, installs the
    bootstrap-generated public SSH key via cloud-init, and waits for VM Ready.
@@ -265,7 +294,7 @@ To reset the full issue-to-PR demo, run:
 make demo-reset
 ```
 
-This restores the post-bootstrap demo baseline. It removes
+This restores a configured demo with no running demo VMs. It removes
 `automation-developer` sessions, Sandboxes and their home volumes; deletes
 `webapp` and `automation-demo` through the seeded AAP templates; and removes
 labelled Molecule VMs and their owned test disks from `molecule-tests`. It
@@ -276,6 +305,9 @@ and `demo-owner/demojam-ansible` project. It then refreshes AAP's project,
 inventory and configuration against that baseline. Generated collection catalog
 registrations are removed. Other Omnigent agents and sessions remain.
 AAP job and AO execution history is retained.
+Reset uses the AAP configuration command rather than full bootstrap, so it
+does not recreate nginx or the webapp. Use `make bootstrap` for the complete
+environment, or the individual webapp commands to recreate only that flow.
 Use `make demo-hydrate` and `make demo ISSUE=N` afterward. See the
 [Forgejo demo guide](cluster/forgejo/README.md) for the fixture details.
 

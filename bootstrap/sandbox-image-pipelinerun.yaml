@@ -11,6 +11,8 @@ spec:
       value: main
     - name: IMAGE
       value: ''
+    - name: REPO_URL
+      value: ''
   taskRunTemplate:
     serviceAccountName: omnigent-image-builder
     podTemplate:
