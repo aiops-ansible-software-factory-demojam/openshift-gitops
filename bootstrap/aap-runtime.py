@@ -2,7 +2,6 @@
 """The small imperative seam: create runtime AAP credentials before Git dispatch."""
 import base64
 import http.client
-import io
 import json
 import os
 from pathlib import Path
@@ -12,7 +11,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-import zipfile
+from manifest import read_rhel_entitlement
 
 NAMESPACE = "ansible-automation-platform"
 
@@ -94,24 +93,7 @@ class Controller:
 
 def prepare_credentials(api):
     manifest = Path(os.environ.get("AAP_LICENSE_FILE") or Path.cwd() / "aap_manifest.zip")
-    with zipfile.ZipFile(manifest) as outer, zipfile.ZipFile(io.BytesIO(outer.read("consumer_export.zip"))) as inner:
-        entitlement = None
-        for name in inner.namelist():
-            if not name.startswith("export/entitlements/"):
-                continue
-            entry = json.loads(inner.read(name))
-            pool = entry.get("pool", {})
-            products = [pool.get("productName", "")] + [p.get("productName", "") for p in pool.get("providedProducts", [])]
-            if not any(p in products for p in ("Red Hat Enterprise Linux for x86_64", "Red Hat Enterprise Linux Server")):
-                continue
-            for certificate in entry.get("certificates", []):
-                if certificate.get("cert") and certificate.get("key"):
-                    entitlement = certificate["cert"] + "\n" + certificate["key"]
-                    break
-            if entitlement:
-                break
-    if not entitlement:
-        raise RuntimeError("The manifest must include a RHEL entitlement certificate and private key")
+    entitlement = read_rhel_entitlement(manifest)
 
     token_name = "aap-vm-admin-token"
     token_spec = {"apiVersion": "v1", "kind": "Secret", "type": "kubernetes.io/service-account-token",
@@ -205,21 +187,55 @@ def wait_for_resources(api, require_template=True):
     raise RuntimeError("Resource Operator objects did not become ready in AAP; inspect the CRs and project update")
 
 
-def launch(api, name, extra):
+def launch(api, name, extra, *, reset=False):
     org = api.find("organizations/", "demo")
     if not org:
         raise RuntimeError("Bootstrap the demo organization before launching automation")
     template = api.find("job_templates/", name, organization=org["id"])
     if not template:
         raise RuntimeError(f"Job template {name} was not found")
-    # Only the demo's three purposeful templates are exposed by this helper.
-    if name not in ("webapp_vm", "webapp_nginx", "aap_configure_all"):
+    # Demo entry points expose webapp/configuration templates; reset uses the seeded generic VM too.
+    allowed = name in ("webapp_vm", "webapp_nginx", "aap_configure_all")
+    if not allowed and not (reset and name == "openshift_virtualization_machine"):
         raise RuntimeError("Only demo webapp and dispatch templates may be launched")
     if name == "webapp_vm" and extra.get("vm_state") == "absent":
         print("Deleting only webapp in webapp-vms")
     result = api.request(f"job_templates/{template['id']}/launch/", {"extra_vars": extra})
     print(f"Launched {name}: job {result['job']}")
     api.wait(f"jobs/{result['job']}/")
+
+
+def reset_vms(api):
+    """Remove only the two seeded demo VMs through their managed AAP templates."""
+    org = api.find("organizations/", "demo")
+    if not org:
+        raise RuntimeError("Bootstrap AAP before resetting the demo")
+    targets = (
+        ("webapp_vm", "playbooks/openshift_virtualization/webapp-launch.yml", {}),
+        ("openshift_virtualization_machine", "playbooks/openshift_virtualization/virtualmachine-manage.yml",
+         {"vm_name": "automation-demo"}),
+    )
+    # Validate both templates before launching either destructive operation.
+    for name, playbook, _ in targets:
+        template = api.find("job_templates/", name, organization=org["id"])
+        if not template or template["playbook"] != playbook:
+            raise RuntimeError(f"Reset requires the seeded {name} template")
+        project = api.request(f"projects/{template['project']}/")
+        inventory = api.request(f"inventories/{template['inventory']}/")
+        if project["name"] != "demojam-ansible" or inventory["name"] != "demo-inventory":
+            raise RuntimeError(f"Reset refused unexpected project/inventory for {name}")
+        active = api.request(f"jobs/?job_template={template['id']}&page_size=200")
+        for job in active["results"]:
+            if job["status"] in ("new", "pending", "waiting", "running"):
+                api.wait(f"jobs/{job['id']}/")
+    for name, _, extra in targets:
+        launch(api, name, {"host": "demo_cluster", "vm_state": "absent", **extra}, reset=True)
+
+
+def associate_credential(api, path, credential_id):
+    attached = api.request(path + "?page_size=200")["results"]
+    if not any(item["id"] == credential_id for item in attached):
+        api.request(path, {"id": credential_id, "associate": True})
 
 
 def dispatch(api):
@@ -238,7 +254,7 @@ def dispatch(api):
         "execution_environment": ee["id"],
         # Retain an operator-selected image for subsequent aap_configure_all runs.
         "extra_vars": json.dumps({"aap_ee_image": image})}, "PATCH")
-    api.request(f"job_templates/{template['id']}/credentials/", {"id": credential["id"], "associate": True})
+    associate_credential(api, f"job_templates/{template['id']}/credentials/", credential["id"])
     # The inventory CR has no hosts. Import the aap group before the first play.
     source = api.upsert("inventory_sources/", "demo-inventory-scm", inventory=template["inventory"],
         source="scm", source_project=template["project"], source_path="inventory.yml",
@@ -262,15 +278,17 @@ def main():
         wait_for_resources(api, require_template=False)
     elif action == "dispatch":
         dispatch(api)
+    elif action == "reset-vms":
+        reset_vms(api)
     elif action == "launch":
         launch(api, sys.argv[2], json.loads(sys.argv[3]) if len(sys.argv) > 3 else {})
     else:
-        raise RuntimeError("Use credentials, wait-project, dispatch, or launch TEMPLATE [JSON_EXTRA_VARS]")
+        raise RuntimeError("Use credentials, wait-project, dispatch, reset-vms, or launch TEMPLATE [JSON_EXTRA_VARS]")
 
 
 if __name__ == "__main__":
     try:
         main()
-    except (RuntimeError, urllib.error.URLError, subprocess.CalledProcessError, OSError, zipfile.BadZipFile) as error:
+    except (RuntimeError, urllib.error.URLError, subprocess.CalledProcessError, OSError) as error:
         print(str(error), file=sys.stderr)
         sys.exit(1)

@@ -4,6 +4,7 @@ set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
 sandbox_image=$(demo_sandbox_image)
 demo_verify_cluster
+bash "$demo_repo_root/bootstrap/readiness.sh" sandbox
 namespace=omnigent-sandboxes
 active_runs=$(oc -n "$namespace" get pipelineruns -l tekton.dev/pipeline=omnigent-opencode -o json |
   jq '[.items[] | select((.status.conditions[0].status // "Unknown") == "Unknown")] | length')

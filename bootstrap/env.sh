@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # All entry points load the same operator inputs; generated credentials stay in Kubernetes.
 set +x
+demo_inherited_kubeconfig=${KUBECONFIG:-}
 demo_repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 demo_env_file=${ENV_FILE:-$demo_repo_root/.env}
 if [[ -f $demo_env_file ]]; then
@@ -10,7 +11,11 @@ if [[ -f $demo_env_file ]]; then
   set +a
 fi
 export AAP_EE_IMAGE=${AAP_EE_IMAGE:-registry.redhat.io/ansible-automation-platform-27/ee-supported-rhel9@sha256:d97a6fc9c34132bfddf5c8f0db93a24fea67ed3db2094d15f78d7f4eba724f1f}
-export KUBECONFIG=${KUBECONFIG:-$HOME/.kube/config}
+if [[ -n $demo_inherited_kubeconfig ]]; then
+  KUBECONFIG=$demo_inherited_kubeconfig
+fi
+export KUBECONFIG=${KUBECONFIG:-}
+unset demo_inherited_kubeconfig
 
 # The mutable :latest tag gives new Sandbox containers Kubernetes' Always policy.
 demo_sandbox_image() {
@@ -27,6 +32,10 @@ demo_sandbox_image() {
 
 demo_verify_cluster() {
   local demo_server
+  [[ -n $KUBECONFIG ]] || {
+    echo 'Export KUBECONFIG or set it explicitly in .env before cluster operations.' >&2
+    return 2
+  }
   demo_server=$(oc whoami --show-server) || return
   printf '%s\n' "$demo_server"
   oc whoami || return
