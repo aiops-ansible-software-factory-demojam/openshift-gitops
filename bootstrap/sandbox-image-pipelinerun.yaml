@@ -9,6 +9,8 @@ spec:
   params:
     - name: REVISION
       value: main
+    - name: IMAGE
+      value: ''
   taskRunTemplate:
     serviceAccountName: omnigent-image-builder
     podTemplate:

@@ -9,9 +9,13 @@ spec:
     - name: REVISION
       type: string
       default: main
+    - name: IMAGE
+      type: string
   workspaces:
     - name: source
   results:
+    - name: IMAGE
+      value: $(tasks.build-image.results.IMAGE)
     - name: IMAGE_DIGEST
       value: $(tasks.build-image.results.IMAGE_DIGEST)
     - name: SOURCE_COMMIT
@@ -21,6 +25,8 @@ spec:
       params:
         - name: REVISION
           value: $(params.REVISION)
+        - name: IMAGE
+          value: $(params.IMAGE)
       workspaces:
         - name: source
           workspace: source
@@ -28,9 +34,12 @@ spec:
         params:
           - name: REVISION
             type: string
+          - name: IMAGE
+            type: string
         workspaces:
           - name: source
         results:
+          - name: IMAGE
           - name: IMAGE_DIGEST
           - name: SOURCE_COMMIT
         volumes:
@@ -63,7 +72,7 @@ spec:
               privileged: true
             env:
               - name: IMAGE
-                value: image-registry.openshift-image-registry.svc:5000/omnigent-sandboxes/omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32-v9
+                value: $(params.IMAGE)
             volumeMounts:
               - name: registry-ca
                 mountPath: /etc/containers/certs.d/image-registry.openshift-image-registry.svc:5000
@@ -78,3 +87,4 @@ spec:
               buildah --root "$graph_root" --storage-driver=overlay bud --isolation=chroot -f Containerfile -t "$IMAGE" .
               buildah --root "$graph_root" --storage-driver=overlay push \
                 --digestfile "$(results.IMAGE_DIGEST.path)" "$IMAGE" "docker://$IMAGE"
+              printf '%s' "$IMAGE" > "$(results.IMAGE.path)"
