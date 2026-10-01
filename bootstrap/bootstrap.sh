@@ -1314,6 +1314,34 @@ aap_associate() {
   fi
 }
 
+# The shared webhook token is runtime material; GitOps owns its route and alert.
+# Reuse it so maintenance runs never invalidate the EDA event stream credential.
+demo_alerting_prepare() (
+  umask 077
+  local scratch domain host uuid
+  scratch=$(mktemp -d)
+  trap 'find "$scratch" -type f -delete; rmdir "$scratch"' EXIT
+  domain=$(oc get ingresses.config.openshift.io cluster -o jsonpath='{.spec.domain}')
+  host=${AAP_HOST:-https://aap-ansible-automation-platform.$domain}
+  host=${host%/}
+  uuid=$(yq -er '.demo_eda_event_stream.uuid' \
+    "$demo_repo_root/cluster/forgejo/fixtures/demojam-ansible/group_vars/aap/eda.yml")
+  oc apply --server-side --field-manager=demo-bootstrap \
+    -f "$demo_repo_root/cluster/user-workload-monitoring/blackbox-exporter/blackbox-exporter-namespace.yaml"
+  if [[ -n $(oc -n blackbox-exporter get secret webapp-eda-webhook --ignore-not-found -o name) ]]; then
+    oc -n blackbox-exporter get secret webapp-eda-webhook \
+      -o go-template='{{index .data "token" | base64decode}}' >"$scratch/token"
+    [[ -s $scratch/token ]] || demo_die 'The existing EDA webhook Secret has no token.'
+  else
+    openssl rand -hex 32 | tr -d '\n' >"$scratch/token"
+  fi
+  printf '%s/eda-event-streams/api/eda/v1/external_event_stream/%s/post/' \
+    "$host" "$uuid" >"$scratch/url"
+  oc -n blackbox-exporter create secret generic webapp-eda-webhook \
+    --from-file=token="$scratch/token" --from-file=url="$scratch/url" --dry-run=client -o yaml |
+    oc apply --server-side --field-manager=demo-bootstrap -f -
+)
+
 aap_credentials() {
   local namespace=ansible-automation-platform org config galaxy community oidc_issuer
   demo_manifest "$aap_scratch" || demo_die 'The subscription ZIP must contain valid RHEL entitlement material.'
@@ -1349,20 +1377,28 @@ YAML
     -o go-template='{{index .data "public-key" | base64decode}}' >"$aap_scratch/ssh-public"
 
   org=$(aap_upsert organizations/ demo '{"description":"Disposable automation demo"}' | jq -er .id)
-  config=$(aap_upsert credential_types/ 'Demo AAP configuration' \
+  config=$(aap_upsert credential_types/ 'Demo AAP configuration v2' \
     "$(yq . "$demo_repo_root/bootstrap/aap-dispatch-credential-type.yaml")" | jq -er .id)
   oc -n demojam-keycloak get secret identity-credentials \
     -o go-template='{{index .data "aap-client-secret" | base64decode}}' >"$aap_scratch/oidc-secret"
   oidc_issuer="https://$(oc -n demojam-keycloak get route keycloak -o jsonpath='{.status.ingress[0].host}')/realms/demo"
+  oc -n blackbox-exporter get secret webapp-eda-webhook \
+    -o go-template='{{index .data "token" | base64decode}}' >"$aap_scratch/eda-token"
+  oc -n omnigent-sandboxes get secret omnigent-model \
+    -o go-template='{{index .data "FORGEJO_TOKEN" | base64decode}}' >"$aap_scratch/forgejo-token"
+  [[ -s $aap_scratch/eda-token && -s $aap_scratch/forgejo-token ]] ||
+    demo_die 'Hydrate Forgejo and prepare the EDA webhook before configuring AAP.'
   aap_upsert credentials/ demo-aap-dispatch "$(jq -n --argjson org "$org" --argjson kind "$config" \
     --arg host "$aap_host" --arg username "$aap_username" --rawfile password "$aap_scratch/password" \
     --arg issuer "$oidc_issuer" --rawfile oidc_secret "$aap_scratch/oidc-secret" \
     --arg ee_image "$AAP_EE_IMAGE" --arg vm_host "$DEMO_CLUSTER_SERVER" --rawfile vm_token "$aap_scratch/vm-token" \
     --rawfile vm_ca "$aap_scratch/ca.crt" --rawfile ssh_private "$aap_scratch/ssh-private" \
     --rawfile ssh_public "$aap_scratch/ssh-public" --rawfile entitlement "$aap_scratch/entitlement.pem" \
+    --rawfile eda_token "$aap_scratch/eda-token" --rawfile forgejo_token "$aap_scratch/forgejo-token" \
     '{organization:$org,credential_type:$kind,inputs:{host:$host,username:$username,password:$password,
       oidc_issuer:$issuer,oidc_secret:$oidc_secret,ee_image:$ee_image,vm_host:$vm_host,vm_token:($vm_token|rtrimstr("\n")),
-      vm_ca:$vm_ca,ssh_private:$ssh_private,ssh_public:($ssh_public|rtrimstr("\n")),entitlement:$entitlement}}')" >/dev/null
+      vm_ca:$vm_ca,ssh_private:$ssh_private,ssh_public:($ssh_public|rtrimstr("\n")),entitlement:$entitlement,
+      eda_token:$eda_token,forgejo_token:$forgejo_token}}')" >/dev/null
   galaxy=$(aap_find credential_types/ 'Ansible Galaxy/Automation Hub API Token' | jq -er .id)
   community=$(aap_upsert credentials/ demo-galaxy "$(jq -n --argjson org "$org" --argjson kind "$galaxy" \
     '{organization:$org,credential_type:$kind,inputs:{url:"https://galaxy.ansible.com/"}}')" | jq -er .id)
@@ -1479,6 +1515,7 @@ demo_aap_configure() {
   demo_wait_for_api
   demo_readiness aap
   aap_retire_resource_crs
+  demo_alerting_prepare
   demo_aap credentials
 
   demo_aap dispatch
@@ -1627,6 +1664,7 @@ demo_bootstrap() (
   demo_step 'Prepare demo identity credentials and user catalog'
   demo_identity_prepare
   demo_homepage_prepare
+  demo_alerting_prepare
   yq . "$bootstrap_dir/config/openshift-gitops-argocd.yaml" |
     jq --arg issuer "https://demojam-keycloak.$ingress_domain/realms/demo" \
       '.spec.oidcConfig |= gsub("__DEMO_OIDC_ISSUER__"; $issuer)' |

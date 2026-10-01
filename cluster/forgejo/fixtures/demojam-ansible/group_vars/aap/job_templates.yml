@@ -42,3 +42,15 @@ controller_templates:
       - demo-rhel-entitlement
     become_enabled: true
     ask_variables_on_launch: false
+  - name: webapp_alert_issue
+    description: Open one collection issue for a firing blackbox webapp alert
+    organization: demo
+    project: demojam-ansible
+    inventory: demo-inventory
+    execution_environment: demo-aap-ee
+    job_type: run
+    playbook: playbooks/monitoring/webapp-alert-issue.yml
+    credentials:
+      - demo-forgejo-issues
+    ask_variables_on_launch: true
+    allow_simultaneous: false

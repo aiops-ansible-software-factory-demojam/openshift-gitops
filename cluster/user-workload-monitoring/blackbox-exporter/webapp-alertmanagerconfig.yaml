@@ -1,0 +1,31 @@
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: webapp-eda
+  namespace: blackbox-exporter
+spec:
+  route:
+    receiver: eda-webapp
+    groupBy:
+      - alertname
+      - instance
+    groupWait: 10s
+    groupInterval: 5m
+    repeatInterval: 1h
+    matchers:
+      - name: alertname
+        value: WebappDown
+        matchType: "="
+  receivers:
+    - name: eda-webapp
+      webhookConfigs:
+        - urlSecret:
+            name: webapp-eda-webhook
+            key: url
+          sendResolved: false
+          httpConfig:
+            authorization:
+              type: Bearer
+              credentials:
+                name: webapp-eda-webhook
+                key: token
