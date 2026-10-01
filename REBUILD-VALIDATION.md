@@ -83,5 +83,7 @@ Make help and issue validation/hydration sequencing. Shell syntax, ShellCheck
 and diff whitespace checks passed; the documented `make render` succeeded.
 The shared parser preserved the existing runtime selection on the real manifest
 without printing material, and the final configuration baseline still matched.
+Authenticated API-root checks for AAP Gateway, Controller and EDA also passed
+after the final reset.
 Help/quickstart cover existing commands and
 preflight; #14's local validation workflows remain deferred.
