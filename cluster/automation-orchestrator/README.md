@@ -35,3 +35,10 @@ Bootstrap also reconciles a generic OIDC provider against the independent
 [demo Keycloak](../demojam-keycloak/README.md), using the actual operator-generated Route
 for its callback. Demo groups map to Orchestrator's built-in users and admins
 groups. The existing admin account remains the bootstrap API identity.
+
+The operator's optional `automation-orchestrator-admin-settings` ConfigMap enables
+`APP_OIDC_ALLOW_PRIVATE_NETWORKS` because OpenShift ingress DNS resolves the demo
+Keycloak Route to a private address. This setting applies to OIDC providers;
+workflow HTTP hosts keep their separate allowlist and TLS verification remains
+enabled for the Keycloak provider. A backend annotation ensures an existing
+Deployment reloads the settings when this configuration is first installed.
