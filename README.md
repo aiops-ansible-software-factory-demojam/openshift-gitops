@@ -90,6 +90,12 @@ Automation Hub token is required.
 It waits for project/inventory synchronization. Rerunning preserves the VM
 SSH identity and applies current config. `BOOTSTRAP_FORCE_SANDBOX_BUILD=true`
 forces a sandbox image rebuild.
+Sandbox builds overwrite one `:latest` tag; new sandbox containers use Kubernetes'
+`Always` pull policy. Publish image changes, finish the build, then start a fresh
+session. Running containers retain their image, while restarted or resumed
+containers can pick up a newer build. See
+[image and session lifecycle](cluster/omnigent/README.md#image-and-session-lifecycle)
+for rebuild and inspection commands.
 
 On SNO, scripts wait for the API server to finish reconciling before AAP work.
 Sandbox builds tolerate interrupted log streams and status reads. AAP status checks
