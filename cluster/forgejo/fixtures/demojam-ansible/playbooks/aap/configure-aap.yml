@@ -16,6 +16,8 @@
           - aap_username | length > 0
           - aap_password | length > 0
           - aap_ee_image | length > 0
+          - demo_eda_event_stream.token_lookup | length > 0
+          - demo_forgejo_credentials.token_lookup | length > 0
           - demo_vm_credentials.api_host | length > 0
           - demo_vm_credentials.api_token_lookup | length > 0
           - demo_vm_credentials.api_ca | length > 0
@@ -74,4 +76,39 @@
         triggers: "{{ item.triggers }}"
         state: present
       loop: "{{ demo_oidc_authenticator_maps }}"
+      no_log: true
+
+    - name: Configure the authenticated webapp event stream
+      ansible.eda.event_stream:
+        controller_host: "{{ aap_hostname }}"
+        controller_username: "{{ aap_username }}"
+        controller_password: "{{ aap_password }}"
+        validate_certs: true
+        name: "{{ demo_eda_event_stream.name }}"
+        uuid: "{{ demo_eda_event_stream.uuid }}"
+        organization: demo
+        credential_name: demo-alertmanager-token
+        headers: Content-Type
+        forward_events: true
+        state: present
+      no_log: true
+
+    - name: Activate the webapp alert rulebook
+      ansible.eda.rulebook_activation:
+        controller_host: "{{ aap_hostname }}"
+        controller_username: "{{ aap_username }}"
+        controller_password: "{{ aap_password }}"
+        validate_certs: true
+        name: "{{ demo_eda_activation.name }}"
+        organization: "{{ demo_eda_activation.organization }}"
+        project: "{{ demo_eda_activation.project }}"
+        rulebook: "{{ demo_eda_activation.rulebook }}"
+        decision_environment: "{{ demo_eda_activation.decision_environment }}"
+        eda_credentials: "{{ demo_eda_activation.credentials }}"
+        event_streams:
+          - event_stream: "{{ demo_eda_event_stream.name }}"
+            source_name: "{{ demo_eda_activation.source_name }}"
+        restart_policy: on-failure
+        restart_on_project_update: true
+        state: enabled
       no_log: true

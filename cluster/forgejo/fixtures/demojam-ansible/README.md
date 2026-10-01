@@ -21,7 +21,7 @@ after populating its root `.env` and supplying `aap_manifest.zip`.
    are needed.
 3. `group_vars/aap` and `infra.aap_configuration.dispatch` exclusively own
    the VM/SSH/RHEL credential types and credentials, SCM inventory sources,
-   and demo job templates. Gateway OIDC configuration uses the supported
+   demo job templates, and EDA credentials/project/decision environment. Gateway OIDC configuration uses the supported
    `ansible.platform` modules. Runtime values arrive through the dispatch
    credential's environment variables and are consumed under secure logging.
    Static inventory supplies the VM API target; dynamic inventory discovers
@@ -48,7 +48,8 @@ changes can use `make aap-sync`; the foundation changes remain in openshift-gito
 The dispatch credential provides `AAP_HOST`, `AAP_USERNAME`, `AAP_PASSWORD`,
 `AAP_EE_IMAGE`, `DEMO_OIDC_ISSUER`, `DEMO_OIDC_CLIENT_SECRET`, `DEMO_VM_API_HOST`,
 `DEMO_VM_API_TOKEN`, `DEMO_VM_API_CA`, `DEMO_VM_SSH_PRIVATE`,
-`DEMO_VM_SSH_PUBLIC`, and `DEMO_RHEL_ENTITLEMENT_FILE`. The entitlement is injected as a private file to avoid process environment size
+`DEMO_VM_SSH_PUBLIC`, `DEMO_RHEL_ENTITLEMENT_FILE`, `DEMO_EDA_WEBHOOK_TOKEN`,
+and `DEMO_FORGEJO_TOKEN`. The entitlement is injected as a private file to avoid process environment size
 limits. These inputs are required;
 missing material fails before any AAP objects are changed.
 
@@ -107,3 +108,17 @@ first when testing fresh provisioning, then reset, bootstrap, and launch it
 again. Normal hydration preserves user commits; config changes must be pushed
 to Forgejo before dispatch. Manifest ZIPs and `.env` files are excluded from
 fixture snapshots.
+
+## Webapp outage issues
+
+`group_vars/aap/eda.yml` configures the authenticated Alertmanager event stream
+and activation. The supported `ansible.eda` modules apply the static stream
+UUID and activation source mapping after dispatch. Project updates restart the
+activation so updated rulebooks take effect.
+
+`rulebooks/webapp-alert-issue.yml` accepts firing `WebappDown` notifications
+from `blackbox-exporter` and starts `webapp_alert_issue`. The destination is
+fixed in `group_vars/aap/webapp_issue.yml`: Forgejo collection repository
+`demo-owner/ansible-collection-demo`. Its credential injects `FORGEJO_API_TOKEN`
+only into the issue job. Existing open outage issues are reused; template
+execution is serialized. Resolved notifications do not close issues.

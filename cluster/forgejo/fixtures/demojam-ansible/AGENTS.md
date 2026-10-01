@@ -7,7 +7,7 @@
   demo-galaxy, demo-aap-dispatch and its type, and aap_configure_all. Do not
   redefine these objects in config-as-code.
 - Config-as-code owns VM/SSH/RHEL credential types and credentials, inventory
-  sources, demo job templates, and gateway authentication. Inventory resolves
+  sources, demo job templates, EDA configuration, and gateway authentication. Inventory resolves
   runtime material from the dispatch environment under secure logging. Never
   commit secret values or generate/rotate the source key material here.
 - Use Red Hat ee-supported-rhel9 for playbook syntax checks. Run Ansible lint

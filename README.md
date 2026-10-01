@@ -375,4 +375,5 @@ The [AAP guide](cluster/ansible-automation-platform/README.md) covers the
 single replica controller and EDA deployment. The seeded
 [AAP config-as-code guide](cluster/forgejo/fixtures/demojam-ansible/README.md)
 covers configuration and VM lifecycle automation. The [monitoring guide](cluster/user-workload-monitoring/README.md)
-covers the blackbox probe and user Alertmanager. No alert receiver is set yet.
+covers blackbox probes and the webapp outage flow: user Alertmanager → EDA →
+AAP → a Forgejo collection issue.
