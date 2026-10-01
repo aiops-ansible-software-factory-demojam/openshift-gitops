@@ -12,6 +12,19 @@ fi
 export AAP_EE_IMAGE=${AAP_EE_IMAGE:-registry.redhat.io/ansible-automation-platform-27/ee-supported-rhel9@sha256:d97a6fc9c34132bfddf5c8f0db93a24fea67ed3db2094d15f78d7f4eba724f1f}
 export KUBECONFIG=${KUBECONFIG:-$HOME/.kube/config}
 
+# The mutable :latest tag gives new Sandbox containers Kubernetes' Always policy.
+demo_sandbox_image() {
+  local image
+  image=$(yq -er '.data."config.yaml"' \
+    "$demo_repo_root/cluster/omnigent/omnigent-sandbox-config-configmap.yaml" |
+    yq -er '.sandbox.kubernetes.image') || return
+  [[ $image == *:latest ]] || {
+    echo 'The demo sandbox image must use :latest for Always image pulls.' >&2
+    return 2
+  }
+  printf '%s\n' "$image"
+}
+
 demo_verify_cluster() {
   local demo_server
   demo_server=$(oc whoami --show-server) || return

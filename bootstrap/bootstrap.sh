@@ -7,6 +7,7 @@ operator_namespace=openshift-gitops-operator
 gitops_namespace=openshift-gitops
 # shellcheck source=env.sh
 source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
+sandbox_image=$(demo_sandbox_image)
 
 # shellcheck source=model-env.sh
 source "$bootstrap_dir/model-env.sh"
@@ -224,14 +225,16 @@ done
 sandbox_image_current() {
   local built_revision
   built_revision=$(oc -n omnigent-sandboxes get pipelineruns -l tekton.dev/pipeline=omnigent-opencode \
-    -o json | jq -r '[.items[] | select(.status.conditions[0].status == "True")] |
+    -o json | jq -r --arg image "$sandbox_image" '[.items[] |
+      select(any(.status.conditions[]?; .type == "Succeeded" and .status == "True")) |
+      select(any(.status.results[]?; .name == "IMAGE" and .value == $image))] |
       sort_by(.metadata.creationTimestamp) | last | .status.results[]? |
       select(.name == "SOURCE_COMMIT") | .value')
   [[ "$built_revision" =~ ^[0-9a-f]{40}$ ]] &&
     git -C "$repo_root" diff --quiet "$built_revision" HEAD -- cluster/omnigent/image
 }
 if [[ ${BOOTSTRAP_FORCE_SANDBOX_BUILD:-false} == true ]] ||
-   ! oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:adt26.9.0-omni0.15.0-opencode1.18.32-v9 >/dev/null 2>&1 ||
+   ! oc -n omnigent-sandboxes get imagestreamtag "${sandbox_image##*/}" >/dev/null 2>&1 ||
    ! sandbox_image_current; then
   echo 'Building the OpenCode sandbox image from the current Git revision...'
   SANDBOX_BUILD_REVISION="$target_revision" bash "$bootstrap_dir/sandbox-image.sh"
