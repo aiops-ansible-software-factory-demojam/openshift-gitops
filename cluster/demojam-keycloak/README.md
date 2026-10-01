@@ -82,6 +82,7 @@ from every application.
 | OpenShift GitOps / Argo CD | Native OIDC; `demo-users` read only, `demo-admins` administrators |
 | Developer Hub | Native OIDC; preferred username resolves to the generated catalog User |
 | Forgejo | Native OIDC source `demojam-keycloak`; first login creates an account, `demo-admins` administrators |
+| Homepage | OAuth2 Proxy; navigation generated from the demo Routes, demo groups allowed |
 | AAP gateway | Inventory-defined OIDC authenticator and group maps; demo organization membership, `demo-admins` superusers |
 | Automation Orchestrator | Generic OIDC; demo groups map to built-in `users` / `admins` groups |
 | Omnigent | Native OIDC with verified email identity and per-user session permissions; configured `demo-admins` emails populate its admin roster |
