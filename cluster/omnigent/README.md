@@ -157,8 +157,14 @@ issue number and waits for the Backstage feature template to create its branch
 before creating a managed session. The agent uses `demo-goldenpath checkout`
 to fetch that existing branch, then `demo-goldenpath pr` to push and open or
 update the PR. The helper cannot create the feature branch. Git askpass keeps
-credentials out of Git URLs. A sidecar protects Omnigent's Route with the
-same machine credential for inspection.
+credentials out of Git URLs. Browser login uses native OIDC against
+[demojam-keycloak](../demojam-keycloak/README.md), with verified email identities
+and per-user session permissions. Omnigent has no proxy sidecars. AO obtains a
+native bearer token from `/oauth/token` using client credentials and grants each
+enabled configured user read access to new workflow sessions. Reset uses that
+same token endpoint. Direct Keycloak access tokens are not Omnigent API tokens.
+Configured `demo-admins` emails populate the native admin roster; removal from
+that roster does not automatically demote an existing Omnigent administrator.
 
 Check the resources with the selected kubeconfig:
 

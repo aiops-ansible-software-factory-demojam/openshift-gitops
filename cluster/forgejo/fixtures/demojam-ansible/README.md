@@ -44,6 +44,16 @@ reconcile runtime credentials and dispatch. Subsequent configuration changes
 can use the AAP `aap_configure_all` template (`make aap-sync`). That template
 pulls current Forgejo content and uses its runtime AAP dispatch credential.
 
+`group_vars/aap/oidc.yml` defines the independent demo Keycloak authenticator
+and access maps. Bootstrap adds `DEMO_OIDC_ISSUER` and
+`DEMO_OIDC_CLIENT_SECRET` to the runtime dispatch credential; these values
+are required when running `configure-aap.yml`. The supported EE's
+`ansible.platform` modules configure the gateway after the CaC dispatcher.
+Demo users join organization `demo`; `demo-admins` receive superuser access.
+Bootstrap then reads the gateway's generated callback URL and registers that
+exact URL in Keycloak. Regular organization membership does not grant every
+job template's execution permission.
+
 ## Launch and automate the RHEL webapp
 
 In AAP, launch **webapp_vm**, then **webapp_nginx**. The first clones the

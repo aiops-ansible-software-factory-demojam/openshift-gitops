@@ -21,9 +21,9 @@ generated collection root uses scoped access to disposable VMs in
 prepares a branch; it does not change code or open a PR.
 
 AO calls the internal Backstage feature gate before creating an agent session.
-The gate uses guest authentication to run the feature template, waits for its
+The gate uses the bootstrap-generated Backstage service token to run the feature template, waits for its
 task to complete, and verifies the branch exists. A repeat dispatch reuses the
-already prepared branch. Sandboxes have `BACKSTAGE_URL` and Forgejo credentials
+already prepared branch. Sandboxes have `BACKSTAGE_URL`, `BACKSTAGE_TOKEN` and Forgejo credentials
 through the existing `omnigent-model` Secret. The helper uses Git askpass for
 Forgejo Git operations.
 
@@ -40,6 +40,10 @@ demo-goldenpath pr 1 --body-file /tmp/pr-body.md
 `demo-goldenpath issue 1` reads the example issue. `checkout` requires the
 branch to exist already and never runs the feature template. The scaffolder
 and catalog are also available in the Developer Hub UI.
+
+Browser login uses the independent [demo Keycloak](../demojam-keycloak/README.md).
+Bootstrap generates catalog User entities from `DEMO_USERS_FILE` and OIDC
+resolves the preferred username to those entities. Guest login is disabled.
 
 `make demo-reset` replaces the disposable Forgejo data and rehydrates both
 tokens and the template source. It also removes catalog locations for

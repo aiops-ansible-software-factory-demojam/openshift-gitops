@@ -29,3 +29,41 @@
         # Same gateway compatibility workaround as the homelab dispatcher.
         aap_configuration_dispatcher_exclude_roles:
           - controller_applications
+
+    - name: Check demo identity inputs
+      ansible.builtin.assert:
+        that:
+          - demo_oidc_issuer | length > 0
+          - demo_oidc_credentials.client_secret_lookup | length > 0
+        fail_msg: Run bootstrap to supply the demo identity dispatch credential.
+      no_log: true
+
+    - name: Configure the inventory-defined OIDC authenticator
+      ansible.platform.authenticator:
+        aap_hostname: "{{ aap_hostname }}"
+        aap_username: "{{ aap_username }}"
+        aap_password: "{{ aap_password }}"
+        validate_certs: true
+        name: "{{ demo_oidc_authenticator.name }}"
+        type: "{{ demo_oidc_authenticator.type }}"
+        configuration: "{{ demo_oidc_authenticator.configuration }}"
+        enabled: "{{ demo_oidc_authenticator.enabled }}"
+        create_objects: "{{ demo_oidc_authenticator.create_objects }}"
+        remove_users: "{{ demo_oidc_authenticator.remove_users }}"
+        state: present
+      no_log: true
+
+    - name: Configure the inventory-defined OIDC access mappings
+      ansible.platform.authenticator_map:
+        aap_hostname: "{{ aap_hostname }}"
+        aap_username: "{{ aap_username }}"
+        aap_password: "{{ aap_password }}"
+        validate_certs: true
+        authenticator: "{{ demo_oidc_authenticator.name }}"
+        name: "{{ item.name }}"
+        map_type: "{{ item.map_type }}"
+        organization: "{{ item.organization | default(omit) }}"
+        triggers: "{{ item.triggers }}"
+        state: present
+      loop: "{{ demo_oidc_authenticator_maps }}"
+      no_log: true

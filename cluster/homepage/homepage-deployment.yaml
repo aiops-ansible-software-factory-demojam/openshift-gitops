@@ -1,0 +1,128 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homepage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: homepage
+  template:
+    metadata:
+      labels:
+        app: homepage
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: homepage
+          image: ghcr.io/gethomepage/homepage:v1.13.2@sha256:a0b71c8e757298d02560186bab9fbe3fc2d375c523a62cc1019177b37e48aa28
+          env:
+            - name: HOMEPAGE_ALLOWED_HOSTS
+              valueFrom:
+                configMapKeyRef:
+                  name: homepage-endpoints
+                  key: allowed-hosts
+          ports:
+            - name: app
+              containerPort: 3000
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+              readOnly: true
+            - name: logs
+              mountPath: /app/config/logs
+          readinessProbe:
+            tcpSocket:
+              port: app
+          livenessProbe:
+            tcpSocket:
+              port: app
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 20m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+        - name: oauth2-proxy
+          image: quay.io/oauth2-proxy/oauth2-proxy:v7.13.0@sha256:56e3daedf765c7a1eea6e366fbe684be7d3084830ade14b6174570d3c7960954
+          args:
+            - --provider=oidc
+            - --http-address=0.0.0.0:4180
+            - --upstream=http://127.0.0.1:3000
+            - --email-domain=*
+            - --scope=openid profile email
+            - --oidc-groups-claim=groups
+            - --allowed-group=demo-users
+            - --allowed-group=demo-admins
+            - --code-challenge-method=S256
+            - --reverse-proxy=true
+            - --cookie-secure=true
+            - --cookie-samesite=lax
+            - --skip-provider-button=true
+          ports:
+            - name: http
+              containerPort: 4180
+          env:
+            - name: OAUTH2_PROXY_OIDC_ISSUER_URL
+              valueFrom:
+                secretKeyRef:
+                  name: demo-oidc
+                  key: issuer
+            - name: OAUTH2_PROXY_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: demo-oidc
+                  key: client-id
+            - name: OAUTH2_PROXY_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: demo-oidc
+                  key: client-secret
+            - name: OAUTH2_PROXY_COOKIE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: demo-oidc
+                  key: cookie-secret
+            - name: OAUTH2_PROXY_REDIRECT_URL
+              valueFrom:
+                secretKeyRef:
+                  name: demo-oidc
+                  key: redirect-url
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: http
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+      volumes:
+        - name: config
+          projected:
+            sources:
+              - configMap:
+                  name: homepage-config
+              - configMap:
+                  name: homepage-links
+        - name: logs
+          emptyDir: {}

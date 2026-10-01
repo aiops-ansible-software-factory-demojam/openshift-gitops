@@ -13,6 +13,12 @@ the RHEL 10 entry is commented out pending repository prerequisites; serialize r
 by Developer Hub. The issue text is in `fixtures/readme-test-issue.md`.
 AO runs the Developer Hub feature template before it starts the agent.
 
+Browser users authenticate through the independent
+[demo Keycloak](../demojam-keycloak/README.md). Bootstrap maintains the `demojam-keycloak` OIDC
+source; accounts are created on first login and `demo-admins` maps to site
+administrators. The seed's local automation accounts remain available for
+repository hydration and API tokens. Hydration restores OIDC after a reset.
+
 The fixture in [`fixtures/demojam-ansible`](fixtures/demojam-ansible/README.md)
 becomes `demo-owner/demojam-ansible`. It contains inventory-driven AAP
 configuration and OpenShift Virtualization VM create/delete automation.

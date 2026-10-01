@@ -33,8 +33,7 @@ def request(base, path, method="GET", payload=None, token=None):
 
 
 def backstage_token():
-    result = request(backstage, "/api/auth/guest/refresh", "POST", {})
-    return result["backstageIdentity"]["token"]
+    return os.environ["BACKSTAGE_TOKEN"]
 
 
 def run_template(name, values):

@@ -23,15 +23,13 @@ omnigent_host=$(oc -n omnigent get route omnigent \
 source "$repo_root/bootstrap/model-env.sh"
 unset model_key
 
-client_id=$(oc -n automation-orchestrator get secret \
-  omnigent-machine-client-credential \
-  -o go-template='{{index .data "username" | base64decode}}')
-client_secret=$(oc -n automation-orchestrator get secret \
-  omnigent-machine-client-credential \
-  -o go-template='{{index .data "password" | base64decode}}')
+umask 077
+scratch=$(mktemp -d)
+trap 'rm -rf -- "$scratch"' EXIT
+demo_omnigent_connect "$scratch" "https://$omnigent_host"
 omnigent_api="https://$omnigent_host/v1"
 omnigent_get() {
-  curl -fsS --user "$client_id:$client_secret" "$omnigent_api/$1"
+  curl -fsS --config "$scratch/omnigent.conf" "$omnigent_api/$1"
 }
 agent_id=$(omnigent_get agents | jq -er \
   '.data[] | select(.name == "automation-developer") | .id')
@@ -47,10 +45,10 @@ while :; do
   cursor=$(jq -er '.last_id' <<<"$page")
 done
 for session_id in "${session_ids[@]}"; do
-  curl -fsS -o /dev/null -X DELETE --user "$client_id:$client_secret" \
+  curl -fsS -o /dev/null -X DELETE --config "$scratch/omnigent.conf" \
     "$omnigent_api/sessions/$session_id"
 done
-unset client_id client_secret
+rm -f -- "$scratch/omnigent.conf"
 oc -n omnigent-sandboxes delete sandboxes \
   -l omnigent.ai/agent=automation-developer \
   --ignore-not-found --wait=true --timeout=5m

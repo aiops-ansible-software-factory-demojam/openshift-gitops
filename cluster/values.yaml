@@ -45,6 +45,15 @@ projects:
           kind: '*'
 
 applications:
+  homepage:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '40'
+    destination:
+      namespace: homepage
+    source:
+      path: cluster/homepage
+
   openshift-pipelines:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
@@ -126,20 +135,14 @@ applications:
     source:
       path: cluster/openshift-virtualization
 
-  rhbk:
+  demojam-keycloak:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: "10"
+      argocd.argoproj.io/sync-wave: "5"
     destination:
-      namespace: keycloak
+      namespace: demojam-keycloak
     source:
-      path: cluster/rhbk
-    ignoreDifferences:
-      - group: k8s.keycloak.org
-        kind: Keycloak
-        jsonPointers:
-          - /spec/proxy
-          - /spec/db/port
+      path: cluster/demojam-keycloak
 
   rhdh:
     annotations:

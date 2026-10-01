@@ -9,6 +9,20 @@ spec:
   server:
     route:
       enabled: true
+  oidcConfig: |
+    name: Demojam Keycloak
+    issuer: __DEMO_OIDC_ISSUER__
+    clientID: argocd
+    clientSecret: $demo-oidc:client-secret
+    requestedScopes:
+      - openid
+      - profile
+      - email
+  rbac:
+    defaultPolicy: role:readonly
+    policy: |
+      g, demo-admins, role:admin
+    scopes: '[groups]'
   resourceHealthChecks:
     - group: argoproj.io
       kind: Application
@@ -97,12 +111,3 @@ spec:
           end
         end
         return hs
-    - group: k8s.keycloak.org
-      kind: Keycloak
-      check: |
-        for _, c in ipairs((obj.status or {}).conditions or {}) do
-          if c.type == "Ready" and c.status == "True" then
-            return {status = "Healthy", message = c.message or "Keycloak is ready"}
-          end
-        end
-        return {status = "Progressing", message = "Waiting for Keycloak Ready"}

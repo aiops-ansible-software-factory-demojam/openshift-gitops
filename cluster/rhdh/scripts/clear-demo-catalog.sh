@@ -4,12 +4,10 @@ set -euo pipefail
 set +x
 : "${RHDH_URL:?Set the Developer Hub URL}"
 : "${FORGEJO_URL:?Set the demo Forgejo URL}"
+: "${BACKSTAGE_TOKEN:?Set the Backstage service credential}"
 
-guest_token=$(curl -fsS --max-time 30 -X POST \
-  -H 'Content-Type: application/json' -d '{}' \
-  "$RHDH_URL/api/auth/guest/refresh" | jq -er '.backstageIdentity.token')
 locations=$(curl -fsS --max-time 30 \
-  -H "Authorization: Bearer $guest_token" \
+  --config <(printf 'header = "Authorization: Bearer %s"\n' "$BACKSTAGE_TOKEN") \
   "$RHDH_URL/api/catalog/locations")
 mapfile -t location_ids < <(jq -r --arg prefix "$FORGEJO_URL/demo-agent/" '
   .[].data |
@@ -20,8 +18,7 @@ mapfile -t location_ids < <(jq -r --arg prefix "$FORGEJO_URL/demo-agent/" '
 ' <<< "$locations")
 for location_id in "${location_ids[@]}"; do
   curl -fsS --max-time 30 -o /dev/null -X DELETE \
-    -H "Authorization: Bearer $guest_token" \
+    --config <(printf 'header = "Authorization: Bearer %s"\n' "$BACKSTAGE_TOKEN") \
     "$RHDH_URL/api/catalog/locations/$location_id"
 done
-unset guest_token
 printf 'Removed %s generated collection catalog locations.\n' "${#location_ids[@]}"
