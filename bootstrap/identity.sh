@@ -154,32 +154,6 @@ demo_identity_prepare() (
     "$users_file" | oc apply -f - >/dev/null
 )
 
-demo_identity_argocd_reload() {
-  local config digest marker deadline key=bootstrap.demojam.io/oidc-config-sha256
-  : "${ingress_domain:?Discover the ingress domain before Argo CD identity configuration}"
-  deadline=$((SECONDS + 300))
-  # CR availability does not prove the operator has updated the settings CM.
-  while true; do
-    config=$(oc -n openshift-gitops get configmap argocd-cm -o json)
-    if jq -e --arg issuer "https://demojam-keycloak.$ingress_domain/realms/demo" '
-      (.data["dex.config"] // "") == "" and
-      (.data["oidc.config"] // "" | contains($issuer))' <<<"$config" >/dev/null; then
-      break
-    fi
-    (( SECONDS < deadline )) || demo_die 'Argo CD settings did not switch from Dex to the demo OIDC provider.'
-    sleep 5
-  done
-  digest=$(jq -r '.data["oidc.config"]' <<<"$config" | sha256sum | cut -d' ' -f1)
-  marker=$(oc -n openshift-gitops get deployment openshift-gitops-server -o json | jq -r --arg key "$key" '.metadata.annotations[$key] // ""')
-  if [[ $marker != "$digest" || ${1:-false} == true ]]; then
-    # Argo constructs its token-verification transport at startup. A settings
-    # reload alone retains the original Dex URL rewriter after a provider swap.
-    oc -n openshift-gitops rollout restart deployment/openshift-gitops-server
-    oc -n openshift-gitops rollout status deployment/openshift-gitops-server --timeout=5m
-    oc -n openshift-gitops annotate deployment openshift-gitops-server "$key=$digest" --overwrite
-  fi
-}
-
 demo_identity_clients() {
   # Endpoints are actual application Routes, not workshop-specific hostnames.
   jq -n --argjson endpoints "$1" --slurpfile credentials "$2" '
@@ -315,7 +289,7 @@ demo_identity_configure() (
       fi
     done
   done < <(jq -c '.users[]' "$users_file")
-  argocd_host=$(oc -n openshift-gitops get route openshift-gitops-server -o jsonpath='{.status.ingress[0].host}')
+  argocd_host=$(oc -n openshift-gitops get route demojam-gitops-server -o jsonpath='{.status.ingress[0].host}')
   ao_host=$(oc -n automation-orchestrator get route automation-orchestrator -o jsonpath='{.status.ingress[0].host}' 2>/dev/null) || ao_host=
   oauth_host=$(oc -n openshift-authentication get route oauth-openshift -o jsonpath='{.status.ingress[0].host}')
   [[ -n $oauth_host ]] || demo_die 'OpenShift OAuth Route has no assigned host.'

@@ -2,12 +2,14 @@
 
 - AAP objects are inventory data under `group_vars/aap/`; apply them through
   `playbooks/aap/configure-aap.yml` and `infra.aap_configuration.dispatch`.
-- Runtime credentials are owned by openshift-gitops bootstrap scripts. Do not
-  manage their secret inputs through dispatch or commit secret values.
-- Resource Operator CRs own the initial project/inventory and dispatch template
-  base fields. Bootstrap attaches the supported EE and dispatch credential and
-  syncs the static inventory before the first API launch. Dispatch reconciles
-  these settings and the remaining objects.
+- Bootstrap exclusively owns the demo organization, demo-aap-ee, public
+  demojam-ansible project, base demo-inventory and aap group/host,
+  demo-galaxy, demo-aap-dispatch and its type, and aap_configure_all. Do not
+  redefine these objects in config-as-code.
+- Config-as-code owns VM/SSH/RHEL credential types and credentials, inventory
+  sources, demo job templates, and gateway authentication. Inventory resolves
+  runtime material from the dispatch environment under secure logging. Never
+  commit secret values or generate/rotate the source key material here.
 - Use Red Hat ee-supported-rhel9 for playbook syntax checks. Run Ansible lint
   in the development tools environment. Project requirements install public
   Galaxy CaC and the public Git demo collection;

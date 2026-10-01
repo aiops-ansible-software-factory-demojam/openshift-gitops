@@ -130,5 +130,5 @@ roleRef:
   name: openshift-gitops-demo-manager
 subjects:
   - kind: ServiceAccount
-    name: openshift-gitops-argocd-application-controller
+    name: demojam-gitops-argocd-application-controller
     namespace: openshift-gitops

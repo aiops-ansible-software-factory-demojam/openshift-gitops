@@ -239,9 +239,22 @@ implementation. A sourced script defines functions without executing setup.
 
 The script installs GitOps, creates the model and internal Secrets, rolls out
 all applications, hydrates Forgejo, builds the sandbox image, verifies golden
-paths, and publishes AO's issue workflow. After reconciliation it creates
-runtime AAP credentials by script, imports the license, and launches
+paths, and publishes AO's issue workflow. After reconciliation it imports the license, prepares persistent runtime
+material, creates the minimal AAP foundation, and launches
 `aap_configure_all` inside AAP Controller using the pinned Red Hat supported EE.
+Bootstrap owns the organization, supported EE, public project, base inventory,
+Galaxy/dispatch credentials and configuration template. Config-as-code owns
+VM/SSH/RHEL credential types and credentials, inventory sources, demo job templates,
+and gateway OIDC. No objects have competing Resource Operator and API owners.
+
+GitOps installation disables the operator's default Argo instance and creates
+`demojam-gitops` in `openshift-gitops` with native OIDC from its first start.
+Existing default installations migrate once: the operator removes the old
+controllers before the explicit instance starts. Argo UI access briefly pauses;
+Application resources and deployed workloads persist. Keycloak callbacks and
+Homepage links are refreshed for the new Route. Ordinary reruns need no Dex
+patch, transport restart, or migration.
+
 The Controller project clones public Forgejo and installs requirements from
 Galaxy and Git. No custom AAP EE or Automation Hub token is required.
 It waits for project/inventory synchronization. Rerunning preserves the VM
