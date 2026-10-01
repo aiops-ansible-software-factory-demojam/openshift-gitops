@@ -19,30 +19,47 @@ launches the agent. The agent implements the change, pushes, and opens the PR.
 
 ## Quickstart
 
-On a fresh checkout, prepare operator inputs:
+After meeting [Requirements](#requirements), run this transcript for a fresh
+checkout. In the editor, populate the selected model provider's inputs and set
+`AAP_LICENSE_FILE` to your subscription ZIP. Its default is `aap_manifest.zip`
+in this checkout. The workshop must already supply the external Keycloak inputs.
 
 ```bash
+git clone https://github.com/aiops-ansible-software-factory-demojam/openshift-gitops.git
+cd openshift-gitops
 cp .env.example .env
 chmod 600 .env
+"${EDITOR:-vi}" .env
 export KUBECONFIG="$HOME/.kube/config"
+oc whoami --show-server
+oc whoami
+bash bootstrap/bootstrap.sh
 ```
 
-Fill the selected model provider inputs in `.env` and place the subscription
-ZIP at `aap_manifest.zip`. The workshop must already supply the external
-Keycloak inputs listed under Requirements.
+The one bootstrap command checks prerequisites, installs the platform and apps,
+seeds Forgejo, builds the sandbox image, configures AAP, creates the RHEL 9 VM,
+installs nginx, and verifies HTTPS and monitoring. Wait for `Bootstrap completed`
+and the printed application URLs before starting the demo.
+
+For a subsequent run from the same checkout, retain your populated `.env`:
 
 ```bash
-make                  # Show commands without loading .env or contacting services
-make render           # Render manifests locally into .rendered/
-make preflight        # Read-only prerequisites; resolve required failures
-make bootstrap        # Roll out apps, configure AAP, create RHEL VM/nginx, verify
+git pull --ff-only
+export KUBECONFIG="$HOME/.kube/config"
+bash bootstrap/bootstrap.sh
 ```
 
 Publish the checked-out revision to the selected `BOOTSTRAP_BRANCH` before
 bootstrap. Successful bootstrap reports healthy applications, configured AAP,
 and a ready RHEL webapp with working HTTPS and blackbox monitoring.
-`make sandbox-build` builds and publishes the sandbox image using the installed
-cluster's Tekton pipeline; `make render` writes local manifests.
+`make bootstrap` is an alias for the same script. Optional commands:
+
+```bash
+make                  # Show commands without contacting services
+make render           # Render manifests locally into .rendered/
+make preflight        # Check prerequisites without changing the cluster
+make sandbox-build    # Rebuild the sandbox image through Tekton
+```
 
 Bootstrap runs the complete webapp flow. These commands remain available for
 subsequent maintenance:
@@ -87,15 +104,16 @@ Validated tool versions on the workshop run (2026-10-01):
 
 | Tool | Version |
 | --- | --- |
+| Bash | 5.2.26 |
 | oc | 4.21 client |
 | kustomize | 5.8.1 |
 | helm | 4.3.0 |
 | yq | 4.1.2, jq-wrapper contract |
 | jq | 1.7.1 (installed RPM; version banner reports `jq-`) |
-| Python | 3.12.14 |
 | OpenSSL | 3.5.8 |
 | curl | 8.12.1 |
 | git | 2.52.0 |
+| unzip | 6.00 |
 | OpenSSH / ssh-keygen | 9.9p1 |
 | GNU Make | 4.4.1 |
 
