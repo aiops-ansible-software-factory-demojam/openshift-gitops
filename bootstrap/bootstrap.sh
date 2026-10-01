@@ -1021,6 +1021,16 @@ demo_ao_reconcile() (
   }
 
   wait_for_ao_instance
+  # envFrom does not reload a newly added ConfigMap in an existing backend pod.
+  if [[ $(oc -n "$namespace" exec deployment/automation-orchestrator-backend -- \
+    printenv APP_OIDC_ALLOW_PRIVATE_NETWORKS 2>/dev/null || true) != true ]]; then
+    echo 'Reloading the AO backend to use the in-cluster OIDC settings...'
+    oc -n "$namespace" rollout restart deployment/automation-orchestrator-backend
+    oc -n "$namespace" rollout status deployment/automation-orchestrator-backend --timeout=10m
+    [[ $(oc -n "$namespace" exec deployment/automation-orchestrator-backend -- \
+      printenv APP_OIDC_ALLOW_PRIVATE_NETWORKS) == true ]] ||
+      demo_die 'AO did not load automation-orchestrator-admin-settings.'
+  fi
   if [[ -n ${AO_API_BASE_URL:-} ]]; then
     base_url=$AO_API_BASE_URL
   elif [[ ${AO_USE_PORT_FORWARD:-false} == true ]]; then
