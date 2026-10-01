@@ -48,7 +48,8 @@ changes can use `make aap-sync`; the foundation changes remain in openshift-gito
 The dispatch credential provides `AAP_HOST`, `AAP_USERNAME`, `AAP_PASSWORD`,
 `AAP_EE_IMAGE`, `DEMO_OIDC_ISSUER`, `DEMO_OIDC_CLIENT_SECRET`, `DEMO_VM_API_HOST`,
 `DEMO_VM_API_TOKEN`, `DEMO_VM_API_CA`, `DEMO_VM_SSH_PRIVATE`,
-`DEMO_VM_SSH_PUBLIC`, and `DEMO_RHEL_ENTITLEMENT`. These inputs are required;
+`DEMO_VM_SSH_PUBLIC`, and `DEMO_RHEL_ENTITLEMENT_FILE`. The entitlement is injected as a private file to avoid process environment size
+limits. These inputs are required;
 missing material fails before any AAP objects are changed.
 
 `group_vars/aap/oidc.yml` defines the independent demo Keycloak authenticator
