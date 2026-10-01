@@ -6,3 +6,4 @@ resources:
   - keycloak-deployment.yaml
   - keycloak-service.yaml
   - keycloak-route.yaml
+  - demojam-admins-clusterrolebinding.yaml

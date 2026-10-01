@@ -145,6 +145,13 @@ demo_identity_prepare() (
   demo_identity_catalog "$users_file" >"$scratch/demo-users.yaml"
   oc -n rhdh create configmap demo-users-catalog --from-file="$scratch/demo-users.yaml" \
     --dry-run=client -o yaml | oc -n rhdh apply -f - >/dev/null
+  # OpenShift does not synchronize OIDC group claims into its Group objects.
+  # This group is owned by bootstrap; GitOps owns its cluster-admin binding.
+  jq '{apiVersion:"user.openshift.io/v1",kind:"Group",
+    metadata:{name:"demojam-admins",labels:{"app.kubernetes.io/part-of":"demojam-keycloak"}},
+    users:[.users[] | select(.enabled != false) |
+      select((.groups // ["demo-users"]) | index("demo-admins")) | .username]}' \
+    "$users_file" | oc apply -f - >/dev/null
 )
 
 demo_identity_argocd_reload() {
@@ -239,7 +246,7 @@ demo_identity_upsert_client() {
 demo_identity_configure() (
   set +x
   umask 077
-  local identity_scratch identity_base users_file name user id group group_id password body endpoints argocd_host ao_host oauth_host
+  local identity_scratch identity_base users_file name user id group group_id password body endpoints argocd_host ao_host oauth_host management_client
   identity_scratch=$(mktemp -d)
   trap 'rm -rf -- "$identity_scratch"' EXIT
   users_file=$(demo_identity_users_file)
@@ -271,6 +278,10 @@ demo_identity_configure() (
     fi
   done
   groups=$(demo_identity_request GET /realms/demo/groups)
+  management_client=$(demo_identity_request GET '/realms/demo/clients?clientId=realm-management' | jq -er '.[0].id')
+  group_id=$(jq -er '.[] | select(.name == "demo-admins") | .id' <<<"$groups")
+  body=$(demo_identity_request GET "/realms/demo/clients/$management_client/roles/realm-admin" | jq '[.]')
+  demo_identity_request POST "/realms/demo/groups/$group_id/role-mappings/clients/$management_client" "$body" >/dev/null
   if oc -n demojam-keycloak get secret demo-user-passwords >/dev/null 2>&1; then
     oc -n demojam-keycloak get secret demo-user-passwords -o go-template='{{index .data "passwords.json" | base64decode}}' >"$identity_scratch/passwords.json"
   else

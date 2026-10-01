@@ -37,6 +37,8 @@ demo_homepage_configure() (
     group_by(.namespace) | map(if length == 1 then . else map(.name += (" (" + .route + ")")) end) | flatten |
     . + ([.[] | select(.namespace == "openshift-console" and .route == "console") |
       {name:"Monitoring",group:"Platform",icon:"prometheus",description:"Metrics and alerts",href:(.href + "/monitoring") }]) |
+    . + ([.[] | select(.namespace == "demojam-keycloak") |
+      {name:"Keycloak Admin",group:"Identity",icon:"keycloak",description:"Manage the demo realm",href:(.href | sub("/realms/demo/account/$"; "/admin/demo/console/"))}]) |
     sort_by(.group,.name) | group_by(.group) |
     map({(.[0].group):map({(.name):{href:.href,icon:.icon,description:.description}})})
   ' | yq -y . >"$scratch/services.yaml"

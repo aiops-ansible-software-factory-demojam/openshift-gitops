@@ -137,7 +137,9 @@ owns Red Hat build of Keycloak 26.6, its CNPG database, and an edge Route using
 the default ingress certificate. Bootstrap provisions realm `demo`, generated
 credentials, users and OIDC clients. Application containers and the bootstrap
 host must trust the ingress certificate. See the [identity guide](cluster/demojam-keycloak/README.md)
-for user configuration and migration from the previous workshop setup.
+for user configuration and migration from the previous workshop setup. The
+default `demo-user` is an application administrator and OpenShift cluster
+administrator for this disposable demo.
 
 ZIP checks establish local structure and RHEL material; AAP's import validates
 licensing. Preflight does not establish expiry, authenticity or CDN access.

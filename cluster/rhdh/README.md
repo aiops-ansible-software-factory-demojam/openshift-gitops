@@ -44,6 +44,8 @@ and catalog are also available in the Developer Hub UI.
 Browser login uses the independent [demo Keycloak](../demojam-keycloak/README.md).
 Bootstrap generates catalog User entities from `DEMO_USERS_FILE` and OIDC
 resolves the preferred username to those entities. Guest login is disabled.
+Permission enforcement is explicitly disabled for this disposable demo, so
+`demo-user` has unrestricted catalog and scaffolder access.
 
 `make demo-reset` replaces the disposable Forgejo data and rehydrates both
 tokens and the template source. It also removes catalog locations for

@@ -22,7 +22,10 @@ the operator's realm import creates realms but does not update existing ones.
 ## Initial users
 
 With no `DEMO_USERS_FILE`, bootstrap uses `bootstrap/users.example.json` and
-creates `demo-user` in `demo-users`. The initial password for every new user
+creates `demo-user` in both `demo-users` and `demo-admins`. This disposable
+demo account has administrator access to the applications and `cluster-admin`
+access to OpenShift. The `demo-admins` Keycloak group also receives
+`realm-management/realm-admin` for managing realm `demo`. The initial password for every new user
 comes from `DEMO_USER_PASSWORD` in `.env`, defaulting to `changeme` when unset or
 empty. For example:
 
@@ -78,11 +81,12 @@ from every application.
 
 | Application | Login and access |
 | --- | --- |
-| OpenShift console / CLI browser login | Native OpenID provider; cluster RBAC is configured separately |
+| OpenShift console / CLI browser login | Native OpenID provider; configured `demo-admins` users join OpenShift group `demojam-admins`, bound to `cluster-admin` |
 | OpenShift GitOps / Argo CD | Native OIDC; `demo-users` read only, `demo-admins` administrators |
-| Developer Hub | Native OIDC; preferred username resolves to the generated catalog User |
+| Developer Hub | Native OIDC; preferred username resolves to the generated catalog User; permission enforcement is disabled for unrestricted demo access |
 | Forgejo | Native OIDC source `demojam-keycloak`; first login creates an account, `demo-admins` administrators |
-| Homepage | OAuth2 Proxy; navigation generated from the demo Routes, demo groups allowed |
+| Keycloak | `demo-admins` can administer realm `demo` at `/admin/demo/console/`; the master realm retains its bootstrap administrator |
+| Homepage | OAuth2 Proxy; navigation generated from the demo Routes, demo groups allowed; no separate administrator role |
 | AAP gateway | Inventory-defined OIDC authenticator and group maps; demo organization membership, `demo-admins` superusers |
 | Automation Orchestrator | Generic OIDC; demo groups map to built-in `users` / `admins` groups |
 | Omnigent | Native OIDC with verified email identity and per-user session permissions; configured `demo-admins` emails populate its admin roster |
@@ -91,8 +95,10 @@ from every application.
 
 For regular users, AAP organization membership does not itself grant permission
 to execute every job template. Additional application permissions remain an
-application concern. OpenShift authentication does not grant cluster privileges
-or map `demo-admins` to `cluster-admin`. Omnigent does not map OIDC groups
+application concern. Bootstrap reconciles OpenShift group `demojam-admins`
+from enabled users with `demo-admins` membership in the users file. GitOps owns
+that group's `cluster-admin` binding; OIDC group claims alone do not populate
+OpenShift Groups. Omnigent does not map OIDC groups
 natively: its file-backed admin roster promotes listed emails, and removing an
 email does not demote an already promoted administrator. Demote that user in
 Omnigent when removing administrator access.
