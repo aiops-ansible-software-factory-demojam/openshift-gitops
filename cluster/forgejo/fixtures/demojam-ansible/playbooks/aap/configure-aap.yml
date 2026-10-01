@@ -43,7 +43,7 @@
         aap_hostname: "{{ aap_hostname }}"
         aap_username: "{{ aap_username }}"
         aap_password: "{{ aap_password }}"
-        validate_certs: true
+        aap_validate_certs: true
         name: "{{ demo_oidc_authenticator.name }}"
         type: "{{ demo_oidc_authenticator.type }}"
         configuration: "{{ demo_oidc_authenticator.configuration }}"
@@ -58,7 +58,7 @@
         aap_hostname: "{{ aap_hostname }}"
         aap_username: "{{ aap_username }}"
         aap_password: "{{ aap_password }}"
-        validate_certs: true
+        aap_validate_certs: true
         authenticator: "{{ demo_oidc_authenticator.name }}"
         name: "{{ item.name }}"
         map_type: "{{ item.map_type }}"

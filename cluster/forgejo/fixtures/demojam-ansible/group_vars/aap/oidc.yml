@@ -10,6 +10,8 @@ demo_oidc_authenticator:
     KEY: aap
     SECRET: "{{ demo_oidc_credentials.client_secret_lookup }}"
     VERIFY_SSL: true
+    JWT_ALGORITHMS:
+      - RS256
     GROUPS_CLAIM: groups
     USERNAME_KEY: preferred_username
     REDIRECT_STATE: true
