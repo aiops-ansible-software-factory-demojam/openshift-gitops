@@ -826,14 +826,289 @@ demo_ao_workflow_definition() {
     .edges += [range(0; ($chain | length) - 1) as $i | {from:$chain[$i],to:$chain[$i+1]}]'
 }
 
+# These helpers share the authenticated connection and private response file in
+# demo_ao_reconcile. Credentials are encrypted by AO, never written to workflows.
+demo_ao_credential() {
+  local name=$1 type_name=$2 inputs=$3 kind id payload code
+  code=$(ao_curl GET "$base_url/credential_types?limit=100" -H "$auth_header")
+  ao_require_json 'list credential types' "$code"
+  kind=$(jq -er --arg name "$type_name" '.resources[] | select(.name == $name) | .id' "$ao_response")
+  code=$(ao_curl GET "$base_url/credentials?limit=100" -H "$auth_header")
+  ao_require_json 'list integration credentials' "$code"
+  id=$(jq -r --arg name "$name" '.resources[] | select(.name == $name) | .id' "$ao_response")
+  payload=$(jq -n --arg name "$name" --arg project "$project_id" --arg kind "$kind" --argjson inputs "$inputs" \
+    '{name:$name,project_id:$project,credential_type_id:$kind,inputs:$inputs}')
+  if [[ -n $id ]]; then
+    payload=$(jq 'del(.project_id,.credential_type_id)' <<<"$payload")
+    code=$(ao_curl PATCH "$base_url/credentials/$id" -H "$auth_header" \
+      -H 'Content-Type: application/json' --data-binary "$payload")
+  else
+    code=$(ao_curl POST "$base_url/credentials" -H "$auth_header" \
+      -H 'Content-Type: application/json' --data-binary "$payload")
+  fi
+  ao_require_json "reconcile credential $name" "$code"
+  jq -er '.id' "$ao_response"
+}
+
+demo_ao_integration() {
+  local name=$1 kind=$2 credential=$3 configuration=$4 id payload code
+  code=$(ao_curl GET "$base_url/integrations?limit=100" -H "$auth_header")
+  ao_require_json 'list integrations' "$code"
+  id=$(jq -r --arg name "$name" '.resources[] | select(.name == $name) | .id' "$ao_response")
+  payload=$(jq -n --arg name "$name" --arg kind "$kind" --arg credential "$credential" \
+    --argjson configuration "$configuration" \
+    '{name:$name,integration_type:$kind,configuration:$configuration,
+      management_credential_id:$credential,enabled:true,scope:"global"}')
+  if [[ -n $id ]]; then
+    payload=$(jq 'del(.integration_type)' <<<"$payload")
+    code=$(ao_curl PATCH "$base_url/integrations/$id" -H "$auth_header" \
+      -H 'Content-Type: application/json' --data-binary "$payload")
+  else
+    code=$(ao_curl POST "$base_url/integrations" -H "$auth_header" \
+      -H 'Content-Type: application/json' --data-binary "$payload")
+  fi
+  ao_require_json "reconcile integration $name" "$code"
+  id=$(jq -er '.id' "$ao_response")
+  code=$(ao_curl POST "$base_url/integrations/$id/validate" -H "$auth_header" \
+    -H 'Content-Type: application/json' --data-binary '{}')
+  ao_require_json "validate integration $name" "$code"
+  jq -e '.success == true' "$ao_response" >/dev/null || demo_die "AO could not connect to $name."
+  printf '%s\n' "$id"
+}
+
+# AO 2026.8 uses Chat Completions and cannot set provider headers. LiteLLM's
+# maintained bridge translates Responses models and adds Go's routing headers.
+# Keep the runtime configuration here rather than a second bootstrap program.
+demo_ao_go_proxy() {
+  local proxy_model protocol config_status secret_status existing
+  existing=$(oc -n "$namespace" get deployment ao-opencode-go --ignore-not-found -o name)
+  protocol=${OPENCODE_GO_PROTOCOL:-responses}
+  case $protocol in
+    responses) proxy_model="openai/responses/$model_name" ;;
+    chat) proxy_model="openai/$model_name" ;;
+    *) demo_die 'OPENCODE_GO_PROTOCOL must be responses or chat.' ;;
+  esac
+  printf '%s' "$model_key" >"$omnigent_scratch/go-api-key"
+  if [[ -n $(oc -n "$namespace" get secret ao-opencode-go --ignore-not-found -o name) ]]; then
+    oc -n "$namespace" get secret ao-opencode-go \
+      -o go-template='{{index .data "LITELLM_MASTER_KEY" | base64decode}}' >"$omnigent_scratch/go-proxy-key"
+    [[ -s $omnigent_scratch/go-proxy-key ]] || demo_die 'The Go proxy master key is empty.'
+  else
+    printf 'sk-%s' "$(openssl rand -hex 32)" >"$omnigent_scratch/go-proxy-key"
+  fi
+  secret_status=$(oc -n "$namespace" create secret generic ao-opencode-go \
+    --from-file=OPENCODE_GO_API_KEY="$omnigent_scratch/go-api-key" \
+    --from-file=LITELLM_MASTER_KEY="$omnigent_scratch/go-proxy-key" --dry-run=client -o yaml |
+    oc -n "$namespace" apply -f -)
+  jq -n --arg model "$model_name" --arg backend "$proxy_model" --arg url "$model_endpoint" '
+    {model_list:[{model_name:$model,litellm_params:{model:$backend,api_base:$url,
+      api_key:"os.environ/OPENCODE_GO_API_KEY"}}],
+      general_settings:{master_key:"os.environ/LITELLM_MASTER_KEY"},
+      litellm_settings:{callbacks:["go_headers.callback"],num_retries:0}}' |
+    yq -y . >"$omnigent_scratch/go-config.yaml"
+  cat >"$omnigent_scratch/go_headers.py" <<'PY'
+from uuid import uuid4
+from litellm.integrations.custom_logger import CustomLogger
+
+class GoHeaders(CustomLogger):
+    async def async_pre_call_hook(self, user_api_key_dict, cache, data, call_type):
+        headers = data.setdefault("extra_headers", {})
+        # Preserve caller conversation IDs; a single-question AO run is one call.
+        metadata = data.get("metadata") or {}
+        headers.setdefault("x-opencode-session", str(metadata.get("session_id") or data.get("litellm_call_id") or uuid4()))
+        headers["User-Agent"] = "automation-orchestrator-demojam/1.0"
+        return data
+
+callback = GoHeaders()
+PY
+  config_status=$(oc -n "$namespace" create configmap ao-opencode-go \
+    --from-file=config.yaml="$omnigent_scratch/go-config.yaml" \
+    --from-file=go_headers.py="$omnigent_scratch/go_headers.py" --dry-run=client -o yaml |
+    oc -n "$namespace" apply -f -)
+  cat <<'YAML' | oc -n "$namespace" apply -f - >/dev/null
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ao-opencode-go
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ao-opencode-go
+  template:
+    metadata:
+      labels:
+        app: ao-opencode-go
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: proxy
+          image: ghcr.io/berriai/litellm@sha256:f63fb81b831b170ec16851e23c36ac5bf52ef106b271406429524a2ed730bbfd
+          args:
+            - --config
+            - /etc/litellm/config.yaml
+            - --port
+            - "4000"
+          envFrom:
+            - secretRef:
+                name: ao-opencode-go
+          env:
+            - name: PYTHONPATH
+              value: /etc/litellm
+            - name: XDG_CACHE_HOME
+              value: /tmp/cache
+          ports:
+            - containerPort: 4000
+          readinessProbe:
+            httpGet:
+              path: /health/liveliness
+              port: 4000
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              memory: 1Gi
+          volumeMounts:
+            - name: config
+              mountPath: /etc/litellm
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: ao-opencode-go
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ao-opencode-go
+spec:
+  selector:
+    app: ao-opencode-go
+  ports:
+    - port: 4000
+      targetPort: 4000
+YAML
+  if [[ -n $existing && ( $config_status != *' unchanged' || $secret_status != *' unchanged' ) ]]; then
+    oc -n "$namespace" rollout restart deployment/ao-opencode-go >/dev/null
+  fi
+  oc -n "$namespace" rollout status deployment/ao-opencode-go --timeout=10m
+  model_endpoint=http://ao-opencode-go.automation-orchestrator.svc:4000/v1
+  model_key=$(<"$omnigent_scratch/go-proxy-key")
+}
+
+demo_ao_integrations() {
+  local configuration inputs allowed_hosts deploy current expected code disabled_models
+  demo_model_inputs
+  if [[ ${MODEL_PROVIDER:-opencode-go} == opencode-go ]]; then
+    demo_ao_go_proxy
+  fi
+  # The integration policy is checked in backend, worker and background worker.
+  # The operator loads this supported ConfigMap in all three processes. Argo
+  # ignores this one bootstrap-owned key while retaining the OIDC setting.
+  aap_scratch=$omnigent_scratch
+  aap_connect
+  allowed_hosts=$(jq -cn --arg llm "${model_endpoint#*://}" --arg aap "${aap_host#https://}" \
+    '[$llm,$aap] | map(split("/")[0] | split(":")[0]) | unique')
+  expected=$(jq -c . <<<"$allowed_hosts")
+  oc -n "$namespace" patch configmap automation-orchestrator-admin-settings --type=merge \
+    --patch "$(jq -cn --arg hosts "$expected" '{data:{APP_INTEGRATION_URL_ALLOWED_HOSTS:$hosts}}')" >/dev/null
+  for deploy in backend worker background-worker; do
+    current=$(oc -n "$namespace" exec "deployment/automation-orchestrator-$deploy" -- \
+      printenv APP_INTEGRATION_URL_ALLOWED_HOSTS 2>/dev/null || true)
+    if [[ $current != "$expected" ]]; then
+      oc -n "$namespace" rollout restart "deployment/automation-orchestrator-$deploy" >/dev/null
+      oc -n "$namespace" rollout status "deployment/automation-orchestrator-$deploy" --timeout=10m
+      [[ $(oc -n "$namespace" exec "deployment/automation-orchestrator-$deploy" -- \
+        printenv APP_INTEGRATION_URL_ALLOWED_HOSTS) == "$expected" ]] ||
+        demo_die "AO $deploy did not load its integration settings."
+    fi
+  done
+  inputs=$(jq -n --arg key "$model_key" '{api_key:$key}')
+  llm_credential_id=$(demo_ao_credential "demo-llm-${MODEL_PROVIDER:-opencode-go}" 'LLM Provider' "$inputs")
+  unset model_key inputs
+  configuration=$(jq -n --arg url "$model_endpoint" \
+    '{integration_type:"llm_provider",base_url:$url,provider_hint:"custom",allow_http:($url|startswith("http://"))}')
+  llm_integration_id=$(demo_ao_integration "Demo LLM (${MODEL_PROVIDER:-opencode-go})" llm_provider "$llm_credential_id" "$configuration")
+  code=$(ao_curl POST "$base_url/integrations/$llm_integration_id/refresh" -H "$auth_header" \
+    -H 'Content-Type: application/json' --data-binary '{}')
+  ao_require_json 'discover selected LLM models' "$code"
+  code=$(ao_curl GET "$base_url/integrations/$llm_integration_id/models?limit=100" -H "$auth_header")
+  ao_require_json 'list selected LLM models' "$code"
+  llm_model_id=$(jq -er --arg name "$model_name" \
+    '.resources[] | select(.model_id == $name) | .id' "$ao_response")
+  disabled_models=$(jq -c --arg id "$llm_model_id" '[.resources[] | select(.id != $id and .enabled == true) | .id]' "$ao_response")
+  if [[ $disabled_models != '[]' ]]; then
+    code=$(ao_curl PATCH "$base_url/integrations/$llm_integration_id/models/bulk_update" -H "$auth_header" \
+      -H 'Content-Type: application/json' --data-binary "$(jq -n --argjson ids "$disabled_models" '{model_ids:$ids,enabled:false}')")
+    ao_require_json 'disable unselected models' "$code"
+  fi
+  code=$(ao_curl PATCH "$base_url/integrations/$llm_integration_id/models/$llm_model_id" -H "$auth_header" \
+    -H 'Content-Type: application/json' --data-binary '{"enabled":true,"is_default":true}')
+  ao_require_json 'enable selected model' "$code"
+  inputs=$(jq -n --arg username "$aap_username" \
+    --rawfile password "$aap_scratch/password" '{username:$username,password:$password}')
+  aap_credential_id=$(demo_ao_credential demo-aap 'Ansible Automation Platform' "$inputs")
+  unset inputs
+  configuration=$(jq -n --arg url "$aap_host" '{integration_type:"ansible_automation_platform",base_url:$url}')
+  aap_integration_id=$(demo_ao_integration 'Demo AAP' ansible_automation_platform "$aap_credential_id" "$configuration")
+  printf 'AO integrations are configured; selected model: %s\n' "$model_name"
+}
+
+demo_ao_run() {
+  local name=$1 input=$2 workflow execution payload code status deadline=$((SECONDS + 1800))
+  jq -e 'type == "object"' <<<"$input" >/dev/null || demo_die 'AO input must be a JSON object.'
+  code=$(ao_curl GET "$base_url/workflows?limit=100" -H "$auth_header")
+  ao_require_json 'list executable workflows' "$code"
+  workflow=$(jq -er --arg name "$name" '.resources[] | select(.name == $name and .is_builtin == false) | .id' "$ao_response")
+  payload=$(jq -n --arg workflow "$workflow" --argjson input "$input" \
+    '{workflow_id:$workflow,trigger_node_id:"start",use_published:true,input_data:$input}')
+  # A launch is a single POST. A lost response must not launch a duplicate job.
+  code=$(ao_curl POST "$base_url/executions" -H "$auth_header" \
+    -H 'Content-Type: application/json' --data-binary "$payload")
+  ao_require_json "launch $name" "$code"
+  execution=$(jq -er '.id' "$ao_response")
+  printf 'AO execution: %s (%s)\n' "$execution" "$name"
+  while (( SECONDS < deadline )); do
+    code=$(ao_curl GET "$base_url/executions/$execution" -H "$auth_header")
+    ao_require_json 'poll workflow execution' "$code"
+    status=$(jq -er '.status' "$ao_response")
+    case $status in
+      completed)
+        code=$(ao_curl GET "$base_url/executions/$execution/activities?limit=100" -H "$auth_header")
+        ao_require_json 'read workflow results' "$code"
+        # Do not print authentication activity outputs (including bearer tokens).
+        jq '{status:"completed",results:[.resources[]? |
+          select(.activity_name == "ask_model" or .activity_name == "configure_nginx" or .activity_name == "create_session") |
+          {node:.activity_name,status,output:.output_data}]}' "$ao_response"
+        if [[ $name == omnigent-dispatch ]]; then
+          echo 'The agent continues asynchronously. Inspect the session for its PR URL.'
+        fi
+        return ;;
+      failed|cancelled|canceled|timed_out)
+        code=$(ao_curl GET "$base_url/executions/$execution/activities?limit=100" -H "$auth_header")
+        ao_require_json 'read failed activities' "$code"
+        jq '{activities:[.resources[]? | {node:.activity_name,status,error:.error_message}]}' "$ao_response" >&2
+        demo_die "AO workflow $name ended with $status." ;;
+    esac
+    sleep 5
+  done
+  demo_die "AO execution $execution is still $status; inspect it before another launch."
+}
+
+demo_dispatch_issue() {
+  local issue=${1:-}
+  [[ $# == 1 && $issue =~ ^[1-9][0-9]*$ ]] || demo_die 'Pass a positive Forgejo issue number.'
+  demo_verify_cluster
+  demo_ao_reconcile run omnigent-dispatch "$(jq -cn --argjson issue "$issue" '{issue_number:$issue}')"
+}
+
 demo_ao_reconcile() (
   set +x
   umask 077
   demo_identity_validate_users "$(demo_identity_users_file)" || demo_die 'Invalid DEMO_USERS_FILE.'
   namespace=automation-orchestrator
-  workflow_name=omnigent-dispatch
   script_dir="$demo_repo_root/cluster/automation-orchestrator"
-  workflow_file="$script_dir/workflows/omnigent-dispatch.yaml"
   ao_local_port=${AO_LOCAL_PORT:-18080}
 
   oc whoami --show-server
@@ -855,7 +1130,7 @@ demo_ao_reconcile() (
   ao_curl() {
     local method=$1 url=$2 http_code=000
     shift 2
-    http_code=$(curl -sS -o "$ao_response" -w '%{http_code}' \
+    http_code=$(curl -sS --connect-timeout 10 --max-time 60 -o "$ao_response" -w '%{http_code}' \
       -X "$method" "$@" "$url" 2>/dev/null) || true
     printf '%s' "${http_code:-000}"
   }
@@ -1047,6 +1322,10 @@ demo_ao_reconcile() (
     ao_fail_response 'login' "$last_login_code"
   fi
   auth_header="Authorization: Bearer $ao_token"
+  if [[ ${1:-} == run ]]; then
+    demo_ao_run "$2" "${3:-'{}'}"
+    exit 0
+  fi
 
   http_code=$(ao_curl GET "$base_url/groups?limit=100" -H "$auth_header")
   ao_require_json 'list OIDC target groups' "$http_code"
@@ -1112,7 +1391,16 @@ demo_ao_reconcile() (
     unset credential_payload
     ao_require_json 'create credential' "$http_code"
     credential_id=$(jq -r '.id' "$ao_response")
+  else
+    credential_payload=$(jq -n --arg username "$client_id" --arg password "$client_secret" \
+      '{inputs:{username:$username,password:$password}}')
+    http_code=$(ao_curl PATCH "$base_url/credentials/$credential_id" -H "$auth_header" \
+      -H 'Content-Type: application/json' --data-binary "$credential_payload")
+    unset credential_payload
+    ao_require_json 'refresh machine credential' "$http_code"
   fi
+
+  demo_ao_integrations
 
   omnigent_host=$(oc -n omnigent get route omnigent \
     -o jsonpath='{.status.ingress[0].host}')
@@ -1128,71 +1416,89 @@ demo_ao_reconcile() (
     exit 1
   fi
 
-  workflow_definition=$(demo_ao_workflow_definition "$workflow_file" "$credential_id" "$agent_id")
-  validation_payload=$(jq -n --argjson definition "$workflow_definition" \
-    '{workflow_definition: $definition}')
-  http_code=$(ao_curl POST "$base_url/workflows/validate" -H "$auth_header" \
-    -H 'Content-Type: application/json' --data-binary "$validation_payload")
-  if [[ $http_code == 422 ]] && ao_response_is_json; then
-    # The workflow contains credential references, never credential values.
-    jq -r '.validation_result.findings[]? | "\(.field_path): \(.message)"' "$ao_response" >&2
-  fi
-  ao_require_json 'validate workflow' "$http_code"
-  jq -e '.is_valid == true' "$ao_response" >/dev/null ||
-    ao_fail_response 'validate workflow' "$http_code"
+  # Inject runtime integration and credential references into portable definitions;
+  # only omnigent-dispatch needs its dynamic agent and user-sharing nodes.
+  for workflow_file in "$script_dir"/workflows/*.yaml; do
+    workflow_name=$(yq -er '.name' "$workflow_file")
+    if [[ $workflow_name == omnigent-dispatch ]]; then
+      workflow_definition=$(demo_ao_workflow_definition "$workflow_file" "$credential_id" "$agent_id")
+    else
+      workflow_definition=$(yq -c . "$workflow_file" | jq -c \
+        --arg llm_credential "$llm_credential_id" --arg llm_integration "$llm_integration_id" \
+        --arg llm_model "$llm_model_id" --arg aap_credential "$aap_credential_id" \
+        --arg aap_integration "$aap_integration_id" '
+        .nodes |= map(if .type == "agentic" then
+          .parameters.credential_id=$llm_credential | .parameters.integration_id=$llm_integration |
+          .parameters.llm_model_id=$llm_model
+        elif .type == "aap_job_template" then
+          .parameters.credential_id=$aap_credential | .parameters.integration_id=$aap_integration
+        else . end)')
+    fi
+    validation_payload=$(jq -n --argjson definition "$workflow_definition" \
+      '{workflow_definition: $definition}')
+    http_code=$(ao_curl POST "$base_url/workflows/validate" -H "$auth_header" \
+      -H 'Content-Type: application/json' --data-binary "$validation_payload")
+    if [[ $http_code == 422 ]] && ao_response_is_json; then
+      # The workflow contains credential references, never credential values.
+      jq -r '.validation_result.findings[]? | "\(.field_path): \(.message)"' "$ao_response" >&2
+    fi
+    ao_require_json 'validate workflow' "$http_code"
+    jq -e '.is_valid == true' "$ao_response" >/dev/null ||
+      ao_fail_response 'validate workflow' "$http_code"
 
-  http_code=$(ao_curl GET "$base_url/workflows?limit=100" -H "$auth_header")
-  ao_require_json 'list workflows' "$http_code"
-  workflow_id=$(jq -r --arg name "$workflow_name" \
-    '.resources[]? | select(.name == $name and .is_builtin == false) | .id' \
-    "$ao_response" | head -1)
-  if [[ -z ${workflow_id:-} ]]; then
-    payload=$(jq -n --arg name "$workflow_name" --arg project_id "$project_id" \
-      --argjson definition "$workflow_definition" \
-      '{name:$name,project_id:$project_id,workflow_definition:$definition}')
-    http_code=$(ao_curl POST "$base_url/workflows" -H "$auth_header" \
-      -H 'Content-Type: application/json' --data-binary "$payload")
-    ao_require_json 'create workflow' "$http_code"
-    workflow_id=$(jq -r '.id' "$ao_response")
-    workflow_version=$(jq -r '.current_version' "$ao_response")
-    publish_needed=true
-  else
-    http_code=$(ao_curl GET "$base_url/workflows/$workflow_id" -H "$auth_header")
-    ao_require_json 'read workflow' "$http_code"
-    workflow_version=$(jq -r '.current_version' "$ao_response")
-    published_version=$(jq -r '.published_version_number // 0' "$ao_response")
-    publish_needed=false
-    http_code=$(ao_curl GET \
-      "$base_url/workflows/$workflow_id/versions/$workflow_version" \
-      -H "$auth_header")
-    ao_require_json 'read workflow version' "$http_code"
-    current_definition=$(jq -c '.workflow_definition' "$ao_response")
-    if [[ $(jq -S -c . <<<"$current_definition") != \
-          $(jq -S -c . <<<"$workflow_definition") ]]; then
-      payload=$(jq -n --argjson expected_version "$workflow_version" \
+    http_code=$(ao_curl GET "$base_url/workflows?limit=100" -H "$auth_header")
+    ao_require_json 'list workflows' "$http_code"
+    workflow_id=$(jq -r --arg name "$workflow_name" \
+      '.resources[]? | select(.name == $name and .is_builtin == false) | .id' \
+      "$ao_response" | head -1)
+    if [[ -z ${workflow_id:-} ]]; then
+      payload=$(jq -n --arg name "$workflow_name" --arg project_id "$project_id" \
         --argjson definition "$workflow_definition" \
-        '{expected_version:$expected_version,workflow_definition:$definition}')
-      http_code=$(ao_curl PATCH "$base_url/workflows/$workflow_id" \
-        -H "$auth_header" -H 'Content-Type: application/json' \
-        --data-binary "$payload")
-      ao_require_json 'update workflow' "$http_code"
+        '{name:$name,project_id:$project_id,workflow_definition:$definition}')
+      http_code=$(ao_curl POST "$base_url/workflows" -H "$auth_header" \
+        -H 'Content-Type: application/json' --data-binary "$payload")
+      ao_require_json 'create workflow' "$http_code"
+      workflow_id=$(jq -r '.id' "$ao_response")
       workflow_version=$(jq -r '.current_version' "$ao_response")
       publish_needed=true
-    elif [[ "$published_version" != "$workflow_version" ]]; then
-      publish_needed=true
+    else
+      http_code=$(ao_curl GET "$base_url/workflows/$workflow_id" -H "$auth_header")
+      ao_require_json 'read workflow' "$http_code"
+      workflow_version=$(jq -r '.current_version' "$ao_response")
+      published_version=$(jq -r '.published_version_number // 0' "$ao_response")
+      publish_needed=false
+      http_code=$(ao_curl GET \
+        "$base_url/workflows/$workflow_id/versions/$workflow_version" \
+        -H "$auth_header")
+      ao_require_json 'read workflow version' "$http_code"
+      current_definition=$(jq -c '.workflow_definition' "$ao_response")
+      if [[ $(jq -S -c . <<<"$current_definition") != \
+            $(jq -S -c . <<<"$workflow_definition") ]]; then
+        payload=$(jq -n --argjson expected_version "$workflow_version" \
+          --argjson definition "$workflow_definition" \
+          '{expected_version:$expected_version,workflow_definition:$definition}')
+        http_code=$(ao_curl PATCH "$base_url/workflows/$workflow_id" \
+          -H "$auth_header" -H 'Content-Type: application/json' \
+          --data-binary "$payload")
+        ao_require_json 'update workflow' "$http_code"
+        workflow_version=$(jq -r '.current_version' "$ao_response")
+        publish_needed=true
+      elif [[ "$published_version" != "$workflow_version" ]]; then
+        publish_needed=true
+      fi
     fi
-  fi
 
-  if [[ "$publish_needed" == true ]]; then
-    payload=$(jq -n \
-      '{publish_name:"GitOps demo",change_description:"Reconciled from openshift-gitops"}')
-    http_code=$(ao_curl POST \
-      "$base_url/workflows/$workflow_id/versions/$workflow_version/publish" \
-      -H "$auth_header" -H 'Content-Type: application/json' \
-      --data-binary "$payload")
-    ao_require_json 'publish workflow' "$http_code"
-  fi
-  printf 'Reconciled workflow %s version %s\n' "$workflow_name" "$workflow_version"
+    if [[ "$publish_needed" == true ]]; then
+      payload=$(jq -n \
+        '{publish_name:"GitOps demo",change_description:"Reconciled from openshift-gitops"}')
+      http_code=$(ao_curl POST \
+        "$base_url/workflows/$workflow_id/versions/$workflow_version/publish" \
+        -H "$auth_header" -H 'Content-Type: application/json' \
+        --data-binary "$payload")
+      ao_require_json 'publish workflow' "$http_code"
+    fi
+    printf 'Reconciled workflow %s version %s\n' "$workflow_name" "$workflow_version"
+  done
 )
 
 # -----------------------------------------------------------------------------
@@ -1871,15 +2177,14 @@ demo_bootstrap() (
   done
   oc -n omnigent delete secret omnigent-auth omnigent-machine-client \
     --ignore-not-found
+  demo_step 'Configure AAP through its Controller'
+  demo_aap_configure
   if [[ ${BOOTSTRAP_RECONCILE_WORKFLOW:-true} == true ]]; then
     demo_step 'Validate and publish the AO workflow'
     demo_ao_reconcile
   else
     demo_ao_reconcile identity-only
   fi
-  demo_step 'Configure AAP through its Controller'
-  demo_aap_configure
-
   demo_step 'Provision the RHEL webapp through AAP'
   demo_webapp create
   demo_step 'Install nginx through AAP'
@@ -1915,7 +2220,9 @@ Usage: bash bootstrap/bootstrap.sh [COMMAND]
   identity           Reconcile demo users, clients and application login
   homepage-refresh   Refresh Homepage links, repositories and environment details
   hydrate            Seed Forgejo and refresh Backstage/agent credentials
-  reconcile-workflow Validate and publish the AO workflow
+  ao-configure      Reconcile AO LLM/AAP integrations and publish all demo workflows
+  ao-run NAME [JSON] Execute a published workflow and print its result
+  reconcile-workflow Alias for ao-configure
   aap-configure      Prepare AAP credentials/license and run config-as-code
   webapp ACTION      create | nginx | verify | delete | sync
   aap ACTION         credentials | wait-project | dispatch | reset-vms | launch TEMPLATE [JSON]
@@ -1950,12 +2257,19 @@ HELP
       ;;
     preflight|--check) [[ $# == 0 ]] || demo_die 'preflight takes no arguments'; demo_preflight ;;
     sandbox-build) demo_sandbox_build ;;
-    model-config) demo_model_config ;;
+    model-config)
+      demo_model_config
+      if [[ -n $(oc -n automation-orchestrator get automationorchestrator automation-orchestrator --ignore-not-found -o name 2>/dev/null) ]]; then
+        demo_ao_reconcile
+      fi ;;
+
     omnigent-auth) demo_verify_cluster; demo_omnigent_auth ;;
     verify-goldenpaths) demo_verify_cluster; demo_verify_goldenpaths ;;
     hydrate) demo_hydrate hydrate ;;
     forgejo-reset) demo_hydrate reset "$@" ;;
-    reconcile-workflow) demo_verify_cluster; demo_ao_reconcile ;;
+    reconcile-workflow|ao-configure) demo_verify_cluster; demo_ao_reconcile ;;
+    dispatch-issue) demo_dispatch_issue "$@" ;;
+    ao-run) [[ $# -ge 1 && $# -le 2 ]] || demo_die 'ao-run requires WORKFLOW [INPUT_JSON]'; demo_verify_cluster; demo_ao_reconcile run "$@" ;;
     aap-configure) demo_aap_configure ;;
     webapp) [[ $# == 1 ]] || demo_die 'webapp requires one action'; demo_webapp "$@" ;;
     aap) [[ $# -gt 0 ]] || demo_die 'aap requires an action'; demo_verify_cluster; demo_aap "$@" ;;

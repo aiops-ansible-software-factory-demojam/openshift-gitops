@@ -1,0 +1,35 @@
+name: llm-question
+description: Ask the configured LLM a simple question and return its answer.
+schema_version: 2.0.0
+triggers:
+  - id: start
+    name: Ask a question
+    type: manual_trigger
+    position:
+      x: 0
+      y: 300
+    parameters:
+      input_schema:
+        type: object
+        required:
+          - question
+        properties:
+          question:
+            type: string
+            title: Question
+            default: What is the capital of France? Answer in one sentence.
+nodes:
+  - id: ask_model
+    name: Answer the question
+    type: agentic
+    position:
+      x: 300
+      y: 300
+    parameters:
+      prompt: ${trigger.question}
+      tool_selection_strategy: NONE
+    settings:
+      timeout: 180
+edges:
+  - from: start
+    to: ask_model
