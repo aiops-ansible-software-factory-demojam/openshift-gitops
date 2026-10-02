@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 export ISSUE QUESTION
 
-.PHONY: help help-all preflight bootstrap identity homepage-refresh model-config sandbox-build demo-hydrate demo render demo-reset aap-configure aap-sync ao-configure ao-llm-test ao-aap-run webapp-create webapp-nginx webapp-delete webapp-verify
+.PHONY: help help-all preflight bootstrap teardown identity homepage-refresh model-config sandbox-build demo-hydrate demo render demo-reset aap-configure aap-sync ao-configure ao-llm-test ao-aap-run webapp-create webapp-nginx webapp-delete webapp-verify
 
 help:
 	@printf '%s\n' \
@@ -21,6 +21,7 @@ help-all:
 	  'make / make help   Show commands; needs only Make and a shell' \
 	  'make help-all      Show all setup and maintenance commands' \
 	  'make bootstrap     Install platform, provision RHEL/nginx, and verify; publish branch first' \
+	  'make teardown      Remove the complete demo stack, operators and persistent data' \
 	  'make render        Render manifests locally into .rendered/' \
 	  'make preflight     Read-only local/cluster prerequisites; .env, manifest, KUBECONFIG' \
 	  'make identity      Reconcile demo users and OIDC clients/providers on an installed stack' \
@@ -43,6 +44,9 @@ help-all:
 
 bootstrap:
 	bash bootstrap/bootstrap.sh
+
+teardown:
+	bash bootstrap/bootstrap.sh teardown --confirm-demo-teardown
 
 identity:
 	bash bootstrap/bootstrap.sh identity
