@@ -11,13 +11,13 @@ and operational shortcuts, and individual links to GitOps source repositories
 and every Forgejo repository visible to the demo agent, including golden-path
 output. Private template repositories remain subject to Forgejo authorization.
 
-Environment cards appear first. Platform includes Keycloak Admin; there is no
-separate Identity section. The Automation group brings together AAP and
-Automation Orchestrator links, job templates and EDA activation links.
+Environment cards appear first. Platform includes Developer Hub, Omnigent and
+Keycloak Admin. Demo applications contains the Webapp. The Automation group
+brings together AAP, Automation Orchestrator and EDA activation links.
 Workflow and alerting guides are under Useful shortcuts. Automation widgets
 for jobs, EDA activation status, workflows and recent executions are under Live
-status at the bottom of the page,
-alongside cluster and monitoring widgets. The ordered demo walkthrough and the
+status at the bottom of the page, alongside cluster and monitoring widgets.
+The ordered demo walkthrough and the
 repository index remain separate navigation sections.
 
 Live widgets refresh every 30 seconds: Argo CD application counts and health,

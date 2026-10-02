@@ -140,9 +140,8 @@ demo_homepage_configure() (
   jq '
     def known:
       {
-        "rhdh": {name:"Developer Hub",group:"Demo applications",icon:"backstage",description:"Software catalog and golden paths"},
-        "forgejo": {name:"Forgejo",group:"Demo applications",icon:"forgejo",description:"Demo source, issues and pull requests"},
-        "omnigent": {name:"Omnigent",group:"Demo applications",icon:"mdi-robot",description:"Agent sessions and activity"},
+        "rhdh": {name:"Developer Hub",group:"Platform",icon:"backstage",description:"Software catalog and golden paths"},
+        "omnigent": {name:"Omnigent",group:"Platform",icon:"mdi-robot",description:"Agent sessions and activity"},
         "automation-orchestrator": {name:"Automation Orchestrator",group:"Automation",icon:"mdi-sitemap",description:"Issue-to-PR workflow"},
         "ansible-automation-platform": {name:"Ansible Automation Platform",group:"Automation",icon:"ansible",description:"Automation jobs and configuration"},
         "webapp-vms": {name:"Webapp",group:"Demo applications",icon:"nginx",description:"RHEL web application"},
