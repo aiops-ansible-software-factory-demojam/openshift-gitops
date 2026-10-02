@@ -88,7 +88,7 @@ def prepare_feature(number):
     try:
         request(
             forgejo,
-            f"/api/v1/repos/demo-owner/ansible-collection-demo/branches/{branch_path}",
+            f"/api/v1/repos/demo-owner/ansible-collection-demo.webapp/branches/{branch_path}",
             token=os.environ["FORGEJO_TOKEN"],
         )
     except RuntimeError as error:
@@ -96,7 +96,7 @@ def prepare_feature(number):
             raise RuntimeError(f"{branch} does not exist; launch through AO first") from error
         raise
     directory = Path.cwd() / f"issue-{number}"
-    remote = f"{forgejo}/demo-owner/ansible-collection-demo.git"
+    remote = f"{forgejo}/demo-owner/ansible-collection-demo.webapp.git"
     if not directory.exists():
         git(Path.cwd(), "clone", remote, str(directory))
     if git(directory, "remote", "get-url", "origin", capture=True) != remote:
@@ -115,7 +115,7 @@ def prepare_feature(number):
 def open_pr(issue, body_file):
     token = os.environ["FORGEJO_TOKEN"]
     owner = "demo-owner"
-    repo = "ansible-collection-demo"
+    repo = "ansible-collection-demo.webapp"
     branch = f"feature/issue-{issue}"
     directory = Path.cwd() / f"issue-{issue}"
     if not directory.exists():
@@ -166,7 +166,7 @@ def open_pr(issue, body_file):
 def show_issue(issue):
     result = request(
         forgejo,
-        f"/api/v1/repos/demo-owner/ansible-collection-demo/issues/{issue}",
+        f"/api/v1/repos/demo-owner/ansible-collection-demo.webapp/issues/{issue}",
         token=os.environ["FORGEJO_TOKEN"],
     )
     if result.get("pull_request") or result.get("state") != "open":

@@ -95,7 +95,7 @@ nodes:
 
                 for Forgejo issue #${trigger.issue_number} in
 
-                demo-owner/ansible-collection-demo. Run
+                demo-owner/ansible-collection-demo.webapp. Run
 
                 demo-goldenpath checkout ${trigger.issue_number} to check out
 

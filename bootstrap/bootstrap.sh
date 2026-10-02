@@ -396,11 +396,6 @@ forgejo_api() {
 demo_forgejo_seed_repos() (
   root="$demo_repo_root/cluster/forgejo"
   config=${SEED_CONFIG:-$root/seed.json}
-  COLLECTION_SOURCE=${COLLECTION_SOURCE:-$root/fixtures/collection}
-  [[ -f $COLLECTION_SOURCE/galaxy.yml ]] || { echo 'Source must contain galaxy.yml' >&2; exit 2; }
-  if [[ $COLLECTION_SOURCE != "$root/fixtures/collection" ]]; then
-    git -C "$COLLECTION_SOURCE" rev-parse --verify HEAD >/dev/null
-  fi
   jq -e '.users | length > 0' "$config" >/dev/null
   users='[]'
   page=1
@@ -448,65 +443,37 @@ ASKPASS
       forgejo_api POST "/admin/users/$owner/repos" "$(jq '{name,description,private:(if has("private") then .private else true end),auto_init:false,default_branch:"main"}' <<< "$repo")" >/dev/null
     fi
     forgejo_api PATCH "/repos/$owner/$name" "$(jq '{private:(if has("private") then .private else true end)}' <<< "$repo")" >/dev/null
-    refs=$(git -c credential.helper= ls-remote "$FORGEJO_URL/$owner/$name.git")
+    source=$(jq -er '.source' <<< "$repo")
+    source_branch=$(jq -er '.source_branch // "main"' <<< "$repo")
+    [[ $source =~ ^https://github.com/aiops-ansible-software-factory-demojam/[a-zA-Z0-9_.-]+\.git$ ]] ||
+      demo_die 'Seed sources must be credential-free HTTPS demo GitHub repositories.'
+    git check-ref-format --branch "$source_branch" >/dev/null
+    # GitHub uses the repository-scoped ghapp credential helper. Disable the
+    # Forgejo askpass helper for this fetch so credentials cannot cross hosts.
+    source_work=$tmp/source-$name
+    GIT_ASKPASS= git clone -q --depth 1 --single-branch --branch "$source_branch" "$source" "$source_work"
+    source_revision=$(git -C "$source_work" rev-parse HEAD)
+    refs=$(git -c credential.helper= ls-remote "$FORGEJO_URL/$owner/$name.git" refs/heads/main)
+    work=$tmp/$name
     if [[ -z $refs ]]; then
-      source=$(jq -r '.source // ""' <<< "$repo")
-      [[ $name != ansible-collection-demo || -n $source ]] || source=$COLLECTION_SOURCE
-      [[ $name != ansible-collection-template || -n $source ]] || source=$root/fixtures/collection-template
-      [[ $name != demojam-ansible || -n $source ]] || source=$root/fixtures/demojam-ansible
-      work=$tmp/$name
       git init -q -b main "$work"
-      if [[ -n $source ]]; then
-        # Snapshot tracked HEAD only; omit .git, untracked secrets, and old history.
-        if [[ $source == "$root/fixtures/collection" ||
-              $source == "$root/fixtures/collection-template" ||
-              $source == "$root/fixtures/demojam-ansible" ]]; then
-          tar -C "$source" --exclude=.git --exclude=.venv --exclude=.ansible \
-            --exclude=.cache --exclude=__pycache__ --exclude='*.pyc' \
-            --exclude='*.tar.gz' --exclude='*.log' --exclude=context --exclude=artifacts \
-            --exclude=cluster-ca.crt --exclude=aap_manifest.zip \
-            --exclude=.env --exclude='.env.*' --exclude=.secrets \
-            -cf - . | tar -xf - -C "$work"
-        else
-          git -C "$source" archive HEAD | tar -x -C "$work"
-        fi
-      else
-        printf '# %s\n\n%s\n' "$name" "$(jq -r .description <<< "$repo")" > "$work/README.md"
-      fi
-      if [[ $name == ansible-collection-demo && ! -f $work/catalog-info.yaml ]]; then
-        cp "$root/fixtures/collection/catalog-info.yaml" "$work/catalog-info.yaml"
-      fi
-      find "$work" -type f -not -path '*/.git/*' -print0 |
-        xargs -0 -r sed -i "s|__FORGEJO_URL__|$FORGEJO_URL|g"
-      git -C "$work" add .
-      git -C "$work" -c user.name='Demo Maintainer' -c user.email=owner@example.test commit -qm 'Seed demo baseline'
-      git -C "$work" -c credential.helper= push -q "$FORGEJO_URL/$owner/$name.git" main
-    elif [[ $name == ansible-collection-template || $name == ansible-collection-demo || $name == demojam-ansible ]]; then
-      work=$tmp/$name
-      git -c credential.helper= clone -q "$FORGEJO_URL/$owner/$name.git" "$work"
-      if [[ $name == ansible-collection-template || $name == demojam-ansible ]]; then
-        # This fixture is seed-owned; preserve generated collections and feature work.
-        find "$work" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf -- {} +
-        fixture_dir="$root/fixtures/collection-template"
-        [[ $name != demojam-ansible ]] || fixture_dir="$root/fixtures/demojam-ansible"
-        tar -C "$fixture_dir" --exclude=.git --exclude=.venv \
-          --exclude=.ansible --exclude=.cache --exclude=__pycache__ \
-          --exclude='*.pyc' --exclude='*.tar.gz' -cf - . | tar -xf - -C "$work"
-        find "$work" -type f -not -path '*/.git/*' -print0 |
-          xargs -0 -r sed -i "s|__FORGEJO_URL__|$FORGEJO_URL|g"
-      else
-        # Add the catalog descriptor to an already seeded collection without
-        # resetting its history or the agent's open feature branches.
-        cp "$root/fixtures/collection/catalog-info.yaml" "$work/catalog-info.yaml"
-        sed -i "s|__FORGEJO_URL__|$FORGEJO_URL|g" "$work/catalog-info.yaml"
-      fi
-      git -C "$work" add -A
-      if ! git -C "$work" diff --cached --quiet; then
-        git -C "$work" -c user.name='Demo Maintainer' \
-          -c user.email=owner@example.test commit -qm 'Reconcile demo catalog source'
-        git -C "$work" -c credential.helper= push -q origin main
-      fi
+    else
+      git -c credential.helper= clone -q --single-branch --branch main "$FORGEJO_URL/$owner/$name.git" "$work"
+      find "$work" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf -- {} +
     fi
+    # Snapshot contents, not source history; preserve Forgejo branches and PRs.
+    git -C "$source_work" archive HEAD | tar -x -C "$work"
+    source_url=${source%.git}
+    while IFS= read -r -d '' file; do
+      sed -i "s|__FORGEJO_URL__|$FORGEJO_URL|g; s|$source_url|$FORGEJO_URL/$owner/$name|g" "$work/$file"
+    done < <(git -C "$source_work" ls-files -z)
+    git -C "$work" add -A
+    if ! git -C "$work" diff --cached --quiet; then
+      git -C "$work" -c user.name='Demo Maintainer' -c user.email=owner@example.test \
+        commit -qm "Refresh demo baseline from $name ($source_revision)"
+      git -C "$work" -c credential.helper= push -q "$FORGEJO_URL/$owner/$name.git" main
+    fi
+    printf 'Refreshed %s/%s from %s at %s\n' "$owner" "$name" "$source_branch" "$source_revision"
     if [[ $name == ansible-collection-template ]]; then
       forgejo_api PATCH "/repos/$owner/$name" '{"template":true}' >/dev/null
     fi
@@ -519,7 +486,7 @@ ASKPASS
 
 demo_forgejo_issue() (
   root="$demo_repo_root/cluster/forgejo"
-  repo=demo-owner/ansible-collection-demo
+  repo=demo-owner/ansible-collection-demo.webapp
   title='Add a test line to the README'
   issues=$(forgejo_api GET "/repos/$repo/issues?state=all&limit=100")
   existing=$(jq -r --arg title "$title" \
@@ -615,9 +582,6 @@ demo_forgejo_lifecycle() (
     seed) cluster; route; seed ;;
     reset)
       [[ ${2:-} == --confirm-forgejo ]] || { echo 'Usage: demo.sh reset --confirm-forgejo (erases demo data)' >&2; exit 2; }
-      COLLECTION_SOURCE=${COLLECTION_SOURCE:-$root/fixtures/collection}
-      export COLLECTION_SOURCE
-      [[ -f $COLLECTION_SOURCE/galaxy.yml ]] || exit 2
       cluster
       [[ $(oc get namespace "$namespace" -o jsonpath='{.metadata.labels.app\.kubernetes\.io/part-of}') == forgejo ]] || exit 2
       route
@@ -798,7 +762,7 @@ demo_verify_goldenpaths() (
       ready=true
       for ref in template/default/ansible-collection \
         template/default/ansible-collection-feature \
-        component/default/ansible-collection-demo; do
+        component/default/ansible-collection-demo.webapp; do
         if ! curl -fsS --max-time 20 -o /dev/null \
           -H "Authorization: Bearer $token" \
           "$base_url/api/catalog/entities/by-name/$ref" 2>/dev/null; then
