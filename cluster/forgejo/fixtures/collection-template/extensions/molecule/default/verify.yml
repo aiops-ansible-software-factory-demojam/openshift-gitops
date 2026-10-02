@@ -1,3 +1,0 @@
----
-- name: Verify the demo test hosts
-  ansible.builtin.import_playbook: ../utils/playbooks/verify.yml

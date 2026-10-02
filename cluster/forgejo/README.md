@@ -2,15 +2,20 @@
 
 The `forgejo` namespace runs a disposable Forgejo instance with SQLite
 and Git data on one PVC. GitOps owns the deployment, Service, Route, and PVC.
-The fixture in `fixtures/collection` becomes the public
-`demo-owner/ansible-collection-demo` repository, containing `demo.webapp`. It
-follows the collection-template layout, with a default hello-world Molecule
-scenario and an `nginx` scenario that exercises `demo.webapp.nginx`. In a demo
-Omnigent sandbox, run `molecule test`, `molecule test -s nginx`, or `make test`
-from the collection root. Both scenarios use the shared CentOS Stream 10 YAML inventory;
-the RHEL 10 entry is commented out pending repository prerequisites; serialize runs because the VM names are fixed. The fixture in
-`fixtures/collection-template` becomes the Forgejo template repository used
-by Developer Hub. The issue text is in `fixtures/readme-test-issue.md`.
+Bootstrap snapshots the three GitHub sources declared in `seed.json`:
+
+- `ansible-collection-demo.webapp` → `demo-owner/ansible-collection-demo.webapp`
+- `ansible-collection-template` → `demo-agent/ansible-collection-template`
+- `demojam-ansible` → `demo-owner/demojam-ansible`
+
+GitHub owns the baseline contents. Each hydration refreshes Forgejo `main`
+from the selected source branch with a normal commit; source history is not
+imported. Forgejo stays writable, so the agent can push feature branches and
+open PRs. Existing branches and PRs survive hydration. Changes merged only
+into Forgejo `main` are replaced by the next GitHub refresh. Public GitHub
+links and `__FORGEJO_URL__` placeholders are localized to this Forgejo instance.
+GitHub fetches use the repository-scoped ghapp credential helper.
+The example issue text remains in `fixtures/readme-test-issue.md`.
 AO runs the Developer Hub feature template before it starts the agent.
 
 Browser users authenticate through the independent
@@ -19,12 +24,9 @@ source; accounts are created on first login and `demo-admins` maps to site
 administrators. The seed's local automation accounts remain available for
 repository hydration and API tokens. Hydration restores OIDC after a reset.
 
-The fixture in [`fixtures/demojam-ansible`](fixtures/demojam-ansible/README.md)
-becomes `demo-owner/demojam-ansible`. It contains inventory-driven AAP
-configuration and OpenShift Virtualization VM create/delete automation.
-`demo-agent` and `demo-reviewer` have write access. Normal hydration preserves
-this repository's feature branches and reconciles its seed-owned `main` from
-the checked-in fixture; a reset restores all repositories to their baseline.
+The [demojam-ansible source](https://github.com/aiops-ansible-software-factory-demojam/demojam-ansible)
+contains inventory-driven AAP configuration and OpenShift Virtualization
+VM create/delete automation. `demo-agent` and `demo-reviewer` have write access.
 
 ## Hydrate
 
@@ -46,14 +48,9 @@ the agent token with the model settings. Credentials stay in ignored
 The demo identities are `demo-owner`, `demo-agent`, and `demo-reviewer`; their
 passwords equal their usernames on this disposable instance. `demo-agent` is
 a write collaborator and its token has `write:repository`, `write:issue`, and
-`read:user` scopes. The agent can push a branch and open a PR. Hydration only
-adds the catalog descriptor to a populated demo collection, preserving feature
-work. It reconciles the template source and AAP config from their checked-in
-fixtures. All hydration logic lives in `bootstrap/bootstrap.sh`.
-
-To seed a different collection checkout, set `COLLECTION_SOURCE` to its path
-before hydration. The seed takes a snapshot of tracked `HEAD` files and does
-not modify the source checkout. Keep that commit stable for repeatable resets.
+`read:user` scopes. The agent can push a branch and open a PR. All hydration logic lives in
+`bootstrap/bootstrap.sh`. To change a baseline, update its GitHub source and
+run `make demo-hydrate`. `seed.json` selects each source URL and branch.
 
 ## Launch and inspect
 
@@ -103,6 +100,6 @@ GitOps Application to have self-heal enabled. A `Retain` storage reclaim
 policy may leave the old PV; reset is not secure erasure.
 
 `seed.json` declares the collection, collection template, and AAP config repositories.
-`fixtures/collection` is intentionally missing the requested README line so
+The GitHub collection baseline is intentionally missing the requested README line so
 each reset presents the same work to the agent. Launch it through AO's explicit
 API workflow.
