@@ -94,7 +94,7 @@ Its success confirms agent handoff. The agent continues asynchronously;
 inspect its session for checks and the PR URL using the
 [Omnigent session guide](cluster/omnigent/README.md).
 Run `make demo-reset` to restore the configured starting point after either flow.
-See the detailed [AAP guide](cluster/forgejo/fixtures/demojam-ansible/README.md)
+See the detailed [AAP guide](https://github.com/aiops-ansible-software-factory-demojam/demojam-ansible/blob/main/README.md)
 and [Forgejo guide](cluster/forgejo/README.md).
 
 ## Requirements
@@ -334,7 +334,7 @@ template and its SCM inventory, launches it through the AAP API, and waits for
 its Controller job to succeed. First and subsequent dispatches run inside AAP.
 All demo templates and inventory sources use
 Red Hat `ee-supported-rhel9`, pinned by digest. The seeded `demojam-ansible`
-repository's [requirements.yml](cluster/forgejo/fixtures/demojam-ansible/requirements.yml)
+repository's [requirements.yml](https://github.com/aiops-ansible-software-factory-demojam/demojam-ansible/blob/main/requirements.yml)
 installs `infra.aap_configuration` from public Galaxy and the example collection
 from public Forgejo. Controller isolates its collection cache, so requirements
 also copy CaC's certified dependencies from the supported image into that cache.
@@ -342,7 +342,7 @@ They do not download certified content or require a Hub token. OpenShift uses
 its existing registry authentication to pull the supported EE. Tekton remains
 for the separate OpenCode sandbox image build.
 
-See the [AAP config guide](cluster/forgejo/fixtures/demojam-ansible/README.md)
+See the [AAP config guide](https://github.com/aiops-ansible-software-factory-demojam/demojam-ansible/blob/main/README.md)
 for the script/dispatch boundary and reset behavior.
 
 ## Run an issue through AO
@@ -398,7 +398,7 @@ The [Developer Hub guide](cluster/rhdh/README.md) describes the templates
 and their relationship to the AO workflow.
 The [AAP guide](cluster/ansible-automation-platform/README.md) covers the
 single replica controller and EDA deployment. The seeded
-[AAP config-as-code guide](cluster/forgejo/fixtures/demojam-ansible/README.md)
+[AAP config-as-code guide](https://github.com/aiops-ansible-software-factory-demojam/demojam-ansible/blob/main/README.md)
 covers configuration and VM lifecycle automation. The [monitoring guide](cluster/user-workload-monitoring/README.md)
 covers blackbox probes and the webapp outage flow: user Alertmanager → EDA →
 AAP → a Forgejo collection issue.

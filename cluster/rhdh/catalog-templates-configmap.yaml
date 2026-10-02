@@ -89,13 +89,13 @@ data:
           action: http:backstage:request
           input:
             method: GET
-            path: /proxy/forgejo/repos/demo-owner/ansible-collection-demo/issues/${{ parameters.issue_number }}
+            path: /proxy/forgejo/repos/demo-owner/ansible-collection-demo.webapp/issues/${{ parameters.issue_number }}
         - id: branch
           name: Create an issue branch in the collection
           action: http:backstage:request
           input:
             method: POST
-            path: /proxy/forgejo/repos/demo-owner/ansible-collection-demo/branches
+            path: /proxy/forgejo/repos/demo-owner/ansible-collection-demo.webapp/branches
             headers:
               content-type: application/json
             body:

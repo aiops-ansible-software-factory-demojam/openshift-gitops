@@ -17,7 +17,7 @@ stable. Config-as-code creates the matching EDA credential, project, supported
 decision environment and `demojam-webapp-issues` activation.
 
 The rulebook starts AAP template `webapp_alert_issue`. Its playbook opens an
-issue in Forgejo `demo-owner/ansible-collection-demo`, recording the failed target
+issue in Forgejo `demo-owner/ansible-collection-demo.webapp`, recording the failed target
 and alert details. It reuses an open issue with the outage marker; the template
 serializes deliveries to prevent simultaneous duplicate creation. Close the
 issue after investigating. A later outage can then open a new issue.

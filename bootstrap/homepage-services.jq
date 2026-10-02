@@ -19,10 +19,10 @@ def listwidget($name;$url;$icon;$description;$items;$namefield;$label;$target):
       [["environment.bootstrapCompleted","Bootstrap completed"],["environment.revision","Git revision"],["environment.refreshed","Status refreshed"]])
   ]},
   {"Demo walkthrough":[
-    link("1. Choose an issue";($forgejo + "/demo-owner/ansible-collection-demo/issues");"forgejo";"Open the starter issue or describe a new feature"),
+    link("1. Choose an issue";($forgejo + "/demo-owner/ansible-collection-demo.webapp/issues");"forgejo";"Open the starter issue or describe a new feature"),
     link("2. Run the workflow";($ao + "/workflows");"mdi-sitemap";"Open omnigent-dispatch and run it with the issue number"),
     link("3. Follow the agent";$omnigent;"mdi-robot";"Watch the coding session and its progress"),
-    link("4. Review the pull request";($forgejo + "/demo-owner/ansible-collection-demo/pulls");"mdi-source-pull";"Review the proposed collection changes")
+    link("4. Review the pull request";($forgejo + "/demo-owner/ansible-collection-demo.webapp/pulls");"mdi-source-pull";"Review the proposed collection changes")
   ]},
   {"Automation":([
     $routes[0][] | .Automation // empty | .[]
