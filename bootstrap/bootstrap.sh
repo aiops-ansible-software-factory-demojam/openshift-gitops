@@ -393,6 +393,27 @@ forgejo_api() {
   rm -f "$response"
 }
 
+# Cache only fetched GitHub content in the ignored render directory. Bootstrap
+# also reads AAP's event-stream metadata before Forgejo exists on a fresh cluster.
+demo_source_checkout() (
+  local name=$1 source branch work
+  source=$(jq -er --arg name "$name" '.repositories[] | select(.name == $name) | .source' "$demo_repo_root/cluster/forgejo/seed.json")
+  branch=$(jq -er --arg name "$name" '.repositories[] | select(.name == $name) | .source_branch // "main"' "$demo_repo_root/cluster/forgejo/seed.json")
+  [[ $source =~ ^https://github.com/aiops-ansible-software-factory-demojam/[a-zA-Z0-9_.-]+\.git$ ]] ||
+    demo_die 'Seed sources must be credential-free HTTPS demo GitHub repositories.'
+  git check-ref-format --branch "$branch" >/dev/null
+  work="$demo_repo_root/.rendered/sources/$name"
+  mkdir -p "$demo_repo_root/.rendered/sources"
+  if [[ ! -d $work/.git ]]; then
+    GIT_ASKPASS='' git clone -q --depth 1 --single-branch --branch "$branch" "$source" "$work"
+  else
+    git -C "$work" remote set-url origin "$source"
+    GIT_ASKPASS='' git -C "$work" fetch -q --depth 1 origin "$branch"
+    git -C "$work" reset -q --hard FETCH_HEAD
+  fi
+  printf '%s\n' "$work"
+)
+
 demo_forgejo_seed_repos() (
   root="$demo_repo_root/cluster/forgejo"
   config=${SEED_CONFIG:-$root/seed.json}
@@ -451,7 +472,7 @@ ASKPASS
     # GitHub uses the repository-scoped ghapp credential helper. Disable the
     # Forgejo askpass helper for this fetch so credentials cannot cross hosts.
     source_work=$tmp/source-$name
-    GIT_ASKPASS= git clone -q --depth 1 --single-branch --branch "$source_branch" "$source" "$source_work"
+    GIT_ASKPASS='' git clone -q --depth 1 --single-branch --branch "$source_branch" "$source" "$source_work"
     source_revision=$(git -C "$source_work" rev-parse HEAD)
     refs=$(git -c credential.helper= ls-remote "$FORGEJO_URL/$owner/$name.git" refs/heads/main)
     work=$tmp/$name
@@ -1289,7 +1310,7 @@ demo_alerting_prepare() (
   host=${AAP_HOST:-https://aap-ansible-automation-platform.$domain}
   host=${host%/}
   uuid=$(yq -er '.demo_eda_event_stream.uuid' \
-    "$demo_repo_root/cluster/forgejo/fixtures/demojam-ansible/group_vars/aap/eda.yml")
+    "$(demo_source_checkout demojam-ansible)/group_vars/aap/eda.yml")
   oc apply --server-side --field-manager=demo-bootstrap \
     -f "$demo_repo_root/cluster/user-workload-monitoring/blackbox-exporter/blackbox-exporter-namespace.yaml"
   if [[ -n $(oc -n blackbox-exporter get secret webapp-eda-webhook --ignore-not-found -o name) ]]; then
@@ -1449,7 +1470,7 @@ aap_dispatch() {
 aap_wait_eda() {
   local name query status previous='' deadline=$((SECONDS + 600))
   name=$(yq -er '.demo_eda_activation.name' \
-    "$demo_repo_root/cluster/forgejo/fixtures/demojam-ansible/group_vars/aap/eda.yml")
+    "$(demo_source_checkout demojam-ansible)/group_vars/aap/eda.yml")
   query=$(jq -rn --arg name "$name" '$name | @uri')
   while (( SECONDS < deadline )); do
     status=$(aap_request GET "activations/?name=$query" '' /api/eda/v1/ |
