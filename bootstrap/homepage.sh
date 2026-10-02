@@ -78,7 +78,8 @@ demo_homepage_accounts() (
   curl --fail --silent --show-error --connect-timeout 10 --max-time 30 --config "$aap_scratch/ao.conf" \
     "$base/users/$user/groups" >"$aap_scratch/memberships.json"
   if ! jq -e --arg id "$(jq -r '.[0]' <<<"$groups")" \
-    '(.resources // .groups // .) | length == 1 and any(.[]; .id == $id)' "$aap_scratch/memberships.json" >/dev/null; then
+    '.resources | map(select(.name != "authenticated")) | length == 1 and any(.[]; .id == $id)' \
+    "$aap_scratch/memberships.json" >/dev/null; then
     jq -n --argjson groups "$groups" '{group_ids:$groups}' >"$aap_scratch/memberships-request.json"
     curl --fail --silent --show-error --connect-timeout 10 --max-time 30 --config "$aap_scratch/ao.conf" \
       -X PUT -H 'Content-Type: application/json' --data-binary "@$aap_scratch/memberships-request.json" \

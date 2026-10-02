@@ -46,6 +46,7 @@ projects:
 
 applications:
   homepage:
+    autoSyncPrune: true
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '40'

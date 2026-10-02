@@ -111,7 +111,7 @@ async function eda() {
 }
 
 let aoToken, aoExpiry = 0;
-async function aoGet(path) {
+async function aoGet(path, retry = true) {
   const base = `${settings().aoUrl}/api/v1`;
   if (!aoToken || Date.now() >= aoExpiry) {
     const auth = await request(`${base}/auth/login`, { headers: { 'Content-Type': 'application/json' },
@@ -121,7 +121,13 @@ async function aoGet(path) {
     aoExpiry = claims.exp * 1000 - 60000;
   }
   try { return await request(`${base}${path}`, { headers: { Authorization: `Bearer ${aoToken}` } }); }
-  catch (error) { if (error.message === 'HTTP 401') aoExpiry = 0; throw error; }
+  catch (error) {
+    if (error.message === 'HTTP 401') {
+      aoExpiry = 0;
+      if (retry) return aoGet(path, false);
+    }
+    throw error;
+  }
 }
 async function orchestrator() {
   const workflows = await aoGet('/workflows?name=omnigent-dispatch&limit=100');
