@@ -110,7 +110,7 @@ Bootstrap builds this image with a one-off Tekton run. Buildah keeps its layers
 on a temporary PVC to avoid filling the SNO node disk. To rebuild explicitly:
 
 ```bash
-bash bootstrap/sandbox-image.sh
+make sandbox-build
 ```
 
 Publish image source changes before building; the script builds the checked-out
