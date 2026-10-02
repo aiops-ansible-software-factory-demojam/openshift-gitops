@@ -148,7 +148,7 @@ demo_homepage_configure() (
         "webapp-vms": {name:"Webapp",group:"Demo applications",icon:"nginx",description:"RHEL web application"},
         "openshift-gitops": {name:"Argo CD",group:"Platform",icon:"argo-cd",description:"GitOps application health"},
         "openshift-console": {name:"OpenShift Console",group:"Platform",icon:"openshift",description:"Cluster resources and workloads"},
-        "demojam-keycloak": {name:"My Keycloak account",group:"Identity",icon:"keycloak",description:"Demo account and password",suffix:"/realms/demo/account/"}
+        "demojam-keycloak": {name:"Keycloak Admin",group:"Platform",icon:"keycloak",description:"Manage the demo realm",suffix:"/admin/demo/console/"}
       };
     [.items[] | .metadata.namespace as $ns | known[$ns] as $info |
       select($info != null) | (.status.ingress[0].host // .spec.host // "") as $host |
@@ -159,8 +159,6 @@ demo_homepage_configure() (
     group_by(.namespace) | map(if length == 1 then . else map(.name += (" (" + .route + ")")) end) | flatten |
     . + ([.[] | select(.namespace == "openshift-console" and .route == "console") |
       {name:"Monitoring",group:"Platform",icon:"prometheus",description:"Metrics and alerts",href:(.href + "/monitoring") }]) |
-    . + ([.[] | select(.namespace == "demojam-keycloak") |
-      {name:"Keycloak Admin",group:"Identity",icon:"keycloak",description:"Manage the demo realm",href:(.href | sub("/realms/demo/account/$"; "/admin/demo/console/"))}]) |
     sort_by(.group,.name) | group_by(.group) |
     map({(.[0].group):map({(.name):{href:.href,icon:.icon,description:.description}})})
   ' "$scratch/routes.json" >"$scratch/routes-services.json"
