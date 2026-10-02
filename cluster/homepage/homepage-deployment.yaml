@@ -12,6 +12,7 @@ spec:
       labels:
         app: homepage
     spec:
+      serviceAccountName: homepage-dashboard
       automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
@@ -39,6 +40,47 @@ spec:
             limits:
               memory: 128Mi
       containers:
+        - name: dashboard
+          image: ghcr.io/gethomepage/homepage:v1.13.2@sha256:a0b71c8e757298d02560186bab9fbe3fc2d375c523a62cc1019177b37e48aa28
+          command:
+            - node
+            - /app/dashboard/dashboard.cjs
+          volumeMounts:
+            - name: dashboard-code
+              mountPath: /app/dashboard
+              readOnly: true
+            - name: dashboard-kubernetes
+              mountPath: /var/run/dashboard/kubernetes
+              readOnly: true
+            - name: dashboard-credentials
+              mountPath: /var/run/dashboard/credentials
+              readOnly: true
+            - name: dashboard-environment
+              mountPath: /var/run/dashboard/environment
+              readOnly: true
+          readinessProbe:
+            exec:
+              command:
+                - node
+                - -e
+                - fetch('http://127.0.0.1:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+          livenessProbe:
+            exec:
+              command:
+                - node
+                - -e
+                - fetch('http://127.0.0.1:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 10m
+              memory: 48Mi
+            limits:
+              memory: 128Mi
         - name: homepage
           image: ghcr.io/gethomepage/homepage:v1.13.2@sha256:a0b71c8e757298d02560186bab9fbe3fc2d375c523a62cc1019177b37e48aa28
           env:
@@ -162,6 +204,31 @@ spec:
             limits:
               memory: 128Mi
       volumes:
+        - name: dashboard-code
+          configMap:
+            name: homepage-dashboard
+        - name: dashboard-kubernetes
+          projected:
+            sources:
+              - serviceAccountToken:
+                  path: token
+                  expirationSeconds: 3600
+              - configMap:
+                  name: kube-root-ca.crt
+                  items:
+                    - key: ca.crt
+                      path: ca.crt
+              - configMap:
+                  name: homepage-service-ca
+                  items:
+                    - key: service-ca.crt
+                      path: service-ca.crt
+        - name: dashboard-credentials
+          secret:
+            secretName: homepage-dashboard-credentials
+        - name: dashboard-environment
+          configMap:
+            name: homepage-environment
         - name: config
           projected:
             sources:

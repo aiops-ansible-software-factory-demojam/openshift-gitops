@@ -6,6 +6,18 @@ headerStyle: clean
 hideVersion: true
 disableCollapse: true
 layout:
+  Demo walkthrough:
+    style: row
+    columns: 4
+  Live status:
+    style: row
+    columns: 3
+  Automation activity:
+    style: row
+    columns: 3
+  Environment:
+    style: row
+    columns: 2
   Demo applications:
     style: row
     columns: 3
@@ -15,3 +27,9 @@ layout:
   Identity:
     style: row
     columns: 2
+  Git repositories:
+    style: row
+    columns: 3
+  Useful shortcuts:
+    style: row
+    columns: 3

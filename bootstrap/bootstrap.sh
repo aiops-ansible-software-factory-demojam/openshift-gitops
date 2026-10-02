@@ -1901,8 +1901,8 @@ demo_bootstrap() (
   demo_webapp nginx
   demo_step 'Verify the webapp and monitoring probe'
   demo_webapp verify
-  demo_step 'Populate and verify Homepage navigation'
-  demo_homepage_configure
+  demo_step 'Populate and verify Homepage navigation and dashboard'
+  demo_homepage_configure bootstrap
 
   printf '\nBootstrap completed on %s at %s.\n' "$gitops_branch" "$target_revision"
   for ref in homepage/homepage demojam-keycloak/keycloak forgejo/forgejo rhdh/backstage-rhdh-developer-hub \
@@ -1928,7 +1928,7 @@ Usage: bash bootstrap/bootstrap.sh [COMMAND]
   sandbox-build      Build the configured :latest sandbox image
   model-config       Apply the selected model/agent configuration
   identity           Reconcile demo users, clients and application login
-  homepage-refresh   Refresh Homepage links from the actual demo Routes
+  homepage-refresh   Refresh Homepage links, repositories and environment details
   hydrate            Seed Forgejo and refresh Backstage/agent credentials
   reconcile-workflow Validate and publish the AO workflow
   aap-configure      Prepare AAP credentials/license and run config-as-code

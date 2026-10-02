@@ -6,8 +6,11 @@ resources:
   - homepage-deployment.yaml
   - homepage-service.yaml
   - homepage-route.yaml
+  - homepage-rbac.yaml
 configMapGenerator:
   - name: homepage-config
+    options:
+      disableNameSuffixHash: false
     files:
       - config/settings.yaml
       - config/widgets.yaml
@@ -17,5 +20,8 @@ configMapGenerator:
       - config/proxmox.yaml
       - config/custom.css
       - config/custom.js
-generatorOptions:
-  disableNameSuffixHash: true
+  - name: homepage-dashboard
+    options:
+      disableNameSuffixHash: false
+    files:
+      - dashboard.cjs

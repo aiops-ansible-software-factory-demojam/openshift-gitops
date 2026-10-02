@@ -10,7 +10,7 @@ help:
 	  'make preflight     Read-only local/cluster prerequisites; .env, manifest, KUBECONFIG' \
 	  'make bootstrap     Install platform, provision RHEL/nginx, verify; publish branch first' \
 	  'make identity      Reconcile demo users and OIDC clients/providers on an installed stack' \
-	  'make homepage-refresh Regenerate navigation links from demo Routes' \
+	  'make homepage-refresh Refresh dashboard links, repositories and environment details' \
 	  'make sandbox-build Build/publish the sandbox image in cluster; installed operators' \
 	  'make demo-hydrate  Seed Forgejo/refresh credentials; print the issue URL/number' \
 	  'make demo ISSUE=N  Hydrate, then hand positive issue N to AO; agent runs asynchronously' \
