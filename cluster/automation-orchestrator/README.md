@@ -6,11 +6,11 @@ cluster Services. The gate uses a dedicated Developer Hub service token, validat
 the issue, invokes its feature template, and waits for the branch before AO
 creates a managed agent session. An existing issue branch is reused on a
 subsequent dispatch. The gate has no Forgejo credential or public Route. Bootstrap
-reconciles and publishes `workflows/omnigent-dispatch.yaml` after the Argo CD
+reconciles LLM/AAP integrations and publishes every `workflows/*.yaml` after the Argo CD
 rollout and the Omnigent Deployment become ready:
 
 ```bash
-bash cluster/automation-orchestrator/reconcile-omnigent-workflow.sh
+make ao-configure
 ```
 
 The script waits for the `AutomationOrchestrator` CR and UI/backend rollouts,
@@ -43,3 +43,8 @@ workflow HTTP hosts keep their separate allowlist and TLS verification remains
 enabled for the Keycloak provider. Bootstrap restarts an existing backend only
 if its running process has not loaded this setting; fresh installations get
 the ConfigMap before the operator starts the backend.
+
+See [workflows](workflows/README.md) for the simple question and AAP nginx
+examples, and their Make commands. LLM and AAP credentials are refreshed on
+reconciliation so changing `.env` or a regenerated cluster credential takes
+effect without deleting workflows.
