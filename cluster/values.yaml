@@ -110,6 +110,15 @@ applications:
       path: cluster/ansible-automation-platform
 
   automation-orchestrator:
+    # The selected provider and discovered AAP URL are bootstrap inputs.
+    ignoreDifferences:
+      - group: ""
+        kind: ConfigMap
+        name: automation-orchestrator-admin-settings
+        jsonPointers:
+          - /data/APP_INTEGRATION_URL_ALLOWED_HOSTS
+    syncOptions:
+      - RespectIgnoreDifferences=true
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: "30"

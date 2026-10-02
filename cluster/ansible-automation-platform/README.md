@@ -24,7 +24,7 @@ This is a standalone AAP deployment; AO's existing issue workflow does not
 depend on it.
 
 Forgejo hydration seeds the public `demo-owner/demojam-ansible` repository.
-Its [guide](../forgejo/fixtures/demojam-ansible/README.md) describes the
+Its [guide](https://github.com/aiops-ansible-software-factory-demojam/demojam-ansible/blob/main/README.md) describes the
 homelab-style dispatcher and VM lifecycle. GitOps owns `aap-vm-admin` and its
 RBAC in `automation-vms` and `webapp-vms`, plus OS disk clone permissions.
 Bootstrap creates its persistent API token and the AAP credential directly;
