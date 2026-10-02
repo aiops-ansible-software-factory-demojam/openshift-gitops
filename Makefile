@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := bootstrap
-export ISSUE TARGET
+export ISSUE
 
-.PHONY: help preflight bootstrap identity homepage-refresh model-config omnigent-auth sandbox-build verify-goldenpaths reconcile-workflow readiness demo-hydrate demo render demo-reset aap-configure aap-sync webapp-create webapp-nginx webapp-delete webapp-verify
+.PHONY: help preflight bootstrap identity homepage-refresh model-config sandbox-build demo-hydrate demo render demo-reset aap-configure aap-sync webapp-create webapp-nginx webapp-delete webapp-verify
 
 help:
 	@printf '%s\n' \
@@ -12,11 +12,7 @@ help:
 	  'make identity      Reconcile demo users and OIDC clients/providers on an installed stack' \
 	  'make homepage-refresh Refresh dashboard links, repositories and environment details' \
 	  'make model-config  Apply model/agent configuration from .env for new sessions' \
-	  'make omnigent-auth Reconcile Omnigent machine authentication' \
 	  'make sandbox-build Build/publish the sandbox image in cluster; installed operators' \
-	  'make verify-goldenpaths Verify the installed Backstage templates and catalog' \
-	  'make reconcile-workflow Validate and publish the AO issue workflow' \
-	  'make readiness TARGET=sandbox|aap Check installed workloads and required VM images' \
 	  'make demo-hydrate  Seed Forgejo/refresh credentials; print the issue URL/number' \
 	  'make demo ISSUE=N  Hydrate, then hand positive issue N to AO; agent runs asynchronously' \
 	  'make webapp-create Provision the RHEL webapp through AAP' \
@@ -40,23 +36,8 @@ homepage-refresh:
 model-config:
 	bash bootstrap/bootstrap.sh model-config
 
-omnigent-auth:
-	bash bootstrap/bootstrap.sh omnigent-auth
-
 sandbox-build:
 	bash bootstrap/bootstrap.sh sandbox-build
-
-verify-goldenpaths:
-	bash bootstrap/bootstrap.sh verify-goldenpaths
-
-reconcile-workflow:
-	bash bootstrap/bootstrap.sh reconcile-workflow
-
-readiness:
-	@case "$${TARGET:-}" in sandbox|aap) ;; *) \
-	  echo 'Usage: make readiness TARGET=sandbox|aap' >&2; exit 2 ;; \
-	esac; \
-	bash bootstrap/bootstrap.sh readiness "$$TARGET"
 
 demo-hydrate:
 	bash bootstrap/bootstrap.sh hydrate
