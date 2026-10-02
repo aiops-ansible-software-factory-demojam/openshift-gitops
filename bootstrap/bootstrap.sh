@@ -1089,7 +1089,8 @@ demo_ao_run() {
       failed|cancelled|canceled|timed_out)
         code=$(ao_curl GET "$base_url/executions/$execution/activities?limit=100" -H "$auth_header")
         ao_require_json 'read failed activities' "$code"
-        jq '{activities:[.resources[]? | {node:.activity_name,status,error:.error_message}]}' "$ao_response" >&2
+        jq '{activities:[.resources[]? | {node:.activity_name,status,
+          error:(.error_details // .output_data.error // .error_message)}]}' "$ao_response" >&2
         demo_die "AO workflow $name ended with $status." ;;
     esac
     sleep 5
