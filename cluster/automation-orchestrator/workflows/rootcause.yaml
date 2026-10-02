@@ -28,7 +28,7 @@ nodes:
     organization_name: demo
   position:
     x: 291
-    "y": -40.609375
+    "y": 0
 - id: airca
   type: agentic
   name: Get RCA and Next steps from AI
@@ -65,7 +65,7 @@ nodes:
   settings: {}
   position:
     x: 582
-    "y": -38.71875
+    "y": 0
 - id: createissue
   type: aap_job_template
   name: Create new Issue
@@ -80,7 +80,7 @@ nodes:
     use_input_variables: true
   position:
     x: 993
-    "y": -36.828125
+    "y": 0
 edges:
 - from: alertmanagereda
   to: auditlogs
