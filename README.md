@@ -60,11 +60,13 @@ make bootstrap
 Publish the checked-out revision to the selected `BOOTSTRAP_BRANCH` before
 bootstrap. Successful bootstrap reports healthy applications, configured AAP,
 and a ready RHEL webapp with working HTTPS and blackbox monitoring.
-Run `make bootstrap` for the full setup. Plain `make` and `make help` list
-commands without contacting services. Optional commands:
+Run `make bootstrap` for the full setup. Plain `make` and `make help` show
+the four routine demo actions; `make help-all` lists every setup and maintenance
+command. Both help targets work without contacting services. Optional commands:
 
 ```bash
-make help             # Show commands without contacting services
+make help             # Show the routine demo actions
+make help-all         # Show every setup and maintenance command
 make render           # Render manifests locally into .rendered/
 make preflight        # Check prerequisites without changing the cluster
 make identity         # Reconcile demo users, groups and application login
@@ -241,7 +243,8 @@ the script defines functions without executing setup.
 
 | Command | Purpose |
 | --- | --- |
-| `make` / `make help` | List commands without contacting services |
+| `make` / `make help` | Show the four routine demo actions without contacting services |
+| `make help-all` | List all setup and maintenance commands without contacting services |
 | `make bootstrap` | Install and configure the full platform, provision the RHEL webapp, install nginx, and verify |
 | `make preflight` | Check local inputs and cluster prerequisites without changes |
 | `make render` | Render manifests locally into `.rendered/` |
