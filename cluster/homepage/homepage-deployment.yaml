@@ -1,0 +1,242 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homepage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: homepage
+  template:
+    metadata:
+      labels:
+        app: homepage
+    spec:
+      serviceAccountName: homepage-dashboard
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: writable-page-cache
+          image: ghcr.io/gethomepage/homepage:v1.13.2@sha256:a0b71c8e757298d02560186bab9fbe3fc2d375c523a62cc1019177b37e48aa28
+          command:
+            - sh
+            - -c
+            - cp -R /app/.next/. /cache/
+          volumeMounts:
+            - name: page-cache
+              mountPath: /cache
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+      containers:
+        - name: dashboard
+          image: ghcr.io/gethomepage/homepage:v1.13.2@sha256:a0b71c8e757298d02560186bab9fbe3fc2d375c523a62cc1019177b37e48aa28
+          command:
+            - node
+            - /app/dashboard/dashboard.cjs
+          volumeMounts:
+            - name: dashboard-code
+              mountPath: /app/dashboard
+              readOnly: true
+            - name: dashboard-kubernetes
+              mountPath: /var/run/dashboard/kubernetes
+              readOnly: true
+            - name: dashboard-credentials
+              mountPath: /var/run/dashboard/credentials
+              readOnly: true
+            - name: dashboard-environment
+              mountPath: /var/run/dashboard/environment
+              readOnly: true
+          readinessProbe:
+            exec:
+              command:
+                - node
+                - -e
+                - fetch('http://127.0.0.1:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+          livenessProbe:
+            exec:
+              command:
+                - node
+                - -e
+                - fetch('http://127.0.0.1:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 10m
+              memory: 48Mi
+            limits:
+              memory: 128Mi
+        - name: homepage
+          image: ghcr.io/gethomepage/homepage:v1.13.2@sha256:a0b71c8e757298d02560186bab9fbe3fc2d375c523a62cc1019177b37e48aa28
+          env:
+            - name: HOMEPAGE_ALLOWED_HOSTS
+              valueFrom:
+                configMapKeyRef:
+                  name: homepage-endpoints
+                  key: allowed-hosts
+          ports:
+            - name: app
+              containerPort: 3000
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - node
+                  - -e
+                  - |
+                    // Replace the image's prebuilt page with the mounted settings on every start.
+                    (async () => {
+                      for (let attempt = 0; attempt < 60; attempt++) {
+                        try {
+                          const response = await fetch('http://127.0.0.1:3000/api/revalidate', {
+                            headers: { Host: process.env.HOMEPAGE_ALLOWED_HOSTS },
+                            signal: AbortSignal.timeout(5000),
+                          });
+                          if (response.ok) return;
+                        } catch {}
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                      }
+                      console.error('Homepage could not load its mounted configuration.');
+                      process.exit(1);
+                    })();
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+              readOnly: true
+            - name: logs
+              mountPath: /app/config/logs
+            - name: page-cache
+              mountPath: /app/.next
+          readinessProbe:
+            tcpSocket:
+              port: app
+          livenessProbe:
+            tcpSocket:
+              port: app
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 20m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+        - name: oauth2-proxy
+          image: quay.io/oauth2-proxy/oauth2-proxy:v7.13.0@sha256:56e3daedf765c7a1eea6e366fbe684be7d3084830ade14b6174570d3c7960954
+          args:
+            - --provider=oidc
+            - --http-address=0.0.0.0:4180
+            - --upstream=http://127.0.0.1:3000
+            - --email-domain=*
+            - --scope=openid profile email
+            - --oidc-groups-claim=groups
+            - --allowed-group=demo-users
+            - --allowed-group=demo-admins
+            - --code-challenge-method=S256
+            - --reverse-proxy=true
+            - --cookie-secure=true
+            - --cookie-samesite=lax
+            - --skip-provider-button=true
+          ports:
+            - name: http
+              containerPort: 4180
+          env:
+            - name: OAUTH2_PROXY_OIDC_ISSUER_URL
+              valueFrom:
+                secretKeyRef:
+                  name: demo-oidc
+                  key: issuer
+            - name: OAUTH2_PROXY_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: demo-oidc
+                  key: client-id
+            - name: OAUTH2_PROXY_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: demo-oidc
+                  key: client-secret
+            - name: OAUTH2_PROXY_COOKIE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: demo-oidc
+                  key: cookie-secret
+            - name: OAUTH2_PROXY_REDIRECT_URL
+              valueFrom:
+                secretKeyRef:
+                  name: demo-oidc
+                  key: redirect-url
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: http
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+      volumes:
+        - name: dashboard-code
+          configMap:
+            name: homepage-dashboard
+        - name: dashboard-kubernetes
+          projected:
+            sources:
+              - serviceAccountToken:
+                  path: token
+                  expirationSeconds: 3600
+              - configMap:
+                  name: kube-root-ca.crt
+                  items:
+                    - key: ca.crt
+                      path: ca.crt
+              - configMap:
+                  name: homepage-service-ca
+                  items:
+                    - key: service-ca.crt
+                      path: service-ca.crt
+        - name: dashboard-credentials
+          secret:
+            secretName: homepage-dashboard-credentials
+        - name: dashboard-environment
+          configMap:
+            name: homepage-environment
+        - name: config
+          projected:
+            sources:
+              - configMap:
+                  name: homepage-config
+              - configMap:
+                  name: homepage-links
+        - name: logs
+          emptyDir: {}
+        - name: page-cache
+          emptyDir: {}

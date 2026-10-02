@@ -1,6 +1,0 @@
----
-controller_execution_environments:
-  - name: demo-aap-ee
-    organization: demo
-    image: "{{ aap_ee_image }}"
-    pull: always

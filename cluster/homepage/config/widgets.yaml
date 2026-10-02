@@ -1,0 +1,7 @@
+- greeting:
+    text: AIOps Ansible Software Factory
+- datetime:
+    text_size: xl
+    format:
+      dateStyle: long
+      timeStyle: short

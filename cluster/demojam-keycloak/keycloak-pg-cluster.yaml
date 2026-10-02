@@ -1,0 +1,25 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: keycloak-pg
+  namespace: demojam-keycloak
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  instances: 1
+  # A single-instance database cannot preserve availability during disruption.
+  enablePDB: false
+  imageName: ghcr.io/cloudnative-pg/postgresql:15.18
+  bootstrap:
+    initdb:
+      database: keycloak
+      owner: keycloak
+  storage:
+    # Use the cluster default rather than assuming workshop or homelab storage.
+    size: 10Gi
+  monitoring:
+    enablePodMonitor: true
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi

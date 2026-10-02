@@ -1,21 +1,40 @@
 # User workload monitoring
 
-OpenShift's Cluster Monitoring Operator creates one user workload Prometheus,
-one Thanos Ruler, and one dedicated Alertmanager on this single node cluster.
-Each uses the default RBD StorageClass. No external alert receiver is
-configured yet; add one when the alert target is chosen.
+OpenShift's Cluster Monitoring Operator creates user workload Prometheus,
+Thanos Ruler and a dedicated Alertmanager. Bootstrap selects their persistent
+StorageClass. `enableAlertmanagerConfig: true` enables application-owned routing.
 
-The blackbox exporter runs one replica and probes the in-cluster Forgejo demo
-Service. The `Probe` and `ServiceMonitor` are scraped by user workload
-Prometheus. Check the rollout and the probe result with:
+Blackbox exporter probes the internal Forgejo and webapp HTTP Services. The
+`WebappDown` PrometheusRule fires when `probe_success{job="webapp"}` stays zero
+for one minute. Its namespaced AlertmanagerConfig sends firing notifications
+(after a ten-second group wait) to the authenticated EDA event stream. Resolved
+notifications are disabled; repeats occur hourly while the alert stays firing.
+
+Bootstrap creates or reuses `blackbox-exporter/webapp-eda-webhook` with a random
+Bearer token and the gateway webhook URL. No notification credentials are in
+Git. A fixed event stream UUID in the seeded Ansible inventory keeps the URL
+stable. Config-as-code creates the matching EDA credential, project, supported
+decision environment and `demojam-webapp-issues` activation.
+
+The rulebook starts AAP template `webapp_alert_issue`. Its playbook opens an
+issue in Forgejo `demo-owner/ansible-collection-demo`, recording the failed target
+and alert details. It reuses an open issue with the outage marker; the template
+serializes deliveries to prevent simultaneous duplicate creation. Close the
+issue after investigating. A later outage can then open a new issue.
+
+After publishing GitOps changes, run `make bootstrap`. For subsequent Ansible
+fixture changes run `make demo-hydrate`, then `make aap-configure` to reconcile
+configuration and credentials, or `make aap-sync` for configuration alone.
+
+Inspect monitoring without printing webhook credentials:
 
 ```bash
 oc -n openshift-user-workload-monitoring get prometheus,thanosruler,alertmanager
-oc -n openshift-user-workload-monitoring get pods
-oc -n blackbox-exporter get deployment,servicemonitor,probe
+oc -n blackbox-exporter get deployment,servicemonitor,probe,prometheusrule,alertmanagerconfig
 oc -n openshift-user-workload-monitoring exec prometheus-user-workload-0 -c prometheus -- \
-  wget -qO- 'http://127.0.0.1:9090/api/v1/query?query=probe_success%7Bjob%3D%22forgejo%22%7D'
+  /bin/promtool query instant http://localhost:9090 'probe_success{job="webapp"}'
 ```
 
-When an alert target is available, configure a receiver for the dedicated
-user workload Alertmanager. Do not add notification credentials to Git.
+The probe checks nginx availability on the internal Service, independently of
+the public Route's OIDC login. A missing probe series is not a `WebappDown`
+condition; this rule covers HTTP probe failures.

@@ -8,3 +8,5 @@ resources:
   - blackbox-exporter-servicemonitor.yaml
   - forgejo-probe.yaml
   - webapp-probe.yaml
+  - webapp-prometheusrule.yaml
+  - webapp-alertmanagerconfig.yaml

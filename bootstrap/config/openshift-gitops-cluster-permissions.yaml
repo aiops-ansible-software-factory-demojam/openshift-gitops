@@ -58,17 +58,12 @@ rules:
     verbs:
       - "*"
   - apiGroups:
-      - k8s.keycloak.org
-    resources:
-      - keycloaks
-      - keycloakrealmimports
-    verbs:
-      - "*"
-  - apiGroups:
       - monitoring.coreos.com
     resources:
       - probes
       - servicemonitors
+      - prometheusrules
+      - alertmanagerconfigs
     verbs:
       - "*"
   - apiGroups:
@@ -137,5 +132,5 @@ roleRef:
   name: openshift-gitops-demo-manager
 subjects:
   - kind: ServiceAccount
-    name: openshift-gitops-argocd-application-controller
+    name: demojam-gitops-argocd-application-controller
     namespace: openshift-gitops

@@ -8,7 +8,10 @@ branch is missing, waits for the Scaffolder task to complete, and confirms
 and tell `automation-developer` to implement the issue and open a PR.
 `../reconcile-omnigent-workflow.sh` validates, creates or updates, and publishes
 it after bootstrap. The machine client credential is stored in Orchestrator;
-its value is never stored in this YAML.
+its value is never stored in this YAML. A token-exchange node obtains a native
+Omnigent bearer token, and bootstrap inserts read-sharing nodes for enabled
+users from `DEMO_USERS_FILE` before sending the task. This allows those users to
+inspect the workflow's session after signing in with Keycloak.
 
 After `bash scripts/feature-demo.sh hydrate`, run
 `bash scripts/dispatch-issue.sh 1` at the repository root. It calls the

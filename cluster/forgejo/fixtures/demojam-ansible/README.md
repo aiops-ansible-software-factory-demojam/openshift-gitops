@@ -11,18 +11,21 @@ after populating its root `.env` and supplying `aap_manifest.zip`.
 
 1. GitOps reconciles AAP, OpenShift Pipelines, VM namespaces/RBAC/Services,
    Forgejo and monitoring.
-2. Bootstrap imports the license and creates/reuses the VM API, SSH, RHEL
-   entitlement and dispatch credentials. It creates an OAuth connection
-   Secret and applies the inventory/project CRs, waits for the real project
-   to sync, then creates the dispatch template CR. No credential values are seeded in Git.
-3. Bootstrap registers Red Hat `ee-supported-rhel9`, attaches it and the runtime
-   dispatch credential to the template, and syncs `inventory.yml` from this
-   project so the `aap` host exists. It launches `aap_configure_all` through the
-   AAP API and waits for the Controller job to succeed. Project updates install
-   `requirements.yml`; dispatch configures the remaining inventory sources and
-   templates. The Resource Operator owns the initial project/inventory/template
-   base fields. Static inventory supplies the VM API target; dynamic inventory
-   discovers running VMs. There is no standalone Kubernetes configuration Job.
+2. Bootstrap imports the license and reuses persistent Kubernetes API/SSH
+   material. It owns only the foundation required to run config-as-code:
+   organization `demo`, supported EE `demo-aap-ee`, public project
+   `demojam-ansible`, base `demo-inventory` with the local `aap` host/group,
+   Galaxy and dispatch credentials, the dispatch credential type, and
+   `aap_configure_all`. It waits for the public project sync, then launches
+   configuration inside AAP. No Resource Operator CRs or connection token
+   are needed.
+3. `group_vars/aap` and `infra.aap_configuration.dispatch` exclusively own
+   the VM/SSH/RHEL credential types and credentials, SCM inventory sources,
+   demo job templates, and EDA credentials/project/decision environment. Gateway OIDC configuration uses the supported
+   `ansible.platform` modules. Runtime values arrive through the dispatch
+   credential's environment variables and are consumed under secure logging.
+   Static inventory supplies the VM API target; dynamic inventory discovers
+   running VMs. Source credentials and VM SSH identity survive reruns.
 
 There is no custom AAP image build or Automation Hub token. Root `requirements.yml`
 installs `infra.aap_configuration` from public Galaxy and `demo.webapp` from
@@ -38,11 +41,35 @@ Forgejo authentication. For local development outside the cluster, use the suppo
 that hostname with your Forgejo Route or use a port forward. No Hub or Forgejo
 token is required for project requirements.
 
-Dispatch references the runtime credentials by name and does not create or
-rotate their secret inputs. Rerun `make aap-configure` in openshift-gitops to
-reconcile runtime credentials and dispatch. Subsequent configuration changes
-can use the AAP `aap_configure_all` template (`make aap-sync`). That template
-pulls current Forgejo content and uses its runtime AAP dispatch credential.
+Dispatch reconciles runtime credential objects using the persistent material
+supplied by bootstrap. Rerun `make aap-configure` to refresh the foundation,
+license, runtime material and configuration. Subsequent inventory configuration
+changes can use `make aap-sync`; the foundation changes remain in openshift-gitops.
+The dispatch credential provides `AAP_HOST`, `AAP_USERNAME`, `AAP_PASSWORD`,
+`AAP_EE_IMAGE`, `DEMO_OIDC_ISSUER`, `DEMO_OIDC_CLIENT_SECRET`, `DEMO_VM_API_HOST`,
+`DEMO_VM_API_TOKEN`, `DEMO_VM_API_CA`, `DEMO_VM_SSH_PRIVATE`,
+`DEMO_VM_SSH_PUBLIC`, `DEMO_RHEL_ENTITLEMENT_FILE`, `DEMO_EDA_WEBHOOK_TOKEN`,
+and `DEMO_FORGEJO_TOKEN`. The entitlement is injected as a private file to avoid process environment size
+limits. These inputs are required;
+missing material fails before any AAP objects are changed.
+
+Before dispatch, `configure-aap.yml` waits until EDA's organization API can
+resolve `demo`. EDA synchronizes shared organizations on a 15-minute schedule,
+so the first configuration run allows 20 minutes for synchronization. The check
+only reads the API; bootstrap still owns organization creation. If readiness
+times out, the job fails with a synchronization message before applying
+config-as-code objects. Check EDA worker health and gateway synchronization,
+then rerun `make aap-configure`.
+
+`group_vars/aap/oidc.yml` defines the independent demo Keycloak authenticator
+and access maps. Bootstrap adds `DEMO_OIDC_ISSUER` and
+`DEMO_OIDC_CLIENT_SECRET` to the runtime dispatch credential; these values
+are required when running `configure-aap.yml`. The supported EE's
+`ansible.platform` modules configure the gateway after the CaC dispatcher.
+Demo users join organization `demo`; `demo-admins` receive superuser access.
+Bootstrap then reads the gateway's generated callback URL and registers that
+exact URL in Keycloak. Regular organization membership does not grant every
+job template's execution permission.
 
 ## Launch and automate the RHEL webapp
 
@@ -89,3 +116,17 @@ first when testing fresh provisioning, then reset, bootstrap, and launch it
 again. Normal hydration preserves user commits; config changes must be pushed
 to Forgejo before dispatch. Manifest ZIPs and `.env` files are excluded from
 fixture snapshots.
+
+## Webapp outage issues
+
+`group_vars/aap/eda.yml` configures the authenticated Alertmanager event stream
+and activation. The supported `ansible.eda` modules apply the static stream
+UUID and activation source mapping after dispatch. Project updates restart the
+activation so updated rulebooks take effect.
+
+`rulebooks/webapp-alert-issue.yml` accepts firing `WebappDown` notifications
+from `blackbox-exporter` and starts `webapp_alert_issue`. The destination is
+fixed in `group_vars/aap/webapp_issue.yml`: Forgejo collection repository
+`demo-owner/ansible-collection-demo`. Its credential injects `FORGEJO_API_TOKEN`
+only into the issue job. Existing open outage issues are reused; template
+execution is serialized. Resolved notifications do not close issues.
