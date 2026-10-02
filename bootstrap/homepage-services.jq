@@ -12,6 +12,12 @@ def listwidget($name;$url;$icon;$description;$items;$namefield;$label;$target):
     mappings:{items:($items|split(".")[1:]|join(".")),name:$namefield,label:$label,limit:5,target:$target}};
 ($source + "/blob/" + $branch + "/") as $docs |
 [
+  {"Environment":[
+    widget("Current environment";($console + "/dashboards");"openshift";"The cluster serving this demo";
+      [["environment.cluster","Cluster"],["environment.ingress","Ingress"],["environment.branch","Branch"]]),
+    widget("Bootstrap and deployment";($source + "/tree/" + $branch);"github";"Last successful bootstrap and reconciled Git revision";
+      [["environment.bootstrapCompleted","Bootstrap completed"],["environment.revision","Git revision"],["environment.refreshed","Status refreshed"]])
+  ]},
   {"Demo walkthrough":[
     link("1. Choose an issue";($forgejo + "/demo-owner/ansible-collection-demo/issues");"forgejo";"Open the starter issue or describe a new feature"),
     link("2. Run the workflow";($ao + "/workflows");"mdi-sitemap";"Open omnigent-dispatch and run it with the issue number"),
@@ -22,23 +28,15 @@ def listwidget($name;$url;$icon;$description;$items;$namefield;$label;$target):
     $routes[0][] | .Automation // empty | .[]
   ] + [
     link("AAP job templates";($aap + "/execution/templates");"ansible";"Provision, configure or remove the webapp"),
-    link("EDA rulebook activations";($aap + "/decisions/rulebook-activations");"ansible";"Inspect the webapp alert handler"),
-    link("Collection issues";($forgejo + "/demo-owner/ansible-collection-demo/issues");"forgejo";"Feature requests and webapp outage issues"),
-    link("Collection pull requests";($forgejo + "/demo-owner/ansible-collection-demo/pulls");"mdi-source-pull";"Review agent changes"),
-    link("Workflow guide";($docs + "cluster/automation-orchestrator/workflows/README.md");"mdi-sitemap";"How issue-to-PR dispatch works"),
-    link("Alerting guide";($docs + "cluster/user-workload-monitoring/README.md");"prometheus";"Blackbox → Alertmanager → EDA → issue")
-  ])},
-  {"Environment":[
-    widget("Current environment";($console + "/dashboards");"openshift";"The cluster serving this demo";
-      [["environment.cluster","Cluster"],["environment.ingress","Ingress"],["environment.branch","Branch"]]),
-    widget("Bootstrap and deployment";($source + "/tree/" + $branch);"github";"Last successful bootstrap and reconciled Git revision";
-      [["environment.bootstrapCompleted","Bootstrap completed"],["environment.revision","Git revision"],["environment.refreshed","Status refreshed"]])
-  ]}
+    link("EDA rulebook activations";($aap + "/decisions/rulebook-activations");"ansible";"Inspect the webapp alert handler")
+  ])}
 ] + ($routes[0] | map(select(has("Automation") | not))) + [
   {"Git repositories":($repos[0]|map(link(.name;.href;(if .href|contains("github.com") then "github" else "forgejo" end);.description)))},
   {"Useful shortcuts":[
     link("Demo guide";($docs + "README.md");"mdi-book-open-page-variant";"Setup, demo flow and maintenance commands"),
     link("Homepage guide";($docs + "cluster/homepage/README.md");"homepage";"Dashboard configuration and refresh"),
+    link("Workflow guide";($docs + "cluster/automation-orchestrator/workflows/README.md");"mdi-sitemap";"How issue-to-PR dispatch works"),
+    link("Alerting guide";($docs + "cluster/user-workload-monitoring/README.md");"prometheus";"Blackbox → Alertmanager → EDA → issue"),
     link("Golden paths";($rhdh + "/create");"backstage";"Create a collection or dispatch a feature"),
     link("Webapp virtual machine";($console + "/k8s/ns/webapp-vms/kubevirt.io~v1~VirtualMachine/webapp");"mdi-desktop-classic";"VM status, console and lifecycle"),
     link("Monitoring alerts";($console + "/monitoring/alerts");"prometheus";"Inspect WebappDown and other alerts")
