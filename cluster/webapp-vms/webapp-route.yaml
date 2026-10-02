@@ -7,7 +7,7 @@ spec:
   subdomain: webapp
   to:
     kind: Service
-    name: webapp
+    name: webapp-login
   port:
     targetPort: http
   tls:

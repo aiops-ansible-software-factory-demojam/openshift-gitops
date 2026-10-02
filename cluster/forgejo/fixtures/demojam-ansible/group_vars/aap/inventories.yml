@@ -1,5 +1,5 @@
 ---
-# The bootstrap AnsibleInventory CR owns demo-inventory.
+# Bootstrap owns the base demo-inventory; dispatch owns its SCM sources.
 controller_inventory_sources:
   - name: demo-inventory-scm
     organization: demo

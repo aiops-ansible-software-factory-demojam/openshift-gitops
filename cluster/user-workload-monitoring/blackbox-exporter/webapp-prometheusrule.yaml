@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: webapp-availability
+  namespace: blackbox-exporter
+spec:
+  groups:
+    - name: demojam.webapp
+      rules:
+        - alert: WebappDown
+          expr: probe_success{job="webapp",namespace="blackbox-exporter"} == 0
+          for: 1m
+          labels:
+            severity: warning
+            demo_component: webapp
+          annotations:
+            summary: The demo webapp is unavailable
+            description: The blackbox HTTP probe for {{ $labels.instance }} has failed for at least one minute.

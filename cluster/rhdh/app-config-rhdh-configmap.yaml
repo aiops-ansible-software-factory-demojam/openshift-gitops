@@ -12,6 +12,16 @@ data:
       baseUrl: ${RHDH_URL}
     backend:
       baseUrl: ${RHDH_URL}
+      auth:
+        externalAccess:
+          - type: static
+            options:
+              token: ${BACKSTAGE_TOKEN}
+              subject: demo-automation
+            accessRestrictions:
+              - plugin: catalog
+              - plugin: scaffolder
+              - plugin: proxy
       database:
         client: pg
         connection:
@@ -20,9 +30,22 @@ data:
           user: ${username}
           password: ${password}
     auth:
+      environment: production
+      session:
+        secret: ${DEMO_OIDC_SESSION_SECRET}
       providers:
-        guest:
-          dangerouslyAllowOutsideDevelopment: true
+        oidc:
+          production:
+            clientId: ${DEMO_OIDC_CLIENT_ID}
+            clientSecret: ${DEMO_OIDC_CLIENT_SECRET}
+            metadataUrl: ${DEMO_OIDC_ISSUER}
+            prompt: auto
+            signIn:
+              resolvers:
+                - resolver: preferredUsernameMatchingUserEntityName
+    signInPage: oidc
+    permission:
+      enabled: false
     integrations:
       gitea:
         - host: ${FORGEJO_HOST}
@@ -39,6 +62,11 @@ data:
             Authorization: token ${FORGEJO_TOKEN}
     catalog:
       locations:
+        - type: file
+          target: /opt/app-root/src/demo-users.yaml
+          rules:
+            - allow:
+                - User
         - type: file
           target: /opt/app-root/src/ansible-collection-template.yaml
           rules:

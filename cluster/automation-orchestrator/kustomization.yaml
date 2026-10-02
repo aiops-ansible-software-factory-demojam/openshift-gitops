@@ -10,6 +10,7 @@ resources:
   - orchestrator-pg-cluster.yaml
   - temporal-database.yaml
   - temporal-visibility-database.yaml
+  - automation-orchestrator-admin-settings.yaml
   - automation-orchestrator-automationorchestrator.yaml
   - backstage-feature-gate.yaml
 configMapGenerator:

@@ -22,6 +22,7 @@ data:
               storage: 5Gi
     alertmanager:
       enabled: true
+      enableAlertmanagerConfig: true
       volumeClaimTemplate:
         spec:
           storageClassName: ocs-external-storagecluster-ceph-rbd

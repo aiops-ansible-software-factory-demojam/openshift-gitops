@@ -1,0 +1,32 @@
+title: Demojam
+description: AIOps Ansible Software Factory
+theme: dark
+color: slate
+headerStyle: clean
+hideVersion: true
+disableCollapse: true
+layout:
+  Environment:
+    style: row
+    columns: 2
+  Demo walkthrough:
+    style: row
+    columns: 4
+  Automation:
+    style: row
+    columns: 3
+  Demo applications:
+    style: row
+    columns: 3
+  Platform:
+    style: row
+    columns: 3
+  Git repositories:
+    style: row
+    columns: 3
+  Useful shortcuts:
+    style: row
+    columns: 3
+  Live status:
+    style: row
+    columns: 3

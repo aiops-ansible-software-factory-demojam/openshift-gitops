@@ -1,0 +1,19 @@
+# Bootstrap merges this provider into OAuth/cluster after Keycloak is ready.
+name: demojam-keycloak
+type: OpenID
+mappingMethod: claim
+openID:
+  clientID: openshift
+  clientSecret:
+    name: demojam-keycloak-oidc
+  issuer: DEMO_OIDC_ISSUER
+  extraScopes:
+    - email
+    - profile
+  claims:
+    preferredUsername:
+      - preferred_username
+    name:
+      - name
+    email:
+      - email

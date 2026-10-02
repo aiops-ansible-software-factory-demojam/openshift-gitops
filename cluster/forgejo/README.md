@@ -2,7 +2,7 @@
 
 The `forgejo` namespace runs a disposable Forgejo instance with SQLite
 and Git data on one PVC. GitOps owns the deployment, Service, Route, and PVC.
-The fixture in `fixtures/collection` becomes the private
+The fixture in `fixtures/collection` becomes the public
 `demo-owner/ansible-collection-demo` repository, containing `demo.webapp`. It
 follows the collection-template layout, with a default hello-world Molecule
 scenario and an `nginx` scenario that exercises `demo.webapp.nginx`. In a demo
@@ -13,11 +13,18 @@ the RHEL 10 entry is commented out pending repository prerequisites; serialize r
 by Developer Hub. The issue text is in `fixtures/readme-test-issue.md`.
 AO runs the Developer Hub feature template before it starts the agent.
 
+Browser users authenticate through the independent
+[demo Keycloak](../demojam-keycloak/README.md). Bootstrap maintains the `demojam-keycloak` OIDC
+source; accounts are created on first login and `demo-admins` maps to site
+administrators. The seed's local automation accounts remain available for
+repository hydration and API tokens. Hydration restores OIDC after a reset.
+
 The fixture in [`fixtures/demojam-ansible`](fixtures/demojam-ansible/README.md)
 becomes `demo-owner/demojam-ansible`. It contains inventory-driven AAP
 configuration and OpenShift Virtualization VM create/delete automation.
 `demo-agent` and `demo-reviewer` have write access. Normal hydration preserves
-this repository's feature work; a reset restores its checked-in baseline.
+this repository's feature branches and reconciles its seed-owned `main` from
+the checked-in fixture; a reset restores all repositories to their baseline.
 
 ## Hydrate
 
@@ -41,7 +48,8 @@ passwords equal their usernames on this disposable instance. `demo-agent` is
 a write collaborator and its token has `write:repository`, `write:issue`, and
 `read:user` scopes. The agent can push a branch and open a PR. Hydration only
 adds the catalog descriptor to a populated demo collection, preserving feature
-work. It reconciles the template source from its checked-in fixture.
+work. It reconciles the template source and AAP config from their checked-in
+fixtures. All hydration logic lives in `bootstrap/bootstrap.sh`.
 
 To seed a different collection checkout, set `COLLECTION_SOURCE` to its path
 before hydration. The seed takes a snapshot of tracked `HEAD` files and does
@@ -70,9 +78,12 @@ CI runner in this stage.
 ## Reset
 
 From the repository root, use `make demo-reset` for a complete repeatable
-cycle. It deletes only `automation-developer` sessions and Sandboxes, recreates
+cycle. It deletes `automation-developer` sessions and Sandboxes, removes the
+seeded demo VMs through AAP and labelled Molecule VMs, then refuses to proceed
+if VM/disk resources remain in the demo namespaces. It recreates
 the selected `.env` model and agent configuration, resets Forgejo, and republishes
-AO's dispatch workflow. It loads the selected provider credentials from the root `.env`.
+AO's dispatch workflow and refreshes AAP configuration. It leaves demo VMs
+absent. It loads the selected provider credentials from the root `.env`.
 It also removes catalog entries for collections generated in this disposable
 Forgejo account. Other Omnigent sessions are preserved.
 

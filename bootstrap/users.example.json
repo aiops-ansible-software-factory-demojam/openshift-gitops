@@ -1,0 +1,12 @@
+{
+  "users": [
+    {
+      "username": "demo-user",
+      "email": "demo-user@example.test",
+      "firstName": "Demo",
+      "lastName": "User",
+      "groups": ["demo-users", "demo-admins"],
+      "enabled": true
+    }
+  ]
+}
