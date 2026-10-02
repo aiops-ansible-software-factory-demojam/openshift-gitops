@@ -27,7 +27,6 @@ def listwidget($name;$url;$icon;$description;$items;$namefield;$label;$target):
   {"Automation":([
     $routes[0][] | .Automation // empty | .[]
   ] + [
-    link("AAP job templates";($aap + "/execution/templates");"ansible";"Provision, configure or remove the webapp"),
     link("EDA rulebook activations";($aap + "/decisions/rulebook-activations");"ansible";"Inspect the webapp alert handler")
   ])}
 ] + ($routes[0] | map(select(has("Automation") | not))) + [
