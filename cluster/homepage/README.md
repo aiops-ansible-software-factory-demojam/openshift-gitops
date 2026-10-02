@@ -35,6 +35,7 @@ public HTTPS Routes. Failed queries replace old data with an error.
 GitOps owns the Deployment, sidecar source, RBAC and static settings. Bootstrap
 owns discovered navigation/environment data and the two application account API
 calls. Static config/source hashes trigger a rollout when GitOps changes them.
+Homepage's Argo CD application prunes superseded config after reconciliation.
 Refreshing navigation restarts Homepage only when generated links change.
 
 Links refresh at bootstrap time. After adding/changing Routes or repositories,
