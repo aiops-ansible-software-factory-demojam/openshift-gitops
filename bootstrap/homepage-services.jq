@@ -25,13 +25,7 @@ def listwidget($name;$url;$icon;$description;$items;$namefield;$label;$target):
       [["monitoring.webapp","Webapp"],["monitoring.response","Response"],["monitoring.forgejo","Forgejo"],["monitoring.alerts","Alerts"],["monitoring.error","Source error"]]),
     widget("Cluster resources";($console + "/dashboards");"openshift";"Usage relative to allocatable node resources";
       [["cluster.cpu","CPU"],["cluster.memory","Memory"],["cluster.ready","Ready nodes"],["cluster.nodes","Nodes"],["cluster.error","Source error"]]),
-    listwidget("Node resources";($console + "/k8s/cluster/nodes");"mdi-server";"Individual node readiness and usage";"cluster.details";"name";"usage";($console + "/k8s/cluster/nodes/{name}"))
-  ]},
-  {"Automation":([
-    $routes[0][] | .Automation // empty | .[]
-  ] + [
-    link("AAP job templates";($aap + "/execution/templates");"ansible";"Provision, configure or remove the webapp"),
-    link("EDA rulebook activations";($aap + "/decisions/rulebook-activations");"ansible";"Inspect the webapp alert handler"),
+    listwidget("Node resources";($console + "/k8s/cluster/nodes");"mdi-server";"Individual node readiness and usage";"cluster.details";"name";"usage";($console + "/k8s/cluster/nodes/{name}")),
     widget("Latest AAP job";($aap + "/execution/jobs");"ansible";"Most recent Controller job";
       [["aap.latestJob","Job"],["aap.status","Result"],["aap.error","Source error"]]),
     widget("EDA activation";($aap + "/decisions/rulebook-activations");"ansible";"Webapp alert-to-issue automation";
@@ -39,7 +33,13 @@ def listwidget($name;$url;$icon;$description;$items;$namefield;$label;$target):
     widget("Issue-to-PR workflow";($ao + "/workflows");"mdi-sitemap";"Published workflow and latest execution";
       [["orchestrator.workflow","Workflow"],["orchestrator.latest","Latest result"],["orchestrator.error","Source error"]]),
     listwidget("Recent AAP jobs";($aap + "/execution/jobs");"ansible";"Five most recent jobs";"aap.jobs";"name";"status";($aap + "/execution/jobs/playbook/{id}/output")),
-    listwidget("Recent workflow executions";($ao + "/executions");"mdi-sitemap";"Five most recent workflow runs";"orchestrator.executions";"name";"status";($ao + "/executions/{id}")),
+    listwidget("Recent workflow executions";($ao + "/executions");"mdi-sitemap";"Five most recent workflow runs";"orchestrator.executions";"name";"status";($ao + "/executions/{id}"))
+  ]},
+  {"Automation":([
+    $routes[0][] | .Automation // empty | .[]
+  ] + [
+    link("AAP job templates";($aap + "/execution/templates");"ansible";"Provision, configure or remove the webapp"),
+    link("EDA rulebook activations";($aap + "/decisions/rulebook-activations");"ansible";"Inspect the webapp alert handler"),
     link("Collection issues";($forgejo + "/demo-owner/ansible-collection-demo/issues");"forgejo";"Feature requests and webapp outage issues"),
     link("Collection pull requests";($forgejo + "/demo-owner/ansible-collection-demo/pulls");"mdi-source-pull";"Review agent changes"),
     link("Workflow guide";($docs + "cluster/automation-orchestrator/workflows/README.md");"mdi-sitemap";"How issue-to-PR dispatch works"),
