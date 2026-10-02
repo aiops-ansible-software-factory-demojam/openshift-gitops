@@ -2343,6 +2343,12 @@ demo_teardown() (
     oc -n "$namespace" delete clusterserviceversion "$csv" --ignore-not-found --wait=true --timeout=5m
     oc delete clusterrole,clusterrolebinding -l "olm.owner=$csv,olm.owner.namespace=$namespace" --ignore-not-found
   done < <(jq -r '.csvs[] | [.namespace,.name] | @tsv' "$state")
+  # OLM keeps empty cluster-scoped Operator inventory objects after uninstall.
+  # Its inventory name is the package/namespace label, capped at 63 characters.
+  while IFS= read -r name; do
+    oc delete operators.operators.coreos.com "$name" --ignore-not-found
+  done < <(yq -s . "$demo_repo_root"/cluster/*/*subscription.yaml "$demo_repo_root"/bootstrap/*subscription.yaml |
+    jq -r '.[] | (.spec.name + "." + .metadata.namespace)[0:63]')
   oc delete -f "$demo_repo_root/bootstrap/config/openshift-gitops-cluster-permissions.yaml" --ignore-not-found
 
   demo_step 'Remove demo namespaces and persistent data'
