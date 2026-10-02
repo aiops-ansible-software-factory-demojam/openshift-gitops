@@ -12,7 +12,11 @@ AO workflow -> Backstage feature template -> Forgejo feature branch
                             -> OpenCode with the .env model provider
 ```
 
-Forgejo supplies the seeded collection and issue for an issue-to-PR demo.
+Forgejo supplies writable demo copies of the baseline repos on
+[GitHub](https://github.com/aiops-ansible-software-factory-demojam), plus the
+starter issue. `cluster/forgejo/seed.json` declares each source URL and branch.
+Hydration refreshes `main` contents while preserving Forgejo branches and PRs;
+source commit history is not imported. Edit the GitHub repos to change a baseline.
 Red Hat Developer Hub (Backstage) provides the mandatory issue branch golden
 path. AO waits for its Scaffolder task and verifies the branch before it
 launches the agent. The agent implements the change, pushes, and opens the PR.
@@ -257,6 +261,9 @@ the script defines functions without executing setup.
 | `make demo-reset` | Remove disposable sessions, repos, VMs, and disks; reseed Forgejo and refresh AAP |
 | `make aap-configure` | Refresh AAP credentials, license, foundation, and configuration from Forgejo |
 | `make aap-sync` | Run the seeded AAP configuration playbook |
+| `make ao-configure` | Reconcile AO model/AAP integrations and publish every workflow |
+| `make ao-llm-test` | Ask the selected model a question and print the answer; optional `QUESTION` |
+| `make ao-aap-run` | Dispatch the existing nginx job through AO and wait for completion |
 | `make webapp-create` | Provision the RHEL webapp VM through AAP |
 | `make webapp-nginx` | Configure nginx through AAP |
 | `make webapp-verify` | Check VM readiness, HTTPS login redirect, and blackbox probe |
@@ -264,9 +271,11 @@ the script defines functions without executing setup.
 
 The script installs GitOps, creates the model and internal Secrets, rolls out
 all applications, hydrates Forgejo, builds the sandbox image, verifies golden
-paths, and publishes AO's issue workflow. After reconciliation it imports the license, prepares persistent runtime
+paths, imports the license, prepares persistent runtime
 material, creates the minimal AAP foundation, and launches
 `aap_configure_all` inside AAP Controller using the pinned Red Hat supported EE.
+It then configures AO's LLM and AAP integrations and publishes every YAML
+workflow in `cluster/automation-orchestrator/workflows/`.
 Bootstrap owns the organization, supported EE, public project, base inventory,
 Galaxy/dispatch credentials and configuration template. Config-as-code owns
 VM/SSH/RHEL credential types and credentials, inventory sources, demo job templates,
