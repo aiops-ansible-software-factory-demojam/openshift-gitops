@@ -27,7 +27,11 @@ def listwidget($name;$url;$icon;$description;$items;$namefield;$label;$target):
       [["cluster.cpu","CPU"],["cluster.memory","Memory"],["cluster.ready","Ready nodes"],["cluster.nodes","Nodes"],["cluster.error","Source error"]]),
     listwidget("Node resources";($console + "/k8s/cluster/nodes");"mdi-server";"Individual node readiness and usage";"cluster.details";"name";"usage";($console + "/k8s/cluster/nodes/{name}"))
   ]},
-  {"Automation activity":[
+  {"Automation":([
+    $routes[0][] | .Automation // empty | .[]
+  ] + [
+    link("AAP job templates";($aap + "/execution/templates");"ansible";"Provision, configure or remove the webapp"),
+    link("EDA rulebook activations";($aap + "/decisions/rulebook-activations");"ansible";"Inspect the webapp alert handler"),
     widget("Latest AAP job";($aap + "/execution/jobs");"ansible";"Most recent Controller job";
       [["aap.latestJob","Job"],["aap.status","Result"],["aap.error","Source error"]]),
     widget("EDA activation";($aap + "/decisions/rulebook-activations");"ansible";"Webapp alert-to-issue automation";
@@ -35,27 +39,25 @@ def listwidget($name;$url;$icon;$description;$items;$namefield;$label;$target):
     widget("Issue-to-PR workflow";($ao + "/workflows");"mdi-sitemap";"Published workflow and latest execution";
       [["orchestrator.workflow","Workflow"],["orchestrator.latest","Latest result"],["orchestrator.error","Source error"]]),
     listwidget("Recent AAP jobs";($aap + "/execution/jobs");"ansible";"Five most recent jobs";"aap.jobs";"name";"status";($aap + "/execution/jobs/playbook/{id}/output")),
-    listwidget("Recent workflow executions";($ao + "/executions");"mdi-sitemap";"Five most recent workflow runs";"orchestrator.executions";"name";"status";($ao + "/executions/{id}"))
-  ]},
+    listwidget("Recent workflow executions";($ao + "/executions");"mdi-sitemap";"Five most recent workflow runs";"orchestrator.executions";"name";"status";($ao + "/executions/{id}")),
+    link("Collection issues";($forgejo + "/demo-owner/ansible-collection-demo/issues");"forgejo";"Feature requests and webapp outage issues"),
+    link("Collection pull requests";($forgejo + "/demo-owner/ansible-collection-demo/pulls");"mdi-source-pull";"Review agent changes"),
+    link("Workflow guide";($docs + "cluster/automation-orchestrator/workflows/README.md");"mdi-sitemap";"How issue-to-PR dispatch works"),
+    link("Alerting guide";($docs + "cluster/user-workload-monitoring/README.md");"prometheus";"Blackbox → Alertmanager → EDA → issue")
+  ])},
   {"Environment":[
     widget("Current environment";($console + "/dashboards");"openshift";"The cluster serving this demo";
       [["environment.cluster","Cluster"],["environment.ingress","Ingress"],["environment.branch","Branch"]]),
     widget("Bootstrap and deployment";($source + "/tree/" + $branch);"github";"Last successful bootstrap and reconciled Git revision";
       [["environment.bootstrapCompleted","Bootstrap completed"],["environment.revision","Git revision"],["environment.refreshed","Status refreshed"]])
   ]}
-] + $routes[0] + [
+] + ($routes[0] | map(select(has("Automation") | not))) + [
   {"Git repositories":($repos[0]|map(link(.name;.href;(if .href|contains("github.com") then "github" else "forgejo" end);.description)))},
   {"Useful shortcuts":[
     link("Demo guide";($docs + "README.md");"mdi-book-open-page-variant";"Setup, demo flow and maintenance commands"),
     link("Homepage guide";($docs + "cluster/homepage/README.md");"homepage";"Dashboard configuration and refresh"),
     link("Golden paths";($rhdh + "/create");"backstage";"Create a collection or dispatch a feature"),
-    link("AAP job templates";($aap + "/execution/templates");"ansible";"Provision, configure or remove the webapp"),
-    link("EDA rulebook activations";($aap + "/decisions/rulebook-activations");"ansible";"Inspect the webapp alert handler"),
     link("Webapp virtual machine";($console + "/k8s/ns/webapp-vms/kubevirt.io~v1~VirtualMachine/webapp");"mdi-desktop-classic";"VM status, console and lifecycle"),
-    link("Monitoring alerts";($console + "/monitoring/alerts");"prometheus";"Inspect WebappDown and other alerts"),
-    link("Collection issues";($forgejo + "/demo-owner/ansible-collection-demo/issues");"forgejo";"Feature requests and webapp outage issues"),
-    link("Collection pull requests";($forgejo + "/demo-owner/ansible-collection-demo/pulls");"mdi-source-pull";"Review agent changes"),
-    link("Workflow guide";($docs + "cluster/automation-orchestrator/workflows/README.md");"mdi-sitemap";"How issue-to-PR dispatch works"),
-    link("Alerting guide";($docs + "cluster/user-workload-monitoring/README.md");"prometheus";"Blackbox → Alertmanager → EDA → issue")
+    link("Monitoring alerts";($console + "/monitoring/alerts");"prometheus";"Inspect WebappDown and other alerts")
   ]}
 ]
