@@ -1,11 +1,25 @@
 .DEFAULT_GOAL := help
 export ISSUE
 
-.PHONY: help preflight bootstrap identity homepage-refresh model-config sandbox-build demo-hydrate demo render demo-reset aap-configure aap-sync webapp-create webapp-nginx webapp-delete webapp-verify
+.PHONY: help help-all preflight bootstrap identity homepage-refresh model-config sandbox-build demo-hydrate demo render demo-reset aap-configure aap-sync webapp-create webapp-nginx webapp-delete webapp-verify
 
 help:
 	@printf '%s\n' \
+	  'Set up and run the demo:' \
+	  '' \
+	  '  make bootstrap       Set up the complete environment' \
+	  '  make demo ISSUE=N    Start the issue-to-PR demo' \
+	  '  make demo-reset      Reset disposable demo state' \
+	  '  make webapp-verify   Check webapp health' \
+	  '' \
+	  '  make help-all        Show all maintenance commands' \
+	  '' \
+	  'Before setup, populate .env and select your kubeconfig.'
+
+help-all:
+	@printf '%s\n' \
 	  'make / make help   Show commands; needs only Make and a shell' \
+	  'make help-all      Show all setup and maintenance commands' \
 	  'make bootstrap     Install platform, provision RHEL/nginx, and verify; publish branch first' \
 	  'make render        Render manifests locally into .rendered/' \
 	  'make preflight     Read-only local/cluster prerequisites; .env, manifest, KUBECONFIG' \
