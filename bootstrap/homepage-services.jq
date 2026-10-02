@@ -30,11 +30,11 @@ def listwidget($name;$url;$icon;$description;$items;$namefield;$label;$target):
   {"Automation activity":[
     widget("Latest AAP job";($aap + "/execution/jobs");"ansible";"Most recent Controller job";
       [["aap.latestJob","Job"],["aap.status","Result"],["aap.error","Source error"]]),
-    widget("EDA activation";($aap + "/eda/rulebook-activations");"ansible";"Webapp alert-to-issue automation";
+    widget("EDA activation";($aap + "/decisions/rulebook-activations");"ansible";"Webapp alert-to-issue automation";
       [["eda.state","State"],["eda.enabled","Enabled"],["eda.restarts","Restarts"],["eda.error","Source error"]]),
     widget("Issue-to-PR workflow";($ao + "/workflows");"mdi-sitemap";"Published workflow and latest execution";
       [["orchestrator.workflow","Workflow"],["orchestrator.latest","Latest result"],["orchestrator.error","Source error"]]),
-    listwidget("Recent AAP jobs";($aap + "/execution/jobs");"ansible";"Five most recent jobs";"aap.jobs";"name";"status";($aap + "/execution/jobs/playbook/{id}/details")),
+    listwidget("Recent AAP jobs";($aap + "/execution/jobs");"ansible";"Five most recent jobs";"aap.jobs";"name";"status";($aap + "/execution/jobs/playbook/{id}/output")),
     listwidget("Recent workflow executions";($ao + "/executions");"mdi-sitemap";"Five most recent workflow runs";"orchestrator.executions";"name";"status";($ao + "/executions/{id}"))
   ]},
   {"Environment":[
@@ -49,8 +49,8 @@ def listwidget($name;$url;$icon;$description;$items;$namefield;$label;$target):
     link("Demo guide";($docs + "README.md");"mdi-book-open-page-variant";"Setup, demo flow and maintenance commands"),
     link("Homepage guide";($docs + "cluster/homepage/README.md");"homepage";"Dashboard configuration and refresh"),
     link("Golden paths";($rhdh + "/create");"backstage";"Create a collection or dispatch a feature"),
-    link("AAP job templates";($aap + "/automation/templates");"ansible";"Provision, configure or remove the webapp"),
-    link("EDA rulebook activations";($aap + "/eda/rulebook-activations");"ansible";"Inspect the webapp alert handler"),
+    link("AAP job templates";($aap + "/execution/templates");"ansible";"Provision, configure or remove the webapp"),
+    link("EDA rulebook activations";($aap + "/decisions/rulebook-activations");"ansible";"Inspect the webapp alert handler"),
     link("Webapp virtual machine";($console + "/k8s/ns/webapp-vms/kubevirt.io~v1~VirtualMachine/webapp");"mdi-desktop-classic";"VM status, console and lifecycle"),
     link("Monitoring alerts";($console + "/monitoring/alerts");"prometheus";"Inspect WebappDown and other alerts"),
     link("Collection issues";($forgejo + "/demo-owner/ansible-collection-demo/issues");"forgejo";"Feature requests and webapp outage issues"),
