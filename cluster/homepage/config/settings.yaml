@@ -9,9 +9,6 @@ layout:
   Demo walkthrough:
     style: row
     columns: 4
-  Live status:
-    style: row
-    columns: 3
   Automation:
     style: row
     columns: 3
@@ -31,5 +28,8 @@ layout:
     style: row
     columns: 3
   Useful shortcuts:
+    style: row
+    columns: 3
+  Live status:
     style: row
     columns: 3
