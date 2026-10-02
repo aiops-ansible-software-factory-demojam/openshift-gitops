@@ -18,23 +18,6 @@ def listwidget($name;$url;$icon;$description;$items;$namefield;$label;$target):
     link("3. Follow the agent";$omnigent;"mdi-robot";"Watch the coding session and its progress"),
     link("4. Review the pull request";($forgejo + "/demo-owner/ansible-collection-demo/pulls");"mdi-source-pull";"Review the proposed collection changes")
   ]},
-  {"Live status":[
-    widget("GitOps health";($console + "/k8s/ns/openshift-gitops/argoproj.io~v1alpha1~Application");"argo-cd";"Application reconciliation";
-      [["gitops.apps","Apps"],["gitops.synced","Synced"],["gitops.healthy","Healthy"],["gitops.outOfSync","Out of sync"],["gitops.degraded","Degraded"],["gitops.error","Source error"]]),
-    widget("Webapp monitoring";($console + "/monitoring/alerts");"prometheus";"Existing blackbox probes and firing demo alerts";
-      [["monitoring.webapp","Webapp"],["monitoring.response","Response"],["monitoring.forgejo","Forgejo"],["monitoring.alerts","Alerts"],["monitoring.error","Source error"]]),
-    widget("Cluster resources";($console + "/dashboards");"openshift";"Usage relative to allocatable node resources";
-      [["cluster.cpu","CPU"],["cluster.memory","Memory"],["cluster.ready","Ready nodes"],["cluster.nodes","Nodes"],["cluster.error","Source error"]]),
-    listwidget("Node resources";($console + "/k8s/cluster/nodes");"mdi-server";"Individual node readiness and usage";"cluster.details";"name";"usage";($console + "/k8s/cluster/nodes/{name}")),
-    widget("Latest AAP job";($aap + "/execution/jobs");"ansible";"Most recent Controller job";
-      [["aap.latestJob","Job"],["aap.status","Result"],["aap.error","Source error"]]),
-    widget("EDA activation";($aap + "/decisions/rulebook-activations");"ansible";"Webapp alert-to-issue automation";
-      [["eda.state","State"],["eda.enabled","Enabled"],["eda.restarts","Restarts"],["eda.error","Source error"]]),
-    widget("Issue-to-PR workflow";($ao + "/workflows");"mdi-sitemap";"Published workflow and latest execution";
-      [["orchestrator.workflow","Workflow"],["orchestrator.latest","Latest result"],["orchestrator.error","Source error"]]),
-    listwidget("Recent AAP jobs";($aap + "/execution/jobs");"ansible";"Five most recent jobs";"aap.jobs";"name";"status";($aap + "/execution/jobs/playbook/{id}/output")),
-    listwidget("Recent workflow executions";($ao + "/executions");"mdi-sitemap";"Five most recent workflow runs";"orchestrator.executions";"name";"status";($ao + "/executions/{id}"))
-  ]},
   {"Automation":([
     $routes[0][] | .Automation // empty | .[]
   ] + [
@@ -59,5 +42,22 @@ def listwidget($name;$url;$icon;$description;$items;$namefield;$label;$target):
     link("Golden paths";($rhdh + "/create");"backstage";"Create a collection or dispatch a feature"),
     link("Webapp virtual machine";($console + "/k8s/ns/webapp-vms/kubevirt.io~v1~VirtualMachine/webapp");"mdi-desktop-classic";"VM status, console and lifecycle"),
     link("Monitoring alerts";($console + "/monitoring/alerts");"prometheus";"Inspect WebappDown and other alerts")
+  ]},
+  {"Live status":[
+    widget("GitOps health";($console + "/k8s/ns/openshift-gitops/argoproj.io~v1alpha1~Application");"argo-cd";"Application reconciliation";
+      [["gitops.apps","Apps"],["gitops.synced","Synced"],["gitops.healthy","Healthy"],["gitops.outOfSync","Out of sync"],["gitops.degraded","Degraded"],["gitops.error","Source error"]]),
+    widget("Webapp monitoring";($console + "/monitoring/alerts");"prometheus";"Existing blackbox probes and firing demo alerts";
+      [["monitoring.webapp","Webapp"],["monitoring.response","Response"],["monitoring.forgejo","Forgejo"],["monitoring.alerts","Alerts"],["monitoring.error","Source error"]]),
+    widget("Cluster resources";($console + "/dashboards");"openshift";"Usage relative to allocatable node resources";
+      [["cluster.cpu","CPU"],["cluster.memory","Memory"],["cluster.ready","Ready nodes"],["cluster.nodes","Nodes"],["cluster.error","Source error"]]),
+    listwidget("Node resources";($console + "/k8s/cluster/nodes");"mdi-server";"Individual node readiness and usage";"cluster.details";"name";"usage";($console + "/k8s/cluster/nodes/{name}")),
+    widget("Latest AAP job";($aap + "/execution/jobs");"ansible";"Most recent Controller job";
+      [["aap.latestJob","Job"],["aap.status","Result"],["aap.error","Source error"]]),
+    widget("EDA activation";($aap + "/decisions/rulebook-activations");"ansible";"Webapp alert-to-issue automation";
+      [["eda.state","State"],["eda.enabled","Enabled"],["eda.restarts","Restarts"],["eda.error","Source error"]]),
+    widget("Issue-to-PR workflow";($ao + "/workflows");"mdi-sitemap";"Published workflow and latest execution";
+      [["orchestrator.workflow","Workflow"],["orchestrator.latest","Latest result"],["orchestrator.error","Source error"]]),
+    listwidget("Recent AAP jobs";($aap + "/execution/jobs");"ansible";"Five most recent jobs";"aap.jobs";"name";"status";($aap + "/execution/jobs/playbook/{id}/output")),
+    listwidget("Recent workflow executions";($ao + "/executions");"mdi-sitemap";"Five most recent workflow runs";"orchestrator.executions";"name";"status";($ao + "/executions/{id}"))
   ]}
 ]

@@ -14,9 +14,9 @@ output. Private template repositories remain subject to Forgejo authorization.
 The Automation group brings together AAP and Automation Orchestrator links,
 job templates, EDA activation links, collection issue/PR shortcuts, and
 workflow/alerting guides. Automation widgets for jobs, EDA activation status,
-workflows and recent executions are under Live status alongside cluster and
-monitoring widgets. The ordered demo walkthrough and the repository index
-remain separate navigation sections.
+workflows and recent executions are under Live status at the bottom of the page,
+alongside cluster and monitoring widgets. The ordered demo walkthrough and the
+repository index remain separate navigation sections.
 
 Live widgets refresh every 30 seconds: Argo CD application counts and health,
 blackbox webapp/Forgejo availability, webapp probe duration and firing demo
