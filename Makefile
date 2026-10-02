@@ -1,12 +1,12 @@
-.DEFAULT_GOAL := bootstrap
+.DEFAULT_GOAL := help
 export ISSUE
 
 .PHONY: help preflight bootstrap identity homepage-refresh model-config sandbox-build demo-hydrate demo render demo-reset aap-configure aap-sync webapp-create webapp-nginx webapp-delete webapp-verify
 
 help:
 	@printf '%s\n' \
-	  'make / make bootstrap Install platform, provision RHEL/nginx, and verify; publish branch first' \
-	  'make help          Show commands; needs only Make and a shell' \
+	  'make / make help   Show commands; needs only Make and a shell' \
+	  'make bootstrap     Install platform, provision RHEL/nginx, and verify; publish branch first' \
 	  'make render        Render manifests locally into .rendered/' \
 	  'make preflight     Read-only local/cluster prerequisites; .env, manifest, KUBECONFIG' \
 	  'make identity      Reconcile demo users and OIDC clients/providers on an installed stack' \

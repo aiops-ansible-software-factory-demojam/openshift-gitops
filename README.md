@@ -35,7 +35,7 @@ chmod 600 .env
 export KUBECONFIG="$HOME/.kube/config"
 oc whoami --show-server
 oc whoami
-make
+make bootstrap
 ```
 
 The one bootstrap command checks prerequisites, installs the platform and apps,
@@ -54,14 +54,14 @@ For a subsequent run from the same checkout, retain your populated `.env`:
 ```bash
 git pull --ff-only
 export KUBECONFIG="$HOME/.kube/config"
-make
+make bootstrap
 ```
 
 Publish the checked-out revision to the selected `BOOTSTRAP_BRANCH` before
 bootstrap. Successful bootstrap reports healthy applications, configured AAP,
 and a ready RHEL webapp with working HTTPS and blackbox monitoring.
-Plain `make` runs the full bootstrap; `make bootstrap` is its explicit equivalent.
-Use `make help` to list commands without contacting services. Optional commands:
+Run `make bootstrap` for the full setup. Plain `make` and `make help` list
+commands without contacting services. Optional commands:
 
 ```bash
 make help             # Show commands without contacting services
@@ -158,7 +158,7 @@ Applications so the checked-in defaults can remain on `main`.
 For a published feature-branch checkout, set `BOOTSTRAP_BRANCH` in `.env` or run:
 
 ```bash
-BOOTSTRAP_BRANCH="$(git branch --show-current)" make
+BOOTSTRAP_BRANCH="$(git branch --show-current)" make bootstrap
 ```
 
 `BOOTSTRAP_REPO_URL` optionally selects a public HTTPS repository instead of
@@ -222,7 +222,7 @@ From the repository root:
 ```bash
 oc whoami --show-server
 oc whoami
-make
+make bootstrap
 ```
 
 The same entry point works without Make:
@@ -241,8 +241,8 @@ the script defines functions without executing setup.
 
 | Command | Purpose |
 | --- | --- |
-| `make` / `make bootstrap` | Install and configure the full platform, provision the RHEL webapp, install nginx, and verify |
-| `make help` | List commands without contacting services |
+| `make` / `make help` | List commands without contacting services |
+| `make bootstrap` | Install and configure the full platform, provision the RHEL webapp, install nginx, and verify |
 | `make preflight` | Check local inputs and cluster prerequisites without changes |
 | `make render` | Render manifests locally into `.rendered/` |
 | `make identity` | Reconcile demo users, groups, OIDC clients, and application login |
