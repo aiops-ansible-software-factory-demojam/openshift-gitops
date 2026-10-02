@@ -2,8 +2,9 @@
 # Restore the configured demo with its disposable VMs and disks removed.
 set -euo pipefail
 set +x
-# shellcheck source=../bootstrap/env.sh
-source "$(dirname "${BASH_SOURCE[0]}")/../bootstrap/env.sh"
+# shellcheck source=../bootstrap/bootstrap.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../bootstrap/bootstrap.sh"
+demo_load_env
 [[ ${1:-} == --confirm-demo-reset && $# -eq 1 ]] || {
   echo 'Usage: reset-demo.sh --confirm-demo-reset' >&2
   exit 2
@@ -19,8 +20,7 @@ omnigent_host=$(oc -n omnigent get route omnigent \
   echo 'Omnigent Route does not match this cluster ingress domain.' >&2
   exit 2
 }
-# shellcheck source=../bootstrap/model-env.sh
-source "$repo_root/bootstrap/model-env.sh"
+demo_model_inputs
 unset model_key
 
 umask 077
@@ -72,12 +72,12 @@ done
 # Recreate the bootstrap-owned model and agent configuration from the selected provider.
 oc -n omnigent-sandboxes delete secret omnigent-model --ignore-not-found
 oc -n omnigent delete secret omnigent-agent --ignore-not-found
-bash "$repo_root/bootstrap/model-config.sh"
+bash "$repo_root/bootstrap/bootstrap.sh" model-config
 oc -n omnigent rollout status deployment/omnigent --timeout=5m
 
 COLLECTION_SOURCE="$repo_root/cluster/forgejo/fixtures/collection" \
   bash "$repo_root/scripts/feature-demo.sh" reset --confirm-forgejo
 bash "$repo_root/cluster/automation-orchestrator/reconcile-omnigent-workflow.sh"
 # Refresh project, inventories and config against the new Forgejo baseline.
-bash "$repo_root/bootstrap/aap-configure.sh"
+bash "$repo_root/bootstrap/bootstrap.sh" aap-configure
 echo 'Demo reset complete: VMs and test disks removed, Forgejo reseeded, AAP configured, and Omnigent ready.'

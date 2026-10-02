@@ -35,7 +35,7 @@ chmod 600 .env
 export KUBECONFIG="$HOME/.kube/config"
 oc whoami --show-server
 oc whoami
-bash bootstrap/bootstrap.sh
+make bootstrap
 ```
 
 The one bootstrap command checks prerequisites, installs the platform and apps,
@@ -54,16 +54,19 @@ For a subsequent run from the same checkout, retain your populated `.env`:
 ```bash
 git pull --ff-only
 export KUBECONFIG="$HOME/.kube/config"
-bash bootstrap/bootstrap.sh
+make bootstrap
 ```
 
 Publish the checked-out revision to the selected `BOOTSTRAP_BRANCH` before
 bootstrap. Successful bootstrap reports healthy applications, configured AAP,
 and a ready RHEL webapp with working HTTPS and blackbox monitoring.
-`make bootstrap` is an alias for the same script. Optional commands:
+Run `make bootstrap` for the full setup. Plain `make` and `make help` show
+the four routine demo actions; `make help-all` lists every setup and maintenance
+command. Both help targets work without contacting services. Optional commands:
 
 ```bash
-make                  # Show commands without contacting services
+make help             # Show the routine demo actions
+make help-all         # Show every setup and maintenance command
 make render           # Render manifests locally into .rendered/
 make preflight        # Check prerequisites without changing the cluster
 make identity         # Reconcile demo users, groups and application login
@@ -106,7 +109,7 @@ identity needs cluster-admin rights. Install `oc`, `kustomize`, `helm`, `yq`,
 `jq`, `openssl`, `curl`, `git`, `unzip`, `ssh-keygen`, and standard GNU utilities
 (`base64`, `tar`, `sed`, `awk`, `find`, `xargs`). The local bootstrap implementation
 is Bash throughout; JSON/YAML and HTTP use the listed CLI tools.
-Use GNU Make for the command aliases and jq-wrapper `yq`: `yq '.'` must emit
+Use GNU Make for setup and maintenance, and jq-wrapper `yq`: `yq '.'` must emit
 JSON that `jq` can read. Preflight checks that contract with a small YAML fixture.
 
 Validated tool versions on the workshop run (2026-10-01):
@@ -157,7 +160,7 @@ Applications so the checked-in defaults can remain on `main`.
 For a published feature-branch checkout, set `BOOTSTRAP_BRANCH` in `.env` or run:
 
 ```bash
-BOOTSTRAP_BRANCH="$(git branch --show-current)" bash bootstrap/bootstrap.sh
+BOOTSTRAP_BRANCH="$(git branch --show-current)" make bootstrap
 ```
 
 `BOOTSTRAP_REPO_URL` optionally selects a public HTTPS repository instead of
@@ -202,7 +205,7 @@ Provider endpoints are HTTPS API base URLs, ending before `/responses` or
 `/chat/completions`. To switch providers, edit `.env`, then run:
 
 ```bash
-bash bootstrap/model-config.sh
+make model-config
 ```
 
 New sessions use that configuration. Existing sessions keep their launch
@@ -231,11 +234,33 @@ bash bootstrap/bootstrap.sh
 bash bootstrap/bootstrap.sh --help
 ```
 
-Its commented sections contain platform setup; `bootstrap/identity.sh` handles
-the independent identity provider. Existing helper script paths
-remain thin compatibility entry points. Maintenance commands such as `preflight`,
-`model-config`, `sandbox-build`, `aap-configure`, and `webapp verify` use that same
-implementation. A sourced script defines functions without executing setup.
+The Makefile is the primary setup and maintenance interface. It invokes
+`bootstrap/bootstrap.sh`, which contains platform setup and command dispatch.
+`bootstrap/identity.sh` implements identity setup and `bootstrap/homepage.sh`
+implements dashboard setup; both are sourced by `bootstrap.sh`. Demo scripts
+source `bootstrap.sh` and call `demo_load_env` to load configuration. Sourcing
+the script defines functions without executing setup.
+
+| Command | Purpose |
+| --- | --- |
+| `make` / `make help` | Show the four routine demo actions without contacting services |
+| `make help-all` | List all setup and maintenance commands without contacting services |
+| `make bootstrap` | Install and configure the full platform, provision the RHEL webapp, install nginx, and verify |
+| `make preflight` | Check local inputs and cluster prerequisites without changes |
+| `make render` | Render manifests locally into `.rendered/` |
+| `make identity` | Reconcile demo users, groups, OIDC clients, and application login |
+| `make homepage-refresh` | Refresh dashboard links, repositories, and environment details |
+| `make model-config` | Apply `.env` model and agent configuration for new sessions |
+| `make sandbox-build` | Build and publish the sandbox image through Tekton |
+| `make demo-hydrate` | Seed Forgejo, refresh credentials, and print the starter issue URL |
+| `make demo ISSUE=N` | Hydrate and dispatch issue N through AO; the agent continues asynchronously |
+| `make demo-reset` | Remove disposable sessions, repos, VMs, and disks; reseed Forgejo and refresh AAP |
+| `make aap-configure` | Refresh AAP credentials, license, foundation, and configuration from Forgejo |
+| `make aap-sync` | Run the seeded AAP configuration playbook |
+| `make webapp-create` | Provision the RHEL webapp VM through AAP |
+| `make webapp-nginx` | Configure nginx through AAP |
+| `make webapp-verify` | Check VM readiness, HTTPS login redirect, and blackbox probe |
+| `make webapp-delete` | Delete the webapp VM and its owned disk through AAP |
 
 The script installs GitOps, creates the model and internal Secrets, rolls out
 all applications, hydrates Forgejo, builds the sandbox image, verifies golden

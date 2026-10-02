@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# shellcheck source=../bootstrap/env.sh
-source "$(dirname "${BASH_SOURCE[0]}")/../bootstrap/env.sh"
+# shellcheck source=../bootstrap/bootstrap.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../bootstrap/bootstrap.sh"
+demo_load_env
 
 # Call AO's published workflow API and print the launched Omnigent session.
 issue_number=${1:?Usage: dispatch-issue.sh ISSUE_NUMBER}
