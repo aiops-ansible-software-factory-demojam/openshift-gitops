@@ -1,4 +1,0 @@
----
-- name: Example | Show a friendly message
-  ansible.builtin.debug:
-    msg: "{{ example_message }}"

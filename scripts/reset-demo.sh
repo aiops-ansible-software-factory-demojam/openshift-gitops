@@ -75,8 +75,7 @@ oc -n omnigent delete secret omnigent-agent --ignore-not-found
 bash "$repo_root/bootstrap/bootstrap.sh" model-config
 oc -n omnigent rollout status deployment/omnigent --timeout=5m
 
-COLLECTION_SOURCE="$repo_root/cluster/forgejo/fixtures/collection" \
-  bash "$repo_root/scripts/feature-demo.sh" reset --confirm-forgejo
+bash "$repo_root/scripts/feature-demo.sh" reset --confirm-forgejo
 bash "$repo_root/cluster/automation-orchestrator/reconcile-omnigent-workflow.sh"
 # Refresh project, inventories and config against the new Forgejo baseline.
 bash "$repo_root/bootstrap/bootstrap.sh" aap-configure

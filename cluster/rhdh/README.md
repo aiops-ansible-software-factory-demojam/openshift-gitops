@@ -11,7 +11,7 @@ The catalog exposes two templates:
 - **New Ansible Collection** generates a Forgejo repository from the seeded
   `demo-agent/ansible-collection-template` and registers its catalog entry.
 - **Contribute to the Demo Ansible Collection** reads an issue in
-  `demo-owner/ansible-collection-demo` and creates `feature/issue-N`.
+  `demo-owner/ansible-collection-demo.webapp` and creates `feature/issue-N`.
 
 The first template produces a collection with a starter role, one Molecule
 scenario with CentOS Stream 10 and RHEL 10 inventory hosts, and a Devfile based

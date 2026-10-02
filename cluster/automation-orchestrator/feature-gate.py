@@ -11,7 +11,7 @@ from urllib.request import Request, urlopen
 
 
 BACKSTAGE = os.environ["BACKSTAGE_URL"].rstrip("/")
-REPOSITORY = "demo-owner/ansible-collection-demo"
+REPOSITORY = "demo-owner/ansible-collection-demo.webapp"
 
 
 def backstage(path, method="GET", body=None, token=None, missing_ok=False):
