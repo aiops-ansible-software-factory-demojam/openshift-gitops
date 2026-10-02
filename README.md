@@ -248,12 +248,7 @@ the script defines functions without executing setup.
 | `make identity` | Reconcile demo users, groups, OIDC clients, and application login |
 | `make homepage-refresh` | Refresh dashboard links, repositories, and environment details |
 | `make model-config` | Apply `.env` model and agent configuration for new sessions |
-| `make omnigent-auth` | Reconcile Omnigent machine authentication |
 | `make sandbox-build` | Build and publish the sandbox image through Tekton |
-| `make verify-goldenpaths` | Verify Backstage templates and catalog integration |
-| `make reconcile-workflow` | Validate and publish the AO issue workflow |
-| `make readiness TARGET=sandbox` | Check sandbox workloads and required VM images |
-| `make readiness TARGET=aap` | Check AAP workloads and the RHEL VM image |
 | `make demo-hydrate` | Seed Forgejo, refresh credentials, and print the starter issue URL |
 | `make demo ISSUE=N` | Hydrate and dispatch issue N through AO; the agent continues asynchronously |
 | `make demo-reset` | Remove disposable sessions, repos, VMs, and disks; reseed Forgejo and refresh AAP |
