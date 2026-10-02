@@ -2207,6 +2207,162 @@ demo_bootstrap() (
 )
 
 # -----------------------------------------------------------------------------
+# Full removal keeps controllers running until their operands have finalized.
+# The durable, secret-free inventory also supports resuming interrupted removal.
+demo_teardown() (
+  [[ $# == 1 && $1 == --confirm-demo-teardown ]] ||
+    demo_die 'Usage: teardown --confirm-demo-teardown (deletes demo data and operators).'
+  demo_verify_cluster
+  local state="$demo_repo_root/.rendered/demo-teardown.json" scratch app namespace kind group name resource csv crd
+  local -a namespaces=(homepage blackbox-exporter webapp-vms automation-vms molecule-tests
+    omnigent-sandboxes omnigent forgejo rhdh demojam-keycloak automation-orchestrator
+    ansible-automation-platform agent-sandbox-system openshift-virtualization-os-images
+    openshift-cnv openshift-pipelines cloudnative-pg openshift-gitops openshift-gitops-operator)
+  umask 077
+  scratch=$(mktemp -d)
+  trap 'find "$scratch" -type f -delete; rmdir "$scratch"' EXIT
+  mkdir -p "$demo_repo_root/.rendered"
+  if [[ -n $(oc get crd applications.argoproj.io --ignore-not-found -o name) ]]; then
+    oc -n openshift-gitops get applications -o json >"$scratch/apps.json"
+  else
+    printf '{"items":[]}' >"$scratch/apps.json"
+  fi
+  jq -e --arg repo "$BOOTSTRAP_REPO_URL" 'all(.items[]; .spec.source.repoURL == $repo)' "$scratch/apps.json" >/dev/null ||
+    demo_die 'Unexpected GitOps applications found; refusing to remove another stack.'
+  if [[ $(jq '.items|length' "$scratch/apps.json") != 0 || ! -f $state ]]; then
+    yq -s . "$demo_repo_root"/cluster/*/*subscription.yaml "$demo_repo_root"/bootstrap/*subscription.yaml |
+      jq '[.[] | {name:.metadata.name,namespace:.metadata.namespace}]' >"$scratch/subscriptions.json"
+    oc get subscriptions.operators.coreos.com -A -o json >"$scratch/live-subscriptions.json"
+    oc get clusterserviceversions.operators.coreos.com -A -o json |
+      jq --slurpfile subscriptions "$scratch/subscriptions.json" --slurpfile live "$scratch/live-subscriptions.json" '
+      [.items[] as $csv | select(any($subscriptions[0][]; . as $wanted |
+        any($live[0].items[]; .metadata.name == $wanted.name and .metadata.namespace == $wanted.namespace and
+          .status.installedCSV == $csv.metadata.name and .metadata.namespace == $csv.metadata.namespace))) |
+        {name:$csv.metadata.name,namespace:$csv.metadata.namespace,
+          crds:[$csv.spec.customresourcedefinitions.owned[]?.name]}]' >"$scratch/csvs.json"
+    oc get crd -o json | jq '[.items[] | select(.spec.group | test("(^|\\.)(kubevirt\\.io|tekton\\.dev)$")) | .metadata.name]' >"$scratch/operand-crds.json"
+    jq -n --arg server "$DEMO_CLUSTER_SERVER" --arg repo "$BOOTSTRAP_REPO_URL" \
+      --slurpfile apps "$scratch/apps.json" --slurpfile subscriptions "$scratch/subscriptions.json" \
+      --slurpfile csvs "$scratch/csvs.json" --slurpfile operands "$scratch/operand-crds.json" \
+      '{server:$server,repo:$repo,apps:[$apps[0].items[].metadata.name],
+        resources:([$apps[0].items[].status.resources[]?] | unique_by([.group,.kind,.namespace,.name])),
+        subscriptions:$subscriptions[0],csvs:$csvs[0],crds:([$csvs[0][].crds[]]+$operands[0]|unique)}' >"$state"
+  fi
+  jq -e --arg server "$DEMO_CLUSTER_SERVER" --arg repo "$BOOTSTRAP_REPO_URL" \
+    '.server == $server and .repo == $repo' "$state" >/dev/null || demo_die 'Teardown inventory belongs to a different cluster or repository.'
+
+  demo_step 'Stop demo GitOps reconciliation'
+  # Root first: it must not recreate children while they are being detached.
+  while IFS= read -r app; do
+    if [[ -n $(oc -n openshift-gitops get application "$app" --ignore-not-found -o name 2>/dev/null) ]]; then
+      oc -n openshift-gitops patch application "$app" --type=merge \
+        --patch '{"metadata":{"finalizers":[]},"spec":{"syncPolicy":{"automated":null}},"operation":null}' >/dev/null
+      oc -n openshift-gitops delete application "$app" --wait=true --timeout=2m
+    fi
+  done < <(jq -r '.apps | (["cluster"] + map(select(. != "cluster")))[]' "$state")
+
+  demo_step 'Remove demo OpenShift identity integration'
+  oc get oauth cluster -o json | jq '{spec:{identityProviders:(.spec.identityProviders // [] | map(select(.name != "demojam-keycloak")))}}' >"$scratch/oauth-patch.json"
+  oc patch oauth cluster --type=merge --patch-file "$scratch/oauth-patch.json" >/dev/null
+  oc -n openshift-config delete secret demojam-keycloak-oidc --ignore-not-found
+  oc delete group demojam-admins --ignore-not-found
+
+  demo_step 'Remove agent sandboxes and demo virtual machines'
+  if [[ -n $(oc -n omnigent get deployment omnigent --ignore-not-found -o name 2>/dev/null) ]]; then
+    oc -n omnigent scale deployment omnigent --replicas=0
+  fi
+  if [[ -n $(oc get crd sandboxes.agents.x-k8s.io --ignore-not-found -o name) ]]; then
+    oc -n omnigent-sandboxes delete sandboxes --all --ignore-not-found --wait=true --timeout=10m
+  fi
+  if [[ -n $(oc get crd virtualmachines.kubevirt.io --ignore-not-found -o name) ]]; then
+    for namespace in webapp-vms automation-vms molecule-tests; do
+      oc -n "$namespace" delete virtualmachines --all --ignore-not-found --wait=true --timeout=10m
+      oc -n "$namespace" delete virtualmachineinstances --all --ignore-not-found --wait=true --timeout=10m
+      oc -n "$namespace" delete datavolumes --all --ignore-not-found --wait=true --timeout=10m
+    done
+  fi
+
+  demo_step 'Remove demo application resources while operators are available'
+  # Instances before Services/RBAC; databases before PostgreSQL clusters.
+  while IFS=$'\t' read -r kind group namespace name; do
+    resource=$kind
+    [[ $group == - ]] || resource="$kind.$group"
+    local -a scope=()
+    [[ $namespace == - ]] || scope=(-n "$namespace")
+    if oc "${scope[@]}" get "$resource" "$name" -o name >/dev/null 2>&1; then
+      oc "${scope[@]}" delete "$resource" "$name" --ignore-not-found --wait=true --timeout=15m
+    fi
+  done < <(jq -r '.resources | map(select(.kind != "Namespace" and .kind != "Subscription" and
+    .kind != "OperatorGroup" and .kind != "Application" and .kind != "AppProject" and
+    .kind != "PersistentVolumeClaim" and .name != "cluster-monitoring-config")) |
+    sort_by(if .kind == "AnsibleAutomationPlatform" or .kind == "AutomationOrchestrator" or .kind == "Backstage" then 0
+      elif .kind == "Database" then 1 elif .kind == "Cluster" then 2 elif .kind == "HyperConverged" then 3 else 4 end)[] |
+    [.kind,(.group // "" | if . == "" then "-" else . end),(.namespace // "" | if . == "" then "-" else . end),.name] | @tsv' "$state")
+  if [[ -n $(oc get crd tektonconfigs.operator.tekton.dev --ignore-not-found -o name) ]]; then
+    oc delete tektonconfig config --ignore-not-found --wait=true --timeout=15m
+  fi
+  if [[ -n $(oc get crd argocds.argoproj.io --ignore-not-found -o name) ]]; then
+    oc -n openshift-gitops delete argocd demojam-gitops --ignore-not-found --wait=true --timeout=10m
+  fi
+
+  demo_step 'Disable demo user workload monitoring and remove its storage'
+  if [[ -n $(oc -n openshift-monitoring get configmap cluster-monitoring-config --ignore-not-found -o name) ]]; then
+    oc -n openshift-monitoring get configmap cluster-monitoring-config -o json >"$scratch/monitoring.json"
+    jq -r '.data."config.yaml" // "{}"' "$scratch/monitoring.json" | yq -y 'del(.enableUserWorkload)' >"$scratch/monitoring.yaml"
+    if [[ $(yq 'length' "$scratch/monitoring.yaml") == 0 ]]; then
+      oc -n openshift-monitoring delete configmap cluster-monitoring-config --ignore-not-found
+    else
+      jq -n --rawfile config "$scratch/monitoring.yaml" '{data:{"config.yaml":$config}}' >"$scratch/monitoring-patch.json"
+      oc -n openshift-monitoring patch configmap cluster-monitoring-config --type=merge --patch-file "$scratch/monitoring-patch.json"
+    fi
+  fi
+  if [[ -n $(oc -n openshift-user-workload-monitoring get pods -o name) ]]; then
+    oc -n openshift-user-workload-monitoring wait --for=delete pod --all --timeout=10m
+  fi
+  while IFS= read -r name; do
+    [[ -z $name ]] || oc -n openshift-user-workload-monitoring delete pvc "$name" --wait=true --timeout=10m
+  done < <(oc -n openshift-user-workload-monitoring get pvc -o json | jq -r '.items[] | select(.metadata.name | test("^(prometheus|thanos-ruler|alertmanager)-user-workload-")) | .metadata.name')
+
+  demo_step 'Remove installed demo operator APIs and subscriptions'
+  # Stop automatic OLM reinstallation before removing APIs. Other subscriptions
+  # (workshop Keycloak, cert-manager and storage) are deliberately outside this list.
+  while IFS=$'\t' read -r namespace name; do
+    oc -n "$namespace" delete subscription "$name" --ignore-not-found --wait=true --timeout=2m
+  done < <(jq -r '.subscriptions[] | [.namespace,.name] | @tsv' "$state")
+  while IFS= read -r crd; do
+    # Refuse to erase custom resources belonging to namespaces outside this demo.
+    local instances
+    if instances=$(oc get "$crd" -A -o json 2>/dev/null); then
+      jq -e --argjson namespaces "$(printf '%s\n' "${namespaces[@]}" | jq -R . | jq -s .)" \
+        'all(.items[]; .metadata.namespace == null or (.metadata.namespace as $ns | $namespaces | index($ns)))' <<<"$instances" >/dev/null ||
+        demo_die "API $crd has non-demo instances; refusing to uninstall its operator."
+    fi
+    oc delete crd "$crd" --ignore-not-found --wait=true --timeout=15m
+  done < <(jq -r '.crds[]' "$state")
+  while IFS=$'\t' read -r namespace csv; do
+    oc -n "$namespace" delete clusterserviceversion "$csv" --ignore-not-found --wait=true --timeout=5m
+    oc delete clusterrole,clusterrolebinding -l "olm.owner=$csv,olm.owner.namespace=$namespace" --ignore-not-found
+  done < <(jq -r '.csvs[] | [.namespace,.name] | @tsv' "$state")
+  oc delete -f "$demo_repo_root/bootstrap/config/openshift-gitops-cluster-permissions.yaml" --ignore-not-found
+
+  demo_step 'Remove demo namespaces and persistent data'
+  for namespace in "${namespaces[@]}"; do
+    oc delete namespace "$namespace" --ignore-not-found --wait=false
+  done
+  for namespace in "${namespaces[@]}"; do
+    if [[ -n $(oc get namespace "$namespace" --ignore-not-found -o name) ]]; then
+      oc wait --for=delete "namespace/$namespace" --timeout=15m
+    fi
+  done
+  oc wait clusteroperator/authentication --for=condition=Available=True --timeout=10m
+  oc wait clusteroperator/authentication --for=condition=Progressing=False --timeout=10m
+  local remaining
+  remaining=$(oc get pv -o json | jq -r --argjson namespaces "$(printf '%s\n' "${namespaces[@]}" | jq -R . | jq -s .)" \
+    '.items[] | .spec.claimRef.namespace as $ns | select($namespaces | index($ns)) | .metadata.name')
+  [[ -z $remaining ]] || demo_die "Demo PVs are still being reclaimed: $remaining. Inspect storage before reinstalling."
+  echo 'Demo teardown completed: applications, operators, APIs, identity integration and persistent data removed.'
+)
+
 # Command entry point. Help is local and does not load .env.
 # -----------------------------------------------------------------------------
 
@@ -2217,6 +2373,7 @@ demo_main() {
 Usage: bash bootstrap/bootstrap.sh [COMMAND]
 
   bootstrap          Install/configure the platform, create the RHEL VM, install nginx, verify
+  teardown --confirm-demo-teardown Remove the entire demo stack, operators and persistent data
   preflight          Read-only input and pre-install cluster checks (also --check)
   sandbox-build      Build the configured :latest sandbox image
   model-config       Apply the selected model/agent configuration
@@ -2245,6 +2402,7 @@ HELP
   demo_load_env
   case $command in
     bootstrap) [[ $# == 0 ]] || demo_die 'bootstrap takes no arguments'; demo_bootstrap ;;
+    teardown) demo_teardown "$@" ;;
     homepage-refresh) [[ $# == 0 ]] || demo_die 'homepage-refresh takes no arguments'; demo_verify_cluster; demo_homepage_configure ;;
     identity)
       [[ $# == 0 ]] || demo_die 'identity takes no arguments'

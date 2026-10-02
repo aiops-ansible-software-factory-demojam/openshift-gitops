@@ -262,12 +262,20 @@ the script defines functions without executing setup.
 | `make aap-configure` | Refresh AAP credentials, license, foundation, and configuration from Forgejo |
 | `make aap-sync` | Run the seeded AAP configuration playbook |
 | `make ao-configure` | Reconcile AO model/AAP integrations and publish every workflow |
+| `make teardown` | Delete the demo applications, data, operators, APIs and OpenShift identity integration |
 | `make ao-llm-test` | Ask the selected model a question and print the answer; optional `QUESTION` |
 | `make ao-aap-run` | Dispatch the existing nginx job through AO and wait for completion |
 | `make webapp-create` | Provision the RHEL webapp VM through AAP |
 | `make webapp-nginx` | Configure nginx through AAP |
 | `make webapp-verify` | Check VM readiness, HTTPS login redirect, and blackbox probe |
 | `make webapp-delete` | Delete the webapp VM and its owned disk through AAP |
+
+`make teardown` removes the whole bootstrapped stack, including Forgejo history,
+demo identities, databases, VMs, disks, sandbox images and installed demo operators.
+The workshop identity provider, storage platform and GitHub source repositories
+remain. Set the next provider in `.env`, then run `make bootstrap` to rebuild.
+Removal records a resumable inventory in `.rendered/demo-teardown.json`; it uses
+the same `bootstrap/bootstrap.sh` as installation and all Make maintenance commands.
 
 The script installs GitOps, creates the model and internal Secrets, rolls out
 all applications, hydrates Forgejo, builds the sandbox image, verifies golden
