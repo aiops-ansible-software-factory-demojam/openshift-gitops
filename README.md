@@ -12,7 +12,11 @@ AO workflow -> Backstage feature template -> Forgejo feature branch
                             -> OpenCode with the .env model provider
 ```
 
-Forgejo supplies the seeded collection and issue for an issue-to-PR demo.
+Forgejo supplies writable demo copies of the baseline repos on
+[GitHub](https://github.com/aiops-ansible-software-factory-demojam), plus the
+starter issue. `cluster/forgejo/seed.json` declares each source URL and branch.
+Hydration refreshes `main` contents while preserving Forgejo branches and PRs;
+source commit history is not imported. Edit the GitHub repos to change a baseline.
 Red Hat Developer Hub (Backstage) provides the mandatory issue branch golden
 path. AO waits for its Scaffolder task and verifies the branch before it
 launches the agent. The agent implements the change, pushes, and opens the PR.
@@ -94,7 +98,7 @@ Its success confirms agent handoff. The agent continues asynchronously;
 inspect its session for checks and the PR URL using the
 [Omnigent session guide](cluster/omnigent/README.md).
 Run `make demo-reset` to restore the configured starting point after either flow.
-See the detailed [AAP guide](cluster/forgejo/fixtures/demojam-ansible/README.md)
+See the detailed [AAP guide](https://github.com/aiops-ansible-software-factory-demojam/demojam-ansible/blob/main/README.md)
 and [Forgejo guide](cluster/forgejo/README.md).
 
 ## Requirements
@@ -257,16 +261,29 @@ the script defines functions without executing setup.
 | `make demo-reset` | Remove disposable sessions, repos, VMs, and disks; reseed Forgejo and refresh AAP |
 | `make aap-configure` | Refresh AAP credentials, license, foundation, and configuration from Forgejo |
 | `make aap-sync` | Run the seeded AAP configuration playbook |
+| `make ao-configure` | Reconcile AO model/AAP integrations and publish every workflow |
+| `make teardown` | Delete the demo applications, data, operators, APIs and OpenShift identity integration |
+| `make ao-llm-test` | Ask the selected model a question and print the answer; optional `QUESTION` |
+| `make ao-aap-run` | Dispatch the existing nginx job through AO and wait for completion |
 | `make webapp-create` | Provision the RHEL webapp VM through AAP |
 | `make webapp-nginx` | Configure nginx through AAP |
 | `make webapp-verify` | Check VM readiness, HTTPS login redirect, and blackbox probe |
 | `make webapp-delete` | Delete the webapp VM and its owned disk through AAP |
 
+`make teardown` removes the whole bootstrapped stack, including Forgejo history,
+demo identities, databases, VMs, disks, sandbox images and installed demo operators.
+The workshop identity provider, storage platform and GitHub source repositories
+remain. Set the next provider in `.env`, then run `make bootstrap` to rebuild.
+Removal records a resumable inventory in `.rendered/demo-teardown.json`; it uses
+the same `bootstrap/bootstrap.sh` as installation and all Make maintenance commands.
+
 The script installs GitOps, creates the model and internal Secrets, rolls out
 all applications, hydrates Forgejo, builds the sandbox image, verifies golden
-paths, and publishes AO's issue workflow. After reconciliation it imports the license, prepares persistent runtime
+paths, imports the license, prepares persistent runtime
 material, creates the minimal AAP foundation, and launches
 `aap_configure_all` inside AAP Controller using the pinned Red Hat supported EE.
+It then configures AO's LLM and AAP integrations and publishes every YAML
+workflow in `cluster/automation-orchestrator/workflows/`.
 Bootstrap owns the organization, supported EE, public project, base inventory,
 Galaxy/dispatch credentials and configuration template. Config-as-code owns
 VM/SSH/RHEL credential types and credentials, inventory sources, demo job templates,
@@ -334,7 +351,7 @@ template and its SCM inventory, launches it through the AAP API, and waits for
 its Controller job to succeed. First and subsequent dispatches run inside AAP.
 All demo templates and inventory sources use
 Red Hat `ee-supported-rhel9`, pinned by digest. The seeded `demojam-ansible`
-repository's [requirements.yml](cluster/forgejo/fixtures/demojam-ansible/requirements.yml)
+repository's [requirements.yml](https://github.com/aiops-ansible-software-factory-demojam/demojam-ansible/blob/main/requirements.yml)
 installs `infra.aap_configuration` from public Galaxy and the example collection
 from public Forgejo. Controller isolates its collection cache, so requirements
 also copy CaC's certified dependencies from the supported image into that cache.
@@ -342,7 +359,7 @@ They do not download certified content or require a Hub token. OpenShift uses
 its existing registry authentication to pull the supported EE. Tekton remains
 for the separate OpenCode sandbox image build.
 
-See the [AAP config guide](cluster/forgejo/fixtures/demojam-ansible/README.md)
+See the [AAP config guide](https://github.com/aiops-ansible-software-factory-demojam/demojam-ansible/blob/main/README.md)
 for the script/dispatch boundary and reset behavior.
 
 ## Run an issue through AO
@@ -398,7 +415,7 @@ The [Developer Hub guide](cluster/rhdh/README.md) describes the templates
 and their relationship to the AO workflow.
 The [AAP guide](cluster/ansible-automation-platform/README.md) covers the
 single replica controller and EDA deployment. The seeded
-[AAP config-as-code guide](cluster/forgejo/fixtures/demojam-ansible/README.md)
+[AAP config-as-code guide](https://github.com/aiops-ansible-software-factory-demojam/demojam-ansible/blob/main/README.md)
 covers configuration and VM lifecycle automation. The [monitoring guide](cluster/user-workload-monitoring/README.md)
 covers blackbox probes and the webapp outage flow: user Alertmanager → EDA →
 AAP → a Forgejo collection issue.
