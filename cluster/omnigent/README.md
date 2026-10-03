@@ -43,6 +43,8 @@ project virtual-environment installs at the image's wheel directory. Repository
 requirements remain authoritative: new versions can install normally when they
 differ from the image cache. Refresh the three cache inputs together when
 updating the tooling baseline, as described in `image/dev-tools/README.md`.
+The runner's explicit environment passthrough includes `PIP_FIND_LINKS`, so
+native OpenCode commands can use those cached wheels too.
 
 ## KubeVirt Molecule tests
 
