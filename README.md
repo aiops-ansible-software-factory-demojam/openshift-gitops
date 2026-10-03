@@ -167,6 +167,25 @@ For a published feature-branch checkout, set `BOOTSTRAP_BRANCH` in `.env` or run
 BOOTSTRAP_BRANCH="$(git branch --show-current)" make bootstrap
 ```
 
+The three Ansible repositories have independent GitHub source branch settings.
+Set them in `.env`, for example:
+
+```bash
+ANSIBLE_COLLECTION_TEMPLATE_BRANCH='main'
+ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH='feature/dev-tools'
+DEMOJAM_ANSIBLE_BRANCH='main'
+```
+
+A nonempty shell override takes precedence over `.env`, then `seed.json`'s
+`source_branch`, then `main`. For a single refresh, use
+`ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH=feature/dev-tools make demo-hydrate`.
+Bootstrap, hydration and reset use these same settings; the early AAP metadata
+checkout also uses `DEMOJAM_ANSIBLE_BRANCH`. All three source branches must fetch
+successfully before hydration refreshes any Forgejo baseline. The selected
+contents are committed to writable Forgejo `main`; existing feature branches
+and PRs survive. These settings are independent of `BOOTSTRAP_BRANCH`, which
+selects the GitOps deployment source.
+
 `BOOTSTRAP_REPO_URL` optionally selects a public HTTPS repository instead of
 `origin`; the root Application, children, AppProject and sandbox build use the
 same source. `BOOTSTRAP_STORAGE_CLASS` optionally selects the AAP/monitoring
@@ -201,6 +220,9 @@ licensing and a RHEL CDN entitlement for the guest. Both files are gitignored.
 | `MODEL_PROVIDER=litellm` | Uses `LITELLM_API_KEY`, `LITELLM_ENDPOINT`, `LITELLM_MODEL` |
 | `AAP_LICENSE_FILE` | Optional override for the root subscription ZIP |
 | `BOOTSTRAP_BRANCH` | Published branch, default `main`; a nonempty inherited value takes precedence |
+| `ANSIBLE_COLLECTION_TEMPLATE_BRANCH` | GitHub branch for the Forgejo collection template |
+| `ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH` | GitHub branch for the Forgejo demo collection |
+| `DEMOJAM_ANSIBLE_BRANCH` | GitHub branch for the Forgejo AAP repository and bootstrap's AAP metadata |
 | `BOOTSTRAP_REPO_URL` | Public HTTPS GitOps source, default `origin` |
 | `BOOTSTRAP_STORAGE_CLASS` | AAP/monitoring StorageClass, default cluster default |
 | `DEMO_USERS_FILE` | JSON user definitions, default `bootstrap/users.example.json` |
