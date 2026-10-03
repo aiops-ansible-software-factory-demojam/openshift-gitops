@@ -52,6 +52,24 @@ a write collaborator and its token has `write:repository`, `write:issue`, and
 `bootstrap/bootstrap.sh`. To change a baseline, update its GitHub source and
 run `make demo-hydrate`. `seed.json` selects each source URL and branch.
 
+Override source branches in the root `.env` using
+`ANSIBLE_COLLECTION_TEMPLATE_BRANCH`, `ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH`
+and `DEMOJAM_ANSIBLE_BRANCH`. Nonempty inherited shell values override `.env`;
+unset or empty settings use `seed.json`'s `source_branch`, then `main`.
+For example, refresh just the demo collection from a feature branch while the
+other repositories use their configured branches:
+
+```bash
+ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH=feature/dev-tools make demo-hydrate
+```
+
+All three selected GitHub branches are fetched before any Forgejo baseline
+changes. An invalid or missing branch stops hydration without a partial source
+refresh. Branch names may contain slashes; a tag is not accepted as a branch.
+The destination stays Forgejo `main`, and feature branches and PRs remain
+writable. Bootstrap and demo reset honor the same settings. The initial AAP
+metadata checkout uses the selected `DEMOJAM_ANSIBLE_BRANCH` too.
+
 ## Launch and inspect
 
 Hydration prints the issue URL. Use its number in the AO API launcher:

@@ -15,6 +15,9 @@ source "$demo_repo_root/bootstrap/homepage.sh"
 
 demo_load_env() {
   local inherited_kubeconfig=${KUBECONFIG:-} inherited_branch=${BOOTSTRAP_BRANCH:-} original_dir=$PWD
+  local inherited_template_branch=${ANSIBLE_COLLECTION_TEMPLATE_BRANCH:-}
+  local inherited_collection_branch=${ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH:-}
+  local inherited_ansible_branch=${DEMOJAM_ANSIBLE_BRANCH:-}
   local env_file=${ENV_FILE:-$demo_repo_root/.env} had_allexport=false
   [[ $- != *a* ]] || had_allexport=true
 
@@ -30,6 +33,9 @@ demo_load_env() {
 
   export KUBECONFIG=${inherited_kubeconfig:-${KUBECONFIG:-}}
   export BOOTSTRAP_BRANCH=${inherited_branch:-${BOOTSTRAP_BRANCH:-main}}
+  export ANSIBLE_COLLECTION_TEMPLATE_BRANCH=${inherited_template_branch:-${ANSIBLE_COLLECTION_TEMPLATE_BRANCH:-}}
+  export ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH=${inherited_collection_branch:-${ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH:-}}
+  export DEMOJAM_ANSIBLE_BRANCH=${inherited_ansible_branch:-${DEMOJAM_ANSIBLE_BRANCH:-}}
   export AAP_EE_IMAGE=${AAP_EE_IMAGE:-registry.redhat.io/ansible-automation-platform-27/ee-supported-rhel9@sha256:d97a6fc9c34132bfddf5c8f0db93a24fea67ed3db2094d15f78d7f4eba724f1f}
   export AAP_LICENSE_FILE=${AAP_LICENSE_FILE:-$demo_repo_root/aap_manifest.zip}
   [[ $AAP_LICENSE_FILE == /* ]] || AAP_LICENSE_FILE="$demo_repo_root/$AAP_LICENSE_FILE"
@@ -393,24 +399,46 @@ forgejo_api() {
   rm -f "$response"
 }
 
-# Cache only fetched GitHub content in the ignored render directory. Bootstrap
-# also reads AAP's event-stream metadata before Forgejo exists on a fresh cluster.
+# Select each GitHub source independently of the GitOps deployment branch.
+demo_source_branch() {
+  local name=$1 branch=${2:-main}
+  case $name in
+    ansible-collection-template) branch=${ANSIBLE_COLLECTION_TEMPLATE_BRANCH:-$branch} ;;
+    ansible-collection-demo.webapp) branch=${ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH:-$branch} ;;
+    demojam-ansible) branch=${DEMOJAM_ANSIBLE_BRANCH:-$branch} ;;
+  esac
+  if ! git check-ref-format --branch "$branch" >/dev/null 2>&1 ||
+    ! git check-ref-format "refs/heads/$branch" >/dev/null 2>&1; then
+    demo_die "Invalid GitHub source branch for $name: $branch"
+  fi
+  printf '%s\n' "$branch"
+}
+
+# Cache only fetched GitHub content in the ignored render directory, or in an
+# explicit scratch checkout for hydration. Bootstrap also reads AAP metadata
+# before Forgejo exists on a fresh cluster, using the same source selection.
 demo_source_checkout() (
-  local name=$1 source branch work
-  source=$(jq -er --arg name "$name" '.repositories[] | select(.name == $name) | .source' "$demo_repo_root/cluster/forgejo/seed.json")
-  branch=$(jq -er --arg name "$name" '.repositories[] | select(.name == $name) | .source_branch // "main"' "$demo_repo_root/cluster/forgejo/seed.json")
+  local name=$1 source branch work repo config
+  config=${SEED_CONFIG:-$demo_repo_root/cluster/forgejo/seed.json}
+  [[ $name =~ ^[a-zA-Z0-9_.-]+$ ]] || demo_die "Invalid seed repository name: $name"
+  repo=$(jq -ec --arg name "$name" '.repositories[] | select(.name == $name)' "$config") || return
+  source=$(jq -er '.source' <<< "$repo") || return
+  branch=$(demo_source_branch "$name" "$(jq -er '.source_branch // "main"' <<< "$repo")") || return
   [[ $source =~ ^https://github.com/aiops-ansible-software-factory-demojam/[a-zA-Z0-9_.-]+\.git$ ]] ||
     demo_die 'Seed sources must be credential-free HTTPS demo GitHub repositories.'
-  git check-ref-format --branch "$branch" >/dev/null
-  work="$demo_repo_root/.rendered/sources/$name"
-  mkdir -p "$demo_repo_root/.rendered/sources"
+  work=${2:-$demo_repo_root/.rendered/sources/$name}
+  mkdir -p -- "$(dirname -- "$work")" || return
   if [[ ! -d $work/.git ]]; then
-    GIT_ASKPASS='' git clone -q --depth 1 --single-branch --branch "$branch" "$source" "$work"
+    git init -q -b main "$work" || return
+    git -C "$work" remote add origin "$source" || return
   else
-    git -C "$work" remote set-url origin "$source"
-    GIT_ASKPASS='' git -C "$work" fetch -q --depth 1 origin "$branch"
-    git -C "$work" reset -q --hard FETCH_HEAD
+    git -C "$work" remote set-url origin "$source" || return
   fi
+  # Fetch a heads ref explicitly: a tag with the same name is not a branch.
+  # GitHub uses ghapp; disable Forgejo's askpass helper for this host.
+  GIT_ASKPASS='' git -C "$work" fetch -q --depth 1 origin "refs/heads/$branch" ||
+    demo_die "Could not fetch GitHub source $name branch $branch."
+  git -C "$work" checkout -q --detach --force FETCH_HEAD || return
   printf '%s\n' "$work"
 )
 
@@ -418,6 +446,16 @@ demo_forgejo_seed_repos() (
   root="$demo_repo_root/cluster/forgejo"
   config=${SEED_CONFIG:-$root/seed.json}
   jq -e '.users | length > 0' "$config" >/dev/null
+  tmp=$(mktemp -d)
+  trap 'rm -rf "$tmp"' EXIT
+  # Fetch all selected branches before changing any Forgejo baseline. A missing
+  # source must not leave the three demo repositories on different refreshes.
+  while IFS= read -r repo; do
+    owner=$(jq -r .owner <<< "$repo")
+    name=$(jq -r .name <<< "$repo")
+    [[ $owner/$name =~ ^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$ ]] || exit 2
+    demo_source_checkout "$name" "$tmp/source-$name" >/dev/null || return
+  done < <(jq -c '.repositories[]' "$config")
   users='[]'
   page=1
   while :; do
@@ -437,8 +475,6 @@ demo_forgejo_seed_repos() (
     fi
   done < <(jq -c '.users[]' "$config")
   # Git uses an askpass helper: no credentials in clone URLs or persistent remotes.
-  tmp=$(mktemp -d)
-  trap 'rm -rf "$tmp"' EXIT
   cat > "$tmp/askpass" <<'ASKPASS'
   #!/usr/bin/env bash
   case "$1" in
@@ -465,14 +501,8 @@ ASKPASS
     fi
     forgejo_api PATCH "/repos/$owner/$name" "$(jq '{private:(if has("private") then .private else true end)}' <<< "$repo")" >/dev/null
     source=$(jq -er '.source' <<< "$repo")
-    source_branch=$(jq -er '.source_branch // "main"' <<< "$repo")
-    [[ $source =~ ^https://github.com/aiops-ansible-software-factory-demojam/[a-zA-Z0-9_.-]+\.git$ ]] ||
-      demo_die 'Seed sources must be credential-free HTTPS demo GitHub repositories.'
-    git check-ref-format --branch "$source_branch" >/dev/null
-    # GitHub uses the repository-scoped ghapp credential helper. Disable the
-    # Forgejo askpass helper for this fetch so credentials cannot cross hosts.
+    source_branch=$(demo_source_branch "$name" "$(jq -er '.source_branch // "main"' <<< "$repo")") || return
     source_work=$tmp/source-$name
-    GIT_ASKPASS='' git clone -q --depth 1 --single-branch --branch "$source_branch" "$source" "$source_work"
     source_revision=$(git -C "$source_work" rev-parse HEAD)
     refs=$(git -c credential.helper= ls-remote "$FORGEJO_URL/$owner/$name.git" refs/heads/main)
     work=$tmp/$name
