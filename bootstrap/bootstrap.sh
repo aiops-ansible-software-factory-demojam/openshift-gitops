@@ -768,8 +768,10 @@ demo_sandbox_image_context() (
   git -C "$work" show HEAD:.pre-commit-config.yaml > "$context/.pre-commit-config.yaml"
   git -C "$work" show HEAD:requirements-dev.txt > "$context/requirements-dev.txt"
   git -C "$work" show HEAD:extensions/molecule/requirements-test.yml > "$context/requirements-test.yml"
-  jq -n --arg source "$source" --arg revision "$revision" \
-    '{source:$source,revision:$revision}' > "$context/collection-source.json"
+  # Both values were restricted to credential-free URL / SHA characters above;
+  # this also runs in the minimal Tekton clone image, which has no jq binary.
+  printf '{\n  "source": "%s",\n  "revision": "%s"\n}\n' \
+    "$source" "$revision" > "$context/collection-source.json"
 )
 
 demo_sandbox_image_current() (
@@ -829,14 +831,16 @@ demo_sandbox_build() (
   done < <(oc -n "$namespace" get pipelineruns -l tekton.dev/pipeline=omnigent-opencode -o json |
     jq -r '.items[] | select(.status.conditions[0].status == "True" or .status.conditions[0].status == "False") | .metadata.name')
   oc wait nodes --all --for='jsonpath={.status.conditions[?(@.type=="DiskPressure")].status}=False' --timeout=15m
-  # Refresh the build definition for make sandbox-build on an existing stack.
-  oc -n "$namespace" apply -f "$demo_repo_root/cluster/omnigent/image-build/omnigent-opencode-pipeline.yaml"
-  # One deliberate run; no trigger or automatic CI is installed.
+  # Snapshot this branch's pipeline; Argo may manage the shared Pipeline from
+  # another branch. One deliberate run; no trigger or automatic CI is installed.
   run=$(yq '.' "$demo_repo_root/bootstrap/sandbox-image-pipelinerun.yaml" |
     jq --arg revision "${SANDBOX_BUILD_REVISION:-$(git -C "$demo_repo_root" rev-parse HEAD)}" \
       --arg image "$sandbox_image" --arg repo "$BOOTSTRAP_REPO_URL" \
       --arg collection_repo "$sandbox_collection_url" --arg collection_revision "$sandbox_collection_revision" \
-      '.spec.params |= map(
+      --argjson pipeline "$(yq '.spec' "$demo_repo_root/cluster/omnigent/image-build/omnigent-opencode-pipeline.yaml")" \
+      '.spec |= (del(.pipelineRef) | .pipelineSpec = $pipeline) |
+      .metadata.labels["tekton.dev/pipeline"] = "omnigent-opencode" |
+      .spec.params |= map(
         if .name == "REVISION" then .value = $revision
       elif .name == "IMAGE" then .value = $image
       elif .name == "REPO_URL" then .value = $repo

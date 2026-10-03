@@ -130,7 +130,9 @@ to the agent. New Sandboxes carry the label
 `omnigent.ai/agent=automation-developer`.
 
 Bootstrap builds this image with a one-off Tekton run. Buildah keeps its layers
-on a temporary PVC to avoid filling the SNO node disk. To rebuild explicitly:
+on a temporary PVC to avoid filling the SNO node disk. Bootstrap snapshots the
+checked-out pipeline definition into the run, so a build from a working branch
+does not race with Argo's shared Pipeline reconciliation. To rebuild explicitly:
 
 ```bash
 make sandbox-build
