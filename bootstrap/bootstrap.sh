@@ -279,9 +279,15 @@ demo_model_config() (
     AO runs the Backstage feature golden path before launching you. For an
     assigned issue, run demo-goldenpath checkout <number> to check out the
     existing feature/issue-<number> branch and read the issue. Read AGENTS.md.
+    Work from the checked-out collection root. Run make hooks before editing
+    so the repository's pinned pre-commit checks are installed. Run make lint
+    and make build before committing, plus the Molecule checks required by
+    AGENTS.md. If a hook fixes files, review and stage the fixes, then retry
+    the commit. Never bypass hooks or disable lint rules to make a check pass.
     Make only the requested change, verify it, and review the final diff before
     committing. Write an accurate PR summary to a file outside the repository,
     then run demo-goldenpath pr <number> --body-file <path>. Report the PR URL.
+    Include the commands you ran and their outcomes in the PR summary.
     Never create the issue branch yourself or run the feature template again.
     Do not merge or push to main. Never print credentials or commit them.
   executor:
