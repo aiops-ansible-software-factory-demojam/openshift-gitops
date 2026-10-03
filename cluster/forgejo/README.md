@@ -1,123 +1,63 @@
-# Forgejo collection smoke demo
+# Forgejo demo repositories
 
-The `forgejo` namespace runs a disposable Forgejo instance with SQLite
-and Git data on one PVC. GitOps owns the deployment, Service, Route, and PVC.
-Bootstrap snapshots the three GitHub sources declared in `seed.json`:
+Forgejo hosts writable demo copies of three GitHub repositories. It runs with
+SQLite and Git data on one disposable PVC; GitOps owns the workloads and storage.
 
-- `ansible-collection-demo.webapp` → `demo-owner/ansible-collection-demo.webapp`
-- `ansible-collection-template` → `demo-agent/ansible-collection-template`
-- `demojam-ansible` → `demo-owner/demojam-ansible`
+| GitHub source | Forgejo destination |
+| --- | --- |
+| `ansible-collection-demo.webapp` | `demo-owner/ansible-collection-demo.webapp` |
+| `ansible-collection-template` | `demo-agent/ansible-collection-template` |
+| `demojam-ansible` | `demo-owner/demojam-ansible` |
 
-GitHub owns the baseline contents. Each hydration refreshes Forgejo `main`
-from the selected source branch with a normal commit; source history is not
-imported. Forgejo stays writable, so the agent can push feature branches and
-open PRs. Existing branches and PRs survive hydration. Changes merged only
-into Forgejo `main` are replaced by the next GitHub refresh. Public GitHub
-links and `__FORGEJO_URL__` placeholders are localized to this Forgejo instance.
-GitHub fetches use the repository-scoped ghapp credential helper.
-The example issue text remains in `fixtures/readme-test-issue.md`.
-AO runs the Developer Hub feature template before it starts the agent.
+## Refresh and run
 
-Browser users authenticate through the independent
-[demo Keycloak](../demojam-keycloak/README.md). Bootstrap maintains the `demojam-keycloak` OIDC
-source; accounts are created on first login and `demo-admins` maps to site
-administrators. The seed's local automation accounts remain available for
-repository hydration and API tokens. Hydration restores OIDC after a reset.
-
-The [demojam-ansible source](https://github.com/aiops-ansible-software-factory-demojam/demojam-ansible)
-contains inventory-driven AAP configuration and OpenShift Virtualization
-VM create/delete automation. `demo-agent` and `demo-reviewer` have write access.
-
-## Hydrate
-
-From the repository root, with `KUBECONFIG` set for the demo cluster:
+After [bootstrap](../../README.md), run from the repository root with
+`KUBECONFIG="$HOME/.kube/config"`:
 
 ```bash
-oc whoami --show-server
-oc whoami
-bash scripts/feature-demo.sh hydrate
+make demo-hydrate     # Refresh repositories and print the starter issue URL
+make demo ISSUE=N     # Replace N with that positive issue number
 ```
 
-Hydration waits for Forgejo, creates or repairs demo users and collaborators,
-seeds the collection, template source, and AAP config repository, and ensures the example issue
-exists. It creates scoped `demo-agent` tokens for the Sandbox and Developer
-Hub, then updates their Kubernetes Secrets. New agent Sandboxes receive
-the agent token with the model settings. Credentials stay in ignored
-`cluster/forgejo/.state/<ingress-domain>/` and Kubernetes Secrets.
+Hydration commits the selected GitHub contents to Forgejo `main` without
+importing source history. Existing feature branches and PRs survive, but changes
+merged only into Forgejo `main` are replaced by the next refresh. Edit the GitHub
+source to change the baseline. [seed.json](seed.json) declares sources; the
+[starter issue](fixtures/readme-test-issue.md) requests one README line.
+GitHub fetches use repository-scoped ghapp credentials.
 
-The demo identities are `demo-owner`, `demo-agent`, and `demo-reviewer`; their
-passwords equal their usernames on this disposable instance. `demo-agent` is
-a write collaborator and its token has `write:repository`, `write:issue`, and
-`read:user` scopes. The agent can push a branch and open a PR. All hydration logic lives in
-`bootstrap/bootstrap.sh`. To change a baseline, update its GitHub source and
-run `make demo-hydrate`. `seed.json` selects each source URL and branch.
+Override the source branches in the root `.env` with
+`ANSIBLE_COLLECTION_TEMPLATE_BRANCH`, `ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH`,
+and `DEMOJAM_ANSIBLE_BRANCH`. Nonempty shell values override `.env`, then
+`seed.json`'s `source_branch`, then `main`. All three branches must fetch before
+any baseline changes. Tags are not accepted. These settings apply to bootstrap,
+hydration, and reset; `BOOTSTRAP_BRANCH` separately selects the GitOps source.
 
-Override source branches in the root `.env` using
-`ANSIBLE_COLLECTION_TEMPLATE_BRANCH`, `ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH`
-and `DEMOJAM_ANSIBLE_BRANCH`. Nonempty inherited shell values override `.env`;
-unset or empty settings use `seed.json`'s `source_branch`, then `main`.
-For example, refresh just the demo collection from a feature branch while the
-other repositories use their configured branches:
+Backstage creates the issue branch before AO launches the agent. The agent
+implements and checks the change, then opens a PR against `main`. AO finishes
+at handoff; follow the [Omnigent session](../omnigent/README.md) for the outcome.
+There is no webhook trigger or CI runner in this stage.
 
-```bash
-ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH=feature/dev-tools make demo-hydrate
-```
+## Login and reset
 
-All three selected GitHub branches are fetched before any Forgejo baseline
-changes. An invalid or missing branch stops hydration without a partial source
-refresh. Branch names may contain slashes; a tag is not accepted as a branch.
-The destination stays Forgejo `main`, and feature branches and PRs remain
-writable. Bootstrap and demo reset honor the same settings. The initial AAP
-metadata checkout uses the selected `DEMOJAM_ANSIBLE_BRANCH` too.
+Browser login uses [demo Keycloak](../demojam-keycloak/README.md).
+`demo-admins` maps to site administrators. Local automation identities are
+`demo-owner`, `demo-agent`, and `demo-reviewer`, with passwords equal to their
+usernames on this disposable instance. The latter two have write access;
+hydration creates scoped agent tokens in Kubernetes Secrets and ignored `.state/`.
 
-## Launch and inspect
+`make demo-reset` removes demo sessions, VMs, and disks, wipes Forgejo, and
+reseeds its repositories, issue, and tokens. It also refreshes AAP and AO and
+removes generated collection catalog entries. Demo VMs remain absent; other
+Omnigent sessions and AAP/AO history remain.
 
-Hydration prints the issue URL. Use its number in the AO API launcher:
-
-```bash
-bash scripts/dispatch-issue.sh 1
-```
-
-AO launches the `automation-developer` OpenCode agent in a new Agent Sandbox.
-Backstage creates `feature/issue-1` before the agent session starts. The agent
-runs `demo-goldenpath checkout 1` to read the issue and clone that branch,
-then implements, checks, commits, and runs `demo-goldenpath pr 1 --body-file
-<path>` to push and open a PR against `main`. The PR body references the
-issue. Repeating `submit` updates the body of the open PR after review fixes.
-The seeded issue asks for a single README line so reset and dispatch cycles
-exercise the workflow without spending time on feature implementation.
-AO completes when the task reaches Omnigent; the PR is asynchronous.
-Inspect the Omnigent session for its outcome. There is no webhook trigger or
-CI runner in this stage.
-
-## Reset
-
-From the repository root, use `make demo-reset` for a complete repeatable
-cycle. It deletes `automation-developer` sessions and Sandboxes, removes the
-seeded demo VMs through AAP and labelled Molecule VMs, then refuses to proceed
-if VM/disk resources remain in the demo namespaces. It recreates
-the selected `.env` model and agent configuration, resets Forgejo, and republishes
-AO's dispatch workflow and refreshes AAP configuration. It leaves demo VMs
-absent. It loads the selected provider credentials from the root `.env`.
-It also removes catalog entries for collections generated in this disposable
-Forgejo account. Other Omnigent sessions are preserved.
-
-To reset only Forgejo, first stop active agent sessions. This command confirms
-the cluster and Route, scales Forgejo down, deletes only the `forgejo`
-PVC, waits for GitOps to recreate it, then hydrates the collection, issue, and
-new agent token:
+To wipe only Forgejo, stop active agent sessions first, then run:
 
 ```bash
 bash scripts/feature-demo.sh reset --confirm-forgejo
 ```
 
-Reset erases all demo repositories, issues, PRs, users, tokens, and webhooks.
-The new token reaches new Sandbox Pods; an older running Pod retains its old
-environment, so use a new session after reset. The reset script requires the
-GitOps Application to have self-heal enabled. A `Retain` storage reclaim
-policy may leave the old PV; reset is not secure erasure.
-
-`seed.json` declares the collection, collection template, and AAP config repositories.
-The GitHub collection baseline is intentionally missing the requested README line so
-each reset presents the same work to the agent. Launch it through AO's explicit
-API workflow.
+Reset erases repositories, issues, PRs, users, tokens, and webhooks. GitOps
+self-heal must be enabled to recreate the PVC. Start a new agent session to
+receive the new token. A `Retain` reclaim policy may leave the old PV; reset
+is not secure erasure.
