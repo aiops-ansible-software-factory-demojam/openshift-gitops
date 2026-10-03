@@ -29,6 +29,21 @@ ADT image's writable passwd file, allowing OpenSSH and Ansible to resolve the
 sandbox user and HOME. This demo has no
 warm pool or separate sandbox network policy.
 
+The image includes Make, ripgrep, process utilities, and the collection's pinned
+Ansible lint, YAML lint, pre-commit, and hook packages. Its `image/dev-tools/`
+inputs also prebuild the isolated hook environments and install the real
+Molecule collection dependencies. A new sandbox HOME receives a writable cache
+database pointing to the image's hook environments and its own copy of the test
+collections. Existing caches are preserved.
+
+From a collection checkout, continue to run `make hooks`, `make lint`, and
+`make build`. Git hooks and the source namespace are installed per checkout;
+the image supplies cached packages and environments. `PIP_FIND_LINKS` points
+project virtual-environment installs at the image's wheel directory. Repository
+requirements remain authoritative: new versions can install normally when they
+differ from the image cache. Refresh the three cache inputs together when
+updating the tooling baseline, as described in `image/dev-tools/README.md`.
+
 ## KubeVirt Molecule tests
 
 The new collection golden path uses `david_igou.molecule_provisioners` pinned to

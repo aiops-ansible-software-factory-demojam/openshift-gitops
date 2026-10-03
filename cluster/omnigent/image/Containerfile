@@ -1,7 +1,7 @@
 FROM ghcr.io/ansible/community-ansible-dev-tools@sha256:775c81d53058009dd47b97872f4a86d3b0a9ce16ad9af3cc48514ce4197aa787
 
 # Keep Omnigent's dependencies separate from the Ansible tools in the base image.
-RUN dnf5 install -y bubblewrap nodejs npm tmux \
+RUN dnf5 install -y bubblewrap nodejs npm tmux make ripgrep procps-ng \
     && dnf5 clean all \
     && /usr/bin/python3 -m pip install --no-cache-dir kubernetes==35.0.0 \
     && /usr/bin/python3 -m pip check \
@@ -14,10 +14,29 @@ ENV MOLECULE_GLOB="extensions/molecule/*/molecule.yml"
 
 RUN npm install --global opencode-ai@1.18.32
 
+# Cache the collection's pinned development dependencies at image build time.
+# Hook environments keep their absolute paths here; each runtime UID gets its
+# own writable cache database pointing to these read-only environments.
+COPY dev-tools /opt/demo-dev
+RUN /usr/bin/python3 -m pip install --no-cache-dir \
+      -r /opt/demo-dev/requirements-dev.txt pre-commit-hooks==6.0.0 \
+    && /usr/bin/python3 -m pip check \
+    && /usr/bin/python3 -m pip wheel --wheel-dir /opt/demo-dev/wheels \
+      -r /opt/demo-dev/requirements-dev.txt pre-commit-hooks==6.0.0 \
+    && ansible-galaxy collection install \
+      -r /opt/demo-dev/requirements-test.yml -p /opt/demo-dev/collections \
+    && git init /tmp/demo-hook-cache \
+    && cd /tmp/demo-hook-cache \
+    && PRE_COMMIT_HOME=/opt/demo-dev/pre-commit pre-commit install-hooks \
+      --config /opt/demo-dev/.pre-commit-config.yaml \
+    && chmod -R a+rX /opt/demo-dev
+
+ENV PIP_FIND_LINKS="/opt/demo-dev/wheels"
+
 COPY opencode-profile.sh /etc/profile.d/omnigent-opencode.sh
 COPY sandbox-user-profile.sh /etc/profile.d/00-sandbox-user.sh
 COPY molecule-profile.sh /etc/profile.d/molecule.sh
 COPY demo-goldenpath.py /usr/local/bin/demo-goldenpath
 RUN chmod 755 /usr/local/bin/demo-goldenpath \
-    && bash -lc 'command -v omnigent && command -v bwrap && command -v tmux && command -v ansible && command -v molecule && command -v opencode && command -v git && command -v ssh && command -v ssh-keygen && command -v demo-goldenpath' \
+    && bash -lc 'command -v omnigent && command -v bwrap && command -v tmux && command -v ansible && command -v molecule && command -v opencode && command -v git && command -v ssh && command -v ssh-keygen && command -v demo-goldenpath && command -v make && command -v rg && command -v ps && command -v pre-commit && command -v ansible-lint && command -v yamllint' \
     && /usr/bin/python3 -c 'import kubernetes'
