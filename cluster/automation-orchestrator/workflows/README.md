@@ -1,64 +1,50 @@
 # Automation Orchestrator workflows
 
-`omnigent-dispatch.yaml` is the portable manual workflow definition. Its
-required input is `issue_number`. AO calls the internal Backstage feature gate,
-which validates the issue, runs the Developer Hub feature template if the
-branch is missing, waits for the Scaffolder task to complete, and confirms
-`feature/issue-N` exists. Only then does AO create an Agent Sandbox session
-and tell `automation-developer` to implement the issue and open a PR.
-`../reconcile-omnigent-workflow.sh` validates, creates or updates, and publishes
-it after bootstrap. The machine client credential is stored in Orchestrator;
-its value is never stored in this YAML. A token-exchange node obtains a native
-Omnigent bearer token, and bootstrap inserts read-sharing nodes for enabled
-users from `DEMO_USERS_FILE` before sending the task. This allows those users to
-inspect the workflow's session after signing in with Keycloak.
+These YAML files define three manual AO workflows. Bootstrap publishes them;
+`make ao-configure` validates and creates or updates every `*.yaml` here by
+its `name`. An unchanged definition keeps its version. Runtime IDs and
+credentials are supplied during configuration; secrets never appear in the YAML.
 
-After `bash scripts/feature-demo.sh hydrate`, run
-`bash scripts/dispatch-issue.sh 1` at the repository root. It calls the
-published workflow through AO's API and prints the Omnigent session ID. The
-workflow finishes after Backstage prepares the branch and Omnigent accepts the
-task; inspect the session for the checks and PR URL.
+Run the commands below from the repository root after
+[bootstrap](../../../README.md).
 
-`make ao-configure` reconciles credentials and integrations, validates every
-`*.yaml` here, then creates or updates and publishes each workflow by its
-`name`. An unchanged definition retains its version. Runtime IDs are inserted
-by bootstrap; credentials never appear in these definitions.
+| Definition | What it does | Run it |
+| --- | --- | --- |
+| [omnigent-dispatch.yaml](omnigent-dispatch.yaml) | Prepares an issue branch in Backstage, starts the agent, and requests a PR | `make demo ISSUE=N` |
+| [llm-question.yaml](llm-question.yaml) | Asks the configured model a question using a Task Agent node | `make ao-llm-test` |
+| [aap-webapp-nginx.yaml](aap-webapp-nginx.yaml) | Runs AAP's existing `webapp_nginx` job in the `demo` organization | `make ao-aap-run` |
 
-`llm-question.yaml` asks the `.env` provider a simple question using a native
-Task Agent node. `MODEL_PROVIDER` selects LiteLLM or OpenCode Go; bootstrap
-registers that provider, discovers and enables the configured model, and uses
-the encrypted API-key credential for health checks and execution. LiteLLM is
-used directly. For OpenCode Go, bootstrap deploys a pinned LiteLLM proxy inside
-the AO namespace: it adds Go's required session/client headers and translates
-AO's Chat Completions calls to Responses for the default GPT model. Set
-`OPENCODE_GO_PROTOCOL=chat` when selecting a Go Chat Completions model. The
-proxy has an internal Service, a generated API key and a Secret holding the
-upstream key; bootstrap owns its configuration and lifecycle.
+## Issue to PR
+
+Run `make demo-hydrate` to get the starter issue number, then replace `N` above
+with that positive number. The required workflow input is `issue_number`.
+Backstage validates the issue and confirms `feature/issue-N` before AO creates
+the session. The machine credential is exchanged for a native Omnigent token,
+and enabled users from `DEMO_USERS_FILE` receive read access to the session.
+
+The launcher prints execution and session IDs. AO completion means the agent
+accepted the task; inspect [Omnigent](../../omnigent/README.md) for the checks
+and PR URL.
+
+## Model question or AAP job
 
 ```bash
-make ao-configure
-make ao-llm-test
 make ao-llm-test QUESTION='What is 2 plus 2? Answer briefly.'
-```
-
-The run command prints the execution ID and the model's returned answer. To
-switch providers, edit `.env` and run `make model-config`; this refreshes both
-Omnigent and AO, then republishes workflows with the selected model. Only
-`ao-llm-test` executes the question; reconciliation never launches demo jobs.
-
-`aap-webapp-nginx.yaml` dispatches the existing `webapp_nginx` job in the
-`demo` organization with its managed inventory and credentials. Bootstrap
-registers the AAP gateway integration using the discovered admin credential
-(or `.env` AAP overrides). After the webapp is provisioned, run:
-
-```bash
 make ao-aap-run
 make webapp-verify
 ```
 
-The command waits for AO completion and prints the AAP job ID, URL and status.
-Job launches have no retries so an uncertain response cannot duplicate a job.
-All implementation is in `bootstrap/bootstrap.sh`; the legacy reconcile script
-is an alias. Integrations use a separate host allowlist from workflow HTTP
-requests and OIDC. Bootstrap configures it on backend, worker and background
-worker for the selected provider and AAP gateway, retaining TLS verification.
+The model command prints its execution ID and answer. The AAP command requires
+the webapp to be provisioned, waits for completion, and prints the job ID, URL,
+and status. Job launches have no retries; inspect AAP before repeating a launch
+whose response was lost.
+
+`MODEL_PROVIDER` in `.env` selects LiteLLM or OpenCode Go. Go uses an internal
+LiteLLM proxy to add required headers and translate the default model's calls
+to Responses. Use `OPENCODE_GO_PROTOCOL=chat` for a Go Chat Completions model.
+Edit `.env` and run `make model-config` to switch providers in AO and Omnigent.
+Reconciliation publishes workflows without executing demo jobs.
+
+Implementation lives in [bootstrap/bootstrap.sh](../../../bootstrap/bootstrap.sh);
+`../reconcile-omnigent-workflow.sh` is an alias. Integration host allowlists
+are separate from workflow HTTP and OIDC settings, with TLS verification enabled.

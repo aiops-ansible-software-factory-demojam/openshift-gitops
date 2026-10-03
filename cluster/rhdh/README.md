@@ -1,55 +1,47 @@
-# Developer Hub golden paths
+# Developer Hub templates
 
-The `rhdh` GitOps Application installs Red Hat Developer Hub (Backstage) and a
-single-instance CloudNative-PG database. Bootstrap creates the database Secret
-and, after Forgejo is ready, hydrates a scoped Forgejo token and endpoint
-ConfigMap. No credentials are committed. The Route is `https://rhdh.<cluster
-ingress domain>`.
+Red Hat Developer Hub (Backstage) provides the demo's Ansible templates.
+Open its link from Homepage after [bootstrap](../../README.md) and sign in
+with [demo Keycloak](../demojam-keycloak/README.md). Catalog users come from
+`DEMO_USERS_FILE`. Guest login is disabled, but permission enforcement is
+disabled for this disposable demo, giving `demo-user` unrestricted catalog
+and scaffolder access.
 
-The catalog exposes two templates:
+## Choose a template
 
-- **New Ansible Collection** generates a Forgejo repository from the seeded
+- **New Ansible Collection** creates a Forgejo repository from
   `demo-agent/ansible-collection-template` and registers its catalog entry.
-- **Contribute to the Demo Ansible Collection** reads an issue in
+  It includes a starter role, a Molecule scenario, CentOS Stream 10 and RHEL 10
+  inventory hosts, and an Ansible Development Tools Devfile.
+- **Contribute to the Demo Ansible Collection** reads a Forgejo issue in
   `demo-owner/ansible-collection-demo.webapp` and creates `feature/issue-N`.
+  It prepares the branch; the coding agent implements the change and opens the PR.
 
-The first template produces a collection with a starter role, one Molecule
-scenario with CentOS Stream 10 and RHEL 10 inventory hosts, and a Devfile based
-on Ansible Development Tools. In an Omnigent sandbox, `molecule test` from the
-generated collection root uses scoped access to disposable VMs in
-`molecule-tests`. The second only
-prepares a branch; it does not change code or open a PR.
+AO must run the feature template before creating the agent session. Its internal
+gate waits for the Scaffolder task and verifies the branch. Repeat dispatches
+reuse the prepared branch.
 
-AO calls the internal Backstage feature gate before creating an agent session.
-The gate uses the bootstrap-generated Backstage service token to run the feature template, waits for its
-task to complete, and verifies the branch exists. A repeat dispatch reuses the
-already prepared branch. Sandboxes have `BACKSTAGE_URL`, `BACKSTAGE_TOKEN` and Forgejo credentials
-through the existing `omnigent-model` Secret. The helper uses Git askpass for
-Forgejo Git operations.
+## Use the Sandbox helper
 
-From an agent Sandbox working directory:
+From an agent Sandbox working directory, replace `1` with the issue number:
 
 ```bash
+demo-goldenpath issue 1
 demo-goldenpath checkout 1
 cd issue-1
-# edit, verify, and commit the requested change
+# Implement, check, and commit the change.
 demo-goldenpath pr 1 --body-file /tmp/pr-body.md
 ```
 
+`checkout` requires an existing branch and never runs the feature template.
 `demo-goldenpath new <name> <description>` runs the new collection template.
-`demo-goldenpath issue 1` reads the example issue. `checkout` requires the
-branch to exist already and never runs the feature template. The scaffolder
-and catalog are also available in the Developer Hub UI.
+In a generated collection, `molecule test` uses disposable VMs; follow the
+[shared test limits](../omnigent/README.md#run-molecule-tests).
 
-Browser login uses the independent [demo Keycloak](../demojam-keycloak/README.md).
-Bootstrap generates catalog User entities from `DEMO_USERS_FILE` and OIDC
-resolves the preferred username to those entities. Guest login is disabled.
-Permission enforcement is explicitly disabled for this disposable demo, so
-`demo-user` has unrestricted catalog and scaffolder access.
+Bootstrap creates the database and scoped Forgejo/Backstage service credentials
+in Secrets. Sandboxes receive the endpoint and tokens through `omnigent-model`;
+the helper uses Git askpass for Forgejo Git operations.
 
-`make demo-reset` replaces the disposable Forgejo data and rehydrates both
-tokens and the template source. It also removes catalog locations for
-collections generated in the disposable `demo-agent` Forgejo account, so
-their catalog entries do not outlive the wiped repositories. Bootstrap
-verifies the two catalog templates,
-demo collection entity, and scaffolder HTTP action before reporting ready.
+`make demo-reset` wipes generated Forgejo repositories and removes their catalog
+registrations, then refreshes tokens and template sources. Bootstrap verifies
+both templates, the demo collection entity, and the scaffolder HTTP action.
