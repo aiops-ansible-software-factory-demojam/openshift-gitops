@@ -1,7 +1,0 @@
----
-- name: Install and start nginx on the test hosts
-  hosts: molecule
-  become: true
-  gather_facts: false
-  roles:
-    - role: demo.webapp.nginx

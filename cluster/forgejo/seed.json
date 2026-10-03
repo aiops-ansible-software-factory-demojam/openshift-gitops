@@ -19,33 +19,36 @@
   "repositories": [
     {
       "owner": "demo-owner",
-      "name": "ansible-collection-demo",
+      "name": "ansible-collection-demo.webapp",
       "description": "Issue-to-PR Ansible collection demo",
-      "source": "",
+      "source": "https://github.com/aiops-ansible-software-factory-demojam/ansible-collection-demo.webapp.git",
       "collaborators": [
         "demo-agent",
         "demo-reviewer"
       ],
-      "private": false
+      "private": false,
+      "source_branch": "main"
     },
     {
       "owner": "demo-agent",
       "name": "ansible-collection-template",
       "description": "Golden path source for new Ansible collections",
-      "source": "",
+      "source": "https://github.com/aiops-ansible-software-factory-demojam/ansible-collection-template.git",
       "collaborators": [],
-      "private": true
+      "private": true,
+      "source_branch": "main"
     },
     {
       "owner": "demo-owner",
       "name": "demojam-ansible",
       "description": "Demo AAP configuration and OpenShift Virtualization automation",
-      "source": "",
+      "source": "https://github.com/aiops-ansible-software-factory-demojam/demojam-ansible.git",
       "collaborators": [
         "demo-agent",
         "demo-reviewer"
       ],
-      "private": false
+      "private": false,
+      "source_branch": "main"
     }
   ]
 }

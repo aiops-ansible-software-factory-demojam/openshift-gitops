@@ -393,14 +393,30 @@ forgejo_api() {
   rm -f "$response"
 }
 
+# Cache only fetched GitHub content in the ignored render directory. Bootstrap
+# also reads AAP's event-stream metadata before Forgejo exists on a fresh cluster.
+demo_source_checkout() (
+  local name=$1 source branch work
+  source=$(jq -er --arg name "$name" '.repositories[] | select(.name == $name) | .source' "$demo_repo_root/cluster/forgejo/seed.json")
+  branch=$(jq -er --arg name "$name" '.repositories[] | select(.name == $name) | .source_branch // "main"' "$demo_repo_root/cluster/forgejo/seed.json")
+  [[ $source =~ ^https://github.com/aiops-ansible-software-factory-demojam/[a-zA-Z0-9_.-]+\.git$ ]] ||
+    demo_die 'Seed sources must be credential-free HTTPS demo GitHub repositories.'
+  git check-ref-format --branch "$branch" >/dev/null
+  work="$demo_repo_root/.rendered/sources/$name"
+  mkdir -p "$demo_repo_root/.rendered/sources"
+  if [[ ! -d $work/.git ]]; then
+    GIT_ASKPASS='' git clone -q --depth 1 --single-branch --branch "$branch" "$source" "$work"
+  else
+    git -C "$work" remote set-url origin "$source"
+    GIT_ASKPASS='' git -C "$work" fetch -q --depth 1 origin "$branch"
+    git -C "$work" reset -q --hard FETCH_HEAD
+  fi
+  printf '%s\n' "$work"
+)
+
 demo_forgejo_seed_repos() (
   root="$demo_repo_root/cluster/forgejo"
   config=${SEED_CONFIG:-$root/seed.json}
-  COLLECTION_SOURCE=${COLLECTION_SOURCE:-$root/fixtures/collection}
-  [[ -f $COLLECTION_SOURCE/galaxy.yml ]] || { echo 'Source must contain galaxy.yml' >&2; exit 2; }
-  if [[ $COLLECTION_SOURCE != "$root/fixtures/collection" ]]; then
-    git -C "$COLLECTION_SOURCE" rev-parse --verify HEAD >/dev/null
-  fi
   jq -e '.users | length > 0' "$config" >/dev/null
   users='[]'
   page=1
@@ -448,65 +464,37 @@ ASKPASS
       forgejo_api POST "/admin/users/$owner/repos" "$(jq '{name,description,private:(if has("private") then .private else true end),auto_init:false,default_branch:"main"}' <<< "$repo")" >/dev/null
     fi
     forgejo_api PATCH "/repos/$owner/$name" "$(jq '{private:(if has("private") then .private else true end)}' <<< "$repo")" >/dev/null
-    refs=$(git -c credential.helper= ls-remote "$FORGEJO_URL/$owner/$name.git")
+    source=$(jq -er '.source' <<< "$repo")
+    source_branch=$(jq -er '.source_branch // "main"' <<< "$repo")
+    [[ $source =~ ^https://github.com/aiops-ansible-software-factory-demojam/[a-zA-Z0-9_.-]+\.git$ ]] ||
+      demo_die 'Seed sources must be credential-free HTTPS demo GitHub repositories.'
+    git check-ref-format --branch "$source_branch" >/dev/null
+    # GitHub uses the repository-scoped ghapp credential helper. Disable the
+    # Forgejo askpass helper for this fetch so credentials cannot cross hosts.
+    source_work=$tmp/source-$name
+    GIT_ASKPASS='' git clone -q --depth 1 --single-branch --branch "$source_branch" "$source" "$source_work"
+    source_revision=$(git -C "$source_work" rev-parse HEAD)
+    refs=$(git -c credential.helper= ls-remote "$FORGEJO_URL/$owner/$name.git" refs/heads/main)
+    work=$tmp/$name
     if [[ -z $refs ]]; then
-      source=$(jq -r '.source // ""' <<< "$repo")
-      [[ $name != ansible-collection-demo || -n $source ]] || source=$COLLECTION_SOURCE
-      [[ $name != ansible-collection-template || -n $source ]] || source=$root/fixtures/collection-template
-      [[ $name != demojam-ansible || -n $source ]] || source=$root/fixtures/demojam-ansible
-      work=$tmp/$name
       git init -q -b main "$work"
-      if [[ -n $source ]]; then
-        # Snapshot tracked HEAD only; omit .git, untracked secrets, and old history.
-        if [[ $source == "$root/fixtures/collection" ||
-              $source == "$root/fixtures/collection-template" ||
-              $source == "$root/fixtures/demojam-ansible" ]]; then
-          tar -C "$source" --exclude=.git --exclude=.venv --exclude=.ansible \
-            --exclude=.cache --exclude=__pycache__ --exclude='*.pyc' \
-            --exclude='*.tar.gz' --exclude='*.log' --exclude=context --exclude=artifacts \
-            --exclude=cluster-ca.crt --exclude=aap_manifest.zip \
-            --exclude=.env --exclude='.env.*' --exclude=.secrets \
-            -cf - . | tar -xf - -C "$work"
-        else
-          git -C "$source" archive HEAD | tar -x -C "$work"
-        fi
-      else
-        printf '# %s\n\n%s\n' "$name" "$(jq -r .description <<< "$repo")" > "$work/README.md"
-      fi
-      if [[ $name == ansible-collection-demo && ! -f $work/catalog-info.yaml ]]; then
-        cp "$root/fixtures/collection/catalog-info.yaml" "$work/catalog-info.yaml"
-      fi
-      find "$work" -type f -not -path '*/.git/*' -print0 |
-        xargs -0 -r sed -i "s|__FORGEJO_URL__|$FORGEJO_URL|g"
-      git -C "$work" add .
-      git -C "$work" -c user.name='Demo Maintainer' -c user.email=owner@example.test commit -qm 'Seed demo baseline'
-      git -C "$work" -c credential.helper= push -q "$FORGEJO_URL/$owner/$name.git" main
-    elif [[ $name == ansible-collection-template || $name == ansible-collection-demo || $name == demojam-ansible ]]; then
-      work=$tmp/$name
-      git -c credential.helper= clone -q "$FORGEJO_URL/$owner/$name.git" "$work"
-      if [[ $name == ansible-collection-template || $name == demojam-ansible ]]; then
-        # This fixture is seed-owned; preserve generated collections and feature work.
-        find "$work" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf -- {} +
-        fixture_dir="$root/fixtures/collection-template"
-        [[ $name != demojam-ansible ]] || fixture_dir="$root/fixtures/demojam-ansible"
-        tar -C "$fixture_dir" --exclude=.git --exclude=.venv \
-          --exclude=.ansible --exclude=.cache --exclude=__pycache__ \
-          --exclude='*.pyc' --exclude='*.tar.gz' -cf - . | tar -xf - -C "$work"
-        find "$work" -type f -not -path '*/.git/*' -print0 |
-          xargs -0 -r sed -i "s|__FORGEJO_URL__|$FORGEJO_URL|g"
-      else
-        # Add the catalog descriptor to an already seeded collection without
-        # resetting its history or the agent's open feature branches.
-        cp "$root/fixtures/collection/catalog-info.yaml" "$work/catalog-info.yaml"
-        sed -i "s|__FORGEJO_URL__|$FORGEJO_URL|g" "$work/catalog-info.yaml"
-      fi
-      git -C "$work" add -A
-      if ! git -C "$work" diff --cached --quiet; then
-        git -C "$work" -c user.name='Demo Maintainer' \
-          -c user.email=owner@example.test commit -qm 'Reconcile demo catalog source'
-        git -C "$work" -c credential.helper= push -q origin main
-      fi
+    else
+      git -c credential.helper= clone -q --single-branch --branch main "$FORGEJO_URL/$owner/$name.git" "$work"
+      find "$work" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf -- {} +
     fi
+    # Snapshot contents, not source history; preserve Forgejo branches and PRs.
+    git -C "$source_work" archive HEAD | tar -x -C "$work"
+    source_url=${source%.git}
+    while IFS= read -r -d '' file; do
+      sed -i "s|__FORGEJO_URL__|$FORGEJO_URL|g; s|$source_url|$FORGEJO_URL/$owner/$name|g" "$work/$file"
+    done < <(git -C "$source_work" ls-files -z)
+    git -C "$work" add -A
+    if ! git -C "$work" diff --cached --quiet; then
+      git -C "$work" -c user.name='Demo Maintainer' -c user.email=owner@example.test \
+        commit -qm "Refresh demo baseline from $name ($source_revision)"
+      git -C "$work" -c credential.helper= push -q "$FORGEJO_URL/$owner/$name.git" main
+    fi
+    printf 'Refreshed %s/%s from %s at %s\n' "$owner" "$name" "$source_branch" "$source_revision"
     if [[ $name == ansible-collection-template ]]; then
       forgejo_api PATCH "/repos/$owner/$name" '{"template":true}' >/dev/null
     fi
@@ -519,7 +507,7 @@ ASKPASS
 
 demo_forgejo_issue() (
   root="$demo_repo_root/cluster/forgejo"
-  repo=demo-owner/ansible-collection-demo
+  repo=demo-owner/ansible-collection-demo.webapp
   title='Add a test line to the README'
   issues=$(forgejo_api GET "/repos/$repo/issues?state=all&limit=100")
   existing=$(jq -r --arg title "$title" \
@@ -615,9 +603,6 @@ demo_forgejo_lifecycle() (
     seed) cluster; route; seed ;;
     reset)
       [[ ${2:-} == --confirm-forgejo ]] || { echo 'Usage: demo.sh reset --confirm-forgejo (erases demo data)' >&2; exit 2; }
-      COLLECTION_SOURCE=${COLLECTION_SOURCE:-$root/fixtures/collection}
-      export COLLECTION_SOURCE
-      [[ -f $COLLECTION_SOURCE/galaxy.yml ]] || exit 2
       cluster
       [[ $(oc get namespace "$namespace" -o jsonpath='{.metadata.labels.app\.kubernetes\.io/part-of}') == forgejo ]] || exit 2
       route
@@ -798,7 +783,7 @@ demo_verify_goldenpaths() (
       ready=true
       for ref in template/default/ansible-collection \
         template/default/ansible-collection-feature \
-        component/default/ansible-collection-demo; do
+        component/default/ansible-collection-demo.webapp; do
         if ! curl -fsS --max-time 20 -o /dev/null \
           -H "Authorization: Bearer $token" \
           "$base_url/api/catalog/entities/by-name/$ref" 2>/dev/null; then
@@ -841,14 +826,291 @@ demo_ao_workflow_definition() {
     .edges += [range(0; ($chain | length) - 1) as $i | {from:$chain[$i],to:$chain[$i+1]}]'
 }
 
+# These helpers share the authenticated connection and private response file in
+# demo_ao_reconcile. Credentials are encrypted by AO, never written to workflows.
+demo_ao_credential() {
+  local name=$1 type_name=$2 inputs=$3 kind id payload code
+  code=$(ao_curl GET "$base_url/credential_types?limit=100" -H "$auth_header")
+  ao_require_json 'list credential types' "$code"
+  kind=$(jq -er --arg name "$type_name" '.resources[] | select(.name == $name) | .id' "$ao_response")
+  code=$(ao_curl GET "$base_url/credentials?limit=100" -H "$auth_header")
+  ao_require_json 'list integration credentials' "$code"
+  id=$(jq -r --arg name "$name" '.resources[] | select(.name == $name) | .id' "$ao_response")
+  payload=$(jq -n --arg name "$name" --arg project "$project_id" --arg kind "$kind" --argjson inputs "$inputs" \
+    '{name:$name,project_id:$project,credential_type_id:$kind,inputs:$inputs}')
+  if [[ -n $id ]]; then
+    payload=$(jq 'del(.project_id,.credential_type_id)' <<<"$payload")
+    code=$(ao_curl PATCH "$base_url/credentials/$id" -H "$auth_header" \
+      -H 'Content-Type: application/json' --data-binary "$payload")
+  else
+    code=$(ao_curl POST "$base_url/credentials" -H "$auth_header" \
+      -H 'Content-Type: application/json' --data-binary "$payload")
+  fi
+  ao_require_json "reconcile credential $name" "$code"
+  jq -er '.id' "$ao_response"
+}
+
+demo_ao_integration() {
+  local name=$1 kind=$2 credential=$3 configuration=$4 id payload code
+  code=$(ao_curl GET "$base_url/integrations?limit=100" -H "$auth_header")
+  ao_require_json 'list integrations' "$code"
+  id=$(jq -r --arg name "$name" '.resources[] | select(.name == $name) | .id' "$ao_response")
+  payload=$(jq -n --arg name "$name" --arg kind "$kind" --arg credential "$credential" \
+    --argjson configuration "$configuration" \
+    '{name:$name,integration_type:$kind,configuration:$configuration,
+      management_credential_id:$credential,enabled:true,scope:"global"}')
+  if [[ -n $id ]]; then
+    payload=$(jq 'del(.integration_type)' <<<"$payload")
+    code=$(ao_curl PATCH "$base_url/integrations/$id" -H "$auth_header" \
+      -H 'Content-Type: application/json' --data-binary "$payload")
+  else
+    code=$(ao_curl POST "$base_url/integrations" -H "$auth_header" \
+      -H 'Content-Type: application/json' --data-binary "$payload")
+  fi
+  ao_require_json "reconcile integration $name" "$code"
+  id=$(jq -er '.id' "$ao_response")
+  code=$(ao_curl POST "$base_url/integrations/$id/validate" -H "$auth_header" \
+    -H 'Content-Type: application/json' --data-binary '{}')
+  ao_require_json "validate integration $name" "$code"
+  jq -e '.success == true' "$ao_response" >/dev/null || demo_die "AO could not connect to $name."
+  printf '%s\n' "$id"
+}
+
+# AO 2026.8 uses Chat Completions and cannot set provider headers. LiteLLM's
+# maintained bridge translates Responses models and adds Go's routing headers.
+# Keep the runtime configuration here rather than a second bootstrap program.
+demo_ao_go_proxy() {
+  local proxy_model protocol config_status secret_status existing
+  existing=$(oc -n "$namespace" get deployment ao-opencode-go --ignore-not-found -o name)
+  protocol=${OPENCODE_GO_PROTOCOL:-responses}
+  case $protocol in
+    responses) proxy_model="openai/responses/$model_name" ;;
+    chat) proxy_model="openai/$model_name" ;;
+    *) demo_die 'OPENCODE_GO_PROTOCOL must be responses or chat.' ;;
+  esac
+  printf '%s' "$model_key" >"$omnigent_scratch/go-api-key"
+  if [[ -n $(oc -n "$namespace" get secret ao-opencode-go --ignore-not-found -o name) ]]; then
+    oc -n "$namespace" get secret ao-opencode-go \
+      -o go-template='{{index .data "LITELLM_MASTER_KEY" | base64decode}}' >"$omnigent_scratch/go-proxy-key"
+    [[ -s $omnigent_scratch/go-proxy-key ]] || demo_die 'The Go proxy master key is empty.'
+  else
+    printf 'sk-%s' "$(openssl rand -hex 32)" >"$omnigent_scratch/go-proxy-key"
+  fi
+  secret_status=$(oc -n "$namespace" create secret generic ao-opencode-go \
+    --from-file=OPENCODE_GO_API_KEY="$omnigent_scratch/go-api-key" \
+    --from-file=LITELLM_MASTER_KEY="$omnigent_scratch/go-proxy-key" --dry-run=client -o yaml |
+    oc -n "$namespace" apply -f -)
+  jq -n --arg model "$model_name" --arg backend "$proxy_model" --arg url "$model_endpoint" '
+    {model_list:[{model_name:$model,litellm_params:{model:$backend,api_base:$url,
+      api_key:"os.environ/OPENCODE_GO_API_KEY"}}],
+      general_settings:{master_key:"os.environ/LITELLM_MASTER_KEY"},
+      litellm_settings:{callbacks:["go_headers.callback"],num_retries:0}}' |
+    yq -y . >"$omnigent_scratch/go-config.yaml"
+  cat >"$omnigent_scratch/go_headers.py" <<'PY'
+from uuid import uuid4
+from litellm.integrations.custom_logger import CustomLogger
+
+class GoHeaders(CustomLogger):
+    async def async_pre_call_hook(self, user_api_key_dict, cache, data, call_type):
+        headers = data.setdefault("extra_headers", {})
+        # Preserve caller conversation IDs; a single-question AO run is one call.
+        metadata = data.get("metadata") or {}
+        headers.setdefault("x-opencode-session", str(metadata.get("session_id") or data.get("litellm_call_id") or uuid4()))
+        headers["User-Agent"] = "automation-orchestrator-demojam/1.0"
+        return data
+
+callback = GoHeaders()
+PY
+  config_status=$(oc -n "$namespace" create configmap ao-opencode-go \
+    --from-file=config.yaml="$omnigent_scratch/go-config.yaml" \
+    --from-file=go_headers.py="$omnigent_scratch/go_headers.py" --dry-run=client -o yaml |
+    oc -n "$namespace" apply -f -)
+  cat <<'YAML' | oc -n "$namespace" apply -f - >/dev/null
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ao-opencode-go
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ao-opencode-go
+  template:
+    metadata:
+      labels:
+        app: ao-opencode-go
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: proxy
+          image: ghcr.io/berriai/litellm@sha256:f63fb81b831b170ec16851e23c36ac5bf52ef106b271406429524a2ed730bbfd
+          args:
+            - --config
+            - /etc/litellm/config.yaml
+            - --port
+            - "4000"
+          envFrom:
+            - secretRef:
+                name: ao-opencode-go
+          env:
+            - name: PYTHONPATH
+              value: /etc/litellm
+            - name: XDG_CACHE_HOME
+              value: /tmp/cache
+          ports:
+            - containerPort: 4000
+          readinessProbe:
+            httpGet:
+              path: /health/liveliness
+              port: 4000
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              memory: 1Gi
+          volumeMounts:
+            - name: config
+              mountPath: /etc/litellm
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: ao-opencode-go
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ao-opencode-go
+spec:
+  selector:
+    app: ao-opencode-go
+  ports:
+    - port: 4000
+      targetPort: 4000
+YAML
+  if [[ -n $existing && ( $config_status != *' unchanged' || $secret_status != *' unchanged' ) ]]; then
+    oc -n "$namespace" rollout restart deployment/ao-opencode-go >/dev/null
+  fi
+  oc -n "$namespace" rollout status deployment/ao-opencode-go --timeout=10m
+  model_endpoint=http://ao-opencode-go.automation-orchestrator.svc:4000/v1
+  model_key=$(<"$omnigent_scratch/go-proxy-key")
+}
+
+demo_ao_integrations() {
+  local configuration inputs allowed_hosts deploy current expected code disabled_models
+  demo_model_inputs
+  if [[ ${MODEL_PROVIDER:-opencode-go} == opencode-go ]]; then
+    demo_ao_go_proxy
+  fi
+  # The integration policy is checked in backend, worker and background worker.
+  # The operator loads this supported ConfigMap in all three processes. Argo
+  # ignores this one bootstrap-owned key while retaining the OIDC setting.
+  aap_scratch=$omnigent_scratch
+  aap_connect
+  allowed_hosts=$(jq -cn --arg llm "${model_endpoint#*://}" --arg aap "${aap_host#https://}" \
+    '[$llm,$aap] | map(split("/")[0] | split(":")[0]) | unique')
+  expected=$(jq -c . <<<"$allowed_hosts")
+  oc -n "$namespace" patch configmap automation-orchestrator-admin-settings --type=merge \
+    --patch "$(jq -cn --arg hosts "$expected" '{data:{APP_INTEGRATION_URL_ALLOWED_HOSTS:$hosts}}')" >/dev/null
+  for deploy in backend worker background-worker; do
+    current=$(oc -n "$namespace" exec "deployment/automation-orchestrator-$deploy" -- \
+      printenv APP_INTEGRATION_URL_ALLOWED_HOSTS 2>/dev/null || true)
+    if [[ $current != "$expected" ]]; then
+      oc -n "$namespace" rollout restart "deployment/automation-orchestrator-$deploy" >/dev/null
+      oc -n "$namespace" rollout status "deployment/automation-orchestrator-$deploy" --timeout=10m
+      [[ $(oc -n "$namespace" exec "deployment/automation-orchestrator-$deploy" -- \
+        printenv APP_INTEGRATION_URL_ALLOWED_HOSTS) == "$expected" ]] ||
+        demo_die "AO $deploy did not load its integration settings."
+    fi
+  done
+  inputs=$(jq -n --arg key "$model_key" '{api_key:$key}')
+  llm_credential_id=$(demo_ao_credential "demo-llm-${MODEL_PROVIDER:-opencode-go}" 'LLM Provider' "$inputs")
+  unset model_key inputs
+  configuration=$(jq -n --arg url "$model_endpoint" \
+    '{integration_type:"llm_provider",base_url:$url,provider_hint:"custom",allow_http:($url|startswith("http://"))}')
+  llm_integration_id=$(demo_ao_integration "Demo LLM (${MODEL_PROVIDER:-opencode-go})" llm_provider "$llm_credential_id" "$configuration")
+  code=$(ao_curl POST "$base_url/integrations/$llm_integration_id/refresh" -H "$auth_header" \
+    -H 'Content-Type: application/json' --data-binary '{}')
+  ao_require_json 'discover selected LLM models' "$code"
+  code=$(ao_curl GET "$base_url/integrations/$llm_integration_id/models?limit=100" -H "$auth_header")
+  ao_require_json 'list selected LLM models' "$code"
+  llm_model_id=$(jq -er --arg name "$model_name" \
+    '.resources[] | select(.model_id == $name) | .id' "$ao_response")
+  disabled_models=$(jq -c --arg id "$llm_model_id" '[.resources[] | select(.id != $id and .enabled == true) | .id]' "$ao_response")
+  if [[ $disabled_models != '[]' ]]; then
+    code=$(ao_curl PATCH "$base_url/integrations/$llm_integration_id/models/bulk_update" -H "$auth_header" \
+      -H 'Content-Type: application/json' --data-binary "$(jq -n --argjson ids "$disabled_models" '{model_ids:$ids,enabled:false}')")
+    ao_require_json 'disable unselected models' "$code"
+  fi
+  code=$(ao_curl PATCH "$base_url/integrations/$llm_integration_id/models/$llm_model_id" -H "$auth_header" \
+    -H 'Content-Type: application/json' --data-binary '{"enabled":true,"is_default":true}')
+  ao_require_json 'enable selected model' "$code"
+  inputs=$(jq -n --arg username "$aap_username" \
+    --rawfile password "$aap_scratch/password" '{username:$username,password:$password}')
+  aap_credential_id=$(demo_ao_credential demo-aap 'Ansible Automation Platform' "$inputs")
+  unset inputs
+  configuration=$(jq -n --arg url "$aap_host" '{integration_type:"ansible_automation_platform",base_url:$url}')
+  aap_integration_id=$(demo_ao_integration 'Demo AAP' ansible_automation_platform "$aap_credential_id" "$configuration")
+  printf 'AO integrations are configured; selected model: %s\n' "$model_name"
+}
+
+demo_ao_run() {
+  local name=$1 input=$2 workflow execution payload code status deadline=$((SECONDS + 1800))
+  jq -e 'type == "object"' <<<"$input" >/dev/null || demo_die 'AO input must be a JSON object.'
+  code=$(ao_curl GET "$base_url/workflows?limit=100" -H "$auth_header")
+  ao_require_json 'list executable workflows' "$code"
+  workflow=$(jq -er --arg name "$name" '.resources[] | select(.name == $name and .is_builtin == false) | .id' "$ao_response")
+  payload=$(jq -n --arg workflow "$workflow" --argjson input "$input" \
+    '{workflow_id:$workflow,trigger_node_id:"start",use_published:true,input_data:$input}')
+  # A launch is a single POST. A lost response must not launch a duplicate job.
+  code=$(ao_curl POST "$base_url/executions" -H "$auth_header" \
+    -H 'Content-Type: application/json' --data-binary "$payload")
+  ao_require_json "launch $name" "$code"
+  execution=$(jq -er '.id' "$ao_response")
+  printf 'AO execution: %s (%s)\n' "$execution" "$name"
+  while (( SECONDS < deadline )); do
+    code=$(ao_curl GET "$base_url/executions/$execution" -H "$auth_header")
+    ao_require_json 'poll workflow execution' "$code"
+    status=$(jq -er '.status' "$ao_response")
+    case $status in
+      completed)
+        code=$(ao_curl GET "$base_url/executions/$execution/activities?limit=100" -H "$auth_header")
+        ao_require_json 'read workflow results' "$code"
+        # Do not print authentication activity outputs (including bearer tokens).
+        jq '{status:"completed",results:[.resources[]? |
+          select(.activity_name == "ask_model" or .activity_name == "configure_nginx" or .activity_name == "create_session") |
+          {node:.activity_name,status,output:(if .activity_name == "ask_model" then
+            .output_data.result.content // .output_data else .output_data end)}]}' "$ao_response"
+        if [[ $name == omnigent-dispatch ]]; then
+          echo 'The agent continues asynchronously. Inspect the session for its PR URL.'
+        fi
+        return ;;
+      failed|cancelled|canceled|timed_out)
+        code=$(ao_curl GET "$base_url/executions/$execution/activities?limit=100" -H "$auth_header")
+        ao_require_json 'read failed activities' "$code"
+        jq '{activities:[.resources[]? | {node:.activity_name,status,
+          error:(.error_details // .output_data.error // .error_message)}]}' "$ao_response" >&2
+        demo_die "AO workflow $name ended with $status." ;;
+    esac
+    sleep 5
+  done
+  demo_die "AO execution $execution is still $status; inspect it before another launch."
+}
+
+demo_dispatch_issue() {
+  local issue=${1:-}
+  [[ $# == 1 && $issue =~ ^[1-9][0-9]*$ ]] || demo_die 'Pass a positive Forgejo issue number.'
+  demo_verify_cluster
+  demo_ao_reconcile run omnigent-dispatch "$(jq -cn --argjson issue "$issue" '{issue_number:$issue}')"
+}
+
 demo_ao_reconcile() (
   set +x
   umask 077
   demo_identity_validate_users "$(demo_identity_users_file)" || demo_die 'Invalid DEMO_USERS_FILE.'
   namespace=automation-orchestrator
-  workflow_name=omnigent-dispatch
   script_dir="$demo_repo_root/cluster/automation-orchestrator"
-  workflow_file="$script_dir/workflows/omnigent-dispatch.yaml"
   ao_local_port=${AO_LOCAL_PORT:-18080}
 
   oc whoami --show-server
@@ -870,7 +1132,7 @@ demo_ao_reconcile() (
   ao_curl() {
     local method=$1 url=$2 http_code=000
     shift 2
-    http_code=$(curl -sS -o "$ao_response" -w '%{http_code}' \
+    http_code=$(curl -sS --connect-timeout 10 --max-time 60 -o "$ao_response" -w '%{http_code}' \
       -X "$method" "$@" "$url" 2>/dev/null) || true
     printf '%s' "${http_code:-000}"
   }
@@ -1062,6 +1324,12 @@ demo_ao_reconcile() (
     ao_fail_response 'login' "$last_login_code"
   fi
   auth_header="Authorization: Bearer $ao_token"
+  if [[ ${1:-} == run ]]; then
+    local run_input='{}'
+    [[ $# -lt 3 ]] || run_input=$3
+    demo_ao_run "$2" "$run_input"
+    exit 0
+  fi
 
   http_code=$(ao_curl GET "$base_url/groups?limit=100" -H "$auth_header")
   ao_require_json 'list OIDC target groups' "$http_code"
@@ -1127,7 +1395,16 @@ demo_ao_reconcile() (
     unset credential_payload
     ao_require_json 'create credential' "$http_code"
     credential_id=$(jq -r '.id' "$ao_response")
+  else
+    credential_payload=$(jq -n --arg username "$client_id" --arg password "$client_secret" \
+      '{inputs:{username:$username,password:$password}}')
+    http_code=$(ao_curl PATCH "$base_url/credentials/$credential_id" -H "$auth_header" \
+      -H 'Content-Type: application/json' --data-binary "$credential_payload")
+    unset credential_payload
+    ao_require_json 'refresh machine credential' "$http_code"
   fi
+
+  demo_ao_integrations
 
   omnigent_host=$(oc -n omnigent get route omnigent \
     -o jsonpath='{.status.ingress[0].host}')
@@ -1143,71 +1420,89 @@ demo_ao_reconcile() (
     exit 1
   fi
 
-  workflow_definition=$(demo_ao_workflow_definition "$workflow_file" "$credential_id" "$agent_id")
-  validation_payload=$(jq -n --argjson definition "$workflow_definition" \
-    '{workflow_definition: $definition}')
-  http_code=$(ao_curl POST "$base_url/workflows/validate" -H "$auth_header" \
-    -H 'Content-Type: application/json' --data-binary "$validation_payload")
-  if [[ $http_code == 422 ]] && ao_response_is_json; then
-    # The workflow contains credential references, never credential values.
-    jq -r '.validation_result.findings[]? | "\(.field_path): \(.message)"' "$ao_response" >&2
-  fi
-  ao_require_json 'validate workflow' "$http_code"
-  jq -e '.is_valid == true' "$ao_response" >/dev/null ||
-    ao_fail_response 'validate workflow' "$http_code"
+  # Inject runtime integration and credential references into portable definitions;
+  # only omnigent-dispatch needs its dynamic agent and user-sharing nodes.
+  for workflow_file in "$script_dir"/workflows/*.yaml; do
+    workflow_name=$(yq -er '.name' "$workflow_file")
+    if [[ $workflow_name == omnigent-dispatch ]]; then
+      workflow_definition=$(demo_ao_workflow_definition "$workflow_file" "$credential_id" "$agent_id")
+    else
+      workflow_definition=$(yq -c . "$workflow_file" | jq -c \
+        --arg llm_credential "$llm_credential_id" --arg llm_integration "$llm_integration_id" \
+        --arg llm_model "$llm_model_id" --arg aap_credential "$aap_credential_id" \
+        --arg aap_integration "$aap_integration_id" '
+        .nodes |= map(if .type == "agentic" then
+          .parameters.credential_id=$llm_credential | .parameters.integration_id=$llm_integration |
+          .parameters.llm_model_id=$llm_model
+        elif .type == "aap_job_template" then
+          .parameters.credential_id=$aap_credential | .parameters.integration_id=$aap_integration
+        else . end)')
+    fi
+    validation_payload=$(jq -n --argjson definition "$workflow_definition" \
+      '{workflow_definition: $definition}')
+    http_code=$(ao_curl POST "$base_url/workflows/validate" -H "$auth_header" \
+      -H 'Content-Type: application/json' --data-binary "$validation_payload")
+    if [[ $http_code == 422 ]] && ao_response_is_json; then
+      # The workflow contains credential references, never credential values.
+      jq -r '.validation_result.findings[]? | "\(.field_path): \(.message)"' "$ao_response" >&2
+    fi
+    ao_require_json 'validate workflow' "$http_code"
+    jq -e '.is_valid == true' "$ao_response" >/dev/null ||
+      ao_fail_response 'validate workflow' "$http_code"
 
-  http_code=$(ao_curl GET "$base_url/workflows?limit=100" -H "$auth_header")
-  ao_require_json 'list workflows' "$http_code"
-  workflow_id=$(jq -r --arg name "$workflow_name" \
-    '.resources[]? | select(.name == $name and .is_builtin == false) | .id' \
-    "$ao_response" | head -1)
-  if [[ -z ${workflow_id:-} ]]; then
-    payload=$(jq -n --arg name "$workflow_name" --arg project_id "$project_id" \
-      --argjson definition "$workflow_definition" \
-      '{name:$name,project_id:$project_id,workflow_definition:$definition}')
-    http_code=$(ao_curl POST "$base_url/workflows" -H "$auth_header" \
-      -H 'Content-Type: application/json' --data-binary "$payload")
-    ao_require_json 'create workflow' "$http_code"
-    workflow_id=$(jq -r '.id' "$ao_response")
-    workflow_version=$(jq -r '.current_version' "$ao_response")
-    publish_needed=true
-  else
-    http_code=$(ao_curl GET "$base_url/workflows/$workflow_id" -H "$auth_header")
-    ao_require_json 'read workflow' "$http_code"
-    workflow_version=$(jq -r '.current_version' "$ao_response")
-    published_version=$(jq -r '.published_version_number // 0' "$ao_response")
-    publish_needed=false
-    http_code=$(ao_curl GET \
-      "$base_url/workflows/$workflow_id/versions/$workflow_version" \
-      -H "$auth_header")
-    ao_require_json 'read workflow version' "$http_code"
-    current_definition=$(jq -c '.workflow_definition' "$ao_response")
-    if [[ $(jq -S -c . <<<"$current_definition") != \
-          $(jq -S -c . <<<"$workflow_definition") ]]; then
-      payload=$(jq -n --argjson expected_version "$workflow_version" \
+    http_code=$(ao_curl GET "$base_url/workflows?limit=100" -H "$auth_header")
+    ao_require_json 'list workflows' "$http_code"
+    workflow_id=$(jq -r --arg name "$workflow_name" \
+      '.resources[]? | select(.name == $name and .is_builtin == false) | .id' \
+      "$ao_response" | head -1)
+    if [[ -z ${workflow_id:-} ]]; then
+      payload=$(jq -n --arg name "$workflow_name" --arg project_id "$project_id" \
         --argjson definition "$workflow_definition" \
-        '{expected_version:$expected_version,workflow_definition:$definition}')
-      http_code=$(ao_curl PATCH "$base_url/workflows/$workflow_id" \
-        -H "$auth_header" -H 'Content-Type: application/json' \
-        --data-binary "$payload")
-      ao_require_json 'update workflow' "$http_code"
+        '{name:$name,project_id:$project_id,workflow_definition:$definition}')
+      http_code=$(ao_curl POST "$base_url/workflows" -H "$auth_header" \
+        -H 'Content-Type: application/json' --data-binary "$payload")
+      ao_require_json 'create workflow' "$http_code"
+      workflow_id=$(jq -r '.id' "$ao_response")
       workflow_version=$(jq -r '.current_version' "$ao_response")
       publish_needed=true
-    elif [[ "$published_version" != "$workflow_version" ]]; then
-      publish_needed=true
+    else
+      http_code=$(ao_curl GET "$base_url/workflows/$workflow_id" -H "$auth_header")
+      ao_require_json 'read workflow' "$http_code"
+      workflow_version=$(jq -r '.current_version' "$ao_response")
+      published_version=$(jq -r '.published_version_number // 0' "$ao_response")
+      publish_needed=false
+      http_code=$(ao_curl GET \
+        "$base_url/workflows/$workflow_id/versions/$workflow_version" \
+        -H "$auth_header")
+      ao_require_json 'read workflow version' "$http_code"
+      current_definition=$(jq -c '.workflow_definition' "$ao_response")
+      if [[ $(jq -S -c . <<<"$current_definition") != \
+            $(jq -S -c . <<<"$workflow_definition") ]]; then
+        payload=$(jq -n --argjson expected_version "$workflow_version" \
+          --argjson definition "$workflow_definition" \
+          '{expected_version:$expected_version,workflow_definition:$definition}')
+        http_code=$(ao_curl PATCH "$base_url/workflows/$workflow_id" \
+          -H "$auth_header" -H 'Content-Type: application/json' \
+          --data-binary "$payload")
+        ao_require_json 'update workflow' "$http_code"
+        workflow_version=$(jq -r '.current_version' "$ao_response")
+        publish_needed=true
+      elif [[ "$published_version" != "$workflow_version" ]]; then
+        publish_needed=true
+      fi
     fi
-  fi
 
-  if [[ "$publish_needed" == true ]]; then
-    payload=$(jq -n \
-      '{publish_name:"GitOps demo",change_description:"Reconciled from openshift-gitops"}')
-    http_code=$(ao_curl POST \
-      "$base_url/workflows/$workflow_id/versions/$workflow_version/publish" \
-      -H "$auth_header" -H 'Content-Type: application/json' \
-      --data-binary "$payload")
-    ao_require_json 'publish workflow' "$http_code"
-  fi
-  printf 'Reconciled workflow %s version %s\n' "$workflow_name" "$workflow_version"
+    if [[ "$publish_needed" == true ]]; then
+      payload=$(jq -n \
+        '{publish_name:"GitOps demo",change_description:"Reconciled from openshift-gitops"}')
+      http_code=$(ao_curl POST \
+        "$base_url/workflows/$workflow_id/versions/$workflow_version/publish" \
+        -H "$auth_header" -H 'Content-Type: application/json' \
+        --data-binary "$payload")
+      ao_require_json 'publish workflow' "$http_code"
+    fi
+    printf 'Reconciled workflow %s version %s\n' "$workflow_name" "$workflow_version"
+  done
 )
 
 # -----------------------------------------------------------------------------
@@ -1325,7 +1620,7 @@ demo_alerting_prepare() (
   host=${AAP_HOST:-https://aap-ansible-automation-platform.$domain}
   host=${host%/}
   uuid=$(yq -er '.demo_eda_event_stream.uuid' \
-    "$demo_repo_root/cluster/forgejo/fixtures/demojam-ansible/group_vars/aap/eda.yml")
+    "$(demo_source_checkout demojam-ansible)/group_vars/aap/eda.yml")
   oc apply --server-side --field-manager=demo-bootstrap \
     -f "$demo_repo_root/cluster/user-workload-monitoring/blackbox-exporter/blackbox-exporter-namespace.yaml"
   if [[ -n $(oc -n blackbox-exporter get secret webapp-eda-webhook --ignore-not-found -o name) ]]; then
@@ -1485,7 +1780,7 @@ aap_dispatch() {
 aap_wait_eda() {
   local name query status previous='' deadline=$((SECONDS + 600))
   name=$(yq -er '.demo_eda_activation.name' \
-    "$demo_repo_root/cluster/forgejo/fixtures/demojam-ansible/group_vars/aap/eda.yml")
+    "$(demo_source_checkout demojam-ansible)/group_vars/aap/eda.yml")
   query=$(jq -rn --arg name "$name" '$name | @uri')
   while (( SECONDS < deadline )); do
     status=$(aap_request GET "activations/?name=$query" '' /api/eda/v1/ |
@@ -1886,15 +2181,14 @@ demo_bootstrap() (
   done
   oc -n omnigent delete secret omnigent-auth omnigent-machine-client \
     --ignore-not-found
+  demo_step 'Configure AAP through its Controller'
+  demo_aap_configure
   if [[ ${BOOTSTRAP_RECONCILE_WORKFLOW:-true} == true ]]; then
     demo_step 'Validate and publish the AO workflow'
     demo_ao_reconcile
   else
     demo_ao_reconcile identity-only
   fi
-  demo_step 'Configure AAP through its Controller'
-  demo_aap_configure
-
   demo_step 'Provision the RHEL webapp through AAP'
   demo_webapp create
   demo_step 'Install nginx through AAP'
@@ -1914,6 +2208,168 @@ demo_bootstrap() (
 )
 
 # -----------------------------------------------------------------------------
+# Full removal keeps controllers running until their operands have finalized.
+# The durable, secret-free inventory also supports resuming interrupted removal.
+demo_teardown() (
+  [[ $# == 1 && $1 == --confirm-demo-teardown ]] ||
+    demo_die 'Usage: teardown --confirm-demo-teardown (deletes demo data and operators).'
+  demo_verify_cluster
+  local state="$demo_repo_root/.rendered/demo-teardown.json" scratch app namespace kind group name resource csv crd
+  local -a namespaces=(homepage blackbox-exporter webapp-vms automation-vms molecule-tests
+    omnigent-sandboxes omnigent forgejo rhdh demojam-keycloak automation-orchestrator
+    ansible-automation-platform agent-sandbox-system openshift-virtualization-os-images
+    openshift-cnv openshift-pipelines cloudnative-pg openshift-gitops openshift-gitops-operator)
+  umask 077
+  scratch=$(mktemp -d)
+  trap 'find "$scratch" -type f -delete; rmdir "$scratch"' EXIT
+  mkdir -p "$demo_repo_root/.rendered"
+  if [[ -n $(oc get crd applications.argoproj.io --ignore-not-found -o name) ]]; then
+    oc -n openshift-gitops get applications -o json >"$scratch/apps.json"
+  else
+    printf '{"items":[]}' >"$scratch/apps.json"
+  fi
+  jq -e --arg repo "$BOOTSTRAP_REPO_URL" 'all(.items[]; .spec.source.repoURL == $repo)' "$scratch/apps.json" >/dev/null ||
+    demo_die 'Unexpected GitOps applications found; refusing to remove another stack.'
+  if [[ $(jq '.items|length' "$scratch/apps.json") != 0 || ! -f $state ]]; then
+    yq -s . "$demo_repo_root"/cluster/*/*subscription.yaml "$demo_repo_root"/bootstrap/*subscription.yaml |
+      jq '[.[] | {name:.metadata.name,namespace:.metadata.namespace}]' >"$scratch/subscriptions.json"
+    oc get subscriptions.operators.coreos.com -A -o json >"$scratch/live-subscriptions.json"
+    oc get clusterserviceversions.operators.coreos.com -A -o json |
+      jq --slurpfile subscriptions "$scratch/subscriptions.json" --slurpfile live "$scratch/live-subscriptions.json" '
+      [.items[] as $csv | select(any($subscriptions[0][]; . as $wanted |
+        any($live[0].items[]; .metadata.name == $wanted.name and .metadata.namespace == $wanted.namespace and
+          .status.installedCSV == $csv.metadata.name and .metadata.namespace == $csv.metadata.namespace))) |
+        {name:$csv.metadata.name,namespace:$csv.metadata.namespace,
+          crds:[$csv.spec.customresourcedefinitions.owned[]?.name]}]' >"$scratch/csvs.json"
+    oc get crd -o json | jq '[.items[] | select(.spec.group | test("(^|\\.)(kubevirt\\.io|tekton\\.dev)$")) | .metadata.name]' >"$scratch/operand-crds.json"
+    jq -n --arg server "$DEMO_CLUSTER_SERVER" --arg repo "$BOOTSTRAP_REPO_URL" \
+      --slurpfile apps "$scratch/apps.json" --slurpfile subscriptions "$scratch/subscriptions.json" \
+      --slurpfile csvs "$scratch/csvs.json" --slurpfile operands "$scratch/operand-crds.json" \
+      '{server:$server,repo:$repo,apps:[$apps[0].items[].metadata.name],
+        resources:([$apps[0].items[].status.resources[]?] | unique_by([.group,.kind,.namespace,.name])),
+        subscriptions:$subscriptions[0],csvs:$csvs[0],crds:([$csvs[0][].crds[]]+$operands[0]|unique)}' >"$state"
+  fi
+  jq -e --arg server "$DEMO_CLUSTER_SERVER" --arg repo "$BOOTSTRAP_REPO_URL" \
+    '.server == $server and .repo == $repo' "$state" >/dev/null || demo_die 'Teardown inventory belongs to a different cluster or repository.'
+
+  demo_step 'Stop demo GitOps reconciliation'
+  # Root first: it must not recreate children while they are being detached.
+  while IFS= read -r app; do
+    if [[ -n $(oc -n openshift-gitops get application "$app" --ignore-not-found -o name 2>/dev/null) ]]; then
+      oc -n openshift-gitops patch application "$app" --type=merge \
+        --patch '{"metadata":{"finalizers":[]},"spec":{"syncPolicy":{"automated":null}},"operation":null}' >/dev/null
+      oc -n openshift-gitops delete application "$app" --wait=true --timeout=2m
+    fi
+  done < <(jq -r '.apps | (["cluster"] + map(select(. != "cluster")))[]' "$state")
+
+  demo_step 'Remove demo OpenShift identity integration'
+  oc get oauth cluster -o json | jq '{spec:{identityProviders:(.spec.identityProviders // [] | map(select(.name != "demojam-keycloak")))}}' >"$scratch/oauth-patch.json"
+  oc patch oauth cluster --type=merge --patch-file "$scratch/oauth-patch.json" >/dev/null
+  oc -n openshift-config delete secret demojam-keycloak-oidc --ignore-not-found
+  oc delete group demojam-admins --ignore-not-found
+
+  demo_step 'Remove agent sandboxes and demo virtual machines'
+  if [[ -n $(oc -n omnigent get deployment omnigent --ignore-not-found -o name 2>/dev/null) ]]; then
+    oc -n omnigent scale deployment omnigent --replicas=0
+  fi
+  if [[ -n $(oc get crd sandboxes.agents.x-k8s.io --ignore-not-found -o name) ]]; then
+    oc -n omnigent-sandboxes delete sandboxes --all --ignore-not-found --wait=true --timeout=10m
+  fi
+  if [[ -n $(oc get crd virtualmachines.kubevirt.io --ignore-not-found -o name) ]]; then
+    for namespace in webapp-vms automation-vms molecule-tests; do
+      oc -n "$namespace" delete virtualmachines --all --ignore-not-found --wait=true --timeout=10m
+      oc -n "$namespace" delete virtualmachineinstances --all --ignore-not-found --wait=true --timeout=10m
+      oc -n "$namespace" delete datavolumes --all --ignore-not-found --wait=true --timeout=10m
+    done
+  fi
+
+  demo_step 'Remove demo application resources while operators are available'
+  # Instances before Services/RBAC; databases before PostgreSQL clusters.
+  while IFS=$'\t' read -r kind group namespace name; do
+    resource=$kind
+    [[ $group == - ]] || resource="$kind.$group"
+    local -a scope=()
+    [[ $namespace == - ]] || scope=(-n "$namespace")
+    if oc "${scope[@]}" get "$resource" "$name" -o name >/dev/null 2>&1; then
+      oc "${scope[@]}" delete "$resource" "$name" --ignore-not-found --wait=true --timeout=15m
+    fi
+  done < <(jq -r '.resources | map(select(.kind != "Namespace" and .kind != "Subscription" and
+    .kind != "OperatorGroup" and .kind != "Application" and .kind != "AppProject" and
+    .kind != "PersistentVolumeClaim" and .name != "cluster-monitoring-config")) |
+    sort_by(if .kind == "AnsibleAutomationPlatform" or .kind == "AutomationOrchestrator" or .kind == "Backstage" then 0
+      elif .kind == "Database" then 1 elif .kind == "Cluster" then 2 elif .kind == "HyperConverged" then 3 else 4 end)[] |
+    [.kind,(.group // "" | if . == "" then "-" else . end),(.namespace // "" | if . == "" then "-" else . end),.name] | @tsv' "$state")
+  if [[ -n $(oc get crd tektonconfigs.operator.tekton.dev --ignore-not-found -o name) ]]; then
+    oc delete tektonconfig config --ignore-not-found --wait=true --timeout=15m
+  fi
+  if [[ -n $(oc get crd argocds.argoproj.io --ignore-not-found -o name) ]]; then
+    oc -n openshift-gitops delete argocd demojam-gitops --ignore-not-found --wait=true --timeout=10m
+  fi
+
+  demo_step 'Disable demo user workload monitoring and remove its storage'
+  if [[ -n $(oc -n openshift-monitoring get configmap cluster-monitoring-config --ignore-not-found -o name) ]]; then
+    oc -n openshift-monitoring get configmap cluster-monitoring-config -o json >"$scratch/monitoring.json"
+    jq -r '.data."config.yaml" // "{}"' "$scratch/monitoring.json" | yq -y 'del(.enableUserWorkload)' >"$scratch/monitoring.yaml"
+    if [[ $(yq 'length' "$scratch/monitoring.yaml") == 0 ]]; then
+      oc -n openshift-monitoring delete configmap cluster-monitoring-config --ignore-not-found
+    else
+      jq -n --rawfile config "$scratch/monitoring.yaml" '{data:{"config.yaml":$config}}' >"$scratch/monitoring-patch.json"
+      oc -n openshift-monitoring patch configmap cluster-monitoring-config --type=merge --patch-file "$scratch/monitoring-patch.json"
+    fi
+  fi
+  if [[ -n $(oc -n openshift-user-workload-monitoring get pods -o name) ]]; then
+    oc -n openshift-user-workload-monitoring wait --for=delete pod --all --timeout=10m
+  fi
+  while IFS= read -r name; do
+    [[ -z $name ]] || oc -n openshift-user-workload-monitoring delete pvc "$name" --wait=true --timeout=10m
+  done < <(oc -n openshift-user-workload-monitoring get pvc -o json | jq -r '.items[] | select(.metadata.name | test("^(prometheus|thanos-ruler|alertmanager)-user-workload-")) | .metadata.name')
+
+  demo_step 'Remove installed demo operator APIs and subscriptions'
+  # Stop automatic OLM reinstallation before removing APIs. Other subscriptions
+  # (workshop Keycloak, cert-manager and storage) are deliberately outside this list.
+  while IFS=$'\t' read -r namespace name; do
+    oc -n "$namespace" delete subscription "$name" --ignore-not-found --wait=true --timeout=2m
+  done < <(jq -r '.subscriptions[] | [.namespace,.name] | @tsv' "$state")
+  while IFS= read -r crd; do
+    # Refuse to erase custom resources belonging to namespaces outside this demo.
+    local instances
+    if instances=$(oc get "$crd" -A -o json 2>/dev/null); then
+      jq -e --argjson namespaces "$(printf '%s\n' "${namespaces[@]}" | jq -R . | jq -s .)" \
+        'all(.items[]; .metadata.namespace == null or (.metadata.namespace as $ns | $namespaces | index($ns)))' <<<"$instances" >/dev/null ||
+        demo_die "API $crd has non-demo instances; refusing to uninstall its operator."
+    fi
+    oc delete crd "$crd" --ignore-not-found --wait=true --timeout=15m
+  done < <(jq -r '.crds[]' "$state")
+  while IFS=$'\t' read -r namespace csv; do
+    oc -n "$namespace" delete clusterserviceversion "$csv" --ignore-not-found --wait=true --timeout=5m
+    oc delete clusterrole,clusterrolebinding -l "olm.owner=$csv,olm.owner.namespace=$namespace" --ignore-not-found
+  done < <(jq -r '.csvs[] | [.namespace,.name] | @tsv' "$state")
+  # OLM keeps empty cluster-scoped Operator inventory objects after uninstall.
+  # Its inventory name is the package/namespace label, capped at 63 characters.
+  while IFS= read -r name; do
+    oc delete operators.operators.coreos.com "$name" --ignore-not-found
+  done < <(yq -s . "$demo_repo_root"/cluster/*/*subscription.yaml "$demo_repo_root"/bootstrap/*subscription.yaml |
+    jq -r '.[] | (.spec.name + "." + .metadata.namespace)[0:63]')
+  oc delete -f "$demo_repo_root/bootstrap/config/openshift-gitops-cluster-permissions.yaml" --ignore-not-found
+
+  demo_step 'Remove demo namespaces and persistent data'
+  for namespace in "${namespaces[@]}"; do
+    oc delete namespace "$namespace" --ignore-not-found --wait=false
+  done
+  for namespace in "${namespaces[@]}"; do
+    if [[ -n $(oc get namespace "$namespace" --ignore-not-found -o name) ]]; then
+      oc wait --for=delete "namespace/$namespace" --timeout=15m
+    fi
+  done
+  oc wait clusteroperator/authentication --for=condition=Available=True --timeout=10m
+  oc wait clusteroperator/authentication --for=condition=Progressing=False --timeout=10m
+  local remaining
+  remaining=$(oc get pv -o json | jq -r --argjson namespaces "$(printf '%s\n' "${namespaces[@]}" | jq -R . | jq -s .)" \
+    '.items[] | .spec.claimRef.namespace as $ns | select($namespaces | index($ns)) | .metadata.name')
+  [[ -z $remaining ]] || demo_die "Demo PVs are still being reclaimed: $remaining. Inspect storage before reinstalling."
+  echo 'Demo teardown completed: applications, operators, APIs, identity integration and persistent data removed.'
+)
+
 # Command entry point. Help is local and does not load .env.
 # -----------------------------------------------------------------------------
 
@@ -1924,13 +2380,16 @@ demo_main() {
 Usage: bash bootstrap/bootstrap.sh [COMMAND]
 
   bootstrap          Install/configure the platform, create the RHEL VM, install nginx, verify
+  teardown --confirm-demo-teardown Remove the entire demo stack, operators and persistent data
   preflight          Read-only input and pre-install cluster checks (also --check)
   sandbox-build      Build the configured :latest sandbox image
   model-config       Apply the selected model/agent configuration
   identity           Reconcile demo users, clients and application login
   homepage-refresh   Refresh Homepage links, repositories and environment details
   hydrate            Seed Forgejo and refresh Backstage/agent credentials
-  reconcile-workflow Validate and publish the AO workflow
+  ao-configure      Reconcile AO LLM/AAP integrations and publish all demo workflows
+  ao-run NAME [JSON] Execute a published workflow and print its result
+  reconcile-workflow Alias for ao-configure
   aap-configure      Prepare AAP credentials/license and run config-as-code
   webapp ACTION      create | nginx | verify | delete | sync
   aap ACTION         credentials | wait-project | dispatch | reset-vms | launch TEMPLATE [JSON]
@@ -1950,6 +2409,7 @@ HELP
   demo_load_env
   case $command in
     bootstrap) [[ $# == 0 ]] || demo_die 'bootstrap takes no arguments'; demo_bootstrap ;;
+    teardown) demo_teardown "$@" ;;
     homepage-refresh) [[ $# == 0 ]] || demo_die 'homepage-refresh takes no arguments'; demo_verify_cluster; demo_homepage_configure ;;
     identity)
       [[ $# == 0 ]] || demo_die 'identity takes no arguments'
@@ -1965,12 +2425,19 @@ HELP
       ;;
     preflight|--check) [[ $# == 0 ]] || demo_die 'preflight takes no arguments'; demo_preflight ;;
     sandbox-build) demo_sandbox_build ;;
-    model-config) demo_model_config ;;
+    model-config)
+      demo_model_config
+      if [[ -n $(oc -n automation-orchestrator get automationorchestrator automation-orchestrator --ignore-not-found -o name 2>/dev/null) ]]; then
+        demo_ao_reconcile
+      fi ;;
+
     omnigent-auth) demo_verify_cluster; demo_omnigent_auth ;;
     verify-goldenpaths) demo_verify_cluster; demo_verify_goldenpaths ;;
     hydrate) demo_hydrate hydrate ;;
     forgejo-reset) demo_hydrate reset "$@" ;;
-    reconcile-workflow) demo_verify_cluster; demo_ao_reconcile ;;
+    reconcile-workflow|ao-configure) demo_verify_cluster; demo_ao_reconcile ;;
+    dispatch-issue) demo_dispatch_issue "$@" ;;
+    ao-run) [[ $# -ge 1 && $# -le 2 ]] || demo_die 'ao-run requires WORKFLOW [INPUT_JSON]'; demo_verify_cluster; demo_ao_reconcile run "$@" ;;
     aap-configure) demo_aap_configure ;;
     webapp) [[ $# == 1 ]] || demo_die 'webapp requires one action'; demo_webapp "$@" ;;
     aap) [[ $# -gt 0 ]] || demo_die 'aap requires an action'; demo_verify_cluster; demo_aap "$@" ;;

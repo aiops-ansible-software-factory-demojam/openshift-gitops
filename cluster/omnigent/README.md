@@ -79,7 +79,7 @@ once no other run is using the test VM. A missing credential mount or an
 unready DataSource must be resolved before testing. Existing generated
 collections retain their previous scenarios; regenerate or update them to use
 this setup. The seeded collection is now `demo.webapp` in the existing
-`demo-owner/ansible-collection-demo` repository. Its default scenario prints
+`demo-owner/ansible-collection-demo.webapp` repository. Its default scenario prints
 hello world, and `molecule test -s nginx` installs `demo.webapp.nginx` and
 verifies HTTP service and the nginx worker account. `make test` runs both
 scenarios sequentially from the collection root.
