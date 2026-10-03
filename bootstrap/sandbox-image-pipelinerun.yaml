@@ -13,6 +13,10 @@ spec:
       value: ''
     - name: REPO_URL
       value: ''
+    - name: COLLECTION_REPO_URL
+      value: ''
+    - name: COLLECTION_REVISION
+      value: ''
   taskRunTemplate:
     serviceAccountName: omnigent-image-builder
     podTemplate:

@@ -8,5 +8,6 @@ cluster/forgejo/.state/
 /aap_manifest.zip
 __pycache__/
 .venv/
+/cluster/omnigent/image/dev-tools/
 # Local demo user definitions; generated passwords live in Kubernetes Secrets.
 bootstrap/users.local.json

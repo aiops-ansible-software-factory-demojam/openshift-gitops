@@ -30,8 +30,13 @@ sandbox user and HOME. This demo has no
 warm pool or separate sandbox network policy.
 
 The image includes Make, ripgrep, process utilities, and the collection's pinned
-Ansible lint, YAML lint, pre-commit, and hook packages. Its `image/dev-tools/`
-inputs also prebuild the isolated hook environments and install the real
+Ansible lint, YAML lint, and pre-commit packages. Bootstrap reads
+`.pre-commit-config.yaml`, `requirements-dev.txt`, and
+`extensions/molecule/requirements-test.yml` from the collection branch selected
+by `ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH`, resolving it to a commit before
+launching the build. Tekton fetches that exact commit and uses bootstrap to
+generate the ignored `image/dev-tools/` build context. These inputs prebuild
+the isolated hook environments and install the real
 Molecule collection dependencies. A new sandbox HOME receives a writable cache
 database pointing to the image's hook environments and its own copy of the test
 collections. Existing caches are preserved.
@@ -41,8 +46,9 @@ From a collection checkout, continue to run `make hooks`, `make lint`, and
 the image supplies cached packages and environments. `PIP_FIND_LINKS` points
 project virtual-environment installs at the image's wheel directory. Repository
 requirements remain authoritative: new versions can install normally when they
-differ from the image cache. Refresh the three cache inputs together when
-updating the tooling baseline, as described in `image/dev-tools/README.md`.
+differ from the image cache. Update tooling only in the collection repository;
+the image build reads those files rather than maintaining copies in GitOps.
+The selected branch must contain all three tooling files.
 The runner's explicit environment passthrough includes `PIP_FIND_LINKS`, so
 native OpenCode commands can use those cached wheels too.
 
@@ -133,7 +139,9 @@ make sandbox-build
 Publish image source changes before building; the script builds the checked-out
 Git commit unless `SANDBOX_BUILD_REVISION` selects another published revision.
 Wait for the build to succeed, then start a fresh demo session. Successful runs
-report `IMAGE`, `IMAGE_DIGEST`, and `SOURCE_COMMIT`. A failed build stops bootstrap
+report `IMAGE`, `IMAGE_DIGEST`, `SOURCE_COMMIT`, and `COLLECTION_SOURCE_COMMIT`.
+The image records its collection source in `/opt/demo-dev/collection-source.json`.
+A failed build stops bootstrap
 before dispatch; inspect that PipelineRun before trying again. This mutable tag
 does not provide automatic rollback or preserve the previous registry mapping
 if a push completes before a later failure.
@@ -143,8 +151,10 @@ retaining the PipelineRun results. PVC cleanup uses the owning run's UID because
 Tekton does not put the PipelineRun label on generated workspace claims.
 Active builds and session HOME claims are preserved.
 
-Bootstrap reuses the tag when it exists and the latest successful build for that
-image has unchanged `image/` inputs. `BOOTSTRAP_FORCE_SANDBOX_BUILD=true` rebuilds
+Bootstrap reuses the tag when it exists, the latest successful build used the
+selected collection commit, and the image, pipeline, and bootstrap inputs are
+unchanged. Changes to the selected collection branch invalidate the cache.
+`BOOTSTRAP_FORCE_SANDBOX_BUILD=true` rebuilds
 and overwrites the same tag, allowing refreshed downloaded dependencies without
 a version bump. No image tag edits or Omnigent server restart are needed after a
 rebuild. The initial switch to `:latest` changes the subPath-mounted config;
@@ -167,6 +177,7 @@ oc -n omnigent-sandboxes get pods -l omnigent.ai/agent=automation-developer \
 For local image development:
 
 ```bash
+make sandbox-image-context
 podman build -f cluster/omnigent/image/Containerfile \
   -t omnigent-adt:local cluster/omnigent/image
 ```

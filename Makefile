@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 export ISSUE QUESTION
 
-.PHONY: help help-all preflight bootstrap teardown identity homepage-refresh model-config sandbox-build demo-hydrate demo render demo-reset aap-configure aap-sync ao-configure ao-llm-test ao-aap-run webapp-create webapp-nginx webapp-delete webapp-verify
+.PHONY: help help-all preflight bootstrap teardown identity homepage-refresh model-config sandbox-build sandbox-image-context demo-hydrate demo render demo-reset aap-configure aap-sync ao-configure ao-llm-test ao-aap-run webapp-create webapp-nginx webapp-delete webapp-verify
 
 help:
 	@printf '%s\n' \
@@ -28,6 +28,7 @@ help-all:
 	  'make homepage-refresh Refresh dashboard links, repositories and environment details' \
 	  'make model-config  Apply model/agent configuration from .env for new sessions' \
 	  'make sandbox-build Build/publish the sandbox image in cluster; installed operators' \
+	  'make sandbox-image-context Prepare selected collection tooling for a local image build' \
 	  'make demo-hydrate  Seed Forgejo/refresh credentials; print the issue URL/number' \
 	  'make demo ISSUE=N  Hydrate, then hand positive issue N to AO; agent runs asynchronously' \
 	  'make webapp-create Provision the RHEL webapp through AAP' \
@@ -59,6 +60,9 @@ model-config:
 
 sandbox-build:
 	bash bootstrap/bootstrap.sh sandbox-build
+
+sandbox-image-context:
+	bash bootstrap/bootstrap.sh sandbox-image-context
 
 demo-hydrate:
 	bash bootstrap/bootstrap.sh hydrate

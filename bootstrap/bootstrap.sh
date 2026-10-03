@@ -744,6 +744,49 @@ demo_hydrate() (
 # Sandbox image build and Backstage catalog checks
 # -----------------------------------------------------------------------------
 
+demo_sandbox_collection_inputs() {
+  sandbox_collection_work=$(demo_source_checkout ansible-collection-demo.webapp) || return
+  sandbox_collection_url=$(git -C "$sandbox_collection_work" remote get-url origin) || return
+  sandbox_collection_revision=$(git -C "$sandbox_collection_work" rev-parse HEAD) || return
+  local path
+  for path in .pre-commit-config.yaml requirements-dev.txt extensions/molecule/requirements-test.yml; do
+    git -C "$sandbox_collection_work" cat-file -e "HEAD:$path" ||
+      demo_die "The selected collection branch must contain $path before building the sandbox image."
+  done
+}
+
+# Generate build-only inputs from the collection; never maintain copies in GitOps.
+# Also used by the Tekton clone step after checking out the pinned collection SHA.
+demo_sandbox_image_context() (
+  work=$1
+  context="$demo_repo_root/cluster/omnigent/image/dev-tools"
+  source=$(git -C "$work" remote get-url origin)
+  revision=$(git -C "$work" rev-parse HEAD)
+  [[ $source =~ ^https://github.com/aiops-ansible-software-factory-demojam/[a-zA-Z0-9_.-]+\.git$ &&
+     $revision =~ ^[0-9a-f]{40}$ ]] || demo_die 'Invalid collection source for the sandbox image.'
+  mkdir -p "$context"
+  git -C "$work" show HEAD:.pre-commit-config.yaml > "$context/.pre-commit-config.yaml"
+  git -C "$work" show HEAD:requirements-dev.txt > "$context/requirements-dev.txt"
+  git -C "$work" show HEAD:extensions/molecule/requirements-test.yml > "$context/requirements-test.yml"
+  jq -n --arg source "$source" --arg revision "$revision" \
+    '{source:$source,revision:$revision}' > "$context/collection-source.json"
+)
+
+demo_sandbox_image_current() (
+  image=$1
+  collection_revision=$2
+  record=$(oc -n omnigent-sandboxes get pipelineruns -l tekton.dev/pipeline=omnigent-opencode -o json |
+    jq -c --arg image "$image" '[.items[] |
+      select(any(.status.conditions[]?; .type == "Succeeded" and .status == "True")) |
+      select(any(.status.results[]?; .name == "IMAGE" and .value == $image))] |
+      sort_by(.metadata.creationTimestamp) | last | .status.results // []')
+  built_revision=$(jq -r '.[] | select(.name == "SOURCE_COMMIT") | .value' <<< "$record")
+  built_collection=$(jq -r '.[] | select(.name == "COLLECTION_SOURCE_COMMIT") | .value' <<< "$record")
+  [[ $built_revision =~ ^[0-9a-f]{40}$ && $built_collection == "$collection_revision" ]] &&
+    git -C "$demo_repo_root" diff --quiet "$built_revision" HEAD -- \
+      cluster/omnigent/image cluster/omnigent/image-build bootstrap/bootstrap.sh
+)
+
 demo_sandbox_build_cleanup() (
   namespace=omnigent-sandboxes
   run_name=${1##*/}
@@ -768,6 +811,13 @@ demo_sandbox_build_cleanup() (
 demo_sandbox_build() (
   sandbox_image=$(demo_sandbox_image)
   demo_verify_cluster
+  if [[ $# == 0 ]]; then
+    demo_sandbox_collection_inputs
+  else
+    [[ $# == 2 && $2 =~ ^[0-9a-f]{40}$ ]] || demo_die 'sandbox build requires a collection source URL and commit.'
+    sandbox_collection_url=$1
+    sandbox_collection_revision=$2
+  fi
   demo_readiness sandbox
   namespace=omnigent-sandboxes
   active_runs=$(oc -n "$namespace" get pipelineruns -l tekton.dev/pipeline=omnigent-opencode -o json |
@@ -779,14 +829,19 @@ demo_sandbox_build() (
   done < <(oc -n "$namespace" get pipelineruns -l tekton.dev/pipeline=omnigent-opencode -o json |
     jq -r '.items[] | select(.status.conditions[0].status == "True" or .status.conditions[0].status == "False") | .metadata.name')
   oc wait nodes --all --for='jsonpath={.status.conditions[?(@.type=="DiskPressure")].status}=False' --timeout=15m
+  # Refresh the build definition for make sandbox-build on an existing stack.
+  oc -n "$namespace" apply -f "$demo_repo_root/cluster/omnigent/image-build/omnigent-opencode-pipeline.yaml"
   # One deliberate run; no trigger or automatic CI is installed.
   run=$(yq '.' "$demo_repo_root/bootstrap/sandbox-image-pipelinerun.yaml" |
     jq --arg revision "${SANDBOX_BUILD_REVISION:-$(git -C "$demo_repo_root" rev-parse HEAD)}" \
       --arg image "$sandbox_image" --arg repo "$BOOTSTRAP_REPO_URL" \
+      --arg collection_repo "$sandbox_collection_url" --arg collection_revision "$sandbox_collection_revision" \
       '.spec.params |= map(
         if .name == "REVISION" then .value = $revision
       elif .name == "IMAGE" then .value = $image
       elif .name == "REPO_URL" then .value = $repo
+      elif .name == "COLLECTION_REPO_URL" then .value = $collection_repo
+      elif .name == "COLLECTION_REVISION" then .value = $collection_revision
         else . end)' |
     oc -n "$namespace" create -f - -o name)
   echo "Started $run"
@@ -2186,24 +2241,14 @@ demo_bootstrap() (
 
   # Build only after the operator rollout, keeping image storage on a PVC.
   demo_step 'Build or reuse the OpenCode sandbox image'
-  sandbox_image_current() {
-    local built_revision
-    built_revision=$(oc -n omnigent-sandboxes get pipelineruns -l tekton.dev/pipeline=omnigent-opencode \
-      -o json | jq -r --arg image "$sandbox_image" '[.items[] |
-        select(any(.status.conditions[]?; .type == "Succeeded" and .status == "True")) |
-        select(any(.status.results[]?; .name == "IMAGE" and .value == $image))] |
-        sort_by(.metadata.creationTimestamp) | last | .status.results[]? |
-        select(.name == "SOURCE_COMMIT") | .value')
-    [[ "$built_revision" =~ ^[0-9a-f]{40}$ ]] &&
-      git -C "$repo_root" diff --quiet "$built_revision" HEAD -- cluster/omnigent/image
-  }
+  demo_sandbox_collection_inputs
   if [[ ${BOOTSTRAP_FORCE_SANDBOX_BUILD:-false} == true ]] ||
      ! oc -n omnigent-sandboxes get imagestreamtag "${sandbox_image##*/}" >/dev/null 2>&1 ||
-     ! sandbox_image_current; then
+     ! demo_sandbox_image_current "$sandbox_image" "$sandbox_collection_revision"; then
     echo 'Building the OpenCode sandbox image from the current Git revision...'
-    SANDBOX_BUILD_REVISION="$target_revision" demo_sandbox_build
+    SANDBOX_BUILD_REVISION="$target_revision" demo_sandbox_build "$sandbox_collection_url" "$sandbox_collection_revision"
   fi
-  sandbox_image_current
+  demo_sandbox_image_current "$sandbox_image" "$sandbox_collection_revision"
   oc get crd sandboxes.agents.x-k8s.io
   oc -n omnigent rollout status deployment/omnigent --timeout=10m
   desired_sandbox_image=$(yq -r '.data."config.yaml"' \
@@ -2434,6 +2479,7 @@ Usage: bash bootstrap/bootstrap.sh [COMMAND]
   teardown --confirm-demo-teardown Remove the entire demo stack, operators and persistent data
   preflight          Read-only input and pre-install cluster checks (also --check)
   sandbox-build      Build the configured :latest sandbox image
+  sandbox-image-context Prepare local build inputs from the selected collection
   model-config       Apply the selected model/agent configuration
   identity           Reconcile demo users, clients and application login
   homepage-refresh   Refresh Homepage links, repositories and environment details
@@ -2476,6 +2522,12 @@ HELP
       ;;
     preflight|--check) [[ $# == 0 ]] || demo_die 'preflight takes no arguments'; demo_preflight ;;
     sandbox-build) demo_sandbox_build ;;
+    sandbox-image-context)
+      [[ $# == 0 ]] || demo_die 'sandbox-image-context takes no arguments'
+      demo_sandbox_collection_inputs
+      demo_sandbox_image_context "$sandbox_collection_work"
+      printf 'Prepared sandbox tooling from %s at %s\n' "$sandbox_collection_url" "$sandbox_collection_revision"
+      ;;
     model-config)
       demo_model_config
       if [[ -n $(oc -n automation-orchestrator get automationorchestrator automation-orchestrator --ignore-not-found -o name 2>/dev/null) ]]; then

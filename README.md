@@ -75,6 +75,7 @@ make render           # Render manifests locally into .rendered/
 make preflight        # Check prerequisites without changing the cluster
 make identity         # Reconcile demo users, groups and application login
 make sandbox-build    # Rebuild the sandbox image through Tekton
+make sandbox-image-context # Prepare selected collection tooling for a local build
 ```
 
 Bootstrap runs the complete webapp flow. These commands remain available for
@@ -278,6 +279,7 @@ the script defines functions without executing setup.
 | `make homepage-refresh` | Refresh dashboard links, repositories, and environment details |
 | `make model-config` | Apply `.env` model and agent configuration for new sessions |
 | `make sandbox-build` | Build and publish the sandbox image through Tekton |
+| `make sandbox-image-context` | Prepare local image inputs from the selected collection branch |
 | `make demo-hydrate` | Seed Forgejo, refresh credentials, and print the starter issue URL |
 | `make demo ISSUE=N` | Hydrate and dispatch issue N through AO; the agent continues asynchronously |
 | `make demo-reset` | Remove disposable sessions, repos, VMs, and disks; reseed Forgejo and refresh AAP |

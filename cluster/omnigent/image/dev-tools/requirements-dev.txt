@@ -1,5 +1,0 @@
-# Development tools only; these are not collection runtime dependencies.
-ansible-core==2.21.4
-ansible-lint==26.8.0
-pre-commit==4.6.2
-yamllint==1.38.0
