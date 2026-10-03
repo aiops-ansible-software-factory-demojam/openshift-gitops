@@ -14,6 +14,12 @@ fi
 # HOME is mounted empty for each sandbox. Seed only a new cache, preserving
 # environments and collection versions installed by an existing session.
 if [ -d /opt/demo-dev ]; then
+  # Native OpenCode filters its inherited environment. Keep the image's wheel
+  # cache available even with an older server-side passthrough configuration.
+  case ",${OMNIGENT_RUNNER_ENV_PASSTHROUGH:-}," in
+    *,PIP_FIND_LINKS,*) ;;
+    *) export OMNIGENT_RUNNER_ENV_PASSTHROUGH="${OMNIGENT_RUNNER_ENV_PASSTHROUGH:+$OMNIGENT_RUNNER_ENV_PASSTHROUGH,}PIP_FIND_LINKS" ;;
+  esac
   sandbox_pre_commit_home=${PRE_COMMIT_HOME:-$HOME/.cache/pre-commit}
   if [ ! -e "$sandbox_pre_commit_home/db.db" ]; then
     mkdir -p "$sandbox_pre_commit_home"
