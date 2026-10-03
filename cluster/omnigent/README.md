@@ -138,6 +138,11 @@ before dispatch; inspect that PipelineRun before trying again. This mutable tag
 does not provide automatic rollback or preserve the previous registry mapping
 if a push completes before a later failure.
 
+Bootstrap removes terminal runs' temporary build pods and workspace PVCs while
+retaining the PipelineRun results. PVC cleanup uses the owning run's UID because
+Tekton does not put the PipelineRun label on generated workspace claims.
+Active builds and session HOME claims are preserved.
+
 Bootstrap reuses the tag when it exists and the latest successful build for that
 image has unchanged `image/` inputs. `BOOTSTRAP_FORCE_SANDBOX_BUILD=true` rebuilds
 and overwrites the same tag, allowing refreshed downloaded dependencies without

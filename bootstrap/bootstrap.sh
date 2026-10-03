@@ -744,6 +744,27 @@ demo_hydrate() (
 # Sandbox image build and Backstage catalog checks
 # -----------------------------------------------------------------------------
 
+demo_sandbox_build_cleanup() (
+  namespace=omnigent-sandboxes
+  run_name=${1##*/}
+  # Workspace PVCs have owner references, but Tekton does not label them with
+  # tekton.dev/pipelineRun. Match the terminal run's UID so cleanup stays scoped.
+  run_uid=$(oc -n "$namespace" get pipelinerun "$run_name" -o json |
+    jq -er 'select(.metadata.labels["tekton.dev/pipeline"] == "omnigent-opencode") |
+      select(any(.status.conditions[]?;
+        .type == "Succeeded" and (.status == "True" or .status == "False"))) | .metadata.uid') || {
+    echo "Refusing to clean a nonterminal or unrelated sandbox build: $run_name" >&2
+    exit 1
+  }
+  oc -n "$namespace" delete pod,statefulset -l "tekton.dev/pipelineRun=$run_name" --ignore-not-found >/dev/null
+  claims_json=$(oc -n "$namespace" get pvc -o json)
+  mapfile -t claims < <(jq -r --arg uid "$run_uid" '.items[] |
+      select(any(.metadata.ownerReferences[]?; .kind == "PipelineRun" and .uid == $uid)) | .metadata.name' <<< "$claims_json")
+  if (( ${#claims[@]} )); then
+    oc -n "$namespace" delete pvc "${claims[@]}" --ignore-not-found >/dev/null
+  fi
+)
+
 demo_sandbox_build() (
   sandbox_image=$(demo_sandbox_image)
   demo_verify_cluster
@@ -754,7 +775,7 @@ demo_sandbox_build() (
   [[ $active_runs == 0 ]] || { echo 'A sandbox image build is already active; inspect it before restarting.' >&2; exit 1; }
   # Release caches from terminal runs, preserving the failed logs until this next run.
   while read -r completed; do
-    oc -n "$namespace" delete pod,pvc,statefulset -l "tekton.dev/pipelineRun=$completed" --ignore-not-found >/dev/null
+    demo_sandbox_build_cleanup "$completed"
   done < <(oc -n "$namespace" get pipelineruns -l tekton.dev/pipeline=omnigent-opencode -o json |
     jq -r '.items[] | select(.status.conditions[0].status == "True" or .status.conditions[0].status == "False") | .metadata.name')
   oc wait nodes --all --for='jsonpath={.status.conditions[?(@.type=="DiskPressure")].status}=False' --timeout=15m
@@ -780,7 +801,7 @@ demo_sandbox_build() (
     case "$condition" in
       True)
         jq -r '.status.results[]? | "\(.name)=\(.value)"' <<< "$status"
-        oc -n "$namespace" delete pod,pvc,statefulset -l "tekton.dev/pipelineRun=${run##*/}" --ignore-not-found >/dev/null
+        demo_sandbox_build_cleanup "$run"
         echo "$run completed."
         exit ;;
       False)
