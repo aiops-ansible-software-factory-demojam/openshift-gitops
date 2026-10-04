@@ -1,37 +1,34 @@
 # OpenShift Virtualization
 
-The `openshift-virtualization` child Application installs the Red Hat
-OpenShift Virtualization operator from the `stable` channel in
-`openshift-cnv`, then creates the `HyperConverged` resource. The root
-Application waits for the child to be Synced and Healthy; the custom
-health check reports Healthy only when `HyperConverged` is Available.
-The bootstrap script also waits for this child at the published revision.
+This application installs the Red Hat OpenShift Virtualization operator from
+the `stable` channel in `openshift-cnv`, then creates `HyperConverged`.
+Bootstrap waits for it to become Available before proceeding with VM work.
 
-The cluster needs a node with `/dev/kvm`. On a virtualized OpenShift node,
-the parent hypervisor must expose hardware virtualization to that node.
-The operator and test VM require enough free CPU and memory. The test VM
-uses an ephemeral container disk, so it needs no storage class.
+At least one node needs `/dev/kvm`, enough free CPU and memory, and hardware
+virtualization exposed by its parent hypervisor if the node is itself a VM.
+The demo uses Virtualization for the RHEL webapp and Molecule test guests.
 
-## Verify a bootstrapped cluster
+## Check a bootstrapped cluster
 
-Set `KUBECONFIG` to the demo cluster's kubeconfig, then run:
+From the repository root:
 
 ```bash
+export KUBECONFIG="$HOME/.kube/config"
 oc whoami --show-server
 oc whoami
 oc -n openshift-gitops get application openshift-virtualization
-oc -n openshift-cnv get subscription hco-operatorhub
 oc -n openshift-cnv get hyperconverged kubevirt-hyperconverged
 oc -n openshift-cnv get kubevirt kubevirt-kubevirt-hyperconverged
+```
+
+To test VM boot and KVM acceleration, create the temporary
+[CirrOS example](examples/cirros-kvm-check.yaml). It uses an ephemeral container
+disk and requires no StorageClass:
+
+```bash
 oc apply -f cluster/openshift-virtualization/examples/cirros-kvm-check.yaml
 oc -n virt-nested-probe wait vm/cirros-kvm-check --for=jsonpath='{.status.ready}'=true --timeout=5m
 oc -n virt-nested-probe get vm,vmi,pods
-```
-
-To confirm hardware acceleration, inspect the VM's launcher pod. Its
-QEMU process should have `-accel` followed by `kvm`:
-
-```bash
 pod=$(oc -n virt-nested-probe get pod -l kubevirt.io=virt-launcher -o jsonpath='{.items[0].metadata.name}')
 oc -n virt-nested-probe exec "$pod" -c compute -- sh -c '
   pid=$(pgrep -xo qemu-kvm)
@@ -39,8 +36,8 @@ oc -n virt-nested-probe exec "$pod" -c compute -- sh -c '
 '
 ```
 
-The example VM is for a temporary check and is not included in the GitOps
-Application. Remove it with:
+The output should show `-accel` followed by `kvm`. This VM is outside the
+GitOps application; remove it after the check:
 
 ```bash
 oc delete -f cluster/openshift-virtualization/examples/cirros-kvm-check.yaml
