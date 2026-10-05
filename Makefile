@@ -101,7 +101,7 @@ ao-aap-run:
 	bash bootstrap/bootstrap.sh ao-run aap-webapp-nginx
 
 demo-reset:
-	bash scripts/reset-demo.sh --confirm-demo-reset
+	bash bootstrap/bootstrap.sh demo-reset --confirm-demo-reset
 
 render:
 	@mkdir -p .rendered

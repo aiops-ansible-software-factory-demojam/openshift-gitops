@@ -12,6 +12,7 @@ resources:
   - temporal-visibility-database.yaml
   - automation-orchestrator-admin-settings.yaml
   - automation-orchestrator-automationorchestrator.yaml
+  - aap-webhook-networkpolicy.yaml
   - backstage-feature-gate.yaml
 configMapGenerator:
   - name: backstage-feature-gate-code
