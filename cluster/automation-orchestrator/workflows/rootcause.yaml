@@ -9,8 +9,8 @@ triggers:
   name: Trigger from Alertmanager
   parameters:
     webhook_path: alertmanagealert
-    authorized_service_account_ids:
-    - 60a683e9-09eb-434b-a922-6c9453062dbd
+    # bootstrap.sh supplies the local webhook service account.
+    authorized_service_account_ids: []
   position:
     x: 0
     "y": 0
@@ -22,8 +22,6 @@ nodes:
     diff_mode: false
     extra_vars:
       check_audit_service_issue: "${trigger.check_audit_service_issue}"
-    credential_id: 5ffbf308-9bac-443b-959e-28faadbf3cc4
-    integration_id: 8fa0c32c-5809-41b8-ba1e-a46d1a8e94a5
     job_template_name: pull_audit_logs
     organization_name: demo
   position:
@@ -45,8 +43,6 @@ nodes:
             List recommended steps for additional analysis or remediation in the "remediationSteps" array, providing actionable text strings that could help resolve the incident or gather more information.'
 
       ${auditlogs.artifacts.service_log_output}
-    llm_model_id: a043c712-5301-4c31-9f8c-5e3f02a17a0e
-    credential_id: 4621d59e-ceb1-4222-88e0-4ed5a9b1813b
     response_schema:
       type: object
       required:
@@ -70,14 +66,11 @@ nodes:
   type: aap_job_template
   name: Create new Issue
   parameters:
-    credential_id: 5ffbf308-9bac-443b-959e-28faadbf3cc4
-    integration_id: 8fa0c32c-5809-41b8-ba1e-a46d1a8e94a5
     organization_name: demo
     job_template_name: webapp_alert_issue
     extra_vars:
       alert_payload: "${trigger.alert_payload}"
     diff_mode: false
-    use_input_variables: true
   position:
     x: 993
     "y": 0

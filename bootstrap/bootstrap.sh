@@ -858,6 +858,62 @@ demo_ao_workflow_definition() {
 
 # These helpers share the authenticated connection and private response file in
 # demo_ao_reconcile. Credentials are encrypted by AO, never written to workflows.
+demo_ao_webhook_client() {
+  local name=demojam-eda-webhook secret=demojam-eda-webhook-client
+  local code account id payload client saved_identifier expires expiry_epoch reuse=false
+  code=$(ao_curl GET "$base_url/service_accounts?limit=100" -H "$auth_header")
+  ao_require_json 'list webhook service accounts' "$code"
+  account=$(jq -c --arg name "$name" --arg project "$project_id" \
+    '.resources[] | select(.name == $name and .project_id == $project)' "$ao_response")
+  if [[ -z $account ]]; then
+    payload=$(jq -n --arg name "$name" --arg project "$project_id" \
+      '{name:$name,project_id:$project,description:"Demo AAP EDA webhook caller"}')
+    code=$(ao_curl POST "$base_url/service_accounts" -H "$auth_header" \
+      -H 'Content-Type: application/json' --data-binary "$payload")
+    ao_require_json 'create webhook service account' "$code"
+    account=$(jq -c . "$ao_response")
+  fi
+  id=$(jq -er '.id' <<<"$account")
+  [[ $(jq -r '.status' <<<"$account") == active ]] ||
+    demo_die 'The demo AO webhook service account is disabled; inspect it before bootstrap.'
+
+  # Validate the saved client against AO, including expiry. A reset AO database
+  # can leave a Kubernetes Secret referring to a different account or client.
+  oc -n "$namespace" get secret "$secret" --ignore-not-found -o json >"$omnigent_scratch/webhook-client.json" || return
+  if [[ -s $omnigent_scratch/webhook-client.json ]] &&
+     jq -e --arg id "$id" '.data as $d |
+       ($d["service-account-id"] // "" | @base64d) == $id and
+       ($d["client-id"] // "" | @base64d | length > 0) and
+       ($d["client-secret"] // "" | @base64d | length > 0)' "$omnigent_scratch/webhook-client.json" >/dev/null; then
+    saved_identifier=$(jq -r '.data["client-id"] | @base64d' "$omnigent_scratch/webhook-client.json")
+    code=$(ao_curl GET "$base_url/service_accounts/$id/credentials?limit=100" -H "$auth_header")
+    ao_require_json 'inspect saved webhook client' "$code"
+    client=$(jq -c --arg identifier "$saved_identifier" \
+      '.resources[] | select(.identifier == $identifier and .status == "active")' "$ao_response")
+    if [[ -n $client ]]; then
+      expires=$(jq -r '.expires_at // empty' <<<"$client")
+      if [[ -z $expires ]]; then
+        reuse=true
+      else
+        expiry_epoch=$(date -d "$expires" +%s) || demo_die 'AO returned an invalid webhook client expiry.'
+        if (( expiry_epoch > $(date +%s) )); then reuse=true; fi
+      fi
+    fi
+  fi
+  if [[ $reuse == false ]]; then
+    code=$(ao_curl POST "$base_url/service_accounts/$id/credentials" -H "$auth_header" \
+      -H 'Content-Type: application/json' --data-binary '{"credential_type":"client_credentials"}')
+    ao_require_json 'issue webhook client credentials' "$code"
+    jq -e '.identifier | type == "string" and length > 0' "$ao_response" >/dev/null
+    jq -e '.client_secret | type == "string" and length > 0' "$ao_response" >/dev/null
+    jq --arg id "$id" --arg namespace "$namespace" \
+      '{apiVersion:"v1",kind:"Secret",metadata:{name:"demojam-eda-webhook-client",namespace:$namespace},
+        type:"Opaque",stringData:{"service-account-id":$id,"client-id":.identifier,"client-secret":.client_secret}}' \
+      "$ao_response" | oc apply --server-side --field-manager=demo-bootstrap --force-conflicts -f - >/dev/null
+  fi
+  printf '%s\n' "$id"
+}
+
 demo_ao_credential() {
   local name=$1 type_name=$2 inputs=$3 kind id payload code
   code=$(ao_curl GET "$base_url/credential_types?limit=100" -H "$auth_header")
@@ -1395,6 +1451,9 @@ demo_ao_reconcile() (
     exit 1
   fi
 
+  eda_service_account_id=$(demo_ao_webhook_client)
+  [[ ${1:-workflow} != webhook-client ]] || exit 0
+
   credential_name=omnigent-machine-client
   http_code=$(ao_curl GET "$base_url/credential_types?limit=100" -H "$auth_header")
   ao_require_json 'list credential types' "$http_code"
@@ -1460,7 +1519,10 @@ demo_ao_reconcile() (
       workflow_definition=$(yq -c . "$workflow_file" | jq -c \
         --arg llm_credential "$llm_credential_id" --arg llm_integration "$llm_integration_id" \
         --arg llm_model "$llm_model_id" --arg aap_credential "$aap_credential_id" \
-        --arg aap_integration "$aap_integration_id" '
+        --arg aap_integration "$aap_integration_id" --arg eda_account "$eda_service_account_id" '
+        .triggers |= map(if .type == "eda_trigger" then
+          .parameters.authorized_service_account_ids=[$eda_account]
+        else . end) |
         .nodes |= map(if .type == "agentic" then
           .parameters.credential_id=$llm_credential | .parameters.integration_id=$llm_integration |
           .parameters.llm_model_id=$llm_model
@@ -1702,7 +1764,9 @@ YAML
     -o go-template='{{index .data "public-key" | base64decode}}' >"$aap_scratch/ssh-public"
 
   org=$(aap_upsert organizations/ demo '{"description":"Disposable automation demo"}' | jq -er .id)
-  config=$(aap_upsert credential_types/ 'Demo AAP configuration v2' \
+  # AAP forbids changing the schema of a credential type that is already in use.
+  # Version it so aap_upsert migrates the dispatch credential and reattaches it.
+  config=$(aap_upsert credential_types/ 'Demo AAP configuration v3' \
     "$(yq . "$demo_repo_root/bootstrap/aap-dispatch-credential-type.yaml")" | jq -er .id)
   oc -n demojam-keycloak get secret identity-credentials \
     -o go-template='{{index .data "aap-client-secret" | base64decode}}' >"$aap_scratch/oidc-secret"
@@ -1711,8 +1775,13 @@ YAML
     -o go-template='{{index .data "token" | base64decode}}' >"$aap_scratch/eda-token"
   oc -n omnigent-sandboxes get secret omnigent-model \
     -o go-template='{{index .data "FORGEJO_TOKEN" | base64decode}}' >"$aap_scratch/forgejo-token"
-  [[ -s $aap_scratch/eda-token && -s $aap_scratch/forgejo-token ]] ||
-    demo_die 'Hydrate Forgejo and prepare the EDA webhook before configuring AAP.'
+  oc -n automation-orchestrator get secret demojam-eda-webhook-client \
+    -o go-template='{{index .data "client-id" | base64decode}}' >"$aap_scratch/ao-client-id"
+  oc -n automation-orchestrator get secret demojam-eda-webhook-client \
+    -o go-template='{{index .data "client-secret" | base64decode}}' >"$aap_scratch/ao-client-secret"
+  [[ -s $aap_scratch/eda-token && -s $aap_scratch/forgejo-token &&
+     -s $aap_scratch/ao-client-id && -s $aap_scratch/ao-client-secret ]] ||
+    demo_die 'Hydrate Forgejo and prepare the EDA and AO webhook clients before configuring AAP.'
   aap_upsert credentials/ demo-aap-dispatch "$(jq -n --argjson org "$org" --argjson kind "$config" \
     --arg host "$aap_host" --arg username "$aap_username" --rawfile password "$aap_scratch/password" \
     --arg issuer "$oidc_issuer" --rawfile oidc_secret "$aap_scratch/oidc-secret" \
@@ -1720,10 +1789,11 @@ YAML
     --rawfile vm_ca "$aap_scratch/ca.crt" --rawfile ssh_private "$aap_scratch/ssh-private" \
     --rawfile ssh_public "$aap_scratch/ssh-public" --rawfile entitlement "$aap_scratch/entitlement.pem" \
     --rawfile eda_token "$aap_scratch/eda-token" --rawfile forgejo_token "$aap_scratch/forgejo-token" \
+    --rawfile ao_client_id "$aap_scratch/ao-client-id" --rawfile ao_client_secret "$aap_scratch/ao-client-secret" \
     '{organization:$org,credential_type:$kind,inputs:{host:$host,username:$username,password:$password,
       oidc_issuer:$issuer,oidc_secret:$oidc_secret,ee_image:$ee_image,vm_host:$vm_host,vm_token:($vm_token|rtrimstr("\n")),
       vm_ca:$vm_ca,ssh_private:$ssh_private,ssh_public:($ssh_public|rtrimstr("\n")),entitlement:$entitlement,
-      eda_token:$eda_token,forgejo_token:$forgejo_token}}')" >/dev/null
+      eda_token:$eda_token,forgejo_token:$forgejo_token,ao_client_id:$ao_client_id,ao_client_secret:$ao_client_secret}}')" >/dev/null
   galaxy=$(aap_find credential_types/ 'Ansible Galaxy/Automation Hub API Token' | jq -er .id)
   community=$(aap_upsert credentials/ demo-galaxy "$(jq -n --argjson org "$org" --argjson kind "$galaxy" \
     '{organization:$org,credential_type:$kind,inputs:{url:"https://galaxy.ansible.com/"}}')" | jq -er .id)
@@ -1859,6 +1929,7 @@ demo_aap_configure() {
   demo_readiness aap
   aap_retire_resource_crs
   demo_alerting_prepare
+  demo_ao_reconcile webhook-client
   demo_aap credentials
 
   demo_aap dispatch

@@ -1,7 +1,7 @@
 # Automation Orchestrator workflows
 
-These YAML files define three manual AO workflows. Bootstrap publishes them;
-`make ao-configure` validates and creates or updates every `*.yaml` here by
+These YAML files define three manual AO workflows and an EDA webhook workflow.
+Bootstrap publishes them; `make ao-configure` validates and creates or updates every `*.yaml` here by
 its `name`. An unchanged definition keeps its version. Runtime IDs and
 credentials are supplied during configuration; secrets never appear in the YAML.
 
@@ -13,6 +13,17 @@ Run the commands below from the repository root after
 | [omnigent-dispatch.yaml](omnigent-dispatch.yaml) | Prepares an issue branch in Backstage, starts the agent, and requests a PR | `make demo ISSUE=N` |
 | [llm-question.yaml](llm-question.yaml) | Asks the configured model a question using a Task Agent node | `make ao-llm-test` |
 | [aap-webapp-nginx.yaml](aap-webapp-nginx.yaml) | Runs AAP's existing `webapp_nginx` job in the `demo` organization | `make ao-aap-run` |
+| [rootcause.yaml](rootcause.yaml) | Gathers audit logs through AAP, asks the model for a root cause, and creates a Forgejo issue | AAP's `call_ao_webhook` job with `ao_webhook_path: alertmanagealert` |
+
+`bootstrap/bootstrap.sh` creates or reuses the `demojam-eda-webhook` AO service
+account before AAP configuration. Its client credentials are preserved in
+`automation-orchestrator/demojam-eda-webhook-client` and passed through AAP's
+dispatch credential to the inventory-defined webhook credential. Expired,
+disabled, or stale clients are replaced; a disabled service account stops setup.
+Workflow reconciliation binds the EDA trigger to that local account. Bootstrap
+and maintenance commands need no continuation scripts or manual credential edits.
+Existing clusters migrate to dispatch credential type `Demo AAP configuration v3`;
+the earlier type stays intact because AAP forbids editing schemas already in use.
 
 ## Issue to PR
 
