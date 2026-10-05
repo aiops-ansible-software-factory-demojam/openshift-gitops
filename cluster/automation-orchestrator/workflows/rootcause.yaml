@@ -42,7 +42,7 @@ nodes:
             Identify the best-suited role to address the issue in the "escalateTo" field (Developer, DBA, Server Engineer, Network Engineer, DevOps Engineer).
             List recommended steps for additional analysis or remediation in the "remediationSteps" array, providing actionable text strings that could help resolve the incident or gather more information.'
 
-      ${auditlogs.artifacts.service_log_output}
+      ${auditlogs.artifacts.affected_host_log_output}
     response_schema:
       type: object
       required:
@@ -55,7 +55,9 @@ nodes:
           type: string
           description: Team to Esclate to
         remediationSteps:
-          type: string
+          type: array
+          items:
+            type: string
           description: Steps to fix the issue
     tool_selection_strategy: NONE
   settings: {}
@@ -70,6 +72,7 @@ nodes:
     job_template_name: webapp_alert_issue
     extra_vars:
       alert_payload: "${trigger.alert_payload}"
+      affected_host_log_output: "${airca.result.content}"
     diff_mode: false
   position:
     x: 993
