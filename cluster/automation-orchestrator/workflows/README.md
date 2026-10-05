@@ -1,7 +1,7 @@
 # Automation Orchestrator workflows
 
-These YAML files define three manual AO workflows. Bootstrap publishes them;
-`make ao-configure` validates and creates or updates every `*.yaml` here by
+These YAML files define three manual AO workflows and an EDA webhook workflow.
+Bootstrap publishes them; `make ao-configure` validates and creates or updates every `*.yaml` here by
 its `name`. An unchanged definition keeps its version. Runtime IDs and
 credentials are supplied during configuration; secrets never appear in the YAML.
 
@@ -13,6 +13,35 @@ Run the commands below from the repository root after
 | [omnigent-dispatch.yaml](omnigent-dispatch.yaml) | Prepares an issue branch in Backstage, starts the agent, and requests a PR | `make demo ISSUE=N` |
 | [llm-question.yaml](llm-question.yaml) | Asks the configured model a question using a Task Agent node | `make ao-llm-test` |
 | [aap-webapp-nginx.yaml](aap-webapp-nginx.yaml) | Runs AAP's existing `webapp_nginx` job in the `demo` organization | `make ao-aap-run` |
+| [rootcause.yaml](rootcause.yaml) | Gathers audit logs through AAP, asks the model for a root cause, and creates a Forgejo issue | AAP's `call_ao_webhook` job with `ao_webhook_path: alertmanagealert` |
+
+`bootstrap/bootstrap.sh` creates or reuses the `demojam-eda-webhook` AO service
+account before AAP configuration. Its client credentials are preserved in
+`automation-orchestrator/demojam-eda-webhook-client` and passed through AAP's
+dispatch credential to the inventory-defined webhook credential. Expired,
+disabled, or stale clients are replaced; a disabled service account stops setup.
+Workflow reconciliation binds the EDA trigger to that local account. Bootstrap
+and maintenance commands need no continuation scripts or manual credential edits.
+Existing clusters migrate to dispatch credential type `Demo AAP configuration v3`;
+the earlier type stays intact because AAP forbids editing schemas already in use.
+
+## Blackbox alert to issue
+
+A firing `WebappDown` alert reaches EDA through Alertmanager's authenticated
+event stream. The `webapp-alert-issue.yml` rulebook in `demojam-ansible` launches
+`call_ao_webhook`, which calls the `alertmanagealert` AO trigger. An ingress
+network policy lets AAP reach AO's internal UI/API service. The workflow reads
+`pull_audit_logs`'s `affected_host_log_output` artifact and passes the
+model's diagnosis to `webapp_alert_issue` alongside the original alert payload.
+The issue job reuses an existing open incident when Alertmanager sends repeats.
+
+To exercise the flow on the demo VM, run AAP's `webapp_selinux_enable` template.
+Enforcing SELinux blocks nginx's demo document root and the blackbox probe
+returns HTTP 403. Allow the one-minute alert rule and Alertmanager's delivery
+timers to run, then check EDA, the AO execution, and the Forgejo incident.
+Restore the demo with `make webapp-nginx` and verify `make webapp-verify` plus
+the absence of an active `WebappDown` alert. This test deliberately interrupts
+the demo webapp until it is restored.
 
 ## Issue to PR
 

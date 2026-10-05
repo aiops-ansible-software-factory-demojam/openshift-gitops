@@ -858,6 +858,62 @@ demo_ao_workflow_definition() {
 
 # These helpers share the authenticated connection and private response file in
 # demo_ao_reconcile. Credentials are encrypted by AO, never written to workflows.
+demo_ao_webhook_client() {
+  local name=demojam-eda-webhook secret=demojam-eda-webhook-client
+  local code account id payload client saved_identifier expires expiry_epoch reuse=false
+  code=$(ao_curl GET "$base_url/service_accounts?limit=100" -H "$auth_header")
+  ao_require_json 'list webhook service accounts' "$code"
+  account=$(jq -c --arg name "$name" --arg project "$project_id" \
+    '.resources[] | select(.name == $name and .project_id == $project)' "$ao_response")
+  if [[ -z $account ]]; then
+    payload=$(jq -n --arg name "$name" --arg project "$project_id" \
+      '{name:$name,project_id:$project,description:"Demo AAP EDA webhook caller"}')
+    code=$(ao_curl POST "$base_url/service_accounts" -H "$auth_header" \
+      -H 'Content-Type: application/json' --data-binary "$payload")
+    ao_require_json 'create webhook service account' "$code"
+    account=$(jq -c . "$ao_response")
+  fi
+  id=$(jq -er '.id' <<<"$account")
+  [[ $(jq -r '.status' <<<"$account") == active ]] ||
+    demo_die 'The demo AO webhook service account is disabled; inspect it before bootstrap.'
+
+  # Validate the saved client against AO, including expiry. A reset AO database
+  # can leave a Kubernetes Secret referring to a different account or client.
+  oc -n "$namespace" get secret "$secret" --ignore-not-found -o json >"$omnigent_scratch/webhook-client.json" || return
+  if [[ -s $omnigent_scratch/webhook-client.json ]] &&
+     jq -e --arg id "$id" '.data as $d |
+       ($d["service-account-id"] // "" | @base64d) == $id and
+       ($d["client-id"] // "" | @base64d | length > 0) and
+       ($d["client-secret"] // "" | @base64d | length > 0)' "$omnigent_scratch/webhook-client.json" >/dev/null; then
+    saved_identifier=$(jq -r '.data["client-id"] | @base64d' "$omnigent_scratch/webhook-client.json")
+    code=$(ao_curl GET "$base_url/service_accounts/$id/credentials?limit=100" -H "$auth_header")
+    ao_require_json 'inspect saved webhook client' "$code"
+    client=$(jq -c --arg identifier "$saved_identifier" \
+      '.resources[] | select(.identifier == $identifier and .status == "active")' "$ao_response")
+    if [[ -n $client ]]; then
+      expires=$(jq -r '.expires_at // empty' <<<"$client")
+      if [[ -z $expires ]]; then
+        reuse=true
+      else
+        expiry_epoch=$(date -d "$expires" +%s) || demo_die 'AO returned an invalid webhook client expiry.'
+        if (( expiry_epoch > $(date +%s) )); then reuse=true; fi
+      fi
+    fi
+  fi
+  if [[ $reuse == false ]]; then
+    code=$(ao_curl POST "$base_url/service_accounts/$id/credentials" -H "$auth_header" \
+      -H 'Content-Type: application/json' --data-binary '{"credential_type":"client_credentials"}')
+    ao_require_json 'issue webhook client credentials' "$code"
+    jq -e '.identifier | type == "string" and length > 0' "$ao_response" >/dev/null
+    jq -e '.client_secret | type == "string" and length > 0' "$ao_response" >/dev/null
+    jq --arg id "$id" --arg namespace "$namespace" \
+      '{apiVersion:"v1",kind:"Secret",metadata:{name:"demojam-eda-webhook-client",namespace:$namespace},
+        type:"Opaque",stringData:{"service-account-id":$id,"client-id":.identifier,"client-secret":.client_secret}}' \
+      "$ao_response" | oc apply --server-side --field-manager=demo-bootstrap --force-conflicts -f - >/dev/null
+  fi
+  printf '%s\n' "$id"
+}
+
 demo_ao_credential() {
   local name=$1 type_name=$2 inputs=$3 kind id payload code
   code=$(ao_curl GET "$base_url/credential_types?limit=100" -H "$auth_header")
@@ -1395,6 +1451,9 @@ demo_ao_reconcile() (
     exit 1
   fi
 
+  eda_service_account_id=$(demo_ao_webhook_client)
+  [[ ${1:-workflow} != webhook-client ]] || exit 0
+
   credential_name=omnigent-machine-client
   http_code=$(ao_curl GET "$base_url/credential_types?limit=100" -H "$auth_header")
   ao_require_json 'list credential types' "$http_code"
@@ -1460,7 +1519,10 @@ demo_ao_reconcile() (
       workflow_definition=$(yq -c . "$workflow_file" | jq -c \
         --arg llm_credential "$llm_credential_id" --arg llm_integration "$llm_integration_id" \
         --arg llm_model "$llm_model_id" --arg aap_credential "$aap_credential_id" \
-        --arg aap_integration "$aap_integration_id" '
+        --arg aap_integration "$aap_integration_id" --arg eda_account "$eda_service_account_id" '
+        .triggers |= map(if .type == "eda_trigger" then
+          .parameters.authorized_service_account_ids=[$eda_account]
+        else . end) |
         .nodes |= map(if .type == "agentic" then
           .parameters.credential_id=$llm_credential | .parameters.integration_id=$llm_integration |
           .parameters.llm_model_id=$llm_model
@@ -1702,7 +1764,9 @@ YAML
     -o go-template='{{index .data "public-key" | base64decode}}' >"$aap_scratch/ssh-public"
 
   org=$(aap_upsert organizations/ demo '{"description":"Disposable automation demo"}' | jq -er .id)
-  config=$(aap_upsert credential_types/ 'Demo AAP configuration v2' \
+  # AAP forbids changing the schema of a credential type that is already in use.
+  # Version it so aap_upsert migrates the dispatch credential and reattaches it.
+  config=$(aap_upsert credential_types/ 'Demo AAP configuration v3' \
     "$(yq . "$demo_repo_root/bootstrap/aap-dispatch-credential-type.yaml")" | jq -er .id)
   oc -n demojam-keycloak get secret identity-credentials \
     -o go-template='{{index .data "aap-client-secret" | base64decode}}' >"$aap_scratch/oidc-secret"
@@ -1711,8 +1775,13 @@ YAML
     -o go-template='{{index .data "token" | base64decode}}' >"$aap_scratch/eda-token"
   oc -n omnigent-sandboxes get secret omnigent-model \
     -o go-template='{{index .data "FORGEJO_TOKEN" | base64decode}}' >"$aap_scratch/forgejo-token"
-  [[ -s $aap_scratch/eda-token && -s $aap_scratch/forgejo-token ]] ||
-    demo_die 'Hydrate Forgejo and prepare the EDA webhook before configuring AAP.'
+  oc -n automation-orchestrator get secret demojam-eda-webhook-client \
+    -o go-template='{{index .data "client-id" | base64decode}}' >"$aap_scratch/ao-client-id"
+  oc -n automation-orchestrator get secret demojam-eda-webhook-client \
+    -o go-template='{{index .data "client-secret" | base64decode}}' >"$aap_scratch/ao-client-secret"
+  [[ -s $aap_scratch/eda-token && -s $aap_scratch/forgejo-token &&
+     -s $aap_scratch/ao-client-id && -s $aap_scratch/ao-client-secret ]] ||
+    demo_die 'Hydrate Forgejo and prepare the EDA and AO webhook clients before configuring AAP.'
   aap_upsert credentials/ demo-aap-dispatch "$(jq -n --argjson org "$org" --argjson kind "$config" \
     --arg host "$aap_host" --arg username "$aap_username" --rawfile password "$aap_scratch/password" \
     --arg issuer "$oidc_issuer" --rawfile oidc_secret "$aap_scratch/oidc-secret" \
@@ -1720,10 +1789,11 @@ YAML
     --rawfile vm_ca "$aap_scratch/ca.crt" --rawfile ssh_private "$aap_scratch/ssh-private" \
     --rawfile ssh_public "$aap_scratch/ssh-public" --rawfile entitlement "$aap_scratch/entitlement.pem" \
     --rawfile eda_token "$aap_scratch/eda-token" --rawfile forgejo_token "$aap_scratch/forgejo-token" \
+    --rawfile ao_client_id "$aap_scratch/ao-client-id" --rawfile ao_client_secret "$aap_scratch/ao-client-secret" \
     '{organization:$org,credential_type:$kind,inputs:{host:$host,username:$username,password:$password,
       oidc_issuer:$issuer,oidc_secret:$oidc_secret,ee_image:$ee_image,vm_host:$vm_host,vm_token:($vm_token|rtrimstr("\n")),
       vm_ca:$vm_ca,ssh_private:$ssh_private,ssh_public:($ssh_public|rtrimstr("\n")),entitlement:$entitlement,
-      eda_token:$eda_token,forgejo_token:$forgejo_token}}')" >/dev/null
+      eda_token:$eda_token,forgejo_token:$forgejo_token,ao_client_id:$ao_client_id,ao_client_secret:$ao_client_secret}}')" >/dev/null
   galaxy=$(aap_find credential_types/ 'Ansible Galaxy/Automation Hub API Token' | jq -er .id)
   community=$(aap_upsert credentials/ demo-galaxy "$(jq -n --argjson org "$org" --argjson kind "$galaxy" \
     '{organization:$org,credential_type:$kind,inputs:{url:"https://galaxy.ansible.com/"}}')" | jq -er .id)
@@ -1859,6 +1929,7 @@ demo_aap_configure() {
   demo_readiness aap
   aap_retire_resource_crs
   demo_alerting_prepare
+  demo_ao_reconcile webhook-client
   demo_aap credentials
 
   demo_aap dispatch
@@ -2238,6 +2309,64 @@ demo_bootstrap() (
 )
 
 # -----------------------------------------------------------------------------
+# Reset disposable demo data while preserving the installed platform.
+demo_reset() (
+  [[ $# == 1 && $1 == --confirm-demo-reset ]] ||
+    demo_die 'Usage: demo-reset --confirm-demo-reset (deletes demo repos, sessions, VMs and disks).'
+  demo_verify_cluster
+  local ingress_domain omnigent_host scratch agent_id cursor page session_id namespace remaining
+  local -a session_ids=() page_ids=()
+  ingress_domain=$(oc -n openshift-ingress-operator get ingresscontroller default -o jsonpath='{.status.domain}')
+  omnigent_host=$(oc -n omnigent get route omnigent -o jsonpath='{.status.ingress[0].host}')
+  [[ -n $ingress_domain && $omnigent_host == "omnigent.$ingress_domain" ]] ||
+    demo_die 'Omnigent Route does not match this cluster ingress domain.'
+  demo_model_inputs
+  unset model_key
+
+  umask 077
+  scratch=$(mktemp -d)
+  trap 'find "$scratch" -type f -delete; rmdir "$scratch"' EXIT
+  demo_omnigent_connect "$scratch" "https://$omnigent_host"
+  omnigent_get() {
+    curl -fsS --config "$scratch/omnigent.conf" "https://$omnigent_host/v1/$1"
+  }
+  agent_id=$(omnigent_get agents | jq -er '.data[] | select(.name == "automation-developer") | .id')
+  cursor=
+  while :; do
+    page=$(omnigent_get "sessions?limit=100${cursor:+&after=$cursor}")
+    mapfile -t page_ids < <(jq -r --arg agent "$agent_id" '.data[] | select(.agent_id == $agent) | .id' <<<"$page")
+    session_ids+=("${page_ids[@]}")
+    [[ $(jq -r '.has_more' <<<"$page") == true ]] || break
+    cursor=$(jq -er '.last_id' <<<"$page")
+  done
+  for session_id in "${session_ids[@]}"; do
+    curl -fsS -o /dev/null -X DELETE --config "$scratch/omnigent.conf" "https://$omnigent_host/v1/sessions/$session_id"
+  done
+  oc -n omnigent-sandboxes delete sandboxes -l omnigent.ai/agent=automation-developer \
+    --ignore-not-found --wait=true --timeout=5m
+  printf 'Removed %s automation-developer sessions.\n' "${#session_ids[@]}"
+
+  # Remove VMs through managed playbooks while their Forgejo project exists.
+  demo_wait_for_api
+  demo_aap reset-vms
+  oc -n molecule-tests delete virtualmachines -l app.kubernetes.io/part-of=molecule-tests \
+    --ignore-not-found --cascade=foreground --wait=true --timeout=5m
+  for namespace in automation-vms webapp-vms molecule-tests; do
+    remaining=$(oc -n "$namespace" get virtualmachines,virtualmachineinstances,datavolumes,persistentvolumeclaims -o name)
+    [[ -z $remaining ]] || demo_die "Demo resources remain in $namespace; inspect them before retrying reset."
+  done
+
+  oc -n omnigent-sandboxes delete secret omnigent-model --ignore-not-found
+  oc -n omnigent delete secret omnigent-agent --ignore-not-found
+  demo_model_config
+  demo_ao_reconcile
+  oc -n omnigent rollout status deployment/omnigent --timeout=5m
+  demo_hydrate reset --confirm-forgejo
+  demo_aap_configure
+  demo_ao_reconcile
+  echo 'Demo reset complete: VMs and test disks removed, Forgejo reseeded, AAP configured, and Omnigent ready.'
+)
+
 # Full removal keeps controllers running until their operands have finalized.
 # The durable, secret-free inventory also supports resuming interrupted removal.
 demo_teardown() (
@@ -2411,6 +2540,7 @@ Usage: bash bootstrap/bootstrap.sh [COMMAND]
 
   bootstrap          Install/configure the platform, create the RHEL VM, install nginx, verify
   teardown --confirm-demo-teardown Remove the entire demo stack, operators and persistent data
+  demo-reset --confirm-demo-reset Reset disposable demo repos, sessions, VMs and disks
   preflight          Read-only input and pre-install cluster checks (also --check)
   sandbox-build      Build the configured :latest sandbox image
   model-config       Apply the selected model/agent configuration
@@ -2440,6 +2570,7 @@ HELP
   case $command in
     bootstrap) [[ $# == 0 ]] || demo_die 'bootstrap takes no arguments'; demo_bootstrap ;;
     teardown) demo_teardown "$@" ;;
+    demo-reset) demo_reset "$@" ;;
     homepage-refresh) [[ $# == 0 ]] || demo_die 'homepage-refresh takes no arguments'; demo_verify_cluster; demo_homepage_configure ;;
     identity)
       [[ $# == 0 ]] || demo_die 'identity takes no arguments'

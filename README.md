@@ -71,6 +71,8 @@ the PR URL.
 then reseeds the baseline. It leaves demo VMs absent; rerun `make bootstrap`
 to restore the full environment. `make teardown` removes the entire demo stack,
 operators, identities, and persistent data. Both discard disposable demo work.
+Setup, reset, and teardown share the implementation in
+`bootstrap/bootstrap.sh`; Make targets invoke that script directly.
 
 ## Find your next step
 
