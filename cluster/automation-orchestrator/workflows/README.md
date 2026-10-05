@@ -25,6 +25,24 @@ and maintenance commands need no continuation scripts or manual credential edits
 Existing clusters migrate to dispatch credential type `Demo AAP configuration v3`;
 the earlier type stays intact because AAP forbids editing schemas already in use.
 
+## Blackbox alert to issue
+
+A firing `WebappDown` alert reaches EDA through Alertmanager's authenticated
+event stream. The `webapp-alert-issue.yml` rulebook in `demojam-ansible` launches
+`call_ao_webhook`, which calls the `alertmanagealert` AO trigger. An ingress
+network policy lets AAP reach AO's internal UI/API service. The workflow reads
+`pull_audit_logs`'s `affected_host_log_output` artifact and passes the
+model's diagnosis to `webapp_alert_issue` alongside the original alert payload.
+The issue job reuses an existing open incident when Alertmanager sends repeats.
+
+To exercise the flow on the demo VM, run AAP's `webapp_selinux_enable` template.
+Enforcing SELinux blocks nginx's demo document root and the blackbox probe
+returns HTTP 403. Allow the one-minute alert rule and Alertmanager's delivery
+timers to run, then check EDA, the AO execution, and the Forgejo incident.
+Restore the demo with `make webapp-nginx` and verify `make webapp-verify` plus
+the absence of an active `WebappDown` alert. This test deliberately interrupts
+the demo webapp until it is restored.
+
 ## Issue to PR
 
 Run `make demo-hydrate` to get the starter issue number, then replace `N` above
