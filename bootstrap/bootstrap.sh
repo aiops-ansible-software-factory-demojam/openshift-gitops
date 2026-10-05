@@ -2309,6 +2309,64 @@ demo_bootstrap() (
 )
 
 # -----------------------------------------------------------------------------
+# Reset disposable demo data while preserving the installed platform.
+demo_reset() (
+  [[ $# == 1 && $1 == --confirm-demo-reset ]] ||
+    demo_die 'Usage: demo-reset --confirm-demo-reset (deletes demo repos, sessions, VMs and disks).'
+  demo_verify_cluster
+  local ingress_domain omnigent_host scratch agent_id cursor page session_id namespace remaining
+  local -a session_ids=() page_ids=()
+  ingress_domain=$(oc -n openshift-ingress-operator get ingresscontroller default -o jsonpath='{.status.domain}')
+  omnigent_host=$(oc -n omnigent get route omnigent -o jsonpath='{.status.ingress[0].host}')
+  [[ -n $ingress_domain && $omnigent_host == "omnigent.$ingress_domain" ]] ||
+    demo_die 'Omnigent Route does not match this cluster ingress domain.'
+  demo_model_inputs
+  unset model_key
+
+  umask 077
+  scratch=$(mktemp -d)
+  trap 'find "$scratch" -type f -delete; rmdir "$scratch"' EXIT
+  demo_omnigent_connect "$scratch" "https://$omnigent_host"
+  omnigent_get() {
+    curl -fsS --config "$scratch/omnigent.conf" "https://$omnigent_host/v1/$1"
+  }
+  agent_id=$(omnigent_get agents | jq -er '.data[] | select(.name == "automation-developer") | .id')
+  cursor=
+  while :; do
+    page=$(omnigent_get "sessions?limit=100${cursor:+&after=$cursor}")
+    mapfile -t page_ids < <(jq -r --arg agent "$agent_id" '.data[] | select(.agent_id == $agent) | .id' <<<"$page")
+    session_ids+=("${page_ids[@]}")
+    [[ $(jq -r '.has_more' <<<"$page") == true ]] || break
+    cursor=$(jq -er '.last_id' <<<"$page")
+  done
+  for session_id in "${session_ids[@]}"; do
+    curl -fsS -o /dev/null -X DELETE --config "$scratch/omnigent.conf" "https://$omnigent_host/v1/sessions/$session_id"
+  done
+  oc -n omnigent-sandboxes delete sandboxes -l omnigent.ai/agent=automation-developer \
+    --ignore-not-found --wait=true --timeout=5m
+  printf 'Removed %s automation-developer sessions.\n' "${#session_ids[@]}"
+
+  # Remove VMs through managed playbooks while their Forgejo project exists.
+  demo_wait_for_api
+  demo_aap reset-vms
+  oc -n molecule-tests delete virtualmachines -l app.kubernetes.io/part-of=molecule-tests \
+    --ignore-not-found --cascade=foreground --wait=true --timeout=5m
+  for namespace in automation-vms webapp-vms molecule-tests; do
+    remaining=$(oc -n "$namespace" get virtualmachines,virtualmachineinstances,datavolumes,persistentvolumeclaims -o name)
+    [[ -z $remaining ]] || demo_die "Demo resources remain in $namespace; inspect them before retrying reset."
+  done
+
+  oc -n omnigent-sandboxes delete secret omnigent-model --ignore-not-found
+  oc -n omnigent delete secret omnigent-agent --ignore-not-found
+  demo_model_config
+  demo_ao_reconcile
+  oc -n omnigent rollout status deployment/omnigent --timeout=5m
+  demo_hydrate reset --confirm-forgejo
+  demo_aap_configure
+  demo_ao_reconcile
+  echo 'Demo reset complete: VMs and test disks removed, Forgejo reseeded, AAP configured, and Omnigent ready.'
+)
+
 # Full removal keeps controllers running until their operands have finalized.
 # The durable, secret-free inventory also supports resuming interrupted removal.
 demo_teardown() (
@@ -2482,6 +2540,7 @@ Usage: bash bootstrap/bootstrap.sh [COMMAND]
 
   bootstrap          Install/configure the platform, create the RHEL VM, install nginx, verify
   teardown --confirm-demo-teardown Remove the entire demo stack, operators and persistent data
+  demo-reset --confirm-demo-reset Reset disposable demo repos, sessions, VMs and disks
   preflight          Read-only input and pre-install cluster checks (also --check)
   sandbox-build      Build the configured :latest sandbox image
   model-config       Apply the selected model/agent configuration
@@ -2511,6 +2570,7 @@ HELP
   case $command in
     bootstrap) [[ $# == 0 ]] || demo_die 'bootstrap takes no arguments'; demo_bootstrap ;;
     teardown) demo_teardown "$@" ;;
+    demo-reset) demo_reset "$@" ;;
     homepage-refresh) [[ $# == 0 ]] || demo_die 'homepage-refresh takes no arguments'; demo_verify_cluster; demo_homepage_configure ;;
     identity)
       [[ $# == 0 ]] || demo_die 'identity takes no arguments'
