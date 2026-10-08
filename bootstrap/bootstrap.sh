@@ -297,8 +297,10 @@ EOF
   unset model_key
   # Keep the existing Secret key for in-place upgrades; the selected endpoint is
   # the baseURL below, not the name of this environment variable.
+  # Qwen can exceed the endpoint's 60-second idle timeout before a tool call.
+  # Disable thinking for this demo model to keep streamed requests responsive.
   jq -cn --arg base "$model_endpoint" --arg model "$model_name" \
-    --arg npm "$model_npm" '
+    --arg npm "$model_npm" --arg provider "${MODEL_PROVIDER:-opencode-go}" '
     {
       "$schema": "https://opencode.ai/config.json",
       model: ("demo/" + $model),
@@ -311,9 +313,11 @@ EOF
             apiKey: "{env:OPENAI_API_KEY}"
           },
           models: {
-            ($model): {
+            ($model): ({
               name: $model
-            }
+            } + (if $provider == "litellm" and $model == "qwen38-27b" then {
+              options: {chat_template_kwargs: {enable_thinking: false}}
+            } else {} end))
           }
         }
       }

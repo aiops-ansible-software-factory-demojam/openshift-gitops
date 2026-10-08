@@ -10,6 +10,8 @@ A SELinux outage follows the complete automatic path: blackbox alert → EDA →
 AO audit-log RCA → Forgejo incident → Forgejo webhook → EDA → AO → Omnigent
 fix PR. Bootstrap installs and connects every stage; PR review and merge remain
 manual. LiteLLM's `qwen38-27b` is the default model in the configuration template.
+Bootstrap disables thinking for this model in the coding harness because the
+demo endpoint can otherwise time out before returning a streamed tool call.
 
 ## Before you start
 
