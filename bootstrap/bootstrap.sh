@@ -1865,7 +1865,7 @@ YAML
 aap_launch() {
   local name=$1 extra=${2:-'{}'} reset=${3:-false} org template result
   case $name in
-    webapp_vm|webapp_nginx|aap_configure_all) ;;
+    webapp_vm|webapp_nginx|webapp_selinux_enable|aap_configure_all) ;;
     openshift_virtualization_machine) [[ $reset == true ]] || demo_die 'Only seeded demo templates may be launched.' ;;
     *) demo_die 'Only seeded demo templates may be launched.' ;;
   esac
@@ -2620,7 +2620,8 @@ Usage: bash bootstrap/bootstrap.sh [COMMAND]
   readiness TARGET   sandbox | aap
 
 Populate .env first. An inherited KUBECONFIG takes precedence over .env.
-Default bootstrap includes the complete webapp; issue-to-PR dispatch is separate.
+Default bootstrap connects the incident-to-PR flow and provisions nginx.
+Run aap launch webapp_selinux_enable to trigger the SELinux outage demo.
 HELP
     return
   fi

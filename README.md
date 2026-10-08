@@ -62,6 +62,17 @@ access. Keep your populated `.env` for reruns.
 Run these commands from the repository root:
 
 ```bash
+bash bootstrap/bootstrap.sh aap launch webapp_selinux_enable
+```
+
+The seeded job enables SELinux enforcing on the webapp VM. Follow the new
+Forgejo incident and its RCA into the Omnigent session; the agent tests its
+collection fix and submits a PR. Restore the permissive demo baseline with
+`make webapp-nginx` after the demonstration. The fix PR stays open for review.
+
+The starter issue exercises the Backstage feature flow directly:
+
+```bash
 make demo-hydrate     # Print the starter issue URL and number
 make demo ISSUE=N     # Replace N with that positive issue number
 make webapp-verify    # Check the RHEL webapp
