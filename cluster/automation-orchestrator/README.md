@@ -6,6 +6,12 @@ Developer Hub template, and confirm `feature/issue-N` exists. Only then does
 it create an Omnigent session and send the task to `automation-developer`.
 Repeat dispatches reuse the prepared branch.
 
+Bootstrap also publishes `omnigent-remediation`. The Forgejo EDA listener
+dispatches newly opened outage issues to it after the RCA is included in the
+issue body. AO passes the current issue and diagnosis into a new shared
+Omnigent session. The agent fixes the collection, tests nginx with SELinux
+enforcing, and submits a PR for review.
+
 ## Configure and run
 
 Bootstrap configures AO after its workloads and Omnigent are ready. To refresh

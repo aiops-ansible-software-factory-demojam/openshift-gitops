@@ -1510,19 +1510,16 @@ demo_ao_reconcile() (
   fi
 
   # Inject runtime integration and credential references into portable definitions;
-  # only omnigent-dispatch needs its dynamic agent and user-sharing nodes.
+  # Both agent workflows need the machine credential and user-sharing nodes.
   for workflow_file in "$script_dir"/workflows/*.yaml; do
     workflow_name=$(yq -er '.name' "$workflow_file")
-    if [[ $workflow_name == omnigent-dispatch ]]; then
+    if [[ $workflow_name == omnigent-dispatch || $workflow_name == omnigent-remediation ]]; then
       workflow_definition=$(demo_ao_workflow_definition "$workflow_file" "$credential_id" "$agent_id")
     else
       workflow_definition=$(yq -c . "$workflow_file" | jq -c \
         --arg llm_credential "$llm_credential_id" --arg llm_integration "$llm_integration_id" \
         --arg llm_model "$llm_model_id" --arg aap_credential "$aap_credential_id" \
-        --arg aap_integration "$aap_integration_id" --arg eda_account "$eda_service_account_id" '
-        .triggers |= map(if .type == "eda_trigger" then
-          .parameters.authorized_service_account_ids=[$eda_account]
-        else . end) |
+        --arg aap_integration "$aap_integration_id" '
         .nodes |= map(if .type == "agentic" then
           .parameters.credential_id=$llm_credential | .parameters.integration_id=$llm_integration |
           .parameters.llm_model_id=$llm_model
@@ -1530,6 +1527,10 @@ demo_ao_reconcile() (
           .parameters.credential_id=$aap_credential | .parameters.integration_id=$aap_integration
         else . end)')
     fi
+    workflow_definition=$(jq -c --arg eda_account "$eda_service_account_id" '
+      .triggers |= map(if .type == "eda_trigger" then
+        .parameters.authorized_service_account_ids=[$eda_account]
+      else . end)' <<<"$workflow_definition")
     validation_payload=$(jq -n --argjson definition "$workflow_definition" \
       '{workflow_definition: $definition}')
     http_code=$(ao_curl POST "$base_url/workflows/validate" -H "$auth_header" \
@@ -1729,6 +1730,59 @@ demo_alerting_prepare() (
     oc apply --server-side --field-manager=demo-bootstrap -f -
 )
 
+# A separate token and stable listener URL keep Forgejo deliveries independent
+# of Alertmanager. Register the hook only after EDA and AO are ready.
+demo_forgejo_webhook_prepare() (
+  umask 077
+  local scratch host uuid
+  scratch=$(mktemp -d)
+  trap 'rm -rf -- "$scratch"' EXIT
+  host=${AAP_HOST:-https://$(oc -n ansible-automation-platform get route aap -o jsonpath='{.status.ingress[0].host}')}
+  uuid=$(yq -er '.demo_forgejo_event_stream.uuid' \
+    "$(demo_source_checkout demojam-ansible)/group_vars/aap/eda.yml")
+  if [[ -n $(oc -n forgejo get secret forgejo-eda-webhook --ignore-not-found -o name) ]]; then
+    oc -n forgejo get secret forgejo-eda-webhook \
+      -o go-template='{{index .data "token" | base64decode}}' >"$scratch/token"
+    [[ -s $scratch/token ]] || demo_die 'The existing Forgejo EDA webhook Secret has no token.'
+  else
+    openssl rand -hex 32 | tr -d '\n' >"$scratch/token"
+  fi
+  printf '%s/eda-event-streams/api/eda/v1/external_event_stream/%s/post/' \
+    "${host%/}" "$uuid" >"$scratch/url"
+  oc -n forgejo create secret generic forgejo-eda-webhook \
+    --from-file=token="$scratch/token" --from-file=url="$scratch/url" --dry-run=client -o yaml |
+    oc apply --server-side --field-manager=demo-bootstrap -f -
+)
+
+demo_forgejo_webhook_configure() (
+  umask 077
+  local scratch repository hook_id payload state_dir domain
+  scratch=$(mktemp -d)
+  trap 'rm -rf -- "$scratch"' EXIT
+  domain=$(oc -n openshift-ingress-operator get ingresscontroller default -o jsonpath='{.status.domain}')
+  state_dir=${FORGEJO_STATE_DIR:-$demo_repo_root/cluster/forgejo/.state/$domain}
+  FORGEJO_URL="https://$(oc -n forgejo get route forgejo -o jsonpath='{.status.ingress[0].host}')"
+  FORGEJO_TOKEN=$(<"$state_dir/admin-token")
+  repository=demo-owner/ansible-collection-demo.webapp
+  oc -n forgejo get secret forgejo-eda-webhook -o json |
+    jq '.data | map_values(@base64d)' >"$scratch/webhook.json"
+  # Forgejo encrypts authorization_header in its database. Never print API hook
+  # responses: they can contain the Authorization credential.
+  payload=$(jq '{type:"forgejo",active:true,events:["issues"],
+    config:{url:.url,content_type:"json",http_method:"POST"},
+    authorization_header:("Bearer " + .token)}' "$scratch/webhook.json")
+  forgejo_api GET "/repos/$repository/hooks?limit=100" >"$scratch/hooks.json"
+  hook_id=$(jq -r --slurpfile desired "$scratch/webhook.json" \
+    '.[] | select(.type == "forgejo" and .config.url == $desired[0].url) | .id' "$scratch/hooks.json")
+  [[ $(wc -w <<<"$hook_id") -le 1 ]] || demo_die 'Multiple Forgejo incident hooks exist; inspect them before setup.'
+  if [[ -n $hook_id ]]; then
+    forgejo_api PATCH "/repos/$repository/hooks/$hook_id" "$(jq 'del(.type)' <<<"$payload")" >/dev/null
+  else
+    forgejo_api POST "/repos/$repository/hooks" "$payload" >/dev/null
+  fi
+  echo 'Forgejo issue webhook is connected to the EDA remediation listener.'
+)
+
 aap_credentials() {
   local namespace=ansible-automation-platform org config galaxy community oidc_issuer
   demo_manifest "$aap_scratch" || demo_die 'The subscription ZIP must contain valid RHEL entitlement material.'
@@ -1766,7 +1820,7 @@ YAML
   org=$(aap_upsert organizations/ demo '{"description":"Disposable automation demo"}' | jq -er .id)
   # AAP forbids changing the schema of a credential type that is already in use.
   # Version it so aap_upsert migrates the dispatch credential and reattaches it.
-  config=$(aap_upsert credential_types/ 'Demo AAP configuration v3' \
+  config=$(aap_upsert credential_types/ 'Demo AAP configuration v4' \
     "$(yq . "$demo_repo_root/bootstrap/aap-dispatch-credential-type.yaml")" | jq -er .id)
   oc -n demojam-keycloak get secret identity-credentials \
     -o go-template='{{index .data "aap-client-secret" | base64decode}}' >"$aap_scratch/oidc-secret"
@@ -1775,11 +1829,13 @@ YAML
     -o go-template='{{index .data "token" | base64decode}}' >"$aap_scratch/eda-token"
   oc -n omnigent-sandboxes get secret omnigent-model \
     -o go-template='{{index .data "FORGEJO_TOKEN" | base64decode}}' >"$aap_scratch/forgejo-token"
+  oc -n forgejo get secret forgejo-eda-webhook \
+    -o go-template='{{index .data "token" | base64decode}}' >"$aap_scratch/forgejo-eda-token"
   oc -n automation-orchestrator get secret demojam-eda-webhook-client \
     -o go-template='{{index .data "client-id" | base64decode}}' >"$aap_scratch/ao-client-id"
   oc -n automation-orchestrator get secret demojam-eda-webhook-client \
     -o go-template='{{index .data "client-secret" | base64decode}}' >"$aap_scratch/ao-client-secret"
-  [[ -s $aap_scratch/eda-token && -s $aap_scratch/forgejo-token &&
+  [[ -s $aap_scratch/eda-token && -s $aap_scratch/forgejo-token && -s $aap_scratch/forgejo-eda-token &&
      -s $aap_scratch/ao-client-id && -s $aap_scratch/ao-client-secret ]] ||
     demo_die 'Hydrate Forgejo and prepare the EDA and AO webhook clients before configuring AAP.'
   aap_upsert credentials/ demo-aap-dispatch "$(jq -n --argjson org "$org" --argjson kind "$config" \
@@ -1789,11 +1845,13 @@ YAML
     --rawfile vm_ca "$aap_scratch/ca.crt" --rawfile ssh_private "$aap_scratch/ssh-private" \
     --rawfile ssh_public "$aap_scratch/ssh-public" --rawfile entitlement "$aap_scratch/entitlement.pem" \
     --rawfile eda_token "$aap_scratch/eda-token" --rawfile forgejo_token "$aap_scratch/forgejo-token" \
+    --rawfile forgejo_eda_token "$aap_scratch/forgejo-eda-token" \
     --rawfile ao_client_id "$aap_scratch/ao-client-id" --rawfile ao_client_secret "$aap_scratch/ao-client-secret" \
     '{organization:$org,credential_type:$kind,inputs:{host:$host,username:$username,password:$password,
       oidc_issuer:$issuer,oidc_secret:$oidc_secret,ee_image:$ee_image,vm_host:$vm_host,vm_token:($vm_token|rtrimstr("\n")),
       vm_ca:$vm_ca,ssh_private:$ssh_private,ssh_public:($ssh_public|rtrimstr("\n")),entitlement:$entitlement,
-      eda_token:$eda_token,forgejo_token:$forgejo_token,ao_client_id:$ao_client_id,ao_client_secret:$ao_client_secret}}')" >/dev/null
+      eda_token:$eda_token,forgejo_token:$forgejo_token,forgejo_eda_token:$forgejo_eda_token,
+      ao_client_id:$ao_client_id,ao_client_secret:$ao_client_secret}}')" >/dev/null
   galaxy=$(aap_find credential_types/ 'Ansible Galaxy/Automation Hub API Token' | jq -er .id)
   community=$(aap_upsert credentials/ demo-galaxy "$(jq -n --argjson org "$org" --argjson kind "$galaxy" \
     '{organization:$org,credential_type:$kind,inputs:{url:"https://galaxy.ansible.com/"}}')" | jq -er .id)
@@ -1878,19 +1936,22 @@ aap_dispatch() {
 
 # An enabled activation record does not prove that its rulebook is running.
 aap_wait_eda() {
-  local name query status previous='' deadline=$((SECONDS + 600))
-  name=$(yq -er '.demo_eda_activation.name' \
-    "$(demo_source_checkout demojam-ansible)/group_vars/aap/eda.yml")
-  query=$(jq -rn --arg name "$name" '$name | @uri')
-  while (( SECONDS < deadline )); do
-    status=$(aap_request GET "activations/?name=$query" '' /api/eda/v1/ |
-      jq -er '.results[0].status // "absent"')
-    [[ $status != running ]] || { printf 'EDA activation %s is running.\n' "$name"; return; }
-    [[ $status == "$previous" ]] || printf 'Waiting for EDA activation %s: %s\n' "$name" "$status"
-    previous=$status
-    sleep 10
-  done
-  demo_die "Timed out waiting for EDA activation $name ($status); inspect its logs in AAP."
+  local name query status previous deadline source
+  source=$(demo_source_checkout demojam-ansible)
+  while read -r name; do
+    previous=''
+    deadline=$((SECONDS + 600))
+    query=$(jq -rn --arg name "$name" '$name | @uri')
+    while (( SECONDS < deadline )); do
+      status=$(aap_request GET "activations/?name=$query" '' /api/eda/v1/ |
+        jq -er '.results[0].status // "absent"')
+      [[ $status != running ]] || { printf 'EDA activation %s is running.\n' "$name"; break; }
+      [[ $status == "$previous" ]] || printf 'Waiting for EDA activation %s: %s\n' "$name" "$status"
+      previous=$status
+      sleep 10
+    done
+    [[ $status == running ]] || demo_die "Timed out waiting for EDA activation $name ($status); inspect its logs in AAP."
+  done < <(yq -er '.demo_eda_activation.name, .demo_forgejo_activation.name' "$source/group_vars/aap/eda.yml")
 }
 
 # Retire only the three legacy bootstrap CRs. No finalizer means deleting the
@@ -1929,6 +1990,7 @@ demo_aap_configure() {
   demo_readiness aap
   aap_retire_resource_crs
   demo_alerting_prepare
+  demo_forgejo_webhook_prepare
   demo_ao_reconcile webhook-client
   demo_aap credentials
 
@@ -2287,6 +2349,7 @@ demo_bootstrap() (
   if [[ ${BOOTSTRAP_RECONCILE_WORKFLOW:-true} == true ]]; then
     demo_step 'Validate and publish the AO workflow'
     demo_ao_reconcile
+    demo_forgejo_webhook_configure
   else
     demo_ao_reconcile identity-only
   fi
@@ -2364,6 +2427,7 @@ demo_reset() (
   demo_hydrate reset --confirm-forgejo
   demo_aap_configure
   demo_ao_reconcile
+  demo_forgejo_webhook_configure
   echo 'Demo reset complete: VMs and test disks removed, Forgejo reseeded, AAP configured, and Omnigent ready.'
 )
 
@@ -2550,7 +2614,7 @@ Usage: bash bootstrap/bootstrap.sh [COMMAND]
   ao-configure      Reconcile AO LLM/AAP integrations and publish all demo workflows
   ao-run NAME [JSON] Execute a published workflow and print its result
   reconcile-workflow Alias for ao-configure
-  aap-configure      Prepare AAP credentials/license and run config-as-code
+  aap-configure      Configure AAP/EDA, publish AO workflows, connect the Forgejo webhook
   webapp ACTION      create | nginx | verify | delete | sync
   aap ACTION         credentials | wait-project | dispatch | reset-vms | launch TEMPLATE [JSON]
   readiness TARGET   sandbox | aap
@@ -2599,7 +2663,7 @@ HELP
     reconcile-workflow|ao-configure) demo_verify_cluster; demo_ao_reconcile ;;
     dispatch-issue) demo_dispatch_issue "$@" ;;
     ao-run) [[ $# -ge 1 && $# -le 2 ]] || demo_die 'ao-run requires WORKFLOW [INPUT_JSON]'; demo_verify_cluster; demo_ao_reconcile run "$@" ;;
-    aap-configure) demo_aap_configure ;;
+    aap-configure) demo_aap_configure; demo_ao_reconcile; demo_forgejo_webhook_configure ;;
     webapp) [[ $# == 1 ]] || demo_die 'webapp requires one action'; demo_webapp "$@" ;;
     aap) [[ $# -gt 0 ]] || demo_die 'aap requires an action'; demo_verify_cluster; demo_aap "$@" ;;
     readiness) [[ $# == 1 ]] || demo_die 'readiness requires sandbox or aap'; demo_verify_cluster; demo_readiness "$@" ;;

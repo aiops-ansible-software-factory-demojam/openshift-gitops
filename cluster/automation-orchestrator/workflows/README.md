@@ -1,6 +1,6 @@
 # Automation Orchestrator workflows
 
-These YAML files define three manual AO workflows and an EDA webhook workflow.
+These YAML files define three manual AO workflows and two EDA webhook workflows.
 Bootstrap publishes them; `make ao-configure` validates and creates or updates every `*.yaml` here by
 its `name`. An unchanged definition keeps its version. Runtime IDs and
 credentials are supplied during configuration; secrets never appear in the YAML.
@@ -14,6 +14,7 @@ Run the commands below from the repository root after
 | [llm-question.yaml](llm-question.yaml) | Asks the configured model a question using a Task Agent node | `make ao-llm-test` |
 | [aap-webapp-nginx.yaml](aap-webapp-nginx.yaml) | Runs AAP's existing `webapp_nginx` job in the `demo` organization | `make ao-aap-run` |
 | [rootcause.yaml](rootcause.yaml) | Gathers audit logs through AAP, asks the model for a root cause, and creates a Forgejo issue | AAP's `call_ao_webhook` job with `ao_webhook_path: alertmanagealert` |
+| [omnigent-remediation.yaml](omnigent-remediation.yaml) | Prepares the incident branch and sends the issue/RCA to Omnigent for a tested fix PR | Forgejo issue webhook through EDA and `call_ao_webhook` with `ao_webhook_path: forgejo-issue-remediation` |
 
 `bootstrap/bootstrap.sh` creates or reuses the `demojam-eda-webhook` AO service
 account before AAP configuration. Its client credentials are preserved in
@@ -22,7 +23,7 @@ dispatch credential to the inventory-defined webhook credential. Expired,
 disabled, or stale clients are replaced; a disabled service account stops setup.
 Workflow reconciliation binds the EDA trigger to that local account. Bootstrap
 and maintenance commands need no continuation scripts or manual credential edits.
-Existing clusters migrate to dispatch credential type `Demo AAP configuration v3`;
+Existing clusters migrate to dispatch credential type `Demo AAP configuration v4`;
 the earlier type stays intact because AAP forbids editing schemas already in use.
 
 ## Blackbox alert to issue
@@ -42,6 +43,38 @@ timers to run, then check EDA, the AO execution, and the Forgejo incident.
 Restore the demo with `make webapp-nginx` and verify `make webapp-verify` plus
 the absence of an active `WebappDown` alert. This test deliberately interrupts
 the demo webapp until it is restored.
+
+## Incident to fix PR
+
+`bootstrap/bootstrap.sh` provisions the separate
+`demojam-forgejo-issues` event stream and `demojam-forgejo-remediation`
+activation through AAP config-as-code. It publishes the AO workflow before
+registering Forgejo's issue webhook. The persistent token is stored in
+`forgejo/forgejo-eda-webhook` and passed into AAP's dispatch credential; it is
+independent of Alertmanager's token. The hook uses Forgejo's encrypted
+Authorization header and HTTPS to the AAP event-stream endpoint.
+
+EDA accepts only newly opened, open collection issues with
+`<!-- demojam-webapp-outage -->` and `Root Cause:` in their body. Edits,
+comments, closed/reopened issues, starter issues, and PR events do not launch
+agents. The existing RCA workflow includes the diagnosis before creating the
+incident, so its opening webhook already carries the root cause.
+
+AO re-reads the issue through Backstage, prepares `feature/issue-N`, creates
+an `automation-developer` session with the configured model, shares it with
+enabled demo users, and submits the task. The agent must preserve SELinux
+enforcing, add a regression check, run `molecule test -s nginx`, and submit
+the collection fix as a PR. It does not merge or modify the application VM.
+The AAP handoff job publishes `ao_execution_id` for following the AO execution
+and session. AO completion proves task acceptance; follow Omnigent for the PR.
+
+To update an installed demo, publish the changes, hydrate the selected Ansible
+source branch, then run `make aap-configure`. This applies both EDA listeners,
+publishes AO workflows, and reconciles the hook. Bootstrap and demo reset run
+the same setup automatically. Reruns preserve the token and update the existing
+hook. An explicit redelivery of an opening webhook can start another session
+on the same issue branch; inspect existing runs before redelivering. HTTP job
+and session launches have no automatic retries.
 
 ## Issue to PR
 

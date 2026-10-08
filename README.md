@@ -6,6 +6,11 @@ Red Hat Developer Hub (Backstage), and an Omnigent agent to a pull request.
 The cluster also runs Ansible Automation Platform (AAP), a RHEL 9 nginx VM,
 and monitoring.
 
+A SELinux outage follows the complete automatic path: blackbox alert → EDA →
+AO audit-log RCA → Forgejo incident → Forgejo webhook → EDA → AO → Omnigent
+fix PR. Bootstrap installs and connects every stage; PR review and merge remain
+manual. LiteLLM's `qwen38-27b` is the default model in the configuration template.
+
 ## Before you start
 
 You need cluster-admin access, Operator Lifecycle Manager (OLM) with Red Hat and
