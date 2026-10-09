@@ -95,8 +95,11 @@ nodes:
 
                 Implement the durable fix in the collection. Keep SELinux
                 enforcing; correct the policy or file contexts needed by nginx.
-                Confirm new Ansible modules and their parameters with
-                ansible-doc. Install the pinned test requirements from
+                Confirm new Ansible modules, parameters, and return fields with
+                ansible-doc. Declare collection dependencies in galaxy.yml so
+                AAP project sync installs them; Molecule test requirements
+                alone do not supply production dependencies. Install the pinned
+                test requirements from
                 extensions/molecule/requirements-test.yml before validation.
                 Add a regression check that nginx serves HTTP while SELinux is
                 enforcing in the nginx scenario; preserve the default scenario.
