@@ -1,0 +1,6515 @@
+{
+  "observed_at": "2026-10-09T19:39:54.397280+00:00",
+  "model": "minimax-m2",
+  "reset": {
+    "name": "reset",
+    "started_at": "2026-10-09T18:36:06.193176+00:00",
+    "finished_at": "2026-10-09T18:50:07.067036+00:00",
+    "elapsed_seconds": 840.874,
+    "exit_code": 0
+  },
+  "bootstrap": {
+    "name": "bootstrap",
+    "started_at": "2026-10-09T18:50:36.743025+00:00",
+    "finished_at": "2026-10-09T19:01:04.776596+00:00",
+    "elapsed_seconds": 628.034,
+    "exit_code": 0
+  },
+  "break": {
+    "name": "break",
+    "started_at": "2026-10-09T19:02:13.503254+00:00",
+    "finished_at": "2026-10-09T19:03:54.727813+00:00",
+    "elapsed_seconds": 101.225,
+    "exit_code": 0
+  },
+  "independent_validation": {
+    "head": "c8572577c59b6e7087731b4b01d7f94f1a226963",
+    "matched_changed_files": 4,
+    "dependencies": [
+      {
+        "name": "ansible.posix",
+        "version": "2.2.2",
+        "requires_ansible": ">=2.16.0",
+        "matches_production_range": true,
+        "supports_core_2_16_19": true
+      }
+    ],
+    "checks": [
+      {
+        "name": "scoped_lint",
+        "started_at": "2026-10-09T19:22:41.524578+00:00",
+        "finished_at": "2026-10-09T19:22:46.792025+00:00",
+        "elapsed_seconds": 5.267,
+        "exit_code": 0
+      },
+      {
+        "name": "collection_build",
+        "started_at": "2026-10-09T19:22:46.792063+00:00",
+        "finished_at": "2026-10-09T19:22:47.250962+00:00",
+        "elapsed_seconds": 0.459,
+        "exit_code": 0
+      }
+    ],
+    "started_at": "2026-10-09T19:22:40.488853+00:00",
+    "finished_at": "2026-10-09T19:22:47.288678+00:00"
+  },
+  "throughput": {
+    "model": "minimax-m2",
+    "measurement_note": "Reported generated token throughput. For MiniMax, completion tokens may include reasoning emitted in content; this is not visible-answer-only throughput. Short contexts and shared prefixes; output capped at 256 tokens. No generated benchmark text retained.",
+    "results": [
+      {
+        "number": 1,
+        "started_at": "2026-10-09T18:36:39.783181+00:00",
+        "model": "minimax-m2",
+        "prompt": "Explain how to validate an Ansible collection change with lint, package build, functional tests, idempotence, and cleanup. Write at least 500 words of plain prose with no introduction or conclusion. Continue until the requested length is reached. Sample 1.",
+        "max_tokens": 256,
+        "thinking_override": false,
+        "status": "successful",
+        "wall_seconds": 2.1440580999478698,
+        "ttft_seconds": 0.785098441876471,
+        "usage": {
+          "completion_tokens": 262,
+          "prompt_tokens": 60,
+          "total_tokens": 322,
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          }
+        },
+        "finish_reason": "length",
+        "reasoning_in_content_seen": true,
+        "content_chunks": 84,
+        "approximate_generated_tokens_per_second": 193.83098402439123,
+        "whole_request_generated_tokens_per_second": 122.19818110636564
+      },
+      {
+        "number": 2,
+        "started_at": "2026-10-09T18:36:41.927266+00:00",
+        "model": "minimax-m2",
+        "prompt": "Explain how to validate an Ansible collection change with lint, package build, functional tests, idempotence, and cleanup. Write at least 500 words of plain prose with no introduction or conclusion. Continue until the requested length is reached. Sample 2.",
+        "max_tokens": 256,
+        "thinking_override": false,
+        "status": "successful",
+        "wall_seconds": 2.249263549223542,
+        "ttft_seconds": 0.6834950619377196,
+        "usage": {
+          "completion_tokens": 263,
+          "prompt_tokens": 60,
+          "total_tokens": 323,
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          }
+        },
+        "finish_reason": "length",
+        "reasoning_in_content_seen": true,
+        "content_chunks": 79,
+        "approximate_generated_tokens_per_second": 168.3256121633986,
+        "whole_request_generated_tokens_per_second": 116.92716048805796
+      },
+      {
+        "number": 3,
+        "started_at": "2026-10-09T18:36:44.176559+00:00",
+        "model": "minimax-m2",
+        "prompt": "Explain how to validate an Ansible collection change with lint, package build, functional tests, idempotence, and cleanup. Write at least 500 words of plain prose with no introduction or conclusion. Continue until the requested length is reached. Sample 3.",
+        "max_tokens": 256,
+        "thinking_override": false,
+        "status": "successful",
+        "wall_seconds": 1.983289279974997,
+        "ttft_seconds": 0.7767959199845791,
+        "usage": {
+          "completion_tokens": 260,
+          "prompt_tokens": 60,
+          "total_tokens": 320,
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          }
+        },
+        "finish_reason": "length",
+        "reasoning_in_content_seen": true,
+        "content_chunks": 75,
+        "approximate_generated_tokens_per_second": 216.46876510409,
+        "whole_request_generated_tokens_per_second": 131.09534883548494
+      }
+    ],
+    "mean_approximate_generated_tokens_per_second": 192.87512043062662
+  },
+  "outcome": {
+    "status": "timeout_late_revised_pr_published",
+    "cutoff_at": "2026-10-09T19:32:13.484276+00:00",
+    "observed_at": "2026-10-09T19:33:33.539411+00:00",
+    "initial_pr_submitted": true,
+    "initial_pr_rejected_reason": "Transient chcon labels, hidden changes and no final Enforcing state.",
+    "followup_messages_submitted": 1,
+    "merged": false,
+    "recovery_job_launched": false,
+    "guest_still_broken": true,
+    "tested_revision_published_before_cutoff": false,
+    "late_pr_updated_at": "2026-10-09T19:32:47Z",
+    "late_pr_head": "434047e9fb73c371f37a15971ff4f1f6a2e17e40",
+    "late_publication_seconds_after_cutoff": 33.515724,
+    "abort_started_seconds_after_cutoff": 34.47539,
+    "abort_finished_seconds_after_cutoff": 35.366972
+  },
+  "backstage_readiness": [
+    {
+      "component": "Backstage",
+      "created_at": "2026-10-09T18:43:44Z",
+      "ready_at": "2026-10-09T18:46:05Z",
+      "init_containers": [
+        {
+          "name": "install-dynamic-plugins",
+          "started_at": "2026-10-09T18:43:55Z",
+          "finished_at": "2026-10-09T18:45:13Z",
+          "exit_code": 0,
+          "elapsed_seconds": 78.0
+        },
+        {
+          "name": "init-rag-data",
+          "started_at": "2026-10-09T18:45:14Z",
+          "finished_at": "2026-10-09T18:45:23Z",
+          "exit_code": 0,
+          "elapsed_seconds": 9.0
+        }
+      ],
+      "ready_after_created_seconds": 141.0
+    }
+  ],
+  "reset_baseline": {
+    "observed_at": "2026-10-09T18:50:36.717685+00:00",
+    "aap_instance_and_pvc_preserved": true,
+    "main_revision": "525129937817a722882821cbc0cda32c1214da9d",
+    "pr_count": 0,
+    "disposable_vm_resources_empty": true,
+    "unfixed_role": true,
+    "native_model": "demo/minimax-m2",
+    "native_sdk": "@ai-sdk/openai-compatible",
+    "credential_matches_supplied_file": true,
+    "set_before_reset": true
+  },
+  "baseline_guest_verification": {
+    "started_at": "2026-10-09T19:01:31.587222+00:00",
+    "completed_at": "2026-10-09T19:01:37.350928+00:00",
+    "status": "successful",
+    "started": "2026-10-09T19:01:32.142939Z",
+    "finished": "2026-10-09T19:01:36.191670Z",
+    "elapsed": 4.049,
+    "result": {
+      "selinux": "Permissive",
+      "labels": "unconfined_u:object_r:default_t:s0 /web\n    system_u:object_r:default_t:s0 /web/index.html",
+      "release": "Red Hat Enterprise Linux release 9.8 (Plow)"
+    }
+  },
+  "baseline_health": {
+    "observed_at": "2026-10-09T19:01:37.995810+00:00",
+    "aap": {
+      "jobs": [
+        {
+          "name": "webapp_nginx",
+          "status": "successful",
+          "created": "2026-10-09T18:58:51.037477Z",
+          "started": "2026-10-09T18:58:51.318573Z",
+          "finished": "2026-10-09T19:00:05.600541Z",
+          "elapsed": 74.282
+        },
+        {
+          "name": "webapp_vm",
+          "status": "successful",
+          "created": "2026-10-09T18:57:09.072298Z",
+          "started": "2026-10-09T18:57:09.297754Z",
+          "finished": "2026-10-09T18:57:50.444505Z",
+          "elapsed": 41.147
+        },
+        {
+          "name": "aap_configure_all",
+          "status": "successful",
+          "created": "2026-10-09T18:53:42.388416Z",
+          "started": "2026-10-09T18:53:42.651285Z",
+          "finished": "2026-10-09T18:55:41.040816Z",
+          "elapsed": 118.39
+        },
+        {
+          "name": "aap_configure_all",
+          "status": "successful",
+          "created": "2026-10-09T18:47:44.906818Z",
+          "started": "2026-10-09T18:47:45.194238Z",
+          "finished": "2026-10-09T18:49:13.761777Z",
+          "elapsed": 88.568
+        },
+        {
+          "name": "openshift_virtualization_machine",
+          "status": "successful",
+          "created": "2026-10-09T18:42:04.178290Z",
+          "started": "2026-10-09T18:42:04.423312Z",
+          "finished": "2026-10-09T18:42:13.846550Z",
+          "elapsed": 9.423
+        },
+        {
+          "name": "webapp_vm",
+          "status": "successful",
+          "created": "2026-10-09T18:39:09.657969Z",
+          "started": "2026-10-09T18:39:09.888150Z",
+          "finished": "2026-10-09T18:39:28.620806Z",
+          "elapsed": 18.733
+        }
+      ],
+      "project_updates": [
+        {
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-09T18:58:34.096498Z",
+          "started": "2026-10-09T18:58:34.096375Z",
+          "finished": "2026-10-09T18:58:42.169374Z",
+          "elapsed": 8.073,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-09T18:58:35.935720Z",
+              "completed_at": "2026-10-09T18:58:41.363396Z",
+              "command_delta": "0:00:05.125534",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-09T18:58:22.296838Z",
+          "started": "2026-10-09T18:58:22.296665Z",
+          "finished": "2026-10-09T18:58:28.846400Z",
+          "elapsed": 6.55,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-09T18:58:24.069864Z",
+              "completed_at": "2026-10-09T18:58:27.953358Z",
+              "command_delta": "0:00:03.599854",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-09T18:57:58.886904Z",
+          "started": "2026-10-09T18:57:59.016571Z",
+          "finished": "2026-10-09T18:58:17.794542Z",
+          "elapsed": 18.778,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-09T18:58:00.958661Z",
+              "completed_at": "2026-10-09T18:58:17.417339Z",
+              "command_delta": "0:00:16.173440",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-09T18:56:52.228702Z",
+          "started": "2026-10-09T18:56:52.228589Z",
+          "finished": "2026-10-09T18:57:04.052763Z",
+          "elapsed": 11.824,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-09T18:56:53.945591Z",
+              "completed_at": "2026-10-09T18:57:03.194402Z",
+              "command_delta": "0:00:08.955136",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-09T18:56:29.631089Z",
+          "started": "2026-10-09T18:56:29.630950Z",
+          "finished": "2026-10-09T18:56:40.221408Z",
+          "elapsed": 10.59,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-09T18:56:31.369171Z",
+              "completed_at": "2026-10-09T18:56:39.478164Z",
+              "command_delta": "0:00:07.824921",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-09T18:56:18.004914Z",
+          "started": "2026-10-09T18:56:18.127992Z",
+          "finished": "2026-10-09T18:56:28.123405Z",
+          "elapsed": 9.995,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-09T18:56:20.287346Z",
+              "completed_at": "2026-10-09T18:56:27.579821Z",
+              "command_delta": "0:00:07.014843",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-09T18:54:40.007637Z",
+          "started": "2026-10-09T18:54:40.007477Z",
+          "finished": "2026-10-09T18:54:57.905999Z",
+          "elapsed": 17.899,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-09T18:54:41.744089Z",
+              "completed_at": "2026-10-09T18:54:57.199677Z",
+              "command_delta": "0:00:15.168272",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-09T18:54:03.731403Z",
+          "started": "2026-10-09T18:54:03.731251Z",
+          "finished": "2026-10-09T18:54:39.619461Z",
+          "elapsed": 35.888,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-09T18:54:05.521570Z",
+              "completed_at": "2026-10-09T18:54:38.944061Z",
+              "command_delta": "0:00:33.134893",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-09T18:53:25.355702Z",
+          "started": "2026-10-09T18:53:25.355596Z",
+          "finished": "2026-10-09T18:53:36.663936Z",
+          "elapsed": 11.308,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-09T18:53:27.173211Z",
+              "completed_at": "2026-10-09T18:53:35.900461Z",
+              "command_delta": "0:00:08.415586",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-09T18:53:13.767087Z",
+          "started": "2026-10-09T18:53:13.766974Z",
+          "finished": "2026-10-09T18:53:20.072818Z",
+          "elapsed": 6.306,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-09T18:53:15.532743Z",
+              "completed_at": "2026-10-09T18:53:19.235968Z",
+              "command_delta": "0:00:03.421359",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-09T18:53:01.799948Z",
+          "started": "2026-10-09T18:53:01.909477Z",
+          "finished": "2026-10-09T18:53:11.895054Z",
+          "elapsed": 9.986,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-09T18:53:03.599262Z",
+              "completed_at": "2026-10-09T18:53:11.492652Z",
+              "command_delta": "0:00:07.609130",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-09T18:52:44.058611Z",
+          "started": "2026-10-09T18:52:44.175628Z",
+          "finished": "2026-10-09T18:52:52.922882Z",
+          "elapsed": 8.747,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-09T18:52:45.940432Z",
+              "completed_at": "2026-10-09T18:52:52.381884Z",
+              "command_delta": "0:00:06.162785",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-09T18:48:14.715855Z",
+          "started": "2026-10-09T18:48:14.715677Z",
+          "finished": "2026-10-09T18:48:26.910034Z",
+          "elapsed": 12.194,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-09T18:48:16.858164Z",
+              "completed_at": "2026-10-09T18:48:26.172988Z",
+              "command_delta": "0:00:09.024882",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-09T18:48:06.528218Z",
+          "started": "2026-10-09T18:48:06.527522Z",
+          "finished": "2026-10-09T18:48:14.528795Z",
+          "elapsed": 8.001,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-09T18:48:08.564471Z",
+              "completed_at": "2026-10-09T18:48:13.655133Z",
+              "command_delta": "0:00:04.806547",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-09T18:47:22.744098Z",
+          "started": "2026-10-09T18:47:22.743959Z",
+          "finished": "2026-10-09T18:47:39.551645Z",
+          "elapsed": 16.808,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-09T18:47:24.489496Z",
+              "completed_at": "2026-10-09T18:47:38.879503Z",
+              "command_delta": "0:00:14.091978",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-09T18:47:05.569580Z",
+          "started": "2026-10-09T18:47:05.569462Z",
+          "finished": "2026-10-09T18:47:13.346674Z",
+          "elapsed": 7.777,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-09T18:47:07.306799Z",
+              "completed_at": "2026-10-09T18:47:12.545721Z",
+              "command_delta": "0:00:04.960996",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-09T18:46:53.848814Z",
+          "started": "2026-10-09T18:46:53.955589Z",
+          "finished": "2026-10-09T18:46:59.911685Z",
+          "elapsed": 5.956,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-09T18:46:55.677638Z",
+              "completed_at": "2026-10-09T18:46:59.527027Z",
+              "command_delta": "0:00:03.550105",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-09T18:46:30.925830Z",
+          "started": "2026-10-09T18:46:31.032652Z",
+          "finished": "2026-10-09T18:46:42.759771Z",
+          "elapsed": 11.727,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-09T18:46:32.827243Z",
+              "completed_at": "2026-10-09T18:46:41.965636Z",
+              "command_delta": "0:00:08.868483",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-09T18:41:14.265747Z",
+          "started": "2026-10-09T18:41:14.265640Z",
+          "finished": "2026-10-09T18:41:54.968130Z",
+          "elapsed": 40.702,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-09T18:41:16.023880Z",
+              "completed_at": "2026-10-09T18:41:53.064443Z",
+              "command_delta": "0:00:36.758446",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-09T18:40:08.231341Z",
+          "started": "2026-10-09T18:40:08.231185Z",
+          "finished": "2026-10-09T18:41:05.181871Z",
+          "elapsed": 56.951,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-09T18:40:09.941038Z",
+              "completed_at": "2026-10-09T18:41:03.452236Z",
+              "command_delta": "0:00:53.224949",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-09T18:39:34.743229Z",
+          "started": "2026-10-09T18:39:34.849916Z",
+          "finished": "2026-10-09T18:40:02.330786Z",
+          "elapsed": 27.481,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-09T18:39:36.545098Z",
+              "completed_at": "2026-10-09T18:40:01.555974Z",
+              "command_delta": "0:00:24.729838",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-09T18:38:13.944858Z",
+          "started": "2026-10-09T18:38:13.944751Z",
+          "finished": "2026-10-09T18:38:58.282039Z",
+          "elapsed": 44.337,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-09T18:38:15.710557Z",
+              "completed_at": "2026-10-09T18:38:56.379256Z",
+              "command_delta": "0:00:40.384478",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-09T18:37:28.840101Z",
+          "started": "2026-10-09T18:37:28.839990Z",
+          "finished": "2026-10-09T18:38:04.768104Z",
+          "elapsed": 35.928,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-09T18:37:30.596458Z",
+              "completed_at": "2026-10-09T18:38:02.828256Z",
+              "command_delta": "0:00:31.953716",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-09T18:36:38.896633Z",
+          "started": "2026-10-09T18:36:39.000863Z",
+          "finished": "2026-10-09T18:37:24.253788Z",
+          "elapsed": 45.253,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-09T18:36:40.742855Z",
+              "completed_at": "2026-10-09T18:37:23.563295Z",
+              "command_delta": "0:00:42.544456",
+              "rc": 0
+            }
+          ]
+        }
+      ],
+      "inventory_updates": [
+        {
+          "name": "demo-inventory - demo-virtualmachines",
+          "status": "successful",
+          "created": "2026-10-09T18:58:33.886539Z",
+          "started": "2026-10-09T18:58:34.071411Z",
+          "finished": "2026-10-09T18:58:46.567994Z",
+          "elapsed": 12.497
+        },
+        {
+          "name": "demo-inventory - demo-inventory-scm",
+          "status": "successful",
+          "created": "2026-10-09T18:58:22.068801Z",
+          "started": "2026-10-09T18:58:22.264060Z",
+          "finished": "2026-10-09T18:58:32.350073Z",
+          "elapsed": 10.086
+        },
+        {
+          "name": "demo-inventory - demo-virtualmachines",
+          "status": "successful",
+          "created": "2026-10-09T18:56:52.013838Z",
+          "started": "2026-10-09T18:56:52.205625Z",
+          "finished": "2026-10-09T18:57:08.552095Z",
+          "elapsed": 16.346
+        },
+        {
+          "name": "demo-inventory - demo-inventory-scm",
+          "status": "successful",
+          "created": "2026-10-09T18:56:29.425557Z",
+          "started": "2026-10-09T18:56:29.604718Z",
+          "finished": "2026-10-09T18:56:47.781883Z",
+          "elapsed": 18.177
+        },
+        {
+          "name": "demo-inventory - demo-virtualmachines",
+          "status": "successful",
+          "created": "2026-10-09T18:54:03.638565Z",
+          "started": "2026-10-09T18:54:03.843214Z",
+          "finished": "2026-10-09T18:55:02.929686Z",
+          "elapsed": 59.086
+        },
+        {
+          "name": "demo-inventory - demo-inventory-scm",
+          "status": "successful",
+          "created": "2026-10-09T18:54:03.518130Z",
+          "started": "2026-10-09T18:54:03.704194Z",
+          "finished": "2026-10-09T18:54:43.139589Z",
+          "elapsed": 39.435
+        },
+        {
+          "name": "demo-inventory - demo-virtualmachines",
+          "status": "successful",
+          "created": "2026-10-09T18:53:25.132517Z",
+          "started": "2026-10-09T18:53:25.330889Z",
+          "finished": "2026-10-09T18:53:40.896135Z",
+          "elapsed": 15.565
+        },
+        {
+          "name": "demo-inventory - demo-inventory-scm",
+          "status": "successful",
+          "created": "2026-10-09T18:53:13.568465Z",
+          "started": "2026-10-09T18:53:13.741597Z",
+          "finished": "2026-10-09T18:53:23.559553Z",
+          "elapsed": 9.818
+        },
+        {
+          "name": "demo-inventory - demo-virtualmachines",
+          "status": "successful",
+          "created": "2026-10-09T18:48:06.453829Z",
+          "started": "2026-10-09T18:48:06.644822Z",
+          "finished": "2026-10-09T18:48:31.186960Z",
+          "elapsed": 24.542
+        },
+        {
+          "name": "demo-inventory - demo-inventory-scm",
+          "status": "successful",
+          "created": "2026-10-09T18:48:06.273571Z",
+          "started": "2026-10-09T18:48:06.499088Z",
+          "finished": "2026-10-09T18:48:19.035110Z",
+          "elapsed": 12.536
+        },
+        {
+          "name": "demo-inventory - demo-virtualmachines",
+          "status": "successful",
+          "created": "2026-10-09T18:47:22.497584Z",
+          "started": "2026-10-09T18:47:22.712322Z",
+          "finished": "2026-10-09T18:47:43.811550Z",
+          "elapsed": 21.099
+        },
+        {
+          "name": "demo-inventory - demo-inventory-scm",
+          "status": "successful",
+          "created": "2026-10-09T18:47:05.379629Z",
+          "started": "2026-10-09T18:47:05.544062Z",
+          "finished": "2026-10-09T18:47:17.429080Z",
+          "elapsed": 11.885
+        },
+        {
+          "name": "demo-inventory - demo-virtualmachines",
+          "status": "successful",
+          "created": "2026-10-09T18:41:14.063547Z",
+          "started": "2026-10-09T18:41:14.243450Z",
+          "finished": "2026-10-09T18:42:01.356627Z",
+          "elapsed": 47.113
+        },
+        {
+          "name": "demo-inventory - demo-inventory-scm",
+          "status": "successful",
+          "created": "2026-10-09T18:40:07.996056Z",
+          "started": "2026-10-09T18:40:08.205711Z",
+          "finished": "2026-10-09T18:41:10.732893Z",
+          "elapsed": 62.527
+        },
+        {
+          "name": "demo-inventory - demo-virtualmachines",
+          "status": "successful",
+          "created": "2026-10-09T18:38:13.742567Z",
+          "started": "2026-10-09T18:38:13.923121Z",
+          "finished": "2026-10-09T18:39:04.616238Z",
+          "elapsed": 50.693
+        },
+        {
+          "name": "demo-inventory - demo-inventory-scm",
+          "status": "successful",
+          "created": "2026-10-09T18:37:28.654742Z",
+          "started": "2026-10-09T18:37:28.816892Z",
+          "finished": "2026-10-09T18:38:12.095822Z",
+          "elapsed": 43.279
+        }
+      ],
+      "ad_hoc_commands": [
+        {
+          "name": "command",
+          "status": "successful",
+          "created": "2026-10-09T19:01:31.886259Z",
+          "started": "2026-10-09T19:01:32.142939Z",
+          "finished": "2026-10-09T19:01:36.191670Z",
+          "elapsed": 4.049
+        }
+      ]
+    },
+    "probe": {
+      "probe_http_status_code": 200.0,
+      "probe_success": 1.0
+    },
+    "active_webapp_down_alerts": 0,
+    "applications": [
+      {
+        "name": "agent-sandbox-operator",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "ansible-automation-platform",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "ansible-automation-platform-operator",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "automation-orchestrator",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "cloudnative-pg",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "cluster",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "demojam-keycloak",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "forgejo",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "homepage",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "omnigent",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "openshift-pipelines",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "openshift-virtualization",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "rhdh",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "user-workload-monitoring",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "webapp-vms",
+        "sync": "Synced",
+        "health": "Healthy"
+      }
+    ],
+    "activations": [
+      {
+        "name": "demojam-forgejo-remediation",
+        "status": "running",
+        "is_enabled": true
+      },
+      {
+        "name": "demojam-webapp-issues",
+        "status": "running",
+        "is_enabled": true
+      }
+    ],
+    "session_count": 0
+  },
+  "ao_smoke": {
+    "name": "ao-smoke",
+    "started_at": "2026-10-09T19:01:31.046727+00:00",
+    "finished_at": "2026-10-09T19:01:52.428509+00:00",
+    "elapsed_seconds": 21.382,
+    "exit_code": 0
+  },
+  "cluster_transient": {
+    "observed_at": "2026-10-09T19:08:33.019589+00:00",
+    "observer_failures_at": [
+      "2026-10-09T19:07:03.728862+00:00",
+      "2026-10-09T19:07:34.396793+00:00"
+    ],
+    "reported_error": "Route API delegated authorization could not connect to Kubernetes API service; intermittent lookup timeouts.",
+    "manual_cluster_action": false,
+    "operators": [
+      {
+        "name": "kube-apiserver",
+        "conditions": [
+          {
+            "type": "Degraded",
+            "status": "False",
+            "reason": "AsExpected"
+          },
+          {
+            "type": "Progressing",
+            "status": "True",
+            "reason": "NodeInstaller"
+          },
+          {
+            "type": "Available",
+            "status": "True",
+            "reason": "AsExpected"
+          },
+          {
+            "type": "Upgradeable",
+            "status": "True",
+            "reason": "AsExpected"
+          },
+          {
+            "type": "EvaluationConditionsDetected",
+            "status": "False",
+            "reason": "AsExpected"
+          }
+        ]
+      },
+      {
+        "name": "openshift-apiserver",
+        "conditions": [
+          {
+            "type": "Degraded",
+            "status": "False",
+            "reason": "AsExpected"
+          },
+          {
+            "type": "Progressing",
+            "status": "False",
+            "reason": "AsExpected"
+          },
+          {
+            "type": "Available",
+            "status": "True",
+            "reason": "AsExpected"
+          },
+          {
+            "type": "Upgradeable",
+            "status": "True",
+            "reason": "AsExpected"
+          },
+          {
+            "type": "EvaluationConditionsDetected",
+            "status": "Unknown",
+            "reason": "NoData"
+          }
+        ]
+      },
+      {
+        "name": "etcd",
+        "conditions": [
+          {
+            "type": "Degraded",
+            "status": "False",
+            "reason": "AsExpected"
+          },
+          {
+            "type": "Progressing",
+            "status": "False",
+            "reason": "AsExpected"
+          },
+          {
+            "type": "Available",
+            "status": "True",
+            "reason": "AsExpected"
+          },
+          {
+            "type": "Upgradeable",
+            "status": "True",
+            "reason": "AsExpected"
+          },
+          {
+            "type": "EvaluationConditionsDetected",
+            "status": "Unknown",
+            "reason": "NoData"
+          }
+        ]
+      }
+    ],
+    "nodes": [
+      {
+        "name": "control-plane",
+        "conditions": [
+          {
+            "type": "MemoryPressure",
+            "status": "False",
+            "reason": "KubeletHasSufficientMemory"
+          },
+          {
+            "type": "DiskPressure",
+            "status": "False",
+            "reason": "KubeletHasNoDiskPressure"
+          },
+          {
+            "type": "PIDPressure",
+            "status": "False",
+            "reason": "KubeletHasSufficientPID"
+          },
+          {
+            "type": "Ready",
+            "status": "True",
+            "reason": "KubeletReady"
+          }
+        ]
+      }
+    ]
+  },
+  "incident_deadline": {
+    "started_at": "2026-10-09T19:02:13.484276+00:00",
+    "cutoff_at": "2026-10-09T19:32:13.484276+00:00",
+    "limit_minutes": 30
+  },
+  "native_abort": {
+    "started_at": "2026-10-09T19:32:47.959666+00:00",
+    "reason": "30-minute incident-agent cutoff reached; revised tested candidate was not published to the existing PR.",
+    "results": [
+      {
+        "kind": "primary",
+        "status_code": 200,
+        "aborted": true
+      }
+    ],
+    "finished_at": "2026-10-09T19:32:48.851248+00:00"
+  },
+  "reset_observed_steps": [
+    {
+      "observed_at": "2026-10-09T18:36:22.358324+00:00",
+      "message": "Stopped demo EDA activation 2."
+    },
+    {
+      "observed_at": "2026-10-09T18:36:28.360414+00:00",
+      "message": "Stopped demo EDA activation 1."
+    },
+    {
+      "observed_at": "2026-10-09T18:36:31.361262+00:00",
+      "message": "Removed 1 automation-developer sessions."
+    },
+    {
+      "observed_at": "2026-10-09T18:37:28.379557+00:00",
+      "message": "AAP project_updates/132/ successful"
+    },
+    {
+      "observed_at": "2026-10-09T18:38:14.394530+00:00",
+      "message": "AAP inventory_updates/133/ successful"
+    },
+    {
+      "observed_at": "2026-10-09T18:39:09.413690+00:00",
+      "message": "AAP inventory_updates/135/ successful"
+    },
+    {
+      "observed_at": "2026-10-09T18:39:10.414133+00:00",
+      "message": "Launched webapp_vm: job 137"
+    },
+    {
+      "observed_at": "2026-10-09T18:39:32.420851+00:00",
+      "message": "AAP jobs/137/ successful"
+    },
+    {
+      "observed_at": "2026-10-09T18:40:08.431766+00:00",
+      "message": "AAP project_updates/138/ successful"
+    },
+    {
+      "observed_at": "2026-10-09T18:41:14.452951+00:00",
+      "message": "AAP inventory_updates/139/ successful"
+    },
+    {
+      "observed_at": "2026-10-09T18:42:04.470609+00:00",
+      "message": "AAP inventory_updates/141/ successful"
+    },
+    {
+      "observed_at": "2026-10-09T18:42:04.470641+00:00",
+      "message": "Launched openshift_virtualization_machine: job 143"
+    },
+    {
+      "observed_at": "2026-10-09T18:42:16.475430+00:00",
+      "message": "AAP jobs/143/ successful"
+    },
+    {
+      "observed_at": "2026-10-09T18:43:09.494519+00:00",
+      "message": "Removed 0 generated collection catalog locations."
+    },
+    {
+      "observed_at": "2026-10-09T18:46:28.571822+00:00",
+      "message": "AAP license, persistent key material, and configuration credential are ready."
+    },
+    {
+      "observed_at": "2026-10-09T18:46:47.579726+00:00",
+      "message": "AAP project_updates/144/ successful"
+    },
+    {
+      "observed_at": "2026-10-09T18:47:05.586797+00:00",
+      "message": "AAP project_updates/145/ successful"
+    },
+    {
+      "observed_at": "2026-10-09T18:47:22.593615+00:00",
+      "message": "AAP inventory_updates/146/ successful"
+    },
+    {
+      "observed_at": "2026-10-09T18:47:45.602736+00:00",
+      "message": "AAP inventory_updates/148/ successful"
+    },
+    {
+      "observed_at": "2026-10-09T18:47:45.602766+00:00",
+      "message": "Launched aap_configure_all: job 150"
+    },
+    {
+      "observed_at": "2026-10-09T18:49:17.640042+00:00",
+      "message": "AAP jobs/150/ successful"
+    },
+    {
+      "observed_at": "2026-10-09T18:49:42.649675+00:00",
+      "message": "AAP OIDC client uses the exact callback generated by the gateway."
+    },
+    {
+      "observed_at": "2026-10-09T18:49:42.649705+00:00",
+      "message": "AAP configuration from Forgejo completed."
+    }
+  ],
+  "bootstrap_observed_steps": [
+    {
+      "observed_at": "2026-10-09T18:50:37.415186+00:00",
+      "message": "== Check operator inputs and cluster prerequisites =="
+    },
+    {
+      "observed_at": "2026-10-09T18:50:42.417164+00:00",
+      "message": "== Install OpenShift GitOps =="
+    },
+    {
+      "observed_at": "2026-10-09T18:50:50.420082+00:00",
+      "message": "== Prepare demo identity credentials and user catalog =="
+    },
+    {
+      "observed_at": "2026-10-09T18:51:11.427801+00:00",
+      "message": "== Roll out applications and hydrate Forgejo =="
+    },
+    {
+      "observed_at": "2026-10-09T18:51:13.428659+00:00",
+      "message": "== Provision demo identity before application OIDC discovery =="
+    },
+    {
+      "observed_at": "2026-10-09T18:52:13.450777+00:00",
+      "message": "== Build or reuse the OpenCode sandbox image =="
+    },
+    {
+      "observed_at": "2026-10-09T18:52:20.453322+00:00",
+      "message": "== Configure AAP through its Controller =="
+    },
+    {
+      "observed_at": "2026-10-09T18:52:42.462720+00:00",
+      "message": "AAP license, persistent key material, and configuration credential are ready."
+    },
+    {
+      "observed_at": "2026-10-09T18:52:55.468218+00:00",
+      "message": "AAP project_updates/155/ successful"
+    },
+    {
+      "observed_at": "2026-10-09T18:53:13.476234+00:00",
+      "message": "AAP project_updates/156/ successful"
+    },
+    {
+      "observed_at": "2026-10-09T18:53:25.480360+00:00",
+      "message": "AAP inventory_updates/157/ successful"
+    },
+    {
+      "observed_at": "2026-10-09T18:53:42.487663+00:00",
+      "message": "AAP inventory_updates/159/ successful"
+    },
+    {
+      "observed_at": "2026-10-09T18:53:43.488159+00:00",
+      "message": "Launched aap_configure_all: job 161"
+    },
+    {
+      "observed_at": "2026-10-09T18:55:43.538944+00:00",
+      "message": "AAP jobs/161/ successful"
+    },
+    {
+      "observed_at": "2026-10-09T18:55:46.540099+00:00",
+      "message": "AAP OIDC client uses the exact callback generated by the gateway."
+    },
+    {
+      "observed_at": "2026-10-09T18:55:46.540126+00:00",
+      "message": "AAP configuration from Forgejo completed."
+    },
+    {
+      "observed_at": "2026-10-09T18:55:46.540131+00:00",
+      "message": "== Validate and publish the AO workflow =="
+    },
+    {
+      "observed_at": "2026-10-09T18:56:12.551722+00:00",
+      "message": "== Provision the RHEL webapp through AAP =="
+    },
+    {
+      "observed_at": "2026-10-09T18:56:29.558956+00:00",
+      "message": "AAP project_updates/166/ successful"
+    },
+    {
+      "observed_at": "2026-10-09T18:56:52.567790+00:00",
+      "message": "AAP inventory_updates/167/ successful"
+    },
+    {
+      "observed_at": "2026-10-09T18:57:09.575047+00:00",
+      "message": "AAP inventory_updates/169/ successful"
+    },
+    {
+      "observed_at": "2026-10-09T18:57:09.575075+00:00",
+      "message": "Launched webapp_vm: job 171"
+    },
+    {
+      "observed_at": "2026-10-09T18:57:53.594155+00:00",
+      "message": "AAP jobs/171/ successful"
+    },
+    {
+      "observed_at": "2026-10-09T18:57:53.594183+00:00",
+      "message": "== Install nginx through AAP =="
+    },
+    {
+      "observed_at": "2026-10-09T18:58:22.605975+00:00",
+      "message": "AAP project_updates/172/ successful"
+    },
+    {
+      "observed_at": "2026-10-09T18:58:33.610737+00:00",
+      "message": "AAP inventory_updates/173/ successful"
+    },
+    {
+      "observed_at": "2026-10-09T18:58:51.618493+00:00",
+      "message": "AAP inventory_updates/175/ successful"
+    },
+    {
+      "observed_at": "2026-10-09T18:58:51.618516+00:00",
+      "message": "Launched webapp_nginx: job 177"
+    },
+    {
+      "observed_at": "2026-10-09T19:00:10.654180+00:00",
+      "message": "AAP jobs/177/ successful"
+    },
+    {
+      "observed_at": "2026-10-09T19:00:10.654210+00:00",
+      "message": "== Verify the webapp and monitoring probe =="
+    },
+    {
+      "observed_at": "2026-10-09T19:00:47.670405+00:00",
+      "message": "== Populate and verify Homepage navigation and dashboard =="
+    },
+    {
+      "observed_at": "2026-10-09T19:01:03.677633+00:00",
+      "message": "Bootstrap completed on feature/forgejo-eda-remediation at 4a1cc17b756669ba1d613a2a1c7ee87a99be2753."
+    }
+  ],
+  "aap": {
+    "jobs": [
+      {
+        "name": "call_ao_webhook",
+        "status": "successful",
+        "created": "2026-10-09T19:06:16.212055Z",
+        "started": "2026-10-09T19:06:16.456492Z",
+        "finished": "2026-10-09T19:06:22.568687Z",
+        "elapsed": 6.112
+      },
+      {
+        "name": "webapp_alert_issue",
+        "status": "successful",
+        "created": "2026-10-09T19:06:09.129258Z",
+        "started": "2026-10-09T19:06:09.383980Z",
+        "finished": "2026-10-09T19:06:15.455055Z",
+        "elapsed": 6.071
+      },
+      {
+        "name": "pull_audit_logs",
+        "status": "successful",
+        "created": "2026-10-09T19:05:30.317247Z",
+        "started": "2026-10-09T19:05:30.668546Z",
+        "finished": "2026-10-09T19:05:36.955855Z",
+        "elapsed": 6.287
+      },
+      {
+        "name": "call_ao_webhook",
+        "status": "successful",
+        "created": "2026-10-09T19:05:23.277494Z",
+        "started": "2026-10-09T19:05:23.524384Z",
+        "finished": "2026-10-09T19:05:29.813598Z",
+        "elapsed": 6.289
+      },
+      {
+        "name": "webapp_selinux_enable",
+        "status": "successful",
+        "created": "2026-10-09T19:03:43.244910Z",
+        "started": "2026-10-09T19:03:43.526923Z",
+        "finished": "2026-10-09T19:03:49.599413Z",
+        "elapsed": 6.072
+      },
+      {
+        "name": "webapp_nginx",
+        "status": "successful",
+        "created": "2026-10-09T18:58:51.037477Z",
+        "started": "2026-10-09T18:58:51.318573Z",
+        "finished": "2026-10-09T19:00:05.600541Z",
+        "elapsed": 74.282
+      },
+      {
+        "name": "webapp_vm",
+        "status": "successful",
+        "created": "2026-10-09T18:57:09.072298Z",
+        "started": "2026-10-09T18:57:09.297754Z",
+        "finished": "2026-10-09T18:57:50.444505Z",
+        "elapsed": 41.147
+      },
+      {
+        "name": "aap_configure_all",
+        "status": "successful",
+        "created": "2026-10-09T18:53:42.388416Z",
+        "started": "2026-10-09T18:53:42.651285Z",
+        "finished": "2026-10-09T18:55:41.040816Z",
+        "elapsed": 118.39
+      },
+      {
+        "name": "aap_configure_all",
+        "status": "successful",
+        "created": "2026-10-09T18:47:44.906818Z",
+        "started": "2026-10-09T18:47:45.194238Z",
+        "finished": "2026-10-09T18:49:13.761777Z",
+        "elapsed": 88.568
+      },
+      {
+        "name": "openshift_virtualization_machine",
+        "status": "successful",
+        "created": "2026-10-09T18:42:04.178290Z",
+        "started": "2026-10-09T18:42:04.423312Z",
+        "finished": "2026-10-09T18:42:13.846550Z",
+        "elapsed": 9.423
+      },
+      {
+        "name": "webapp_vm",
+        "status": "successful",
+        "created": "2026-10-09T18:39:09.657969Z",
+        "started": "2026-10-09T18:39:09.888150Z",
+        "finished": "2026-10-09T18:39:28.620806Z",
+        "elapsed": 18.733
+      }
+    ],
+    "project_updates": [
+      {
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-09T19:03:09.530109Z",
+        "started": "2026-10-09T19:03:09.529985Z",
+        "finished": "2026-10-09T19:03:35.613790Z",
+        "elapsed": 26.084,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-09T19:03:34.919728Z",
+            "delta": "0:00:23.451177",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-09T19:02:52.527762Z",
+        "started": "2026-10-09T19:02:52.526893Z",
+        "finished": "2026-10-09T19:03:00.515501Z",
+        "elapsed": 7.989,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-09T19:02:59.827133Z",
+            "delta": "0:00:04.494745",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-09T19:02:17.785001Z",
+        "started": "2026-10-09T19:02:17.890601Z",
+        "finished": "2026-10-09T19:02:49.260753Z",
+        "elapsed": 31.37,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-09T19:02:48.824110Z",
+            "delta": "0:00:28.812706",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-09T18:58:34.096498Z",
+        "started": "2026-10-09T18:58:34.096375Z",
+        "finished": "2026-10-09T18:58:42.169374Z",
+        "elapsed": 8.073,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-09T18:58:41.363396Z",
+            "delta": "0:00:05.125534",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-09T18:58:22.296838Z",
+        "started": "2026-10-09T18:58:22.296665Z",
+        "finished": "2026-10-09T18:58:28.846400Z",
+        "elapsed": 6.55,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-09T18:58:27.953358Z",
+            "delta": "0:00:03.599854",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-09T18:57:58.886904Z",
+        "started": "2026-10-09T18:57:59.016571Z",
+        "finished": "2026-10-09T18:58:17.794542Z",
+        "elapsed": 18.778,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-09T18:58:17.417339Z",
+            "delta": "0:00:16.173440",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-09T18:56:52.228702Z",
+        "started": "2026-10-09T18:56:52.228589Z",
+        "finished": "2026-10-09T18:57:04.052763Z",
+        "elapsed": 11.824,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-09T18:57:03.194402Z",
+            "delta": "0:00:08.955136",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-09T18:56:29.631089Z",
+        "started": "2026-10-09T18:56:29.630950Z",
+        "finished": "2026-10-09T18:56:40.221408Z",
+        "elapsed": 10.59,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-09T18:56:39.478164Z",
+            "delta": "0:00:07.824921",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-09T18:56:18.004914Z",
+        "started": "2026-10-09T18:56:18.127992Z",
+        "finished": "2026-10-09T18:56:28.123405Z",
+        "elapsed": 9.995,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-09T18:56:27.579821Z",
+            "delta": "0:00:07.014843",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-09T18:54:40.007637Z",
+        "started": "2026-10-09T18:54:40.007477Z",
+        "finished": "2026-10-09T18:54:57.905999Z",
+        "elapsed": 17.899,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-09T18:54:57.199677Z",
+            "delta": "0:00:15.168272",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-09T18:54:03.731403Z",
+        "started": "2026-10-09T18:54:03.731251Z",
+        "finished": "2026-10-09T18:54:39.619461Z",
+        "elapsed": 35.888,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-09T18:54:38.944061Z",
+            "delta": "0:00:33.134893",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-09T18:53:25.355702Z",
+        "started": "2026-10-09T18:53:25.355596Z",
+        "finished": "2026-10-09T18:53:36.663936Z",
+        "elapsed": 11.308,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-09T18:53:35.900461Z",
+            "delta": "0:00:08.415586",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-09T18:53:13.767087Z",
+        "started": "2026-10-09T18:53:13.766974Z",
+        "finished": "2026-10-09T18:53:20.072818Z",
+        "elapsed": 6.306,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-09T18:53:19.235968Z",
+            "delta": "0:00:03.421359",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-09T18:53:01.799948Z",
+        "started": "2026-10-09T18:53:01.909477Z",
+        "finished": "2026-10-09T18:53:11.895054Z",
+        "elapsed": 9.986,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-09T18:53:11.492652Z",
+            "delta": "0:00:07.609130",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-09T18:52:44.058611Z",
+        "started": "2026-10-09T18:52:44.175628Z",
+        "finished": "2026-10-09T18:52:52.922882Z",
+        "elapsed": 8.747,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-09T18:52:52.381884Z",
+            "delta": "0:00:06.162785",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-09T18:48:14.715855Z",
+        "started": "2026-10-09T18:48:14.715677Z",
+        "finished": "2026-10-09T18:48:26.910034Z",
+        "elapsed": 12.194,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-09T18:48:26.172988Z",
+            "delta": "0:00:09.024882",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-09T18:48:06.528218Z",
+        "started": "2026-10-09T18:48:06.527522Z",
+        "finished": "2026-10-09T18:48:14.528795Z",
+        "elapsed": 8.001,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-09T18:48:13.655133Z",
+            "delta": "0:00:04.806547",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-09T18:47:22.744098Z",
+        "started": "2026-10-09T18:47:22.743959Z",
+        "finished": "2026-10-09T18:47:39.551645Z",
+        "elapsed": 16.808,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-09T18:47:38.879503Z",
+            "delta": "0:00:14.091978",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-09T18:47:05.569580Z",
+        "started": "2026-10-09T18:47:05.569462Z",
+        "finished": "2026-10-09T18:47:13.346674Z",
+        "elapsed": 7.777,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-09T18:47:12.545721Z",
+            "delta": "0:00:04.960996",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-09T18:46:53.848814Z",
+        "started": "2026-10-09T18:46:53.955589Z",
+        "finished": "2026-10-09T18:46:59.911685Z",
+        "elapsed": 5.956,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-09T18:46:59.527027Z",
+            "delta": "0:00:03.550105",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-09T18:46:30.925830Z",
+        "started": "2026-10-09T18:46:31.032652Z",
+        "finished": "2026-10-09T18:46:42.759771Z",
+        "elapsed": 11.727,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-09T18:46:41.965636Z",
+            "delta": "0:00:08.868483",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-09T18:41:14.265747Z",
+        "started": "2026-10-09T18:41:14.265640Z",
+        "finished": "2026-10-09T18:41:54.968130Z",
+        "elapsed": 40.702,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-09T18:41:53.064443Z",
+            "delta": "0:00:36.758446",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-09T18:40:08.231341Z",
+        "started": "2026-10-09T18:40:08.231185Z",
+        "finished": "2026-10-09T18:41:05.181871Z",
+        "elapsed": 56.951,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-09T18:41:03.452236Z",
+            "delta": "0:00:53.224949",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-09T18:39:34.743229Z",
+        "started": "2026-10-09T18:39:34.849916Z",
+        "finished": "2026-10-09T18:40:02.330786Z",
+        "elapsed": 27.481,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-09T18:40:01.555974Z",
+            "delta": "0:00:24.729838",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-09T18:38:13.944858Z",
+        "started": "2026-10-09T18:38:13.944751Z",
+        "finished": "2026-10-09T18:38:58.282039Z",
+        "elapsed": 44.337,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-09T18:38:56.379256Z",
+            "delta": "0:00:40.384478",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-09T18:37:28.840101Z",
+        "started": "2026-10-09T18:37:28.839990Z",
+        "finished": "2026-10-09T18:38:04.768104Z",
+        "elapsed": 35.928,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-09T18:38:02.828256Z",
+            "delta": "0:00:31.953716",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-09T18:36:38.896633Z",
+        "started": "2026-10-09T18:36:39.000863Z",
+        "finished": "2026-10-09T18:37:24.253788Z",
+        "elapsed": 45.253,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-09T18:37:23.563295Z",
+            "delta": "0:00:42.544456",
+            "rc": 0
+          }
+        ]
+      }
+    ],
+    "inventory_updates": [
+      {
+        "name": "demo-inventory - demo-virtualmachines",
+        "status": "successful",
+        "created": "2026-10-09T19:03:09.323567Z",
+        "started": "2026-10-09T19:03:09.502934Z",
+        "finished": "2026-10-09T19:03:40.159804Z",
+        "elapsed": 30.657
+      },
+      {
+        "name": "demo-inventory - demo-inventory-scm",
+        "status": "successful",
+        "created": "2026-10-09T19:02:52.217244Z",
+        "started": "2026-10-09T19:02:52.464911Z",
+        "finished": "2026-10-09T19:03:04.536713Z",
+        "elapsed": 12.072
+      },
+      {
+        "name": "demo-inventory - demo-virtualmachines",
+        "status": "successful",
+        "created": "2026-10-09T18:58:33.886539Z",
+        "started": "2026-10-09T18:58:34.071411Z",
+        "finished": "2026-10-09T18:58:46.567994Z",
+        "elapsed": 12.497
+      },
+      {
+        "name": "demo-inventory - demo-inventory-scm",
+        "status": "successful",
+        "created": "2026-10-09T18:58:22.068801Z",
+        "started": "2026-10-09T18:58:22.264060Z",
+        "finished": "2026-10-09T18:58:32.350073Z",
+        "elapsed": 10.086
+      },
+      {
+        "name": "demo-inventory - demo-virtualmachines",
+        "status": "successful",
+        "created": "2026-10-09T18:56:52.013838Z",
+        "started": "2026-10-09T18:56:52.205625Z",
+        "finished": "2026-10-09T18:57:08.552095Z",
+        "elapsed": 16.346
+      },
+      {
+        "name": "demo-inventory - demo-inventory-scm",
+        "status": "successful",
+        "created": "2026-10-09T18:56:29.425557Z",
+        "started": "2026-10-09T18:56:29.604718Z",
+        "finished": "2026-10-09T18:56:47.781883Z",
+        "elapsed": 18.177
+      },
+      {
+        "name": "demo-inventory - demo-virtualmachines",
+        "status": "successful",
+        "created": "2026-10-09T18:54:03.638565Z",
+        "started": "2026-10-09T18:54:03.843214Z",
+        "finished": "2026-10-09T18:55:02.929686Z",
+        "elapsed": 59.086
+      },
+      {
+        "name": "demo-inventory - demo-inventory-scm",
+        "status": "successful",
+        "created": "2026-10-09T18:54:03.518130Z",
+        "started": "2026-10-09T18:54:03.704194Z",
+        "finished": "2026-10-09T18:54:43.139589Z",
+        "elapsed": 39.435
+      },
+      {
+        "name": "demo-inventory - demo-virtualmachines",
+        "status": "successful",
+        "created": "2026-10-09T18:53:25.132517Z",
+        "started": "2026-10-09T18:53:25.330889Z",
+        "finished": "2026-10-09T18:53:40.896135Z",
+        "elapsed": 15.565
+      },
+      {
+        "name": "demo-inventory - demo-inventory-scm",
+        "status": "successful",
+        "created": "2026-10-09T18:53:13.568465Z",
+        "started": "2026-10-09T18:53:13.741597Z",
+        "finished": "2026-10-09T18:53:23.559553Z",
+        "elapsed": 9.818
+      },
+      {
+        "name": "demo-inventory - demo-virtualmachines",
+        "status": "successful",
+        "created": "2026-10-09T18:48:06.453829Z",
+        "started": "2026-10-09T18:48:06.644822Z",
+        "finished": "2026-10-09T18:48:31.186960Z",
+        "elapsed": 24.542
+      },
+      {
+        "name": "demo-inventory - demo-inventory-scm",
+        "status": "successful",
+        "created": "2026-10-09T18:48:06.273571Z",
+        "started": "2026-10-09T18:48:06.499088Z",
+        "finished": "2026-10-09T18:48:19.035110Z",
+        "elapsed": 12.536
+      },
+      {
+        "name": "demo-inventory - demo-virtualmachines",
+        "status": "successful",
+        "created": "2026-10-09T18:47:22.497584Z",
+        "started": "2026-10-09T18:47:22.712322Z",
+        "finished": "2026-10-09T18:47:43.811550Z",
+        "elapsed": 21.099
+      },
+      {
+        "name": "demo-inventory - demo-inventory-scm",
+        "status": "successful",
+        "created": "2026-10-09T18:47:05.379629Z",
+        "started": "2026-10-09T18:47:05.544062Z",
+        "finished": "2026-10-09T18:47:17.429080Z",
+        "elapsed": 11.885
+      },
+      {
+        "name": "demo-inventory - demo-virtualmachines",
+        "status": "successful",
+        "created": "2026-10-09T18:41:14.063547Z",
+        "started": "2026-10-09T18:41:14.243450Z",
+        "finished": "2026-10-09T18:42:01.356627Z",
+        "elapsed": 47.113
+      },
+      {
+        "name": "demo-inventory - demo-inventory-scm",
+        "status": "successful",
+        "created": "2026-10-09T18:40:07.996056Z",
+        "started": "2026-10-09T18:40:08.205711Z",
+        "finished": "2026-10-09T18:41:10.732893Z",
+        "elapsed": 62.527
+      },
+      {
+        "name": "demo-inventory - demo-virtualmachines",
+        "status": "successful",
+        "created": "2026-10-09T18:38:13.742567Z",
+        "started": "2026-10-09T18:38:13.923121Z",
+        "finished": "2026-10-09T18:39:04.616238Z",
+        "elapsed": 50.693
+      },
+      {
+        "name": "demo-inventory - demo-inventory-scm",
+        "status": "successful",
+        "created": "2026-10-09T18:37:28.654742Z",
+        "started": "2026-10-09T18:37:28.816892Z",
+        "finished": "2026-10-09T18:38:12.095822Z",
+        "elapsed": 43.279
+      }
+    ],
+    "ad_hoc_commands": [
+      {
+        "name": "command",
+        "status": "successful",
+        "created": "2026-10-09T19:01:31.886259Z",
+        "started": "2026-10-09T19:01:32.142939Z",
+        "finished": "2026-10-09T19:01:36.191670Z",
+        "elapsed": 4.049
+      }
+    ]
+  },
+  "ao": {
+    "executions": [
+      {
+        "status": "completed",
+        "created_at": "2026-10-09T19:06:22.058768Z",
+        "completed_at": "2026-10-09T19:06:55.260286Z",
+        "error": null,
+        "name": "omnigent-remediation",
+        "activities": [
+          {
+            "activity_name": "share_session_0",
+            "status": "completed",
+            "started_at": "2026-10-09T19:06:26.164373Z",
+            "completed_at": "2026-10-09T19:06:26.302441Z",
+            "error_details": null,
+            "elapsed_seconds": 0.138068
+          },
+          {
+            "activity_name": "send_task",
+            "status": "completed",
+            "started_at": "2026-10-09T19:06:26.330396Z",
+            "completed_at": "2026-10-09T19:06:55.237112Z",
+            "error_details": null,
+            "elapsed_seconds": 28.906716
+          },
+          {
+            "activity_name": "create_session",
+            "status": "completed",
+            "started_at": "2026-10-09T19:06:25.572974Z",
+            "completed_at": "2026-10-09T19:06:26.118883Z",
+            "error_details": null,
+            "elapsed_seconds": 0.545909
+          },
+          {
+            "activity_name": "authenticate_omnigent",
+            "status": "completed",
+            "started_at": "2026-10-09T19:06:25.521308Z",
+            "completed_at": "2026-10-09T19:06:25.551519Z",
+            "error_details": null,
+            "elapsed_seconds": 0.030211
+          },
+          {
+            "activity_name": "prepare_feature",
+            "status": "completed",
+            "started_at": "2026-10-09T19:06:22.276153Z",
+            "completed_at": "2026-10-09T19:06:25.450385Z",
+            "error_details": null,
+            "elapsed_seconds": 3.174232
+          },
+          {
+            "activity_name": "forgejo_issue",
+            "status": "completed",
+            "started_at": "2026-10-09T19:06:22.235065Z",
+            "completed_at": "2026-10-09T19:06:22.244548Z",
+            "error_details": null,
+            "elapsed_seconds": 0.009483
+          }
+        ],
+        "elapsed_seconds": 33.201518
+      },
+      {
+        "status": "completed",
+        "created_at": "2026-10-09T19:05:29.387293Z",
+        "completed_at": "2026-10-09T19:06:19.905818Z",
+        "error": null,
+        "name": "Check Audit logs, Determine RCA, Create Issue",
+        "activities": [
+          {
+            "activity_name": "createissue",
+            "status": "completed",
+            "started_at": "2026-10-09T19:06:08.626948Z",
+            "completed_at": "2026-10-09T19:06:19.887075Z",
+            "error_details": null,
+            "elapsed_seconds": 11.260127
+          },
+          {
+            "activity_name": "airca",
+            "status": "completed",
+            "started_at": "2026-10-09T19:05:41.291548Z",
+            "completed_at": "2026-10-09T19:06:08.454057Z",
+            "error_details": null,
+            "elapsed_seconds": 27.162509
+          },
+          {
+            "activity_name": "auditlogs",
+            "status": "completed",
+            "started_at": "2026-10-09T19:05:29.721844Z",
+            "completed_at": "2026-10-09T19:05:41.177990Z",
+            "error_details": null,
+            "elapsed_seconds": 11.456146
+          },
+          {
+            "activity_name": "alertmanagereda",
+            "status": "completed",
+            "started_at": "2026-10-09T19:05:29.538937Z",
+            "completed_at": "2026-10-09T19:05:29.545666Z",
+            "error_details": null,
+            "elapsed_seconds": 0.006729
+          }
+        ],
+        "elapsed_seconds": 50.518525
+      },
+      {
+        "status": "completed",
+        "created_at": "2026-10-09T19:01:36.079799Z",
+        "completed_at": "2026-10-09T19:01:47.930629Z",
+        "error": null,
+        "name": "llm-question",
+        "activities": [
+          {
+            "activity_name": "ask_model",
+            "status": "completed",
+            "started_at": "2026-10-09T19:01:36.640315Z",
+            "completed_at": "2026-10-09T19:01:47.910248Z",
+            "error_details": null,
+            "elapsed_seconds": 11.269933
+          },
+          {
+            "activity_name": "start",
+            "status": "completed",
+            "started_at": "2026-10-09T19:01:36.513341Z",
+            "completed_at": "2026-10-09T19:01:36.521684Z",
+            "error_details": null,
+            "elapsed_seconds": 0.008343
+          }
+        ],
+        "elapsed_seconds": 11.85083
+      }
+    ]
+  },
+  "schema_version": 1,
+  "run": "2026-10-09-minimax-m2",
+  "scope": "Warm demo reset and full bootstrap; AAP and installed platform retained.",
+  "credential_file": "/workspace/scratch/litellm2.txt",
+  "kubeconfig": "~/.kube/config",
+  "initial_remediation_task_changed": false,
+  "bootstrap_implementation_changed": false,
+  "source_collection": "c78d4c8844477087e4499f1a342532bc2fb1f71b",
+  "source_aap_eda": "dff2e17460a4d5c584b2bb236068fd279257fb95",
+  "source_gitops": "4a1cc17b756669ba1d613a2a1c7ee87a99be2753",
+  "native_usage": {
+    "observed_at": "2026-10-09T19:32:49.783015+00:00",
+    "assistant_records": 67,
+    "tool_calls": 83,
+    "child_sessions": 0,
+    "records_with_usage": 66,
+    "input_tokens": 2511577,
+    "output_tokens": 22084,
+    "maximum_request_input_tokens": 70497,
+    "rate_limit_errors": [],
+    "measurement_note": "Cumulative reported request usage, not unique tokens or a billing estimate. Turn durations include tool waits and backoff."
+  },
+  "validation": [
+    {
+      "kind": "scoped_lint",
+      "status": "completed",
+      "bash_exit": 2,
+      "actual_exit_markers": [],
+      "elapsed_seconds": 5.9,
+      "completed_phases": [],
+      "failed_phases": [],
+      "started_at": "2026-10-09T19:13:21.846000+00:00",
+      "ended_at": "2026-10-09T19:13:27.746000+00:00"
+    },
+    {
+      "kind": "scoped_lint",
+      "status": "completed",
+      "bash_exit": 0,
+      "actual_exit_markers": [],
+      "elapsed_seconds": 5.853,
+      "completed_phases": [],
+      "failed_phases": [],
+      "started_at": "2026-10-09T19:14:37.664000+00:00",
+      "ended_at": "2026-10-09T19:14:43.517000+00:00"
+    },
+    {
+      "kind": "collection_build",
+      "status": "completed",
+      "bash_exit": 0,
+      "actual_exit_markers": [],
+      "elapsed_seconds": 0.557,
+      "completed_phases": [],
+      "failed_phases": [],
+      "started_at": "2026-10-09T19:14:49.011000+00:00",
+      "ended_at": "2026-10-09T19:14:49.568000+00:00"
+    },
+    {
+      "kind": "molecule",
+      "status": "completed",
+      "bash_exit": 0,
+      "actual_exit_markers": [],
+      "elapsed_seconds": 83.739,
+      "completed_phases": [
+        "dependency",
+        "syntax",
+        "create",
+        "prepare",
+        "destroy"
+      ],
+      "failed_phases": [
+        "converge"
+      ],
+      "started_at": "2026-10-09T19:14:51.474000+00:00",
+      "ended_at": "2026-10-09T19:16:15.213000+00:00"
+    },
+    {
+      "kind": "molecule",
+      "status": "completed",
+      "bash_exit": 0,
+      "actual_exit_markers": [],
+      "elapsed_seconds": 90.007,
+      "completed_phases": [
+        "dependency",
+        "syntax",
+        "create",
+        "prepare",
+        "converge",
+        "idempotence",
+        "destroy"
+      ],
+      "failed_phases": [
+        "verify"
+      ],
+      "started_at": "2026-10-09T19:16:21.653000+00:00",
+      "ended_at": "2026-10-09T19:17:51.660000+00:00"
+    },
+    {
+      "kind": "molecule",
+      "status": "completed",
+      "bash_exit": 0,
+      "actual_exit_markers": [],
+      "elapsed_seconds": 103.646,
+      "completed_phases": [
+        "dependency",
+        "syntax",
+        "create",
+        "prepare",
+        "converge",
+        "idempotence",
+        "destroy"
+      ],
+      "failed_phases": [
+        "verify"
+      ],
+      "started_at": "2026-10-09T19:18:04.446000+00:00",
+      "ended_at": "2026-10-09T19:19:48.092000+00:00"
+    },
+    {
+      "kind": "molecule",
+      "status": "completed",
+      "bash_exit": 0,
+      "actual_exit_markers": [],
+      "elapsed_seconds": 101.921,
+      "completed_phases": [
+        "dependency",
+        "syntax",
+        "create",
+        "prepare",
+        "converge",
+        "idempotence",
+        "verify",
+        "destroy"
+      ],
+      "failed_phases": [],
+      "started_at": "2026-10-09T19:19:57.201000+00:00",
+      "ended_at": "2026-10-09T19:21:39.122000+00:00"
+    },
+    {
+      "kind": "scoped_lint",
+      "status": "completed",
+      "bash_exit": 2,
+      "actual_exit_markers": [],
+      "elapsed_seconds": 6.307,
+      "completed_phases": [],
+      "failed_phases": [],
+      "started_at": "2026-10-09T19:24:00.844000+00:00",
+      "ended_at": "2026-10-09T19:24:07.151000+00:00"
+    },
+    {
+      "kind": "scoped_lint",
+      "status": "completed",
+      "bash_exit": 0,
+      "actual_exit_markers": [],
+      "elapsed_seconds": 6.65,
+      "completed_phases": [],
+      "failed_phases": [],
+      "started_at": "2026-10-09T19:25:13.650000+00:00",
+      "ended_at": "2026-10-09T19:25:20.300000+00:00"
+    },
+    {
+      "kind": "collection_build",
+      "status": "completed",
+      "bash_exit": 1,
+      "actual_exit_markers": [],
+      "elapsed_seconds": 0.515,
+      "completed_phases": [],
+      "failed_phases": [],
+      "started_at": "2026-10-09T19:25:22.385000+00:00",
+      "ended_at": "2026-10-09T19:25:22.900000+00:00"
+    },
+    {
+      "kind": "collection_build",
+      "status": "completed",
+      "bash_exit": 0,
+      "actual_exit_markers": [
+        "0"
+      ],
+      "elapsed_seconds": 0.505,
+      "completed_phases": [],
+      "failed_phases": [],
+      "started_at": "2026-10-09T19:25:25.395000+00:00",
+      "ended_at": "2026-10-09T19:25:25.900000+00:00"
+    },
+    {
+      "kind": "molecule",
+      "status": "completed",
+      "bash_exit": 0,
+      "actual_exit_markers": [
+        "2"
+      ],
+      "elapsed_seconds": 89.9,
+      "completed_phases": [
+        "dependency",
+        "syntax",
+        "create",
+        "prepare",
+        "destroy"
+      ],
+      "failed_phases": [
+        "converge"
+      ],
+      "started_at": "2026-10-09T19:25:28.258000+00:00",
+      "ended_at": "2026-10-09T19:26:58.158000+00:00"
+    },
+    {
+      "kind": "scoped_lint",
+      "status": "completed",
+      "bash_exit": 0,
+      "actual_exit_markers": [
+        "0"
+      ],
+      "elapsed_seconds": 6.326,
+      "completed_phases": [],
+      "failed_phases": [],
+      "started_at": "2026-10-09T19:27:13.265000+00:00",
+      "ended_at": "2026-10-09T19:27:19.591000+00:00"
+    },
+    {
+      "kind": "collection_build",
+      "status": "completed",
+      "bash_exit": 0,
+      "actual_exit_markers": [
+        "0"
+      ],
+      "elapsed_seconds": 0.61,
+      "completed_phases": [],
+      "failed_phases": [],
+      "started_at": "2026-10-09T19:28:24.465000+00:00",
+      "ended_at": "2026-10-09T19:28:25.075000+00:00"
+    },
+    {
+      "kind": "molecule",
+      "status": "completed",
+      "bash_exit": 0,
+      "actual_exit_markers": [
+        "0"
+      ],
+      "elapsed_seconds": 113.321,
+      "completed_phases": [
+        "dependency",
+        "syntax",
+        "create",
+        "prepare",
+        "converge",
+        "idempotence",
+        "verify",
+        "destroy"
+      ],
+      "failed_phases": [],
+      "started_at": "2026-10-09T19:28:27.645000+00:00",
+      "ended_at": "2026-10-09T19:30:20.966000+00:00"
+    }
+  ],
+  "incident": {
+    "observed_at": "2026-10-09T19:39:52.799384+00:00",
+    "issues": [
+      {
+        "number": 2,
+        "title": "[WebappDown] Demo webapp is unavailable",
+        "state": "open",
+        "created_at": "2026-10-09T19:06:14Z",
+        "updated_at": "2026-10-09T19:21:58Z"
+      },
+      {
+        "number": 1,
+        "title": "Add a test line to the README",
+        "state": "open",
+        "created_at": "2026-10-09T18:43:42Z",
+        "updated_at": "2026-10-09T18:43:42Z"
+      }
+    ],
+    "prs": [
+      {
+        "number": 3,
+        "title": "[WebappDown] Demo webapp is unavailable",
+        "state": "open",
+        "created_at": "2026-10-09T19:21:58Z",
+        "updated_at": "2026-10-09T19:32:47Z",
+        "merged": false,
+        "merge_commit_sha": null,
+        "head": "434047e9fb73c371f37a15971ff4f1f6a2e17e40"
+      }
+    ],
+    "session_count": 1,
+    "delivered_user_messages": 2
+  },
+  "delivered_prompt_messages": 2,
+  "model_requested_helper_prompts": [],
+  "first_pr_independent_validation": {
+    "head": "c8572577c59b6e7087731b4b01d7f94f1a226963",
+    "matched_changed_files": 4,
+    "dependencies": [
+      {
+        "name": "ansible.posix",
+        "version": "2.2.2",
+        "requires_ansible": ">=2.16.0",
+        "matches_production_range": true,
+        "supports_core_2_16_19": true
+      }
+    ],
+    "checks": [
+      {
+        "name": "scoped_lint",
+        "started_at": "2026-10-09T19:22:41.524578+00:00",
+        "finished_at": "2026-10-09T19:22:46.792025+00:00",
+        "elapsed_seconds": 5.267,
+        "exit_code": 0
+      },
+      {
+        "name": "collection_build",
+        "started_at": "2026-10-09T19:22:46.792063+00:00",
+        "finished_at": "2026-10-09T19:22:47.250962+00:00",
+        "elapsed_seconds": 0.459,
+        "exit_code": 0
+      }
+    ],
+    "started_at": "2026-10-09T19:22:40.488853+00:00",
+    "finished_at": "2026-10-09T19:22:47.288678+00:00"
+  },
+  "late_pr_compatibility": {
+    "head": "434047e9fb73c371f37a15971ff4f1f6a2e17e40",
+    "production_core": "2.16.19",
+    "dependencies": [
+      {
+        "module": "ansible.posix.selinux",
+        "collection_version": "2.2.2",
+        "requires_ansible": ">=2.16.0",
+        "version_added": "1.0.0"
+      },
+      {
+        "module": "community.general.sefcontext",
+        "collection_version": "13.5.0",
+        "requires_ansible": ">=2.18.0",
+        "version_added": null
+      },
+      {
+        "module": "community.general.serestorecon",
+        "collection_version": "13.5.0",
+        "requires_ansible": ">=2.18.0",
+        "version_added": "13.5.0"
+      }
+    ],
+    "compatibility_check_passed": false
+  },
+  "cutoff_app_probe": {
+    "probe_http_status_code": 403.0,
+    "probe_success": 0.0
+  },
+  "review_prompt_1_post_private": {
+    "started_at": "2026-10-09T19:23:08.267463+00:00",
+    "response": {
+      "queued": true,
+      "pending_id": "pending_016f11230aa34d7faaf39665f71c9e67"
+    },
+    "finished_at": "2026-10-09T19:23:08.483922+00:00"
+  },
+  "protocol_selection_recheck": [
+    {
+      "tool_choice": "auto",
+      "finish_reason": "tool_calls",
+      "has_structured_tool_calls": true,
+      "message_fields": [
+        "content",
+        "role",
+        "tool_calls"
+      ],
+      "visible_call_text": "",
+      "elapsed_seconds": 3.6256300169043243
+    },
+    {
+      "tool_choice": {
+        "type": "function",
+        "function": {
+          "name": "read_health"
+        }
+      },
+      "finish_reason": "tool_calls",
+      "has_structured_tool_calls": false,
+      "message_fields": [
+        "content",
+        "role"
+      ],
+      "visible_call_text": "[\n  {\n    \"name\": \"read_health\",\n    \"parameters\": {\n      \"service\": \"webapp\"\n    }\n  }\n]",
+      "elapsed_seconds": 2.5918734529986978
+    }
+  ],
+  "protocol_checks": [
+    {
+      "model": "minimax-m2",
+      "case": "answer",
+      "started_at": "2026-10-09T18:27:51.902347+00:00",
+      "status": "successful",
+      "finish_reason": "stop",
+      "usage": {
+        "completion_tokens": 80,
+        "prompt_tokens": 28,
+        "total_tokens": 108,
+        "extra_properties": {
+          "google": {
+            "traffic_type": "ON_DEMAND"
+          }
+        }
+      },
+      "answer": "model-ready",
+      "reasoning_present": true,
+      "tool_calls": [],
+      "elapsed_seconds": 1.176
+    },
+    {
+      "model": "minimax-m2",
+      "case": "empty_tools",
+      "started_at": "2026-10-09T18:27:53.078866+00:00",
+      "status": "successful",
+      "finish_reason": "stop",
+      "usage": {
+        "completion_tokens": 80,
+        "prompt_tokens": 28,
+        "total_tokens": 108,
+        "extra_properties": {
+          "google": {
+            "traffic_type": "ON_DEMAND"
+          }
+        }
+      },
+      "answer": "model-ready",
+      "reasoning_present": true,
+      "tool_calls": [],
+      "elapsed_seconds": 1.254
+    },
+    {
+      "model": "minimax-m2",
+      "case": "tool_call",
+      "started_at": "2026-10-09T18:27:54.332867+00:00",
+      "status": "successful",
+      "finish_reason": "tool_calls",
+      "usage": {
+        "completion_tokens": 339,
+        "prompt_tokens": 187,
+        "total_tokens": 526,
+        "extra_properties": {
+          "google": {
+            "traffic_type": "ON_DEMAND"
+          }
+        }
+      },
+      "answer": "[{\"name\": \"read_health\", \"parameters\": {\"service\": \"webapp\"}}]",
+      "reasoning_present": true,
+      "tool_calls": [],
+      "elapsed_seconds": 3.585
+    }
+  ],
+  "known_credential_history_scan": {
+    "observed_at": "2026-10-09T18:38:23.440552+00:00",
+    "reachable_git_blobs_checked": 1727,
+    "known_credential_matches": 0,
+    "scope": "Exact known credentials from current and backed-up ignored operator configuration, both supplied LiteLLM files, and current Forgejo tokens; no claim of exhaustive detection of unknown historical credentials."
+  },
+  "timing": {
+    "reset_start_to_bootstrap_finish_seconds": 1498.58342,
+    "reset_finish_to_bootstrap_start_seconds": 29.675989,
+    "break_start_to_handoff_seconds": 281.757032,
+    "break_start_to_first_pr_seconds": 1184.496746
+  },
+  "alert_observations": [
+    {
+      "observed_at": "2026-10-09T19:04:14.034849+00:00",
+      "alerts": [
+        {
+          "state": "pending",
+          "activeAt": "2026-10-09T19:04:12.675043176Z",
+          "value": "0e+00"
+        }
+      ]
+    },
+    {
+      "observed_at": "2026-10-09T19:05:13.580000+00:00",
+      "alerts": [
+        {
+          "state": "firing",
+          "activeAt": "2026-10-09T19:04:12.675043176Z",
+          "value": "0e+00"
+        }
+      ]
+    },
+    {
+      "observed_at": "2026-10-09T19:07:06.309437+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:07:08.309906+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:07:10.310488+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:07:12.311071+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:07:14.311608+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:07:16.312096+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:07:18.312628+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:07:20.313105+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:07:22.313565+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:07:24.314172+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:07:26.314957+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:07:28.315503+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:07:30.316028+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:07:32.316605+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:07:34.316947+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:07:36.317462+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:07:38.317977+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:07:40.318350+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:07:42.318720+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:07:44.319218+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:07:46.319733+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:07:48.320266+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:07:50.320796+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:07:52.321325+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:07:54.321853+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:07:56.322377+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:07:58.322909+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:00.323443+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:02.323830+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:04.324340+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:06.324822+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:08.325326+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:10.325835+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:12.326359+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:14.326889+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:16.327417+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:18.327947+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:20.328358+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:22.328670+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:24.329131+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:26.329588+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:28.329971+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:30.330406+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:32.330940+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:34.331400+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:36.331817+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:38.332379+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:40.332902+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:42.333395+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:44.333919+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:46.334425+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:48.334960+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:50.335468+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:52.336008+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:54.336540+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:56.337085+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:08:58.337667+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:00.338208+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:02.338928+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:04.339448+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:06.339961+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:08.340491+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:10.340980+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:12.341603+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:14.342115+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:16.342499+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:18.343005+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:20.343528+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:22.344063+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:24.344609+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:26.345126+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:28.345667+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:30.346177+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:32.346786+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:34.347291+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:36.347640+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:38.348082+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:40.348609+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:42.348991+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:44.349434+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:46.349948+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:48.350489+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:50.351055+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:52.351605+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:54.352112+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:56.352646+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:09:58.353152+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:00.353697+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:02.354229+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:04.354586+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:06.355109+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:08.355668+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:10.356217+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:12.356751+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:14.357300+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:16.357809+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:18.358351+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:20.358694+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:22.359030+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:24.359599+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:26.360044+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:28.360586+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:30.361128+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:32.361682+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:34.362213+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:36.362757+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:38.363304+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:40.363849+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:42.364385+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:44.364891+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:46.365440+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:48.365945+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:50.366333+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:52.366679+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:54.367246+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:56.367803+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:10:58.368301+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:00.368862+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:02.369400+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:04.369937+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:06.370403+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:08.370925+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:10.371475+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:12.372005+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:14.372573+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:16.373101+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:18.373625+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:20.374016+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:22.374504+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:24.375031+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:26.375582+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:28.376121+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:30.376665+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:32.377175+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:34.377718+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:36.378227+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:38.378744+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:40.379288+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:42.379822+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:44.380279+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:46.380826+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:48.381353+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:50.381884+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:52.382366+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:54.382810+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:56.383259+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:11:58.383722+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:00.384220+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:02.384746+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:04.385258+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:06.385790+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:08.386358+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:10.386896+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:12.387427+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:14.387966+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:16.388503+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:18.389035+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:20.389580+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:22.390096+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:24.390648+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:26.391155+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:28.391517+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:30.391876+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:32.392382+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:34.392921+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:36.393456+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:38.393964+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:40.394466+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:42.395017+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:44.395580+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:46.396114+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:48.396665+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:50.397201+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:52.397551+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:54.398053+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:56.398597+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:12:58.399139+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:00.399688+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:02.400178+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:04.400696+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:06.401233+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:08.401664+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:10.402076+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:12.402481+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:14.402816+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:16.403352+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:18.403861+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:20.404384+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:22.404720+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:24.405207+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:26.405737+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:28.406257+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:30.406799+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:32.407310+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:34.407780+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:36.408348+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:38.408862+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:40.409393+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:42.409892+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:44.410440+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:46.410778+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:48.411299+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:50.411809+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:52.412382+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:54.413163+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:56.413558+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:13:58.414098+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:00.414494+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:02.414890+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:04.415286+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:06.415748+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:08.416234+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:10.416589+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:12.417101+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:14.417566+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:16.418002+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:18.418410+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:20.418897+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:22.419353+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:24.419879+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:26.420396+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:28.420740+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:30.421283+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:32.421783+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:34.422246+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:36.422756+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:38.423246+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:40.423759+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:42.424372+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:44.424912+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:46.425420+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:48.425934+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:50.426388+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:52.426929+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:54.427434+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:56.427960+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:14:58.428351+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:00.428855+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:02.429400+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:04.429791+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:06.430298+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:08.430688+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:10.431170+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:12.431720+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:14.432248+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:16.432789+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:18.433301+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:20.433832+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:22.434374+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:24.434743+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:26.435183+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:28.435599+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:30.435959+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:32.436533+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:34.437141+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:36.437642+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:38.437989+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:40.438522+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:42.438998+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:44.439497+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:46.440020+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:48.440568+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:50.441074+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:52.441596+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:54.442160+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:56.442708+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:15:58.443248+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:00.443788+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:02.444314+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:04.444842+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:06.445370+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:08.445914+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:10.446442+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:12.446950+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:14.447483+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:16.448013+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:18.448543+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:20.449104+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:22.449659+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:24.450193+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:26.450742+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:28.451262+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:30.470802+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:32.471348+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:34.471712+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:36.472327+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:38.472724+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:40.473232+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:42.473628+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:44.474013+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:46.474676+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:48.475297+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:50.475891+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:52.476360+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:54.476884+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:56.477401+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:16:58.477929+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:00.478462+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:02.478971+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:04.479473+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:06.480014+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:08.480521+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:10.480981+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:12.481522+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:14.481919+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:16.482255+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:18.482771+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:20.483305+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:22.483833+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:24.484360+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:26.484902+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:28.485435+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:30.485948+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:32.486472+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:34.487010+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:36.487510+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:38.488015+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:40.488583+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:42.489115+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:44.489474+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:46.489850+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:48.490377+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:50.490762+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:52.491099+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:54.491699+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:56.492205+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:17:58.492764+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:00.493293+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:02.493846+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:04.494372+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:06.494913+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:08.495456+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:10.495973+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:12.496440+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:14.496980+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:16.497501+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:18.498039+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:20.498533+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:22.499015+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:24.499541+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:26.500076+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:28.500591+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:30.501129+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:32.501679+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:34.502214+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:36.502749+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:38.503256+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:40.503817+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:42.504350+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:44.504896+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:46.505412+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:48.505931+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:50.506319+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:52.506872+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:54.507212+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:56.507718+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:18:58.508074+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:00.508426+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:02.508906+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:04.509463+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:06.509980+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:08.510528+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:10.511101+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:12.511509+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:14.512040+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:16.512568+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:18.513099+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:20.513648+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:22.514178+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:24.514741+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:26.515303+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:28.515856+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:30.516396+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:32.516913+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:34.517421+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:36.517945+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:38.518450+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:40.518992+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:42.519498+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:44.520058+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:46.520601+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:48.521122+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:50.521692+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:52.522222+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:54.522802+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:56.523347+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:19:58.523860+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:00.524258+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:02.524838+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:04.525293+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:06.525633+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:08.526078+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:10.526414+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:12.526918+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:14.527497+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:16.528014+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:18.528534+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:20.529072+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:22.529596+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:24.529989+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:26.530501+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:28.530854+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:30.531569+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:32.532205+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:34.532946+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:36.533457+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:38.533996+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:40.534555+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:42.535073+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:44.535629+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:46.536165+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:48.536702+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:50.537239+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:52.537761+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:54.538287+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:56.538638+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:20:58.539163+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:00.539697+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:02.540231+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:04.540755+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:06.541290+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:08.541806+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:10.542316+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:12.542857+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:14.543207+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:16.543843+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:18.544367+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:20.544960+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:22.545447+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:24.546086+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:26.546488+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:28.547020+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:30.547599+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:32.548103+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:34.548792+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:36.549296+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:38.549647+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:40.550182+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:42.550706+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:44.551240+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:46.551774+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:48.552294+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:50.552825+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:52.553354+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:54.553862+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:56.554400+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:21:58.554932+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:00.555438+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:02.555923+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:04.556286+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:06.557177+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:08.557871+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:10.558379+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:12.558900+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:14.559414+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:16.559916+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:18.560441+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:20.560829+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:22.561332+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:24.561712+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:26.562218+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:28.562587+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:30.562957+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:32.563433+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:34.563955+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:36.564477+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:38.564986+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:40.565521+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:42.565973+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:44.566484+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:46.567024+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:48.567554+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:50.568069+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:52.568736+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:54.569284+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:56.569825+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:22:58.570349+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:00.570798+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:02.571347+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:04.571881+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:06.572409+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:08.572935+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:10.573410+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:12.573890+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:14.574409+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:16.575033+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:18.575595+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:20.576138+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:22.576654+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:24.577185+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:26.577733+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:28.578254+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:30.578562+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:32.579105+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:34.579605+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:36.580025+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:38.580489+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:40.580993+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:42.581495+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:44.582040+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:46.582578+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:48.583113+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:50.583658+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:52.584159+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:54.584722+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:56.585263+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:23:58.585804+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:00.586314+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:02.586827+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:04.587369+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:06.587869+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:08.588373+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:10.588889+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:12.589390+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:14.589891+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:16.590419+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:18.590931+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:20.591463+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:22.591965+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:24.592525+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:26.593089+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:28.593601+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:30.594101+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:32.594612+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:34.595132+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:36.595705+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:38.596239+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:40.596588+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:42.597096+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:44.597554+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:46.597966+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:48.598344+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:50.598763+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:52.599216+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:54.599817+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:56.600345+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:24:58.600732+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:00.601188+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:02.601670+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:04.602200+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:06.602763+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:08.603301+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:10.603808+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:12.604317+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:14.604823+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:16.605195+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:18.605763+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:20.606302+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:22.606842+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:24.607266+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:26.607838+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:28.608387+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:30.608914+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:32.609447+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:34.609986+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:36.610525+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:38.611053+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:40.611573+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:42.612097+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:44.612651+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:46.613156+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:48.613714+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:50.614238+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:52.614761+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:54.615124+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:56.615489+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:25:58.615913+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:00.616384+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:02.616836+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:04.617362+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:06.617906+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:08.618493+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:10.619037+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:12.619382+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:14.619853+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:16.620410+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:18.620953+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:20.621417+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:22.621945+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:24.622472+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:26.622818+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:28.623121+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:30.623687+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:32.624144+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:34.624653+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:36.625179+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:38.625702+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:40.626206+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:42.626543+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:44.627006+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:46.627481+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:48.628017+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:50.628483+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:52.628834+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:54.629469+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:56.630016+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:26:58.630365+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:00.630908+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:02.631438+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:04.631820+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:06.632346+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:08.632891+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:10.633439+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:12.633867+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:14.634372+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:16.634852+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:18.635377+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:20.635902+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:22.636415+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:24.636975+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:26.637514+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:28.638033+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:30.638609+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:32.639123+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:34.639677+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:36.640066+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:38.640605+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:40.641130+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:42.641693+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:44.642205+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:46.642770+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:48.643305+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:50.643651+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:52.644188+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:54.644882+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:56.645410+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:27:58.645984+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:00.646506+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:02.647064+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:04.647560+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:06.648074+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:08.648606+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:10.649122+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:12.649645+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:14.650024+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:16.650429+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:18.650801+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:20.651305+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:22.651758+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:24.652233+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:26.652581+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:28.653100+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:30.653678+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:32.654184+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:34.654725+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:36.655257+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:38.655799+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:40.656332+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:42.656892+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:44.657403+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:46.657938+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:48.658465+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:50.658868+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:52.659382+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:54.659764+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:56.660103+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:28:58.660634+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:00.661166+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:02.661708+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:04.662214+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:06.662788+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:08.663336+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:10.663873+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:12.664364+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:14.664750+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:16.665289+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:18.665813+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:20.666342+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:22.666673+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:24.667053+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:26.667514+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:28.667986+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:30.668487+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:32.668932+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:34.669443+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:36.669982+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:38.670486+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:40.671007+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:42.671566+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:44.672083+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:46.672600+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:48.673139+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:50.673660+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:52.674197+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:54.674747+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:56.675306+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:29:58.675872+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:00.676387+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:02.676765+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:04.677305+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:06.677827+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:08.678337+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:10.678870+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:12.679398+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:14.679931+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:16.680435+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:18.680969+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:20.681504+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:22.682012+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:24.682542+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:26.683074+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:28.683598+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:30.684129+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:32.684680+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:34.685158+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:36.685932+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:38.686444+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:40.686878+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:42.687261+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:44.687851+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:46.688362+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:48.688896+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:50.689382+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:52.689917+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:54.690420+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:56.690927+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:30:58.691449+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:00.692019+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:02.692544+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:04.693076+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:06.693533+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:08.694004+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:10.694607+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:12.695136+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:14.695682+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:16.696246+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:18.696868+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:20.697375+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:22.697886+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:24.698433+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:26.698915+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:28.699374+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:30.699952+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:32.700517+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:34.701060+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:36.711361+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:38.711688+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:40.712224+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:42.712782+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:44.713239+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:46.713585+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:48.714027+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:50.714423+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:52.714860+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:54.715375+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:56.715910+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:31:58.716414+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:00.716923+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:02.717453+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:04.717977+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:06.718521+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:08.719026+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:10.719571+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:12.720098+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:14.720625+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:16.721094+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:18.721636+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:20.722160+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:22.722715+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:24.723252+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:26.723771+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:28.724332+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:30.724890+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:32.725442+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:34.725983+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:36.726495+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:38.727034+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:40.727574+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:42.728101+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:44.728619+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:46.729121+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:48.729468+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:50.730010+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:52.730530+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:54.730907+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:56.731389+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:32:58.731842+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:00.732227+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:02.732726+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:04.733357+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:06.733926+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:08.734439+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:10.734946+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:12.735492+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:14.735873+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:16.736405+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:18.736915+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:20.737422+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:22.737949+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:24.738480+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:26.739018+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:28.739557+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:30.740102+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:32.740454+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:34.740940+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:36.741467+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:38.741998+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:40.742528+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:42.743033+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:44.743545+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:46.744045+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:48.744613+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:50.745136+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:52.745683+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:54.746208+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:56.746731+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:33:58.747283+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:00.747787+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:02.748325+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:04.748666+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:06.749127+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:08.749583+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:10.750098+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:12.750480+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:14.751025+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:16.751566+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:18.751903+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:20.752401+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:22.752918+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:24.753438+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:26.753976+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:28.754479+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:30.755014+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:32.755553+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:34.756062+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:36.756480+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:38.756889+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:40.757416+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:42.757819+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:44.758371+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:46.758735+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:48.759130+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:50.759504+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:52.759859+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:54.760364+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:56.760941+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:34:58.761451+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:00.761986+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:02.762625+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:04.763160+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:06.763695+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:08.764207+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:10.764552+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:12.765088+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:14.765480+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:16.765854+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:18.766314+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:20.766672+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:22.767202+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:24.767833+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:26.768360+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:28.768898+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:30.769431+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:32.770010+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:34.770409+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:36.770937+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:38.771466+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:40.771973+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:42.772513+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:44.773070+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:46.773422+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:48.773970+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:50.774518+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:52.775027+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:54.775556+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:56.776094+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:35:58.776630+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:00.777173+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:02.777701+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:04.778232+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:06.778801+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:08.779319+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:10.779871+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:12.780388+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:14.780917+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:16.781436+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:18.781946+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:20.782485+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:22.783001+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:24.783471+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:26.783852+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:28.784371+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:30.784738+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:32.785216+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:34.785764+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:36.786266+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:38.786793+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:40.787349+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:42.787716+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:44.788249+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:46.788788+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:48.789329+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:50.789865+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:52.790382+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:54.790891+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:56.791427+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:36:58.791958+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:00.792484+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:02.793024+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:04.793546+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:06.793939+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:08.794473+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:10.795020+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:12.795511+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:14.796030+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:16.796584+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:18.797089+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:20.797618+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:22.798136+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:24.798666+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:26.799113+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:28.799702+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:30.800202+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:32.800558+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:34.800954+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:36.801502+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:38.802012+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:40.802474+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:42.802904+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:44.803430+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:46.803963+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:48.804490+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:50.805025+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:52.805452+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:54.805979+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:56.806529+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:37:58.807084+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:00.807497+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:02.807855+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:04.808378+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:06.808893+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:08.809443+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:10.809985+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:12.810525+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:14.811036+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:16.811590+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:18.812142+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:20.812839+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:22.813382+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:24.813893+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:26.814403+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:28.814953+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:30.815488+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:32.816010+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:34.816368+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:36.816880+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:38.817403+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:40.817918+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:42.818441+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:44.818891+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:46.819261+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:48.819678+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:50.820170+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:52.820631+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:54.821240+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:56.821793+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:38:58.822339+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:00.822854+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:02.823387+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:04.823914+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:06.824425+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:08.824980+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:10.825518+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:12.826041+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:14.826586+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:16.827099+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:18.827633+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:20.828180+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:22.828737+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:24.829256+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:26.829815+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:28.830362+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:30.830883+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:32.831404+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:34.831924+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:36.832431+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:38.832833+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:40.833159+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:42.833677+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:44.834203+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:46.834813+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:48.835392+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:50.835936+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:52.836467+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:54.836983+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:56.837447+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:39:58.837786+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:40:00.838311+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:40:02.838819+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:40:04.839356+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:40:06.839867+00:00",
+      "error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-09T19:40:08.840405+00:00",
+      "error_type": "URLError"
+    }
+  ]
+}
