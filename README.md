@@ -94,6 +94,8 @@ while removing the rest. It stops the demo EDA listeners until the next bootstra
 After deploying a merged fix, enable SELinux with
 `bash bootstrap/bootstrap.sh aap launch webapp_selinux_enable`, then run
 `bash bootstrap/bootstrap.sh webapp verify-enforcing` to check Enforcing and HTTP.
+For `qwen38-27b`, bootstrap also configures an authenticated LiteLLM bridge for
+AO's RCA requests with thinking disabled, matching the Omnigent configuration.
 Setup, reset, and teardown share the implementation in
 `bootstrap/bootstrap.sh`; Make targets invoke that script directly.
 

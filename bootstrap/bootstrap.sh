@@ -966,35 +966,42 @@ demo_ao_integration() {
   printf '%s\n' "$id"
 }
 
-# AO 2026.8 uses Chat Completions and cannot set provider headers. LiteLLM's
-# maintained bridge translates Responses models and adds Go's routing headers.
+# AO 2026.8 cannot set provider headers or chat-template options. LiteLLM's
+# bridge handles Go routing and keeps Qwen's RCA within the agent timeout.
 # Keep the runtime configuration here rather than a second bootstrap program.
-demo_ao_go_proxy() {
-  local proxy_model protocol config_status secret_status existing
-  existing=$(oc -n "$namespace" get deployment ao-opencode-go --ignore-not-found -o name)
-  protocol=${OPENCODE_GO_PROTOCOL:-responses}
-  case $protocol in
-    responses) proxy_model="openai/responses/$model_name" ;;
-    chat) proxy_model="openai/$model_name" ;;
-    *) demo_die 'OPENCODE_GO_PROTOCOL must be responses or chat.' ;;
-  esac
+demo_ao_llm_proxy() {
+  local proxy_name=ao-opencode-go proxy_model protocol config_status secret_status existing qwen=false
+  if [[ ${MODEL_PROVIDER:-opencode-go} == litellm && $model_name == qwen38-27b ]]; then
+    proxy_name=ao-litellm-qwen
+    proxy_model="openai/$model_name"
+    qwen=true
+  else
+    protocol=${OPENCODE_GO_PROTOCOL:-responses}
+    case $protocol in
+      responses) proxy_model="openai/responses/$model_name" ;;
+      chat) proxy_model="openai/$model_name" ;;
+      *) demo_die 'OPENCODE_GO_PROTOCOL must be responses or chat.' ;;
+    esac
+  fi
+  existing=$(oc -n "$namespace" get deployment "$proxy_name" --ignore-not-found -o name)
   printf '%s' "$model_key" >"$omnigent_scratch/go-api-key"
-  if [[ -n $(oc -n "$namespace" get secret ao-opencode-go --ignore-not-found -o name) ]]; then
-    oc -n "$namespace" get secret ao-opencode-go \
+  if [[ -n $(oc -n "$namespace" get secret "$proxy_name" --ignore-not-found -o name) ]]; then
+    oc -n "$namespace" get secret "$proxy_name" \
       -o go-template='{{index .data "LITELLM_MASTER_KEY" | base64decode}}' >"$omnigent_scratch/go-proxy-key"
-    [[ -s $omnigent_scratch/go-proxy-key ]] || demo_die 'The Go proxy master key is empty.'
+    [[ -s $omnigent_scratch/go-proxy-key ]] || demo_die 'The LLM proxy master key is empty.'
   else
     printf 'sk-%s' "$(openssl rand -hex 32)" >"$omnigent_scratch/go-proxy-key"
   fi
-  secret_status=$(oc -n "$namespace" create secret generic ao-opencode-go \
-    --from-file=OPENCODE_GO_API_KEY="$omnigent_scratch/go-api-key" \
+  secret_status=$(oc -n "$namespace" create secret generic "$proxy_name" \
+    --from-file=PROVIDER_API_KEY="$omnigent_scratch/go-api-key" \
     --from-file=LITELLM_MASTER_KEY="$omnigent_scratch/go-proxy-key" --dry-run=client -o yaml |
     oc -n "$namespace" apply -f -)
-  jq -n --arg model "$model_name" --arg backend "$proxy_model" --arg url "$model_endpoint" '
-    {model_list:[{model_name:$model,litellm_params:{model:$backend,api_base:$url,
-      api_key:"os.environ/OPENCODE_GO_API_KEY"}}],
+  jq -n --arg model "$model_name" --arg backend "$proxy_model" --arg url "$model_endpoint" --argjson qwen "$qwen" '
+    {model_list:[{model_name:$model,litellm_params:({model:$backend,api_base:$url,
+      api_key:"os.environ/PROVIDER_API_KEY"} +
+      (if $qwen then {extra_body:{chat_template_kwargs:{enable_thinking:false}}} else {} end))}],
       general_settings:{master_key:"os.environ/LITELLM_MASTER_KEY"},
-      litellm_settings:{callbacks:["go_headers.callback"],num_retries:0}}' |
+      litellm_settings:({num_retries:0} + (if $qwen then {} else {callbacks:["go_headers.callback"]} end))}' |
     yq -y . >"$omnigent_scratch/go-config.yaml"
   cat >"$omnigent_scratch/go_headers.py" <<'PY'
 from uuid import uuid4
@@ -1011,24 +1018,24 @@ class GoHeaders(CustomLogger):
 
 callback = GoHeaders()
 PY
-  config_status=$(oc -n "$namespace" create configmap ao-opencode-go \
+  config_status=$(oc -n "$namespace" create configmap "$proxy_name" \
     --from-file=config.yaml="$omnigent_scratch/go-config.yaml" \
     --from-file=go_headers.py="$omnigent_scratch/go_headers.py" --dry-run=client -o yaml |
     oc -n "$namespace" apply -f -)
-  cat <<'YAML' | oc -n "$namespace" apply -f - >/dev/null
+  cat <<YAML | oc -n "$namespace" apply -f - >/dev/null
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ao-opencode-go
+  name: $proxy_name
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ao-opencode-go
+      app: $proxy_name
   template:
     metadata:
       labels:
-        app: ao-opencode-go
+        app: $proxy_name
     spec:
       automountServiceAccountToken: false
       containers:
@@ -1041,7 +1048,7 @@ spec:
             - "4000"
           envFrom:
             - secretRef:
-                name: ao-opencode-go
+                name: $proxy_name
           env:
             - name: PYTHONPATH
               value: /etc/litellm
@@ -1066,32 +1073,33 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: ao-opencode-go
+            name: $proxy_name
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: ao-opencode-go
+  name: $proxy_name
 spec:
   selector:
-    app: ao-opencode-go
+    app: $proxy_name
   ports:
     - port: 4000
       targetPort: 4000
 YAML
   if [[ -n $existing && ( $config_status != *' unchanged' || $secret_status != *' unchanged' ) ]]; then
-    oc -n "$namespace" rollout restart deployment/ao-opencode-go >/dev/null
+    oc -n "$namespace" rollout restart "deployment/$proxy_name" >/dev/null
   fi
-  oc -n "$namespace" rollout status deployment/ao-opencode-go --timeout=10m
-  model_endpoint=http://ao-opencode-go.automation-orchestrator.svc:4000/v1
+  oc -n "$namespace" rollout status "deployment/$proxy_name" --timeout=10m
+  model_endpoint="http://$proxy_name.automation-orchestrator.svc:4000/v1"
   model_key=$(<"$omnigent_scratch/go-proxy-key")
 }
 
 demo_ao_integrations() {
   local configuration inputs allowed_hosts deploy current expected code disabled_models
   demo_model_inputs
-  if [[ ${MODEL_PROVIDER:-opencode-go} == opencode-go ]]; then
-    demo_ao_go_proxy
+  if [[ ${MODEL_PROVIDER:-opencode-go} == opencode-go ||
+        ( ${MODEL_PROVIDER:-opencode-go} == litellm && $model_name == qwen38-27b ) ]]; then
+    demo_ao_llm_proxy
   fi
   # The integration policy is checked in backend, worker and background worker.
   # The operator loads this supported ConfigMap in all three processes. Argo
