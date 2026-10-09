@@ -62,6 +62,11 @@ access. Keep your populated `.env` for reruns.
 
 ## Run the demo
 
+Agents can use the repository's
+[run-demojam skill](.agents/skills/run-demojam/SKILL.md) to run the full demo
+without coaching the coding agent or repairing the run. It merges the Forgejo
+fix only after tests pass on the published commit.
+
 Run these commands from the repository root:
 
 ```bash
