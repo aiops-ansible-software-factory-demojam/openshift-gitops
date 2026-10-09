@@ -1,0 +1,201 @@
+{
+  "catalogues": [
+    {
+      "credential_file": "/workspace/scratch/litellm.txt",
+      "started_at": "2026-10-09T22:29:12.657797+00:00",
+      "models": [
+        "qwen36-35b-a3b",
+        "qwen38-27b"
+      ],
+      "http_status": 200,
+      "completed_at": "2026-10-09T22:29:13.130400+00:00"
+    },
+    {
+      "credential_file": "/workspace/scratch/litellm2.txt",
+      "started_at": "2026-10-09T22:29:12.658416+00:00",
+      "models": [
+        "deepseek-r1-distill-qwen-14b",
+        "gpt-oss-120b",
+        "minimax-m2",
+        "qwen3-235b"
+      ],
+      "http_status": 200,
+      "completed_at": "2026-10-09T22:29:13.135095+00:00"
+    }
+  ],
+  "provider_preflights": [
+    {
+      "credential_file": "/workspace/scratch/litellm.txt",
+      "model": "qwen36-35b-a3b",
+      "started_at": "2026-10-09T22:30:22.658971+00:00",
+      "prompt": "Reply with exactly: MODEL_READY",
+      "available": true,
+      "requested_max_tokens": 256,
+      "http_status": 200,
+      "response_model": "qwen-3.6-36b-a3b-test",
+      "usage": {
+        "completion_tokens": 193,
+        "prompt_tokens": 16,
+        "total_tokens": 209
+      },
+      "finish_reasons": [
+        "stop"
+      ],
+      "ready_answer_seen": true,
+      "completed_at": "2026-10-09T22:30:27.983901+00:00",
+      "elapsed_seconds": 5.325
+    },
+    {
+      "credential_file": "/workspace/scratch/litellm.txt",
+      "model": "qwen38-27b",
+      "started_at": "2026-10-09T22:30:22.659571+00:00",
+      "prompt": "Reply with exactly: MODEL_READY",
+      "available": true,
+      "requested_max_tokens": 256,
+      "http_status": 200,
+      "response_model": "qwen38-27b",
+      "usage": {
+        "completion_tokens": 3,
+        "prompt_tokens": 18,
+        "total_tokens": 21,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "finish_reasons": [
+        "stop"
+      ],
+      "ready_answer_seen": true,
+      "completed_at": "2026-10-09T22:30:23.153978+00:00",
+      "elapsed_seconds": 0.494
+    },
+    {
+      "credential_file": "/workspace/scratch/litellm2.txt",
+      "model": "deepseek-r1-distill-qwen-14b",
+      "started_at": "2026-10-09T22:30:23.154062+00:00",
+      "prompt": "Reply with exactly: MODEL_READY",
+      "available": true,
+      "requested_max_tokens": 256,
+      "http_status": 200,
+      "response_model": "deepseek-r1-distill-qwen-14b",
+      "usage": {
+        "completion_tokens": 256,
+        "prompt_tokens": 11,
+        "total_tokens": 267
+      },
+      "finish_reasons": [
+        "length"
+      ],
+      "ready_answer_seen": false,
+      "completed_at": "2026-10-09T22:30:28.548874+00:00",
+      "elapsed_seconds": 5.395
+    },
+    {
+      "credential_file": "/workspace/scratch/litellm2.txt",
+      "model": "gpt-oss-120b",
+      "started_at": "2026-10-09T22:30:27.983960+00:00",
+      "prompt": "Reply with exactly: MODEL_READY",
+      "available": true,
+      "requested_max_tokens": 256,
+      "http_status": 200,
+      "response_model": "openai/gpt-oss-120b-maas",
+      "usage": {
+        "completion_tokens": 43,
+        "prompt_tokens": 73,
+        "total_tokens": 116,
+        "extra_properties": {
+          "google": {
+            "traffic_type": "ON_DEMAND"
+          }
+        }
+      },
+      "finish_reasons": [
+        "stop"
+      ],
+      "ready_answer_seen": true,
+      "completed_at": "2026-10-09T22:30:29.115020+00:00",
+      "elapsed_seconds": 1.131
+    },
+    {
+      "credential_file": "/workspace/scratch/litellm2.txt",
+      "model": "minimax-m2",
+      "started_at": "2026-10-09T22:30:28.548933+00:00",
+      "prompt": "Reply with exactly: MODEL_READY",
+      "available": true,
+      "requested_max_tokens": 256,
+      "http_status": 200,
+      "response_model": "minimaxai/minimax-m2-maas",
+      "usage": {
+        "completion_tokens": 133,
+        "prompt_tokens": 29,
+        "total_tokens": 162,
+        "extra_properties": {
+          "google": {
+            "traffic_type": "ON_DEMAND"
+          }
+        }
+      },
+      "finish_reasons": [
+        "stop"
+      ],
+      "ready_answer_seen": true,
+      "completed_at": "2026-10-09T22:30:30.229430+00:00",
+      "elapsed_seconds": 1.681
+    },
+    {
+      "credential_file": "/workspace/scratch/litellm2.txt",
+      "model": "qwen3-235b",
+      "started_at": "2026-10-09T22:30:29.115085+00:00",
+      "prompt": "Reply with exactly: MODEL_READY",
+      "available": true,
+      "requested_max_tokens": 256,
+      "http_status": 200,
+      "response_model": "qwen/qwen3-235b-a22b-instruct-2507-maas",
+      "usage": {
+        "completion_tokens": 3,
+        "prompt_tokens": 14,
+        "total_tokens": 17,
+        "prompt_tokens_details": {
+          "cached_tokens": 2
+        },
+        "extra_properties": {
+          "google": {
+            "traffic_type": "ON_DEMAND"
+          }
+        }
+      },
+      "finish_reasons": [
+        "stop"
+      ],
+      "ready_answer_seen": true,
+      "completed_at": "2026-10-09T22:30:30.062328+00:00",
+      "elapsed_seconds": 0.947
+    }
+  ],
+  "policy": {
+    "objective": "Run every model listed by the two supplied LiteLLM credentials through the authorized end-to-end demo skill and log each outcome.",
+    "files": [
+      "docs/reports/2026-10-09-litellm-model-sweep.md",
+      "docs/reports/evidence/2026-10-09/litellm-sweep-*.json",
+      "docs/reports/2026-10-09-litellm-sweep-*-prompts.md"
+    ],
+    "sequence": [
+      "Discover both model catalogues and verify access",
+      "For each model select its credential, reset, bootstrap, verify baseline and model, and run AO readiness",
+      "Launch one fault; observe until an idle published PR or 30-minute cutoff",
+      "Independently test the immutable published head once; merge only when all checks pass",
+      "Launch one nginx recovery and verify Enforcing/HTTP/normal alert resolution",
+      "Record failures, timings, prompts and usage; publish redacted logs before the next reset"
+    ],
+    "constraints": [
+      "Use the repository run-demojam skill",
+      "Use ~/.kube/config",
+      "Retain AAP",
+      "Use unchanged source branches, bootstrap implementation and automatic task",
+      "No code review, coaching, candidate edits, manual dispatch, compaction, flow replay or runtime repair",
+      "No operator test-runner correction or candidate test retry during a model run",
+      "Failed runs remain failures; the next model starts with its normal authorized reset",
+      "All bootstrap/lifecycle execution stays in bootstrap/bootstrap.sh"
+    ]
+  }
+}
