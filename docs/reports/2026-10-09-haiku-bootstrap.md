@@ -2,9 +2,11 @@
 
 Bootstrap completed on the cluster in `~/.kube/config`, using the OpenCode Go subscription and `claude-haiku-5-5` for AO and Omnigent. The successful retry took **30m 55s**. From the first attempt through completion, including a transport correction and restart, setup took **38m 33s**.
 
-The subsequent SELinux outage reached a tested Forgejo PR in **9m 17s**. Alerting, RCA, issue creation, the Forgejo webhook, EDA/AO, and the native agent handoff ran automatically. The session received one automatic task and no corrective human messages. Review found an Ansible compatibility metadata mismatch that must be corrected before merge. The PR remains open; the application was restored to the permissive demo baseline.
+The subsequent SELinux outage reached a tested Forgejo PR in **9m 17s**. Alerting, RCA, issue creation, the Forgejo webhook, EDA/AO, and the native agent handoff ran automatically. The session received one automatic task and no corrective human messages. At the end of that rehearsal, review had found an Ansible compatibility metadata mismatch, the PR remained open, and the application had been restored to the permissive demo baseline.
 
-This was one rehearsal. It demonstrates an unattended session-to-tested-PR run, but does not establish a repeatability rate or prove deployment of this candidate to RHEL. The older Qwen runs used different configuration and infrastructure; the time difference cannot be attributed to the model or dependency preloads alone.
+The later authorized merge test deployed the candidate to **RHEL 9.8** and verified **SELinux Enforcing, HTTP 200 and probe_success=1**. Merge to bootstrap's recovery verification took **9m 00.3s**; the additional persistent-label check completed after **9m 28.3s**. AAP emitted compatibility warnings because its Core 2.16.19 is older than the dependency's declared minimum. The SELinux behavior passed; supported version alignment remains unresolved.
+
+This was one rehearsal and one subsequent merge test. They do not establish a repeatability rate. The older Qwen runs used different configuration and infrastructure; the time difference cannot be attributed to the model or dependency preloads alone.
 
 ## Configuration and source
 
@@ -73,9 +75,52 @@ Lint and collection build returned zero. `make molecule` ran the sole nginx scen
 - **Automatic storage wait:** disk pressure appeared at 14:24:22 and cleared at 14:29:17. Bootstrap held the AAP launch until the node recovered. No manual image deletion or cleanup was needed.
 - **Transient alert-ingestion failure:** Thanos Ruler's first send at 14:42:12 received HTTP 401 from Alertmanager. A later send succeeded automatically; the alert was active and unsilenced, and EDA continued. No credential edit or manual redelivery was performed. The cause of the first rejection was not established.
 - **Agent recovery:** its first log redirection targeted root-owned `/tmp/opencode` and failed before Molecule started. It used `/tmp/omn-val` and completed one actual lifecycle. It also disabled hooks on its commit command, then checked that only sample hooks existed; no active check was bypassed.
-- **Review blocker:** `galaxy.yml` adds `community.general >=13.5.0`, whose installed `meta/runtime.yml` requires Core >=2.18. The candidate's `meta/runtime.yml:2` and role README still advertise >=2.16. Tests used Core **2.21.4**, so they do not prove the advertised older compatibility. Align the declared minimum before merge.
+- **Initial review blocker:** `galaxy.yml` adds `community.general >=13.5.0`, whose installed `meta/runtime.yml` requires Core >=2.18. The candidate's `meta/runtime.yml:2` and role README still advertised >=2.16. Tests used Core **2.21.4**, so they did not prove the advertised older compatibility. The merge test corrected those two declarations; it then exposed the older AAP runtime described below.
 
-After review, `make webapp-nginx` and `make webapp-verify` restored and checked the original permissive baseline in **76s**. The candidate was not merged or deployed. Human merge and a human-launched recovery job remain the next steps; a healthy permissive baseline is not proof of the fix under Enforcing.
+After initial review, `make webapp-nginx` and `make webapp-verify` restored and checked the original permissive baseline in **76s**. The candidate had not yet been merged or deployed. That healthy permissive baseline was not proof of the fix under Enforcing.
+
+## Authorized merge and deployment test
+
+The user then requested: “Test merging the PR and see if it resolves the issue.” The merge was performed through Forgejo; GitHub's integration PRs remain open. No new task or corrective message was sent to Omnigent.
+
+Before merging, a human review edit raised `meta/runtime.yml` and the role README's Ansible minimum to 2.18 in `276b7beb7a76b5432f817718afb8ccf322f64d0f`. These were the only changes to the agent's tested candidate. Lint, collection build and a comparison with the installed dependency's minimum passed in **8.230s**. The earlier complete Molecule result remains evidence for the unchanged role; Molecule was not repeated for these two declarations.
+
+The test first silenced WebappDown notifications and ran the existing fault job. AAP confirmed Enforcing and the independent probe returned **403/probe_success=0**. The verifier's nonzero exit was the expected reproduction result. The exact reviewed head was then guarded in the squash merge request. Forgejo merged PR #3 at **15:26:42 UTC** as `440af8c01fea2ff65314b7e13d753b15854db6c9`, closed issue #2, and removed the source branch.
+
+| Phase | UTC | Elapsed |
+|---|---|---:|
+| Silence, fault-job refresh/launch, Enforcing check and expected failed HTTP check | 15:24:31.455–15:26:13.996 | 1m 42.541s |
+| Corrected candidate lint/build/minimum check, overlapping reproduction | 15:25:13.715–15:25:21.944 | 8.230s |
+| Guarded merge request and main/issue verification | 15:26:42.111–15:26:43.236 | 1.125s |
+| Bootstrap nginx refresh and deployment | 15:26:43.257–15:30:10.975 | 3m 27.718s |
+| Bootstrap enforcement refresh, independent mode/HTTP check and end of maintenance | 15:30:32.990–15:35:42.381 | 5m 09.391s |
+| Additional independent persistent-label/domain check | 15:36:02.117–15:36:10.427 | 8.310s |
+
+Reproduction through the final independent check took **11m 39.0s**. This includes review/tool gaps and a premature read-only check, rather than continuous unattended automation. The original incident-to-PR measurement ends at PR creation; the later merge test is a separate measurement after the human review wait.
+
+Six project updates ran during deployment and re-enforcement. Their collection-fetch commands took **70.077s, 36.961s, 28.213s, 104.617s, 78.927s and 48.447s**, totaling **6m 07.244s**. The actual nginx job took **27.261s**, and the enforcement job took **8.439s**. Inventory and project update spans overlap; their durations must not be added to the fetch total. The [JSON evidence](evidence/2026-10-09/haiku-bootstrap.json) preserves every project/inventory/job interval.
+
+All **14** cached nginx role and runtime metadata files matched the reviewed candidate by SHA-256. The deployment job recorded:
+
+```text
+Relabeled /web from unconfined_u:object_r:default_t:s0 to unconfined_u:object_r:httpd_sys_content_t:s0
+Relabeled /web/index.html from system_u:object_r:default_t:s0 to system_u:object_r:httpd_sys_content_t:s0
+```
+
+The nginx playbook sets Permissive as a baseline pre-task, so its successful HTTP check alone was insufficient. The subsequent seeded enforcement job and independent checks established:
+
+- `getenforce` returned **Enforcing** on RHEL 9.8.
+- Nginx ran in `httpd_t`, with no `httpd_t` permissive exception; its worker ran as `nginx`.
+- Both paths carried `httpd_sys_content_t`, and the local policy contained `/web(/.*)?` with that type.
+- `restorecon -n -R -v /web` proposed no relabels.
+- The origin probe returned **HTTP 200/probe_success=1**, and WebappDown had **zero active alerts**, including silenced alerts.
+- All 15 Argo applications were Synced/Healthy, both EDA activations were running, and only the original Omnigent session existed.
+
+One additional read-only guest check was queued too early. It ran at **15:35:00–15:35:05**, before the enforcement job finished at **15:35:25.998**, and correctly failed its Enforcing assertion. It was rerun successfully after completion. No guest files, contexts, cluster objects or credentials were manually patched; the two metadata edits, merge and seeded AAP launches were the human interventions.
+
+The AAP job also warned that `demo.webapp` and `community.general` do not support its **Core 2.16.19** runtime. Raising the metadata minimum fixed the collection's declaration, not the execution environment. The runtime and dependency range need a supported alignment, and repository validation should check against AAP's actual version. The functional result does not establish general compatibility with Core 2.16.
+
+The next delivery improvement is one human-launched recovery job that refreshes the merged artifact once, deploys it, and asserts Enforcing plus origin HTTP without the baseline's Permissive pre-task. Reusing that exact dependency cache for inventory updates would target the observed repeated fetches. A loaded-file digest check should remain part of validation so caching cannot silently deploy an older collection.
 
 More node disk headroom should reduce the observed storage wait. A readiness check for authenticated alert ingestion could expose the transient 401 before a rehearsal. A generic validation check comparing production dependency requirements with the collection's declared Ansible minimum would catch the review blocker without prescribing the SELinux implementation.
 

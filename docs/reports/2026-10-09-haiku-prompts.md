@@ -75,3 +75,15 @@ Close this issue after investigating; repeat alerts reuse it while it is open.
 
 
 ```
+
+## Later merge-test authorization
+
+The user requested:
+
+> Test merging the PR and see if it resolves the issue
+
+No additional model prompt or Omnigent task was sent. The operator corrected two
+Ansible minimum declarations, merged the reviewed head through Forgejo, and
+launched the existing AAP deployment and enforcement jobs. The run report records
+the commands' timing, a premature read-only verification, the successful final
+checks, and the AAP compatibility warnings.
