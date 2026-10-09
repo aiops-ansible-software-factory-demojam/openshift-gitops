@@ -100,6 +100,10 @@ Setup and reset silence only `WebappDown` while the baseline is unavailable.
 Bootstrap waits for monitoring to observe recovery before ending maintenance.
 Recovery notifications and a 30-second group interval allow repeat demo runs;
 EDA dispatches only firing alerts, and repeats reuse the open incident.
+Before script launches, bootstrap waits for node storage readiness and refreshes
+the AAP project and inventories sequentially. Ensuing EDA/AO jobs reuse a
+ten-minute dependency cache; script launches always refresh it, including after
+creating a VM, so inventory still discovers the new guest.
 Setup, reset, and teardown share the implementation in
 `bootstrap/bootstrap.sh`; Make targets invoke that script directly.
 

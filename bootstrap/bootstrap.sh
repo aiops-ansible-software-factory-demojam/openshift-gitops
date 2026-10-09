@@ -1925,7 +1925,7 @@ YAML
 }
 
 aap_launch() {
-  local name=$1 extra=${2:-'{}'} reset=${3:-false} org template result
+  local name=$1 extra=${2:-'{}'} reset=${3:-false} org template record result project inventory sources source update
   case $name in
     webapp_vm|webapp_nginx|webapp_selinux_enable|aap_configure_all) ;;
     openshift_virtualization_machine) [[ $reset == true ]] || demo_die 'Only seeded demo templates may be launched.' ;;
@@ -1935,7 +1935,24 @@ aap_launch() {
   # storage pressure before launch instead of submitting pods for eviction.
   oc wait node --all --for=condition=DiskPressure=False --timeout=10m
   org=$(aap_find organizations/ demo | jq -er .id)
-  template=$(aap_find job_templates/ "$name" "$(jq -n --argjson org "$org" '{organization:$org}')" | jq -er .id)
+  record=$(aap_find job_templates/ "$name" "$(jq -n --argjson org "$org" '{organization:$org}')")
+  template=$(jq -er .id <<<"$record")
+  project=$(jq -er .project <<<"$record")
+  inventory=$(jq -er .inventory <<<"$record")
+  # Always refresh before script launches (including after VM creation), but
+  # serialize the execution pods and let ensuing EDA/AO jobs reuse the results.
+  # Zero inventory cache starts several project/inventory pods per job on SNO.
+  aap_request PATCH "projects/$project/" '{"scm_update_cache_timeout":600}' >/dev/null
+  sources=$(aap_request GET "inventory_sources/?inventory=$inventory&page_size=200")
+  while read -r source; do
+    aap_request PATCH "inventory_sources/$source/" '{"update_cache_timeout":600}' >/dev/null
+  done < <(jq -r '.results[] | select(.source == "scm" and .update_on_launch) | .id' <<<"$sources")
+  update=$(aap_request POST "projects/$project/update/" '{}')
+  aap_wait "project_updates/$(jq -er .id <<<"$update")/"
+  while read -r source; do
+    update=$(aap_request POST "inventory_sources/$source/update/" '{}')
+    aap_wait "inventory_updates/$(jq -er .id <<<"$update")/"
+  done < <(jq -r '.results[] | select(.source == "scm" and .update_on_launch) | .id' <<<"$sources")
   result=$(aap_request POST "job_templates/$template/launch/" "$(jq -n --argjson extra "$extra" '{extra_vars:$extra}')")
   local job
   job=$(jq -er .job <<<"$result")
@@ -2014,7 +2031,7 @@ aap_dispatch() {
     '{organization:$org,image:$image,pull:"always"}')" | jq -er .id)
   project_record=$(aap_upsert projects/ demojam-ansible "$(jq -n --argjson org "$org" '{
     organization:$org,scm_type:"git",scm_url:"http://forgejo.forgejo.svc.cluster.local:3000/demo-owner/demojam-ansible.git",
-    scm_branch:"main",credential:null,scm_update_on_launch:true,scm_update_cache_timeout:30}')")
+    scm_branch:"main",credential:null,scm_update_on_launch:true,scm_update_cache_timeout:600}')")
   project=$(jq -er .id <<<"$project_record")
   if jq -e '.current_update != null' <<<"$project_record" >/dev/null; then
     aap_wait "project_updates/$(jq -er .current_update <<<"$project_record")/"
