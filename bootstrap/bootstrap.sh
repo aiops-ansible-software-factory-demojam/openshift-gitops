@@ -1001,9 +1001,9 @@ demo_ao_llm_proxy() {
       api_key:"os.environ/PROVIDER_API_KEY"} +
       (if $qwen then {extra_body:{chat_template_kwargs:{enable_thinking:false}}} else {} end))}],
       general_settings:{master_key:"os.environ/LITELLM_MASTER_KEY"},
-      litellm_settings:({num_retries:0} + (if $qwen then {} else {callbacks:["go_headers.callback"]} end))}' |
+      litellm_settings:{num_retries:0,callbacks:[if $qwen then "provider_options.qwen" else "provider_options.go" end]}}' |
     yq -y . >"$omnigent_scratch/go-config.yaml"
-  cat >"$omnigent_scratch/go_headers.py" <<'PY'
+  cat >"$omnigent_scratch/provider_options.py" <<'PY'
 from uuid import uuid4
 from litellm.integrations.custom_logger import CustomLogger
 
@@ -1016,11 +1016,22 @@ class GoHeaders(CustomLogger):
         headers["User-Agent"] = "automation-orchestrator-demojam/1.0"
         return data
 
-callback = GoHeaders()
+class QwenOptions(CustomLogger):
+    async def async_pre_call_hook(self, user_api_key_dict, cache, data, call_type):
+        # AO binds an empty list for questions without tools. The upstream
+        # endpoint requires that optional field to be omitted instead.
+        if data.get("tools") == []:
+            data.pop("tools")
+            data.pop("tool_choice", None)
+            data.pop("parallel_tool_calls", None)
+        return data
+
+go = GoHeaders()
+qwen = QwenOptions()
 PY
   config_status=$(oc -n "$namespace" create configmap "$proxy_name" \
     --from-file=config.yaml="$omnigent_scratch/go-config.yaml" \
-    --from-file=go_headers.py="$omnigent_scratch/go_headers.py" --dry-run=client -o yaml |
+    --from-file=provider_options.py="$omnigent_scratch/provider_options.py" --dry-run=client -o yaml |
     oc -n "$namespace" apply -f -)
   cat <<YAML | oc -n "$namespace" apply -f - >/dev/null
 apiVersion: apps/v1
