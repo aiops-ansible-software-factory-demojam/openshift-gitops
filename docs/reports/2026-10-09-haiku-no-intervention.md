@@ -83,7 +83,7 @@ Jobs 298 and 304 were reset VM cleanup; 311 configured AAP after reseeding. Jobs
 
 ## Agent and independent validation
 
-One session received one automatic task. The existing task included the RCA and collection/test instructions; it was not changed for this run. Haiku ran lint and built the collection successfully. Its first Molecule launch tried to redirect output into `/tmp/opencode/molecule-run1.log` and failed with permission denied before Molecule executed. Haiku changed its own log destination and completed the full test in 111.241s without operator feedback.
+One session received one automatic task. The existing task included the RCA and collection/test instructions; it was not changed for this run. An early tool-discovery shell command returned exit 2 in 0.986s; the agent continued without feedback. The record establishes the shell exit, not which subcommand caused it. Haiku ran lint and built the collection successfully. Its first Molecule launch tried to redirect output into `/tmp/opencode/molecule-run1.log` and failed with permission denied before Molecule executed. Haiku changed its own log destination and completed the full test in 111.241s without operator feedback.
 
 | Actor | Check | Start | Duration | Result |
 |---|---|---|---:|---|

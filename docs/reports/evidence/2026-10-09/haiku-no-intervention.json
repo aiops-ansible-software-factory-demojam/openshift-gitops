@@ -3303,7 +3303,23 @@
       "claude-haiku-5-5"
     ],
     "rate_limit_errors": [],
-    "measurement_note": "Provider-reported cumulative usage; cached input is separate. This is not a billing estimate or a measured decoding rate."
+    "measurement_note": "Provider-reported cumulative usage; cached input is separate. This is not a billing estimate or a measured decoding rate.",
+    "nonzero_tool_exits": [
+      {
+        "tool": "bash",
+        "exit": 2,
+        "status": "completed",
+        "started_at": "2026-10-09T22:00:56.477000+00:00",
+        "elapsed_seconds": 0.986
+      },
+      {
+        "tool": "bash",
+        "exit": 1,
+        "status": "completed",
+        "started_at": "2026-10-09T22:02:19.321000+00:00",
+        "elapsed_seconds": 0.06
+      }
+    ]
   },
   "agent_validation": [
     {
