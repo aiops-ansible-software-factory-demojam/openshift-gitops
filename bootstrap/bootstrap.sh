@@ -1882,6 +1882,44 @@ aap_launch() {
   aap_wait "jobs/$job/"
 }
 
+aap_verify_enforcing() {
+  local org scope inventory credential environment result job events
+  org=$(aap_find organizations/ demo | jq -er .id)
+  scope=$(jq -n --argjson org "$org" '{organization:$org}')
+  inventory=$(aap_find inventories/ demo-inventory "$scope" | jq -er .id)
+  credential=$(aap_find credentials/ demo-webapp-ssh "$scope" | jq -er .id)
+  environment=$(aap_find execution_environments/ demo-aap-ee | jq -er .id)
+  result=$(aap_request POST ad_hoc_commands/ "$(jq -n --argjson inventory "$inventory" \
+    --argjson credential "$credential" --argjson environment "$environment" \
+    '{inventory:$inventory,credential:$credential,execution_environment:$environment,
+      limit:"webapps",module_name:"command",module_args:"getenforce",become_enabled:true}')")
+  job=$(jq -er .id <<<"$result")
+  aap_wait "ad_hoc_commands/$job/"
+  events=$(aap_request GET "ad_hoc_commands/$job/events/?event=runner_on_ok&page_size=200")
+  jq -e '.count > 0 and all(.results[]; .event_data.res.rc == 0 and
+    (.event_data.res.stdout | rtrimstr("\n")) == "Enforcing")' <<<"$events" >/dev/null ||
+    demo_die 'The webapp SELinux check did not return Enforcing.'
+  printf 'Webapp SELinux is Enforcing (AAP ad hoc command %s).\n' "$job"
+}
+
+# Config-as-code enables these again during the next bootstrap.
+aap_stop_demo_listeners() {
+  local activations id activation deadline
+  activations=$(aap_request GET 'activations/?page_size=200' '' /api/eda/v1/)
+  while read -r id; do
+    aap_request POST "activations/$id/disable/" '{}' /api/eda/v1/ >/dev/null
+    deadline=$((SECONDS + 300))
+    while :; do
+      activation=$(aap_request GET "activations/$id/" '' /api/eda/v1/)
+      if jq -e '.is_enabled == false and .status == "stopped"' <<<"$activation" >/dev/null; then break; fi
+      (( SECONDS < deadline )) || demo_die "Timed out stopping demo EDA activation $id."
+      sleep 5
+    done
+    printf 'Stopped demo EDA activation %s.\n' "$id"
+  done < <(jq -r '.results[] | select(.is_enabled and
+    (.name == "demojam-webapp-issues" or .name == "demojam-forgejo-remediation")) | .id' <<<"$activations")
+}
+
 aap_reset_vms() {
   local org scope name template project inventory jobs job
   org=$(aap_find organizations/ demo | jq -er .id)
@@ -1983,6 +2021,8 @@ demo_aap() (
     credentials) aap_credentials ;;
     dispatch) aap_dispatch ;;
     reset-vms) aap_reset_vms ;;
+    verify-enforcing) aap_verify_enforcing ;;
+    stop-listeners) aap_stop_demo_listeners ;;
     launch) shift; aap_launch "$@" ;;
     *) demo_die 'Unknown AAP action.' ;;
   esac
@@ -2011,6 +2051,7 @@ demo_webapp() {
     nginx) demo_aap launch webapp_nginx ;;
     delete) demo_aap launch webapp_vm '{"vm_state":"absent"}' ;;
     sync) demo_aap launch aap_configure_all ;;
+    verify-enforcing) demo_aap verify-enforcing; demo_webapp verify ;;
     verify)
       local host pod metrics login_redirect ingress_domain
       oc -n webapp-vms wait --for=condition=Ready vm/webapp --timeout=15m
@@ -2026,7 +2067,7 @@ demo_webapp() {
       [[ $metrics == *'probe_success 1'* ]] || demo_die 'Webapp blackbox probe failed.'
       printf 'RHEL webapp and blackbox probe are healthy: https://%s/\n' "$host"
       ;;
-    *) demo_die 'Usage: webapp create|nginx|delete|sync|verify' ;;
+    *) demo_die 'Usage: webapp create|nginx|delete|sync|verify|verify-enforcing' ;;
   esac
 }
 
@@ -2381,6 +2422,7 @@ demo_reset() (
   [[ $# == 1 && $1 == --confirm-demo-reset ]] ||
     demo_die 'Usage: demo-reset --confirm-demo-reset (deletes demo repos, sessions, VMs and disks).'
   demo_verify_cluster
+  demo_aap stop-listeners
   local ingress_domain omnigent_host scratch agent_id cursor page session_id namespace remaining
   local -a session_ids=() page_ids=()
   ingress_domain=$(oc -n openshift-ingress-operator get ingresscontroller default -o jsonpath='{.status.domain}')
@@ -2438,8 +2480,15 @@ demo_reset() (
 # Full removal keeps controllers running until their operands have finalized.
 # The durable, secret-free inventory also supports resuming interrupted removal.
 demo_teardown() (
-  [[ $# == 1 && $1 == --confirm-demo-teardown ]] ||
-    demo_die 'Usage: teardown --confirm-demo-teardown (deletes demo data and operators).'
+  local keep_aap=false confirmed=false argument
+  for argument in "$@"; do
+    case $argument in
+      --confirm-demo-teardown) confirmed=true ;;
+      --keep-aap) keep_aap=true ;;
+      *) demo_die 'Usage: teardown --confirm-demo-teardown [--keep-aap]' ;;
+    esac
+  done
+  [[ $confirmed == true ]] || demo_die 'Usage: teardown --confirm-demo-teardown [--keep-aap]'
   demo_verify_cluster
   local state="$demo_repo_root/.rendered/demo-teardown.json" scratch app namespace kind group name resource csv crd
   local -a namespaces=(homepage blackbox-exporter webapp-vms automation-vms molecule-tests
@@ -2450,6 +2499,22 @@ demo_teardown() (
   scratch=$(mktemp -d)
   trap 'find "$scratch" -type f -delete; rmdir "$scratch"' EXIT
   mkdir -p "$demo_repo_root/.rendered"
+  if [[ $keep_aap == true ]]; then
+    state="$demo_repo_root/.rendered/demo-teardown-keep-aap.json"
+    local -a removed_namespaces=()
+    for namespace in "${namespaces[@]}"; do
+      [[ $namespace == ansible-automation-platform ]] || removed_namespaces+=("$namespace")
+    done
+    namespaces=("${removed_namespaces[@]}")
+    oc -n ansible-automation-platform get ansibleautomationplatform aap -o json |
+      jq '{uid:.metadata.uid}' >"$scratch/aap.json"
+    oc -n ansible-automation-platform get pvc -o json |
+      jq '[.items[] | {name:.metadata.name,uid:.metadata.uid,volume:.spec.volumeName}] | sort_by(.name)' >"$scratch/aap-pvcs.json"
+    demo_aap stop-listeners
+  else
+    printf 'null' >"$scratch/aap.json"
+    printf '[]' >"$scratch/aap-pvcs.json"
+  fi
   if [[ -n $(oc get crd applications.argoproj.io --ignore-not-found -o name) ]]; then
     oc -n openshift-gitops get applications -o json >"$scratch/apps.json"
   else
@@ -2470,14 +2535,28 @@ demo_teardown() (
           crds:[$csv.spec.customresourcedefinitions.owned[]?.name]}]' >"$scratch/csvs.json"
     oc get crd -o json | jq '[.items[] | select(.spec.group | test("(^|\\.)(kubevirt\\.io|tekton\\.dev)$")) | .metadata.name]' >"$scratch/operand-crds.json"
     jq -n --arg server "$DEMO_CLUSTER_SERVER" --arg repo "$BOOTSTRAP_REPO_URL" \
+      --argjson keep_aap "$keep_aap" --slurpfile aap "$scratch/aap.json" --slurpfile pvcs "$scratch/aap-pvcs.json" \
       --slurpfile apps "$scratch/apps.json" --slurpfile subscriptions "$scratch/subscriptions.json" \
       --slurpfile csvs "$scratch/csvs.json" --slurpfile operands "$scratch/operand-crds.json" \
-      '{server:$server,repo:$repo,apps:[$apps[0].items[].metadata.name],
+      '([$csvs[0][] | select(.namespace == "ansible-automation-platform") | .crds[]] | unique) as $aap_crds |
+       {server:$server,repo:$repo,keep_aap:$keep_aap,aap:$aap[0],aap_pvcs:$pvcs[0],apps:[$apps[0].items[].metadata.name],
         resources:([$apps[0].items[].status.resources[]?] | unique_by([.group,.kind,.namespace,.name])),
-        subscriptions:$subscriptions[0],csvs:$csvs[0],crds:([$csvs[0][].crds[]]+$operands[0]|unique)}' >"$state"
+        subscriptions:$subscriptions[0],csvs:$csvs[0],crds:([$csvs[0][].crds[]]+$operands[0]|unique)} |
+       if $keep_aap then
+         .resources |= map(select(.namespace != "ansible-automation-platform")) |
+         .subscriptions |= map(select(.namespace != "ansible-automation-platform")) |
+         .csvs |= map(select(.namespace != "ansible-automation-platform")) |
+         .crds -= $aap_crds
+       else . end' >"$state"
   fi
-  jq -e --arg server "$DEMO_CLUSTER_SERVER" --arg repo "$BOOTSTRAP_REPO_URL" \
-    '.server == $server and .repo == $repo' "$state" >/dev/null || demo_die 'Teardown inventory belongs to a different cluster or repository.'
+  jq -e --arg server "$DEMO_CLUSTER_SERVER" --arg repo "$BOOTSTRAP_REPO_URL" --argjson keep_aap "$keep_aap" \
+    '.server == $server and .repo == $repo and (.keep_aap // false) == $keep_aap' "$state" >/dev/null ||
+    demo_die 'Teardown inventory belongs to a different cluster, repository or preservation mode.'
+  if [[ $keep_aap == true ]]; then
+    jq -e --slurpfile aap "$scratch/aap.json" --slurpfile pvcs "$scratch/aap-pvcs.json" \
+      '.aap == $aap[0] and .aap_pvcs == $pvcs[0]' "$state" >/dev/null ||
+      demo_die 'AAP or its persistent volumes changed since this teardown began.'
+  fi
 
   demo_step 'Stop demo GitOps reconciliation'
   # Root first: it must not recreate children while they are being detached.
@@ -2576,7 +2655,9 @@ demo_teardown() (
   while IFS= read -r name; do
     oc delete operators.operators.coreos.com "$name" --ignore-not-found
   done < <(yq -s . "$demo_repo_root"/cluster/*/*subscription.yaml "$demo_repo_root"/bootstrap/*subscription.yaml |
-    jq -r '.[] | (.spec.name + "." + .metadata.namespace)[0:63]')
+    jq -r --argjson keep_aap "$keep_aap" '.[] |
+      select($keep_aap == false or .metadata.namespace != "ansible-automation-platform") |
+      (.spec.name + "." + .metadata.namespace)[0:63]')
   oc delete -f "$demo_repo_root/bootstrap/config/openshift-gitops-cluster-permissions.yaml" --ignore-not-found
 
   demo_step 'Remove demo namespaces and persistent data'
@@ -2594,7 +2675,21 @@ demo_teardown() (
   remaining=$(oc get pv -o json | jq -r --argjson namespaces "$(printf '%s\n' "${namespaces[@]}" | jq -R . | jq -s .)" \
     '.items[] | .spec.claimRef.namespace as $ns | select($namespaces | index($ns)) | .metadata.name')
   [[ -z $remaining ]] || demo_die "Demo PVs are still being reclaimed: $remaining. Inspect storage before reinstalling."
-  echo 'Demo teardown completed: applications, operators, APIs, identity integration and persistent data removed.'
+  if [[ $keep_aap == true ]]; then
+    oc -n ansible-automation-platform get ansibleautomationplatform aap -o json |
+      jq '{uid:.metadata.uid}' >"$scratch/aap-after.json"
+    oc -n ansible-automation-platform get pvc -o json |
+      jq '[.items[] | {name:.metadata.name,uid:.metadata.uid,volume:.spec.volumeName}] | sort_by(.name)' >"$scratch/aap-pvcs-after.json"
+    cmp "$scratch/aap.json" "$scratch/aap-after.json"
+    cmp "$scratch/aap-pvcs.json" "$scratch/aap-pvcs-after.json"
+    oc -n ansible-automation-platform wait --for=condition=Successful ansibleautomationplatform/aap --timeout=15m
+    for name in aap-gateway aap-controller-web aap-controller-task; do
+      oc -n ansible-automation-platform rollout status "deployment/$name" --timeout=15m
+    done
+    echo 'Demo teardown completed; AAP, its operator and persistent volumes are preserved.'
+  else
+    echo 'Demo teardown completed: applications, operators, APIs, identity integration and persistent data removed.'
+  fi
 )
 
 # Command entry point. Help is local and does not load .env.
@@ -2607,7 +2702,7 @@ demo_main() {
 Usage: bash bootstrap/bootstrap.sh [COMMAND]
 
   bootstrap          Install/configure the platform, create the RHEL VM, install nginx, verify
-  teardown --confirm-demo-teardown Remove the entire demo stack, operators and persistent data
+  teardown --confirm-demo-teardown [--keep-aap] Remove demo data/operators; optionally preserve AAP
   demo-reset --confirm-demo-reset Reset disposable demo repos, sessions, VMs and disks
   preflight          Read-only input and pre-install cluster checks (also --check)
   sandbox-build      Build the configured :latest sandbox image
@@ -2619,7 +2714,7 @@ Usage: bash bootstrap/bootstrap.sh [COMMAND]
   ao-run NAME [JSON] Execute a published workflow and print its result
   reconcile-workflow Alias for ao-configure
   aap-configure      Configure AAP/EDA, publish AO workflows, connect the Forgejo webhook
-  webapp ACTION      create | nginx | verify | delete | sync
+  webapp ACTION      create | nginx | verify | verify-enforcing | delete | sync
   aap ACTION         credentials | wait-project | dispatch | reset-vms | launch TEMPLATE [JSON]
   readiness TARGET   sandbox | aap
 
