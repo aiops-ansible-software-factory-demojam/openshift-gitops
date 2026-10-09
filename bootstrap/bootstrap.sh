@@ -1755,6 +1755,44 @@ demo_alerting_prepare() (
 
 # A separate token and stable listener URL keep Forgejo deliveries independent
 # of Alertmanager. Register the hook only after EDA and AO are ready.
+demo_alerting_maintenance() {
+  local action=$1 id previous alerts deadline=$((SECONDS + 600))
+  local -a client=(oc -n openshift-user-workload-monitoring exec alertmanager-user-workload-0
+    -c alertmanager -- /bin/amtool --alertmanager.url=http://localhost:9093)
+  until [[ -n $(oc -n openshift-user-workload-monitoring get statefulset alertmanager-user-workload \
+    --ignore-not-found -o name) ]]; do
+    (( SECONDS < deadline )) || demo_die 'Timed out waiting for demo Alertmanager.'
+    sleep 5
+  done
+  oc -n openshift-user-workload-monitoring rollout status statefulset/alertmanager-user-workload --timeout=10m
+  if [[ $action == pause ]]; then
+    # Create coverage before removing earlier bootstrap silences on a rerun.
+    id=$("${client[@]}" silence add --author=demo-bootstrap --duration=2h \
+      --comment='Demojam setup and reset' alertname=WebappDown namespace=blackbox-exporter)
+    [[ $id =~ ^[0-9a-f-]{36}$ ]] || demo_die 'Alertmanager did not return a silence ID.'
+  elif [[ $action == resume ]]; then
+    # HTTP may recover before the next scrape and alert evaluation. Keep setup
+    # muted until Alertmanager has observed that real recovery.
+    deadline=$((SECONDS + 300))
+    while :; do
+      alerts=$("${client[@]}" -o json alert query --active --silenced --inhibited --unprocessed \
+        alertname=WebappDown namespace=blackbox-exporter)
+      if jq -e 'all(.[]; (.endsAt | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601) <= now)' <<<"$alerts" >/dev/null; then break; fi
+      (( SECONDS < deadline )) || demo_die 'WebappDown is still active; leaving setup maintenance in place.'
+      sleep 10
+    done
+    id=
+  else
+    demo_die 'Unknown alerting maintenance action.'
+  fi
+  while read -r previous; do
+    [[ $previous == "$id" ]] || "${client[@]}" silence expire "$previous" >/dev/null
+  done < <("${client[@]}" -o json silence query --created-by=demo-bootstrap \
+    alertname=WebappDown namespace=blackbox-exporter |
+    jq -r '.[] | select(.comment == "Demojam setup and reset") | .id')
+  printf 'Demo alerting maintenance: %s.\n' "$action"
+}
+
 demo_forgejo_webhook_prepare() (
   umask 077
   local scratch host uuid
@@ -2359,6 +2397,7 @@ demo_bootstrap() (
   demo_identity_configure
   demo_readiness sandbox
   demo_readiness aap
+  demo_alerting_maintenance pause
 
   # Build only after the operator rollout, keeping image storage on a PVC.
   demo_step 'Build or reuse the OpenCode sandbox image'
@@ -2423,6 +2462,7 @@ demo_bootstrap() (
   demo_webapp nginx
   demo_step 'Verify the webapp and monitoring probe'
   demo_webapp verify
+  demo_alerting_maintenance resume
   demo_step 'Populate and verify Homepage navigation and dashboard'
   demo_homepage_configure bootstrap
 
@@ -2441,6 +2481,7 @@ demo_reset() (
   [[ $# == 1 && $1 == --confirm-demo-reset ]] ||
     demo_die 'Usage: demo-reset --confirm-demo-reset (deletes demo repos, sessions, VMs and disks).'
   demo_verify_cluster
+  demo_alerting_maintenance pause
   demo_aap stop-listeners
   local ingress_domain omnigent_host scratch agent_id cursor page session_id namespace remaining
   local -a session_ids=() page_ids=()

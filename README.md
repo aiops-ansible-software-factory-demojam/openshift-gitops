@@ -96,6 +96,10 @@ After deploying a merged fix, enable SELinux with
 `bash bootstrap/bootstrap.sh webapp verify-enforcing` to check Enforcing and HTTP.
 For `qwen38-27b`, bootstrap also configures an authenticated LiteLLM bridge for
 AO's RCA requests with thinking disabled, matching the Omnigent configuration.
+Setup and reset silence only `WebappDown` while the baseline is unavailable.
+Bootstrap waits for monitoring to observe recovery before ending maintenance.
+Recovery notifications and a 30-second group interval allow repeat demo runs;
+EDA dispatches only firing alerts.
 Setup, reset, and teardown share the implementation in
 `bootstrap/bootstrap.sh`; Make targets invoke that script directly.
 
