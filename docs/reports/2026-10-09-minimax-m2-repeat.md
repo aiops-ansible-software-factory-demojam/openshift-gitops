@@ -115,4 +115,4 @@ Reset and bootstrap consumed almost 25 minutes before the incident. Keeping AAP 
 
 ## Redaction and verification
 
-Public files omit credentials, live cluster addresses, runtime identifiers, provider reasoning and compaction summaries. Submitted user prompts are retained with those redactions. The known-credential scan examined 1,727 reachable Git blobs across the demo repos and found no matches for the supplied current credentials. No history rewrite was necessary; this is not a claim that every possible historical secret was identified.
+Public files omit credentials, live cluster addresses, runtime identifiers, provider reasoning and compaction summaries. Submitted user prompts are retained with those redactions. The known-credential scan examined 1,727 locally reachable Git blobs and found no matches for the supplied current credentials. No history rewrite was necessary; this is not a claim that every possible historical secret was identified.
