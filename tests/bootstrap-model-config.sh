@@ -18,6 +18,20 @@ oc() {
     printf '{}\n'
   elif [[ $* == *'create secret generic omnigent-agent'* ]]; then
     printf '{}\n'
+  elif [[ $* == *'create secret generic ao-opencode-go'* ]]; then
+    printf '{}\n'
+  elif [[ $* == *'create configmap ao-opencode-go'* ]]; then
+    local argument
+    for argument in "$@"; do
+      if [[ $argument == --from-file=config.yaml=* ]]; then
+        cp -- "${argument#--from-file=config.yaml=}" "$test_scratch/proxy.yaml"
+      fi
+    done
+    printf '{}\n'
+  elif [[ $* == *'get deployment ao-opencode-go'* ||
+          $* == *'get secret ao-opencode-go'* ||
+          $* == *'rollout status deployment/ao-opencode-go'* ]]; then
+    return 0
   elif [[ $* == *'apply -f -'* ]]; then
     cat >/dev/null
     printf 'secret/test unchanged\n'
@@ -29,6 +43,8 @@ oc() {
 
 export MODEL_PROVIDER=opencode-go OPENCODE_GO_ENDPOINT=https://opencode.test/v1
 export OPENCODE_GO_API_KEY=test-only-key OPENCODE_GO_MODEL=claude-haiku-5-5
+namespace=automation-orchestrator
+omnigent_scratch=$test_scratch
 for protocol in responses chat anthropic; do
   export OPENCODE_GO_PROTOCOL=$protocol
   case $protocol in
@@ -43,6 +59,17 @@ for protocol in responses chat anthropic; do
     .provider.demo.options.apiKey == "{env:OPENAI_API_KEY}" and
     .model == "demo/claude-haiku-5-5"' "$test_scratch/config.json" >/dev/null
   jq -e 'all(.. | strings; contains("test-only-key") | not)' "$test_scratch/config.json" >/dev/null
+  demo_model_inputs
+  demo_ao_llm_proxy >/dev/null
+  case $protocol in
+    responses) expected_backend=openai/responses/claude-haiku-5-5; expected_base=$OPENCODE_GO_ENDPOINT ;;
+    chat) expected_backend=openai/claude-haiku-5-5; expected_base=$OPENCODE_GO_ENDPOINT ;;
+    anthropic) expected_backend=anthropic/claude-haiku-5-5; expected_base=$OPENCODE_GO_ENDPOINT/messages ;;
+  esac
+  yq . "$test_scratch/proxy.yaml" | jq -e --arg backend "$expected_backend" --arg base "$expected_base" '
+    .model_list[0].litellm_params.model == $backend and
+    .model_list[0].litellm_params.api_base == $base and
+    .model_list[0].litellm_params.api_key == "os.environ/PROVIDER_API_KEY"' >/dev/null
   printf 'PASS %s selects the SDK and keeps credentials out of OpenCode JSON\n' "$protocol"
 done
 

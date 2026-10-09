@@ -976,7 +976,7 @@ demo_ao_integration() {
 # bridge handles Go routing and keeps Qwen's RCA within the agent timeout.
 # Keep the runtime configuration here rather than a second bootstrap program.
 demo_ao_llm_proxy() {
-  local proxy_name=ao-opencode-go proxy_model protocol config_status secret_status existing qwen=false
+  local proxy_name=ao-opencode-go proxy_model proxy_base=$model_endpoint protocol config_status secret_status existing qwen=false
   if [[ ${MODEL_PROVIDER:-opencode-go} == litellm && $model_name == qwen38-27b ]]; then
     proxy_name=ao-litellm-qwen
     proxy_model="openai/$model_name"
@@ -986,7 +986,8 @@ demo_ao_llm_proxy() {
     case $protocol in
       responses) proxy_model="openai/responses/$model_name" ;;
       chat) proxy_model="openai/$model_name" ;;
-      anthropic) proxy_model="anthropic/$model_name" ;;
+      # LiteLLM accepts the full Messages URL; the SDK uses the API base above.
+      anthropic) proxy_model="anthropic/$model_name"; proxy_base="$model_endpoint/messages" ;;
       *) demo_die 'OPENCODE_GO_PROTOCOL must be responses, chat, or anthropic.' ;;
     esac
   fi
@@ -1003,7 +1004,7 @@ demo_ao_llm_proxy() {
     --from-file=PROVIDER_API_KEY="$omnigent_scratch/go-api-key" \
     --from-file=LITELLM_MASTER_KEY="$omnigent_scratch/go-proxy-key" --dry-run=client -o yaml |
     oc -n "$namespace" apply -f -)
-  jq -n --arg model "$model_name" --arg backend "$proxy_model" --arg url "$model_endpoint" --argjson qwen "$qwen" '
+  jq -n --arg model "$model_name" --arg backend "$proxy_model" --arg url "$proxy_base" --argjson qwen "$qwen" '
     {model_list:[{model_name:$model,litellm_params:({model:$backend,api_base:$url,
       api_key:"os.environ/PROVIDER_API_KEY"} +
       (if $qwen then {extra_body:{chat_template_kwargs:{enable_thinking:false}}} else {} end))}],
