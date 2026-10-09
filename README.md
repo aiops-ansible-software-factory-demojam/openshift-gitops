@@ -98,8 +98,9 @@ For `qwen38-27b`, bootstrap also configures an authenticated LiteLLM bridge for
 AO's RCA requests with thinking disabled, matching the Omnigent configuration.
 Setup and reset silence only `WebappDown` while the baseline is unavailable.
 Bootstrap waits for monitoring to observe recovery before ending maintenance.
-Recovery notifications and a 30-second group interval allow repeat demo runs;
-EDA dispatches only firing alerts.
+Recovery notifications, a 30-second group interval, and a five-minute repeat
+interval allow repeat demo runs even when maintenance muted recovery. EDA
+dispatches only firing alerts, and repeat notifications reuse the open incident.
 Setup, reset, and teardown share the implementation in
 `bootstrap/bootstrap.sh`; Make targets invoke that script directly.
 

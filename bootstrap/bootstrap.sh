@@ -1753,8 +1753,7 @@ demo_alerting_prepare() (
     oc apply --server-side --field-manager=demo-bootstrap -f -
 )
 
-# A separate token and stable listener URL keep Forgejo deliveries independent
-# of Alertmanager. Register the hook only after EDA and AO are ready.
+# Mute setup outages until monitoring has observed baseline recovery.
 demo_alerting_maintenance() {
   local action=$1 id previous alerts deadline=$((SECONDS + 600))
   local -a client=(oc -n openshift-user-workload-monitoring exec alertmanager-user-workload-0
@@ -1793,6 +1792,8 @@ demo_alerting_maintenance() {
   printf 'Demo alerting maintenance: %s.\n' "$action"
 }
 
+# A separate token and stable listener URL keep Forgejo deliveries independent
+# of Alertmanager. Register the hook only after EDA and AO are ready.
 demo_forgejo_webhook_prepare() (
   umask 077
   local scratch host uuid
