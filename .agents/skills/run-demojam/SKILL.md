@@ -52,8 +52,11 @@ Do not merge the GitHub implementation PRs as part of this demo.
 5. Independently test that exact published commit in its existing managed
    sandbox, without asking the model to run anything. Require a clean tracked
    worktree and matching HEAD before and after. Export `git archive <head-sha>`
-   into a temporary `ansible_collections/demo/webapp` directory and test that
-   export. Prepend its collection root to the native collection search path.
+   into a temporary source directory and test that export. Use a separate
+   temporary collection installation root first on the native search path.
+   Keep source and installation directories separate: Molecule installs the
+   local collection during dependency setup and can delete its own source
+   when those paths coincide.
    This excludes untracked local fixes and leaves the coding workspace alone:
 
    ```bash
@@ -72,8 +75,11 @@ Do not merge the GitHub implementation PRs as part of this demo.
    Molecule scenario to complete its full lifecycle, including idempotence,
    verification and destruction. A trailing successful shell command or a
    successful build does not establish that Molecule passed. If any required
-   check fails, leave the PR open and report the failure. Do not fix it,
-   send feedback or rerun the test to turn that failure into a pass.
+   candidate check fails, leave the PR open and report the failure. Do not
+   fix the candidate, send feedback or rerun a failed assertion. If your own
+   isolated runner fails before scenario execution, correct only that runner
+   and disclose the failed attempt; keep the commit, tests and dependencies
+   unchanged. Never count that failed attempt as a pass.
 
 6. Only after all checks pass, merge the Forgejo PR using the tested head SHA
    as the merge guard. Recheck that its base has not changed. Confirm the PR

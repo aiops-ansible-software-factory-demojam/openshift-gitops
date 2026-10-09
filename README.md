@@ -130,6 +130,10 @@ The [prompt appendix](docs/reports/2026-10-09-demo-prompts.md) preserves inciden
 text, agent-task revisions, and reviewer messages from the rebuilt run.
 The [Haiku rehearsal report](docs/reports/2026-10-09-haiku-bootstrap.md) records
 the later live bootstrap, preloaded sandbox checks, and automatic outage-to-PR run.
+The [latest Haiku end-to-end report](docs/reports/2026-10-09-haiku-no-intervention.md)
+records a test-gated merge and one-job Enforcing recovery, including the
+operator's test-runner correction. Use the
+[run-demojam skill](.agents/skills/run-demojam/SKILL.md) for the operator sequence.
 
 - [Login and users](cluster/demojam-keycloak/README.md) · [Homepage](cluster/homepage/README.md)
 - [Forgejo](cluster/forgejo/README.md) · [Developer Hub](cluster/rhdh/README.md) · [Agent sessions and tests](cluster/omnigent/README.md)
