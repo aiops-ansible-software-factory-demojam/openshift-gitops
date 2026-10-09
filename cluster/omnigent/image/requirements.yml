@@ -1,0 +1,20 @@
+---
+# Keep the provisioner pin aligned with the collections' test requirements.
+# Pin transitive dependencies so sandbox rebuilds use the tested versions.
+collections:
+  - name: david_igou.molecule_provisioners
+    version: 0.0.5-alpha
+  - name: containers.podman
+    version: 1.21.1
+  - name: kubernetes.core
+    version: 6.6.0
+  - name: community.crypto
+    version: 3.5.0
+  - name: community.docker
+    version: 5.4.0
+  - name: community.general
+    version: 13.5.0
+  - name: community.library_inventory_filtering_v1
+    version: 1.1.5
+  - name: ansible.posix
+    version: 2.2.2

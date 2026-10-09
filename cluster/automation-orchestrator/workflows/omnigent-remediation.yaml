@@ -108,18 +108,18 @@ nodes:
                 Confirm new Ansible modules, parameters, and return fields with
                 ansible-doc. Declare collection dependencies in galaxy.yml so
                 AAP project sync installs them; Molecule test requirements
-                alone do not supply production dependencies. Install the pinned
-                test requirements from
-                extensions/molecule/requirements-test.yml before validation.
+                alone do not supply production dependencies. The sandbox
+                preloads the pinned test requirements. If you change
+                extensions/molecule/requirements-test.yml, install the updated
+                requirements before validation.
                 Run validation from the checked-out collection root. Scope
                 ansible-lint to roles/nginx and extensions/molecule/nginx;
                 do not lint /tmp or installed dependency collections. Keep
                 the normal collection paths so provisioners remain available.
                 Add a regression check that nginx serves HTTP while SELinux is
-                enforcing in the nginx scenario; preserve the default scenario.
-                Run ansible-lint, build the collection, and run molecule test
-                -s nginx. Check the actual command exit codes. Serialize
-                Molecule runs as required by AGENTS.md. Fix failed checks,
+                enforcing in the nginx scenario. Run ansible-lint, build the
+                collection, and run make molecule to test every scenario.
+                Check the actual command exit codes. Fix failed checks,
                 review the diff, and commit it.
                 Write the PR summary and actual validation results to a file
                 outside the repository, then run demo-goldenpath pr

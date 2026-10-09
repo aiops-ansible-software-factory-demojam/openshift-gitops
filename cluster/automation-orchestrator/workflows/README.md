@@ -63,7 +63,7 @@ incident, so its opening webhook already carries the root cause.
 AO re-reads the issue through Backstage, prepares `feature/issue-N`, creates
 an `automation-developer` session with the configured model, shares it with
 enabled demo users, and submits the task. The agent must preserve SELinux
-enforcing, add a regression check, run `molecule test -s nginx`, and submit
+enforcing, add a regression check, run `make molecule`, and submit
 the collection fix as a PR. It does not merge or modify the application VM.
 The AAP handoff job publishes `ao_execution_id` for following the AO execution
 and session. AO completion proves task acceptance; follow Omnigent for the PR.
