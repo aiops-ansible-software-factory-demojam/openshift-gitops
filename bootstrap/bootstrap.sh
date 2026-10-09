@@ -2485,7 +2485,7 @@ demo_bootstrap() (
   demo_webapp verify
   demo_alerting_maintenance resume
   demo_step 'Populate and verify Homepage navigation and dashboard'
-  demo_homepage_configure bootstrap
+  demo_homepage_reconcile bootstrap
 
   printf '\nBootstrap completed on %s at %s.\n' "$gitops_branch" "$target_revision"
   for ref in homepage/homepage demojam-keycloak/keycloak forgejo/forgejo rhdh/backstage-rhdh-developer-hub \
@@ -2776,6 +2776,27 @@ demo_teardown() (
 # Command entry point. Help is local and does not load .env.
 # -----------------------------------------------------------------------------
 
+# Homepage is disposable while --keep-aap preserves its gateway reader account.
+# Reconcile the newly generated password before the existing dashboard checks.
+demo_homepage_reconcile() (
+  set +x
+  umask 077
+  local ingress_domain aap_scratch reader payload
+  ingress_domain=$(oc -n openshift-ingress-operator get ingresscontroller default -o jsonpath='{.status.domain}')
+  demo_homepage_prepare
+  aap_scratch=$(mktemp -d)
+  trap 'find "$aap_scratch" -type f -delete; rmdir "$aap_scratch"' EXIT
+  aap_connect
+  reader=$(aap_request GET 'users/?username=homepage-reader' '' /api/gateway/v1/ | jq -r '.results[0].id // empty')
+  if [[ -n $reader ]]; then
+    oc -n homepage get secret homepage-dashboard-credentials -o json |
+      jq -er '.data."aap-password" | @base64d' >"$aap_scratch/reader-password"
+    payload=$(jq -n --rawfile password "$aap_scratch/reader-password" '{password:($password|rtrimstr("\n"))}')
+    aap_request PATCH "users/$reader/" "$payload" /api/gateway/v1/ >/dev/null
+  fi
+  demo_homepage_configure "${1:-refresh}"
+)
+
 demo_main() {
   local command=${1:-bootstrap}
   if [[ $command == help || $command == --help || $command == -h ]]; then
@@ -2816,7 +2837,7 @@ HELP
     bootstrap) [[ $# == 0 ]] || demo_die 'bootstrap takes no arguments'; demo_bootstrap ;;
     teardown) demo_teardown "$@" ;;
     demo-reset) demo_reset "$@" ;;
-    homepage-refresh) [[ $# == 0 ]] || demo_die 'homepage-refresh takes no arguments'; demo_verify_cluster; demo_homepage_configure ;;
+    homepage-refresh) [[ $# == 0 ]] || demo_die 'homepage-refresh takes no arguments'; demo_verify_cluster; demo_homepage_reconcile ;;
     identity)
       [[ $# == 0 ]] || demo_die 'identity takes no arguments'
       demo_verify_cluster
