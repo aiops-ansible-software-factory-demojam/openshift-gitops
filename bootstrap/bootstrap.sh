@@ -1931,6 +1931,9 @@ aap_launch() {
     openshift_virtualization_machine) [[ $reset == true ]] || demo_die 'Only seeded demo templates may be launched.' ;;
     *) demo_die 'Only seeded demo templates may be launched.' ;;
   esac
+  # Controller dependencies use short-lived execution pods. Wait out node
+  # storage pressure before launch instead of submitting pods for eviction.
+  oc wait node --all --for=condition=DiskPressure=False --timeout=10m
   org=$(aap_find organizations/ demo | jq -er .id)
   template=$(aap_find job_templates/ "$name" "$(jq -n --argjson org "$org" '{organization:$org}')" | jq -er .id)
   result=$(aap_request POST "job_templates/$template/launch/" "$(jq -n --argjson extra "$extra" '{extra_vars:$extra}')")
