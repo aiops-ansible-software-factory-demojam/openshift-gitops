@@ -103,7 +103,9 @@ whose response was lost.
 
 `MODEL_PROVIDER` in `.env` selects LiteLLM or OpenCode Go. Go uses an internal
 LiteLLM proxy to add required headers and translate the default model's calls
-to Responses. Use `OPENCODE_GO_PROTOCOL=chat` for a Go Chat Completions model.
+to Responses. Use `OPENCODE_GO_PROTOCOL=chat` for a Go Chat Completions model,
+or `anthropic` for Claude Haiku (`claude-haiku-5-5`). Bootstrap selects the
+matching OpenCode SDK and LiteLLM backend for both consumers.
 Edit `.env` and run `make model-config` to switch providers in AO and Omnigent.
 Reconciliation publishes workflows without executing demo jobs.
 

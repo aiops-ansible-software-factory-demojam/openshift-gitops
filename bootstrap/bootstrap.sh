@@ -91,7 +91,12 @@ demo_model_inputs() {
       model_endpoint=${OPENCODE_GO_ENDPOINT:-https://opencode.ai/zen/go/v1}
       model_name=${OPENCODE_GO_MODEL:-gpt-6-luna}
       model_key=${OPENCODE_GO_API_KEY:-}
-      model_npm=@ai-sdk/openai
+      case ${OPENCODE_GO_PROTOCOL:-responses} in
+        responses) model_npm=@ai-sdk/openai ;;
+        chat) model_npm=@ai-sdk/openai-compatible ;;
+        anthropic) model_npm=@ai-sdk/anthropic ;;
+        *) echo 'OPENCODE_GO_PROTOCOL must be responses, chat, or anthropic.' >&2; return 2 ;;
+      esac
       ;;
     litellm)
       model_endpoint=${LITELLM_ENDPOINT:-}
@@ -106,7 +111,8 @@ demo_model_inputs() {
   }
   model_endpoint=${model_endpoint%/}
   [[ $model_endpoint == https://* && $model_endpoint != *[[:space:]?#]* &&
-     $model_endpoint != */chat/completions && $model_endpoint != */responses ]] || {
+     $model_endpoint != */chat/completions && $model_endpoint != */responses &&
+     $model_endpoint != */messages ]] || {
     echo 'The provider endpoint must be an HTTPS API base URL.' >&2; return 2;
   }
   local host=${model_endpoint#https://}
@@ -980,7 +986,8 @@ demo_ao_llm_proxy() {
     case $protocol in
       responses) proxy_model="openai/responses/$model_name" ;;
       chat) proxy_model="openai/$model_name" ;;
-      *) demo_die 'OPENCODE_GO_PROTOCOL must be responses or chat.' ;;
+      anthropic) proxy_model="anthropic/$model_name" ;;
+      *) demo_die 'OPENCODE_GO_PROTOCOL must be responses, chat, or anthropic.' ;;
     esac
   fi
   existing=$(oc -n "$namespace" get deployment "$proxy_name" --ignore-not-found -o name)
