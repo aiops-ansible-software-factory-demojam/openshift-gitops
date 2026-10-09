@@ -53,7 +53,8 @@ Argo CD reads published Git commits. Publish changes before setup and set
 three Ansible repos are configured separately; see [Forgejo](cluster/forgejo/README.md).
 
 Bootstrap installs the stack, seeds Forgejo, builds the agent image, configures
-AAP, provisions nginx, and checks HTTPS and monitoring. Wait for
+AAP, provisions the RHEL VM, runs the separate permissive setup playbook,
+installs nginx, and checks HTTPS and monitoring. Wait for
 `Bootstrap completed`, then open the printed Homepage URL. Sign in as
 `demo-user` with `DEMO_USER_PASSWORD` (default `changeme` for new accounts).
 This demo account has application administrator and OpenShift cluster-admin
@@ -69,8 +70,12 @@ bash bootstrap/bootstrap.sh aap launch webapp_selinux_enable
 
 The seeded job enables SELinux enforcing on the webapp VM. Follow the new
 Forgejo incident and its RCA into the Omnigent session; the agent tests its
-collection fix and submits a PR. Restore the permissive demo baseline with
-`make webapp-nginx` after the demonstration. The fix PR stays open for review.
+collection fix and submits a PR. Merge the tested PR, then run
+`make webapp-nginx` once to deploy it. This job preserves SELinux Enforcing;
+run `bash bootstrap/bootstrap.sh webapp verify-enforcing` to check recovery.
+To restore only the permissive mode for an unmerged demonstration, run
+`bash bootstrap/bootstrap.sh aap launch webapp_selinux_permissive`.
+A full reset and bootstrap also restore the unfixed collection.
 
 The starter issue exercises the Backstage feature flow directly:
 
@@ -93,9 +98,9 @@ Use `make teardown-keep-aap` to retain AAP, its operator and database volumes
 while removing the rest. It stops the demo EDA listeners until the next bootstrap.
 Bootstrap reconciles Homepage's new reader password with the preserved AAP
 account before verifying the dashboard.
-After deploying a merged fix, enable SELinux with
-`bash bootstrap/bootstrap.sh aap launch webapp_selinux_enable`, then run
-`bash bootstrap/bootstrap.sh webapp verify-enforcing` to check Enforcing and HTTP.
+The permissive setup job runs after VM provisioning during bootstrap.
+It is separate from nginx installation, so deploying a merged fix preserves
+the Enforcing state established by the fault job.
 For `qwen38-27b`, bootstrap also configures an authenticated LiteLLM bridge for
 AO's RCA requests with thinking disabled, matching the Omnigent configuration.
 Setup and reset silence only `WebappDown` while the baseline is unavailable.

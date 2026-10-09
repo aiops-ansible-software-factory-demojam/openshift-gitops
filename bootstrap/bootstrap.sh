@@ -1935,7 +1935,7 @@ YAML
 aap_launch() {
   local name=$1 extra=${2:-'{}'} reset=${3:-false} org template record result project inventory sources source update
   case $name in
-    webapp_vm|webapp_nginx|webapp_selinux_enable|aap_configure_all) ;;
+    webapp_vm|webapp_nginx|webapp_selinux_permissive|webapp_selinux_enable|aap_configure_all) ;;
     openshift_virtualization_machine) [[ $reset == true ]] || demo_die 'Only seeded demo templates may be launched.' ;;
     *) demo_die 'Only seeded demo templates may be launched.' ;;
   esac
@@ -2487,6 +2487,8 @@ demo_bootstrap() (
   fi
   demo_step 'Provision the RHEL webapp through AAP'
   demo_webapp create
+  demo_step 'Prepare the permissive demo baseline through AAP'
+  demo_aap launch webapp_selinux_permissive
   demo_step 'Install nginx through AAP'
   demo_webapp nginx
   demo_step 'Verify the webapp and monitoring probe'
@@ -2829,7 +2831,8 @@ Usage: bash bootstrap/bootstrap.sh [COMMAND]
   readiness TARGET   sandbox | aap
 
 Populate .env first. An inherited KUBECONFIG takes precedence over .env.
-Default bootstrap connects the incident-to-PR flow and provisions nginx.
+Default bootstrap connects the incident-to-PR flow, provisions the VM,
+prepares the permissive demo baseline, and installs nginx.
 Run aap launch webapp_selinux_enable to trigger the SELinux outage demo.
 HELP
     return

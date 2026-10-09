@@ -2,6 +2,8 @@
 
 The latest MiniMax run reached a tested PR without human follow-up, was merged on test success without code review, and passed live Enforcing/HTTP recovery checks. Recovery still needed two human jobs: nginx deployment followed by SELinux enforcement.
 
+A subsequent [SELinux setup change](2026-10-09-webapp-selinux-setup.md) moved the caller's Permissive step into a separate playbook after provisioning. Its live regression used the existing merged fix: one nginx deployment retained Enforcing and returned HTTP 200. The incident timings below retain the original two-job recovery; this check did not repeat the agent incident.
+
 | Run | Fault launch to PR | Full incident to live proof | Reset and bootstrap | Result |
 |---|---:|---:|---:|---|
 | [Qwen 27B](2026-10-09-qwen-repeat.md) | 1h20m35s to first PR | 1h40m18s | 27m15s, including the observation gap | Assisted recovery; eight distinct follow-ups, compaction and an external cluster shutdown. Final reviewed fix merged and deployed. |
