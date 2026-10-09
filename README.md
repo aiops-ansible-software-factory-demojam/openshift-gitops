@@ -91,6 +91,8 @@ to restore the full environment. `make teardown` removes the entire demo stack,
 operators, identities, and persistent data. Both discard disposable demo work.
 Use `make teardown-keep-aap` to retain AAP, its operator and database volumes
 while removing the rest. It stops the demo EDA listeners until the next bootstrap.
+Bootstrap reconciles Homepage's new reader password with the preserved AAP
+account before verifying the dashboard.
 After deploying a merged fix, enable SELinux with
 `bash bootstrap/bootstrap.sh aap launch webapp_selinux_enable`, then run
 `bash bootstrap/bootstrap.sh webapp verify-enforcing` to check Enforcing and HTTP.
