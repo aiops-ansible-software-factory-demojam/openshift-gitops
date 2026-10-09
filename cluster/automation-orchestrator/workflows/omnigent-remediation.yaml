@@ -99,12 +99,22 @@ nodes:
                 gather any facts your new conditions require and install the
                 SELinux system dependencies before using them. Do not silently
                 skip the fix because a fact or Python binding is missing.
+                On these RHEL/CentOS guests, use python3-libselinux,
+                python3-libsemanage, and policycoreutils-python-utils. Refresh
+                facts after installing bindings. The SELinux policy name is
+                ansible_facts.selinux.type; confirm facts against the collector
+                or actual setup output. Report restorecon changes from its
+                verbose relabel output instead of unconditionally hiding them.
                 Confirm new Ansible modules, parameters, and return fields with
                 ansible-doc. Declare collection dependencies in galaxy.yml so
                 AAP project sync installs them; Molecule test requirements
                 alone do not supply production dependencies. Install the pinned
                 test requirements from
                 extensions/molecule/requirements-test.yml before validation.
+                Run validation from the checked-out collection root. Scope
+                ansible-lint to roles/nginx and extensions/molecule/nginx;
+                do not lint /tmp or installed dependency collections. Keep
+                the normal collection paths so provisioners remain available.
                 Add a regression check that nginx serves HTTP while SELinux is
                 enforcing in the nginx scenario; preserve the default scenario.
                 Run ansible-lint, build the collection, and run molecule test
