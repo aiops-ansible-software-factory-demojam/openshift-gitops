@@ -1,0 +1,197 @@
+{
+  "source": "AO activities for rebuilt incident only. Credential inputs/outputs and HTTP headers omitted. Earlier AO records were removed during teardown.",
+  "activities": [
+    {
+      "execution_id": "REDACTED_AO_EXECUTION_1",
+      "id": "REDACTED_AO_ACTIVITY_1",
+      "activity_name": "createissue",
+      "node_type": "aap_job_template",
+      "status": "completed",
+      "started_at": "2026-10-09T03:51:57.492357Z",
+      "completed_at": "2026-10-09T03:52:09.420326Z",
+      "retry_count": 0,
+      "error_details": null,
+      "elapsed_seconds": 11.927968978881836
+    },
+    {
+      "execution_id": "REDACTED_AO_EXECUTION_1",
+      "id": "REDACTED_AO_ACTIVITY_2",
+      "activity_name": "airca",
+      "node_type": "agentic",
+      "status": "completed",
+      "started_at": "2026-10-09T03:51:30.220062Z",
+      "completed_at": "2026-10-09T03:51:57.165461Z",
+      "retry_count": 0,
+      "error_details": null,
+      "elapsed_seconds": 26.945399045944214,
+      "response_metadata": {
+        "id": "REDACTED_PROVIDER_RESPONSE_ID",
+        "model": "qwen38-27b",
+        "source": "streaming",
+        "stream_id": "REDACTED_PROVIDER_STREAM_ID",
+        "model_name": "qwen38-27b",
+        "token_usage": {
+          "total_tokens": 4094,
+          "prompt_tokens": 3918,
+          "completion_tokens": 176,
+          "prompt_tokens_details": {},
+          "completion_tokens_details": {
+            "reasoning": 0
+          }
+        },
+        "finish_reason": "stop",
+        "orchestration": "langgraph",
+        "model_provider": "openai",
+        "routed_to_agent": "generic_agent",
+        "system_fingerprint": "vllm-0.30.0-tp2-REDACTED_INSTANCE",
+        "routing_duration_ms": 0.19949600027757697
+      }
+    },
+    {
+      "execution_id": "REDACTED_AO_EXECUTION_1",
+      "id": "REDACTED_AO_ACTIVITY_3",
+      "activity_name": "auditlogs",
+      "node_type": "aap_job_template",
+      "status": "completed",
+      "started_at": "2026-10-09T03:51:17.962565Z",
+      "completed_at": "2026-10-09T03:51:30.002386Z",
+      "retry_count": 0,
+      "error_details": null,
+      "elapsed_seconds": 12.039821147918701
+    },
+    {
+      "execution_id": "REDACTED_AO_EXECUTION_1",
+      "id": "REDACTED_AO_ACTIVITY_4",
+      "activity_name": "alertmanagereda",
+      "node_type": "eda_trigger",
+      "status": "completed",
+      "started_at": "2026-10-09T03:51:17.611958Z",
+      "completed_at": "2026-10-09T03:51:17.629072Z",
+      "retry_count": 0,
+      "error_details": null,
+      "elapsed_seconds": 0.017113924026489258
+    },
+    {
+      "execution_id": "REDACTED_AO_EXECUTION_2",
+      "id": "REDACTED_AO_ACTIVITY_5",
+      "activity_name": "share_session_0",
+      "node_type": "http_request",
+      "status": "completed",
+      "started_at": "2026-10-09T03:52:23.342806Z",
+      "completed_at": "2026-10-09T03:52:23.579730Z",
+      "retry_count": 0,
+      "error_details": null,
+      "elapsed_seconds": 0.2369239330291748
+    },
+    {
+      "execution_id": "REDACTED_AO_EXECUTION_2",
+      "id": "REDACTED_AO_ACTIVITY_6",
+      "activity_name": "send_task",
+      "node_type": "http_request",
+      "status": "completed",
+      "started_at": "2026-10-09T03:52:23.637236Z",
+      "completed_at": "2026-10-09T03:53:13.487454Z",
+      "retry_count": 0,
+      "error_details": null,
+      "elapsed_seconds": 49.85021781921387
+    },
+    {
+      "execution_id": "REDACTED_AO_EXECUTION_2",
+      "id": "REDACTED_AO_ACTIVITY_7",
+      "activity_name": "create_session",
+      "node_type": "http_request",
+      "status": "completed",
+      "started_at": "2026-10-09T03:52:22.236776Z",
+      "completed_at": "2026-10-09T03:52:23.281599Z",
+      "retry_count": 0,
+      "error_details": null,
+      "elapsed_seconds": 1.0448229312896729
+    },
+    {
+      "execution_id": "REDACTED_AO_EXECUTION_2",
+      "id": "REDACTED_AO_ACTIVITY_8",
+      "activity_name": "authenticate_omnigent",
+      "node_type": "http_request",
+      "status": "completed",
+      "started_at": "2026-10-09T03:52:22.113004Z",
+      "completed_at": "2026-10-09T03:52:22.183619Z",
+      "retry_count": 0,
+      "error_details": null,
+      "elapsed_seconds": 0.07061505317687988
+    },
+    {
+      "execution_id": "REDACTED_AO_EXECUTION_2",
+      "id": "REDACTED_AO_ACTIVITY_9",
+      "activity_name": "prepare_feature",
+      "node_type": "http_request",
+      "status": "completed",
+      "started_at": "2026-10-09T03:52:18.675051Z",
+      "completed_at": "2026-10-09T03:52:21.981377Z",
+      "retry_count": 0,
+      "error_details": null,
+      "elapsed_seconds": 3.306325912475586
+    },
+    {
+      "execution_id": "REDACTED_AO_EXECUTION_2",
+      "id": "REDACTED_AO_ACTIVITY_10",
+      "activity_name": "forgejo_issue",
+      "node_type": "eda_trigger",
+      "status": "completed",
+      "started_at": "2026-10-09T03:52:18.586109Z",
+      "completed_at": "2026-10-09T03:52:18.614330Z",
+      "retry_count": 0,
+      "error_details": null,
+      "elapsed_seconds": 0.02822113037109375
+    }
+  ],
+  "eda_rules": [
+    {
+      "id": 8,
+      "name": "Dispatch a newly opened incident with root cause analysis",
+      "fired_at": "2026-10-09T03:52:08.531681Z",
+      "status": "successful"
+    },
+    {
+      "id": 7,
+      "name": "Report a firing webapp availability alert",
+      "fired_at": "2026-10-09T03:51:08.921018Z",
+      "status": "successful"
+    },
+    {
+      "id": 6,
+      "name": "Dispatch a newly opened incident with root cause analysis",
+      "fired_at": "2026-10-09T01:52:09.872411Z",
+      "status": "successful"
+    },
+    {
+      "id": 5,
+      "name": "Report a firing webapp availability alert",
+      "fired_at": "2026-10-09T01:49:50.690263Z",
+      "status": "successful"
+    },
+    {
+      "id": 4,
+      "name": "Report a firing webapp availability alert",
+      "fired_at": "2026-10-09T01:16:20.727703Z",
+      "status": "successful"
+    },
+    {
+      "id": 3,
+      "name": "Dispatch a newly opened incident with root cause analysis",
+      "fired_at": "2026-10-08T22:22:05.326380Z",
+      "status": "successful"
+    },
+    {
+      "id": 2,
+      "name": "Report a firing webapp availability alert",
+      "fired_at": "2026-10-08T22:18:20.833337Z",
+      "status": "successful"
+    },
+    {
+      "id": 1,
+      "name": "Report a firing webapp availability alert",
+      "fired_at": "2026-10-08T21:53:20.929059Z",
+      "status": "successful"
+    }
+  ]
+}

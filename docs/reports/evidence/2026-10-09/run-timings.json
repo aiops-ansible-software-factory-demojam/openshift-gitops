@@ -1,0 +1,71 @@
+{
+  "timed_phases": [
+    {
+      "phase": "initial-merge-verification",
+      "started_at": "2026-10-09T00:34:48Z",
+      "finished_at": "2026-10-09T00:40:59Z",
+      "elapsed_seconds": 371
+    },
+    {
+      "phase": "reset",
+      "started_at": "2026-10-09T00:41:13Z",
+      "finished_at": "2026-10-09T00:56:08Z",
+      "elapsed_seconds": 895
+    },
+    {
+      "phase": "baseline-bootstrap",
+      "started_at": "2026-10-09T00:56:08Z",
+      "finished_at": "2026-10-09T01:11:55Z",
+      "elapsed_seconds": 947
+    },
+    {
+      "phase": "repeat-incident",
+      "started_at": "2026-10-09T01:47:29Z",
+      "finished_at": "2026-10-09T02:51:21Z",
+      "elapsed_seconds": 3832
+    },
+    {
+      "phase": "teardown-keep-aap",
+      "started_at": "2026-10-09T02:52:13Z",
+      "finished_at": "2026-10-09T02:57:41Z",
+      "elapsed_seconds": 328
+    },
+    {
+      "phase": "cold-bootstrap",
+      "started_at": "2026-10-09T02:58:40Z",
+      "finished_at": "2026-10-09T03:48:22Z",
+      "elapsed_seconds": 2982
+    },
+    {
+      "phase": "bootstrap-retry-included",
+      "started_at": "2026-10-09T03:37:16Z",
+      "finished_at": "2026-10-09T03:48:22Z",
+      "elapsed_seconds": 666
+    },
+    {
+      "phase": "rebuilt-incident",
+      "started_at": "2026-10-09T03:48:44Z",
+      "finished_at": "2026-10-09T04:40:34Z",
+      "elapsed_seconds": 3110
+    }
+  ],
+  "repeat_incident": {
+    "fault_launch_epoch": 1791510449,
+    "pr_created_epoch": 1791513049,
+    "verified_healthy_epoch": 1791514281,
+    "time_to_pr_seconds": 2600,
+    "end_to_end_seconds": 3832,
+    "notes": "Includes review corrections, failed inventory dependencies, node disk-pressure recovery, merge, deployment, Enforcing and HTTP verification."
+  },
+  "rebuilt_incident": {
+    "fault_launch_epoch": 1791517724,
+    "pr_created_epoch": 1791520224,
+    "merge_epoch": 1791520319,
+    "verified_healthy_epoch": 1791520834,
+    "time_to_pr_seconds": 2500,
+    "end_to_end_seconds": 3110,
+    "merge_to_verification_seconds": 515,
+    "notes": "Includes native agent review corrections, a stalled-turn abort/resume, failed Molecule attempts, final passing validation, merge, serialized AAP dependency refreshes, deployment, Enforcing and HTTP verification."
+  },
+  "notes": "Assisted validation runs. Full bootstrap required one credential-reconciliation code fix/restart. Retry reused resources from first attempt; it is included in 49m42s, not a second cold-install benchmark."
+}

@@ -114,6 +114,11 @@ Setup, reset, and teardown share the implementation in
 `make help-all` lists maintenance commands; `make preflight` checks prerequisites
 without changing the cluster, and `make render` renders manifests locally.
 
+Read the [October 9 run report](docs/reports/2026-10-09-demo-runs.md) for measured
+phase timings, Qwen throughput, interventions, and remaining acceptance work.
+The [prompt appendix](docs/reports/2026-10-09-demo-prompts.md) preserves incident
+text, agent-task revisions, and reviewer messages from the rebuilt run.
+
 - [Login and users](cluster/demojam-keycloak/README.md) · [Homepage](cluster/homepage/README.md)
 - [Forgejo](cluster/forgejo/README.md) · [Developer Hub](cluster/rhdh/README.md) · [Agent sessions and tests](cluster/omnigent/README.md)
 - [AO](cluster/automation-orchestrator/README.md) · [Workflows](cluster/automation-orchestrator/workflows/README.md)

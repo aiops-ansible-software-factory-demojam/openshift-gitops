@@ -1,0 +1,68 @@
+{
+  "first_post_reset_rca": {
+    "id": "REDACTED_RUNTIME_ID_2",
+    "workflow_name": "Check Audit logs, Determine RCA, Create Issue",
+    "status": "failed",
+    "created_at": "2026-10-09T01:17:00.638069Z",
+    "completed_at": "2026-10-09T01:20:05.511657Z",
+    "error_details": "airca: AgentTimeoutError: The AI Agent did not respond in time. Try again, increase the node timeout, or simplify the prompt. If the agent may still be running, check execution details before re-running."
+  },
+  "rca_bridge_check": {
+    "model": "qwen38-27b",
+    "usage": {
+      "completion_tokens": 272,
+      "prompt_tokens": 3855,
+      "total_tokens": 4127,
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "finish_reason": "stop",
+    "valid_rca": true,
+    "measured_seconds": 12.68411
+  },
+  "notification_trial": {
+    "repeat2-demo-start": 1791509586,
+    "repeat2-fault-finish": 1791509649,
+    "repeat2-no-delivery-finish": 1791510344
+  },
+  "reset_markers": {
+    "reset-start": 1791506473,
+    "reset-interruption": 1791507312,
+    "reset-finish": 1791507368
+  },
+  "bootstrap_markers": {
+    "cold-bootstrap-start": 1791514720,
+    "cold-bootstrap-interruption": 1791517016,
+    "cold-bootstrap-retry-start": 1791517036,
+    "cold-bootstrap-finish": 1791517702
+  },
+  "image_build": {
+    "name": "omnigent-opencode-cpt8c",
+    "started": "2026-10-09T03:15:06Z",
+    "finished": "2026-10-09T03:17:53Z",
+    "conditions": [
+      {
+        "lastTransitionTime": "2026-10-09T03:17:53Z",
+        "message": "Tasks Completed: 1 (Failed: 0, Cancelled 0), Skipped: 0",
+        "reason": "Succeeded",
+        "status": "True",
+        "type": "Succeeded"
+      }
+    ],
+    "results": [
+      {
+        "name": "IMAGE",
+        "value": "image-registry.openshift-image-registry.svc:5000/omnigent-sandboxes/omnigent-opencode:latest"
+      },
+      {
+        "name": "IMAGE_DIGEST",
+        "value": "sha256:13c07796b0a867296b541b9a1e770981114ff21e39df872389d8e89c04ab93b6"
+      },
+      {
+        "name": "SOURCE_COMMIT",
+        "value": "58f740d3321ba0cee4674aef09866ab1b16a3a38"
+      }
+    ]
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "incidents": [
+    {
+      "run": "repeat-after-reset",
+      "number": 2,
+      "title": "[WebappDown] Demo webapp is unavailable",
+      "body": "<!-- demojam-webapp-outage -->\nBlackbox exporter reports that the demo webapp is unavailable.\n\nAlert: `WebappDown`\nTarget: `http://webapp.webapp-vms.svc.cluster.local/`\nStarted: 2026-10-09T01:49:40.581Z\nSummary: The demo webapp is unavailable\nDescription: The blackbox HTTP probe for http://webapp.webapp-vms.svc.cluster.local/ has failed for at least one minute.\nRoot Cause: {'escalateTo': 'Server Engineer', 'remediationSteps': [\"Verify the current SELinux context of the file using 'ls -Z /web/index.html'.\", \"Relabel the file with the correct context using 'sudo chcon -t httpd_sys_content_t /web/index.html' or 'sudo restorecon -v /web/index.html' if a default policy applies.\", \"Check /etc/selinux/config or run 'getenforce' to confirm SELinux is in enforcing mode, and verify if the mode changed recently causing the outage.\", 'Review audit logs for additional denied permissions to ensure no other files or resources are mislabeled.', \"Ensure future file deployments use 'restorecon' or are created with the correct context to prevent recurrence.\"], 'rootCause': 'SELinux is configured in enforcing mode and the nginx process (domain httpd_t) is denied access (getattr/read/open) to the file /web/index.html because it is labeled with the default_t context instead of the expected httpd_sys_content_t.'}\n\nCreated by Event-Driven Ansible and AAP job `webapp_alert_issue`.\nInspect the webapp VM, nginx service, and demo.webapp collection.\nClose this issue after investigating; repeat alerts reuse it while it is open.\n",
+      "created_at": "2026-10-09T01:52:07Z",
+      "html_url": "https://forgejo.demo.example/demo-owner/ansible-collection-demo.webapp/issues/2"
+    },
+    {
+      "run": "rebuilt-stack",
+      "number": 2,
+      "title": "[WebappDown] Demo webapp is unavailable",
+      "created_at": "2026-10-09T03:52:07Z",
+      "html_url": "https://forgejo.demo.example/demo-owner/ansible-collection-demo.webapp/issues/2",
+      "body": "<!-- demojam-webapp-outage -->\nBlackbox exporter reports that the demo webapp is unavailable.\n\nAlert: `WebappDown`\nTarget: `http://webapp.webapp-vms.svc.cluster.local/`\nStarted: 2026-10-09T03:50:58.702Z\nSummary: The demo webapp is unavailable\nDescription: The blackbox HTTP probe for http://webapp.webapp-vms.svc.cluster.local/ has failed for at least one minute.\nRoot Cause: {'escalateTo': 'Server Engineer', 'remediationSteps': ['Verify current file context: `ls -Z /web/index.html`', 'Apply correct SELinux context: `chcon -t httpd_sys_content_t /web/index.html`', 'Check and update SELinux booleans: `setsebool -P httpd_can_network_connect 1` (if needed for other resources)', 'Restart the nginx service: `systemctl restart nginx`', 'Verify nginx is serving the file correctly'], 'rootCause': \"SELinux is enforcing access controls and denying the nginx process (httpd_t) permission to access /web/index.html because the file's context is default_t instead of the required httpd_sys_content_t.\"}\n\nCreated by Event-Driven Ansible and AAP job `webapp_alert_issue`.\nInspect the webapp VM, nginx service, and demo.webapp collection.\nClose this issue after investigating; repeat alerts reuse it while it is open.\n"
+    }
+  ],
+  "fixes": [
+    {
+      "run": "initial-merge",
+      "number": 3,
+      "merged": true,
+      "merged_at": "2026-10-09T00:34:49Z",
+      "merge_commit_sha": "3a3d5242fa5701f8bd3a427fb6e966fb79526dce",
+      "head_sha": "801aa25bfbd1219b2f56acd0cefbfb67a4c3d243"
+    },
+    {
+      "run": "repeat-after-reset",
+      "number": 3,
+      "state": "closed",
+      "merged": true,
+      "merged_at": "2026-10-09T02:32:31Z",
+      "merge_commit_sha": "0ce1e3f59d09fd76d6c30344f0e4e8b254671852",
+      "head": "b2402158413b655e0cb0b6ac1744d19833f189b2"
+    },
+    {
+      "run": "rebuilt-stack",
+      "number": 3,
+      "merged": true,
+      "merged_at": "2026-10-09T04:32:00Z",
+      "merge_commit_sha": "18b32c93291647ee05d28442e878baf3487da364",
+      "head": "8617480ece1661388b2278c43c4ed452dc33e52b"
+    }
+  ]
+}

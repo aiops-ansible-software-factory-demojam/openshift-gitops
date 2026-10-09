@@ -1,0 +1,53 @@
+{
+  "fetch_seconds_sum": 341.09148,
+  "tasks": [
+    {
+      "job_id": 337,
+      "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+      "started_at": "2026-10-09 04:32:09.480975",
+      "finished_at": "2026-10-09 04:33:24.430534",
+      "elapsed_seconds": 74.949559,
+      "rc": 0
+    },
+    {
+      "job_id": 339,
+      "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+      "started_at": "2026-10-09 04:33:34.217820",
+      "finished_at": "2026-10-09 04:34:26.836175",
+      "elapsed_seconds": 52.618355,
+      "rc": 0
+    },
+    {
+      "job_id": 341,
+      "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+      "started_at": "2026-10-09 04:34:41.947834",
+      "finished_at": "2026-10-09 04:35:39.959904",
+      "elapsed_seconds": 58.01207,
+      "rc": 0
+    },
+    {
+      "job_id": 343,
+      "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+      "started_at": "2026-10-09 04:36:45.312797",
+      "finished_at": "2026-10-09 04:37:42.653287",
+      "elapsed_seconds": 57.34049,
+      "rc": 0
+    },
+    {
+      "job_id": 345,
+      "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+      "started_at": "2026-10-09 04:37:52.507500",
+      "finished_at": "2026-10-09 04:38:49.779758",
+      "elapsed_seconds": 57.272258,
+      "rc": 0
+    },
+    {
+      "job_id": 347,
+      "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+      "started_at": "2026-10-09 04:39:05.774912",
+      "finished_at": "2026-10-09 04:39:46.673660",
+      "elapsed_seconds": 40.898748,
+      "rc": 0
+    }
+  ]
+}
