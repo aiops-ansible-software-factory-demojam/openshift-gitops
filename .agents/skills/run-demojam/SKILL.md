@@ -51,7 +51,10 @@ Do not merge the GitHub implementation PRs as part of this demo.
 
 5. Independently test that exact published commit in its existing managed
    sandbox, without asking the model to run anything. Require a clean tracked
-   worktree and matching HEAD before and after:
+   worktree and matching HEAD before and after. Export `git archive <head-sha>`
+   into a temporary `ansible_collections/demo/webapp` directory and test that
+   export. Prepend its collection root to the native collection search path.
+   This excludes untracked local fixes and leaves the coding workspace alone:
 
    ```bash
    ansible-lint roles/nginx extensions/molecule/nginx
