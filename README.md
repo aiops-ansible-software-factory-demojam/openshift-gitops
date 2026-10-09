@@ -44,7 +44,7 @@ make bootstrap
 In `.env`, use the [configuration template](.env.example) to select
 `MODEL_PROVIDER` (`opencode-go` or `litellm`) and fill in its key, endpoint,
 and model. Endpoints are HTTPS API base URLs,
-before `/responses` or `/chat/completions`. Place your AAP subscription ZIP,
+before `/responses`, `/chat/completions`, or `/messages`. Place your AAP subscription ZIP,
 including RHEL CDN entitlement, at `aap_manifest.zip`, or set `AAP_LICENSE_FILE`.
 The ZIP and `.env` are ignored by Git; quote values as trusted Bash configuration.
 
@@ -118,6 +118,8 @@ Read the [October 9 run report](docs/reports/2026-10-09-demo-runs.md) for measur
 phase timings, Qwen throughput, interventions, and remaining acceptance work.
 The [prompt appendix](docs/reports/2026-10-09-demo-prompts.md) preserves incident
 text, agent-task revisions, and reviewer messages from the rebuilt run.
+The [Haiku rehearsal report](docs/reports/2026-10-09-haiku-bootstrap.md) records
+the later live bootstrap, preloaded sandbox checks, and automatic outage-to-PR run.
 
 - [Login and users](cluster/demojam-keycloak/README.md) · [Homepage](cluster/homepage/README.md)
 - [Forgejo](cluster/forgejo/README.md) · [Developer Hub](cluster/rhdh/README.md) · [Agent sessions and tests](cluster/omnigent/README.md)
