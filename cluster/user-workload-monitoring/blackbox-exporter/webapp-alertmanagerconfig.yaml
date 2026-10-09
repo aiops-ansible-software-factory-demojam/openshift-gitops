@@ -11,8 +11,7 @@ spec:
       - instance
     groupWait: 10s
     groupInterval: 30s
-    # Maintenance can mute recovery; do not retain an hour-long demo cooldown.
-    repeatInterval: 5m
+    repeatInterval: 1h
     matchers:
       - name: alertname
         value: WebappDown
