@@ -1,6 +1,6 @@
 # LiteLLM model sweep — started October 9, 2026
 
-Status: 3 of 6 model attempts logged. The remaining models are pending. Each listed model gets one fresh reset/bootstrap and demo attempt through the [run-demojam skill](../../.agents/skills/run-demojam/SKILL.md). AAP is retained; cluster commands use `~/.kube/config`.
+Status: 4 of 6 model attempts logged. The remaining models are pending. Each listed model gets one fresh reset/bootstrap and demo attempt through the [run-demojam skill](../../.agents/skills/run-demojam/SKILL.md). AAP is retained; cluster commands use `~/.kube/config`.
 
 No operator code review, coaching, candidate edit, runner correction, test retry, manual dispatch, compaction, flow replay or runtime repair is allowed. The automatic fault-to-eligible-PR stage has a 30-minute cutoff. A clean published head must independently pass scoped lint, package build and every Molecule lifecycle before a guarded merge. Recovery gets one nginx job, followed by read-only Enforcing, HTTP, artifact and normal alert-resolution checks. Failed attempts remain failures; the next model begins with its normal authorized reset.
 
@@ -13,7 +13,7 @@ Both authenticated model catalogues returned HTTP 200, and every listed model ac
 | `litellm.txt` | `qwen36-35b-a3b` | `qwen-3.6-36b-a3b-test` | failed · ao-smoke | 12m12.052s | 10m13.122s | — | — | — | 23m23.827s |
 | `litellm.txt` | `qwen38-27b` | `qwen38-27b` | cutoff · automatic-agent-stage | 10m50.569s | 10m41.704s | — | — | 30m0.003s | 52m27.459s |
 | `litellm2.txt` | `deepseek-r1-distill-qwen-14b` | `deepseek-r1-distill-qwen-14b` | cutoff · automatic-agent-stage | 9m20.165s | 14m58.232s | — | — | 30m0.003s | 55m12.794s |
-| `litellm2.txt` | `gpt-oss-120b` | `openai/gpt-oss-120b-maas` | Pending | — | — | — | — | — | — |
+| `litellm2.txt` | `gpt-oss-120b` | `openai/gpt-oss-120b-maas` | cutoff · automatic-agent-stage | 9m46.215s | 13m42.555s | — | — | 30m0.461s | 54m12.469s |
 | `litellm2.txt` | `minimax-m2` | `minimaxai/minimax-m2-maas` | Pending | — | — | — | — | — | — |
 | `litellm2.txt` | `qwen3-235b` | `qwen/qwen3-235b-a22b-instruct-2507-maas` | Pending | — | — | — | — | — | — |
 
@@ -183,6 +183,67 @@ No eligible idle PR was available by the 30-minute deadline. No abort, prompt or
 | `airca` | 10-10 00:20:41.516 | 10-10 00:22:56.771 | 2m15.255s | failed |
 
 Activity error: AgentTimeoutError: The AI Agent did not respond in time. Try again, increase the node timeout, or simplify the prompt. If the agent may still be running, check execution details before re-running.
+
+## 4. gpt-oss-120b
+
+Outcome: **cutoff · automatic-agent-stage**. [JSON evidence](evidence/2026-10-09/litellm-sweep-04-litellm2-gpt-oss-120b.json) · [Submitted prompts](2026-10-09-sweep-04-litellm2-gpt-oss-120b-prompts.md).
+
+Sources: GitOps `4b4d27b`, unfixed collection `c78d4c8`, AAP/EDA `c557ad5`. Bootstrap script SHA-256: `4bbbe525b94d028623bc28aa153faf429d47ebcf5651f64646c70c753576ab8b`. Only model/credential selection and report files change between attempts.
+
+Model/credential and retained AAP identities verified: `demo/gpt-oss-120b`, `@ai-sdk/openai-compatible`.
+
+Observed 1 outage issue(s), 1 Omnigent session(s), 1 delivered user message(s), and 0 PR(s). Operator follow-up messages: 0. The seeded README exercise issue is excluded from the incident count.
+
+Outage issue #2: `[WebappDown] Demo webapp is unavailable`, created 10-10 01:16:21.000, state `open`.
+
+No eligible idle PR was available by the 30-minute deadline. No abort, prompt or repair was sent. The next authorized reset removes the unfinished run before starting a different model.
+
+| Operator command | Start UTC | Finish UTC | Elapsed | Exit |
+|---|---|---|---:|---:|
+| `reset` | 10-10 00:49:02.514 | 10-10 00:58:48.729 | 9m46.215s | 0 |
+| `reset-baseline-check` | 10-10 00:58:48.752 | 10-10 00:58:51.859 | 3.107s | 0 |
+| `bootstrap` | 10-10 00:58:51.881 | 10-10 01:12:34.436 | 13m42.555s | 0 |
+| `model-verification` | 10-10 01:12:34.459 | 10-10 01:12:35.553 | 1.094s | 0 |
+| `baseline-check` | 10-10 01:12:35.573 | 10-10 01:13:02.035 | 26.463s | 0 |
+| `ao-smoke` | 10-10 01:13:02.055 | 10-10 01:13:12.501 | 10.445s | 0 |
+| `break` | 10-10 01:13:14.523 | 10-10 01:14:20.458 | 1m5.936s | 0 |
+| `fault-probe-check` | 10-10 01:14:20.486 | 10-10 01:14:21.137 | 0.650s | 0 |
+| `fault-mode-check` | 10-10 01:14:21.161 | 10-10 01:14:30.027 | 8.866s | 0 |
+
+| AAP job | Name | Actual start UTC | Actual finish UTC | Job time | Status |
+|---:|---|---|---|---:|---|
+| 549 | `webapp_vm` | 10-10 00:50:18.589 | 10-10 00:50:34.392 | 15.803s | successful |
+| 555 | `openshift_virtualization_machine` | 10-10 00:51:25.071 | 10-10 00:51:30.850 | 5.779s | successful |
+| 562 | `aap_configure_all` | 10-10 00:56:37.229 | 10-10 00:57:55.766 | 1m18.536s | successful |
+| 573 | `aap_configure_all` | 10-10 01:03:42.985 | 10-10 01:06:01.411 | 2m18.426s | successful |
+| 583 | `webapp_vm` | 10-10 01:07:41.199 | 10-10 01:08:27.115 | 45.917s | successful |
+| 589 | `webapp_selinux_permissive` | 10-10 01:09:46.973 | 10-10 01:09:53.244 | 6.271s | successful |
+| 595 | `webapp_nginx` | 10-10 01:10:48.098 | 10-10 01:11:59.604 | 1m11.505s | successful |
+| 602 | `webapp_selinux_enable` | 10-10 01:14:09.312 | 10-10 01:14:15.074 | 5.761s | successful |
+| 604 | `call_ao_webhook` | 10-10 01:15:53.443 | 10-10 01:15:59.270 | 5.827s | successful |
+| 605 | `pull_audit_logs` | 10-10 01:15:59.710 | 10-10 01:16:07.251 | 7.541s | successful |
+| 606 | `webapp_alert_issue` | 10-10 01:16:14.857 | 10-10 01:16:21.649 | 6.793s | successful |
+| 607 | `call_ao_webhook` | 10-10 01:16:22.639 | 10-10 01:16:28.681 | 6.042s | successful |
+
+| AO workflow/activity | Start UTC | Finish UTC | Duration | Status |
+|---|---|---|---:|---|
+| llm-question | 10-10 01:13:06.825 | 10-10 01:13:09.372 | 2.547s | completed |
+| `start` | 10-10 01:13:07.031 | 10-10 01:13:07.037 | 0.006s | completed |
+| `ask_model` | 10-10 01:13:07.147 | 10-10 01:13:09.353 | 2.206s | completed |
+| Check Audit logs, Determine RCA, Create Issue | 10-10 01:15:58.766 | 10-10 01:16:25.411 | 26.645s | completed |
+| `alertmanagereda` | 10-10 01:15:58.912 | 10-10 01:15:58.921 | 0.009s | completed |
+| `auditlogs` | 10-10 01:15:59.081 | 10-10 01:16:10.310 | 11.228s | completed |
+| `airca` | 10-10 01:16:10.430 | 10-10 01:16:13.942 | 3.512s | completed |
+| `createissue` | 10-10 01:16:14.099 | 10-10 01:16:25.387 | 11.287s | completed |
+| omnigent-remediation | 10-10 01:16:28.141 | 10-10 01:17:14.699 | 46.557s | completed |
+| `forgejo_issue` | 10-10 01:16:28.286 | 10-10 01:16:28.293 | 0.007s | completed |
+| `prepare_feature` | 10-10 01:16:28.319 | 10-10 01:16:31.477 | 3.158s | completed |
+| `authenticate_omnigent` | 10-10 01:16:31.575 | 10-10 01:16:31.608 | 0.033s | completed |
+| `create_session` | 10-10 01:16:31.634 | 10-10 01:16:32.188 | 0.554s | completed |
+| `share_session_0` | 10-10 01:16:32.214 | 10-10 01:16:32.329 | 0.115s | completed |
+| `send_task` | 10-10 01:16:32.387 | 10-10 01:17:14.677 | 42.290s | completed |
+
+Native counters: 1 assistant records, 0 tools, 0 child sessions, 3,321 input tokens, 0 output tokens, 137 reasoning tokens, 0 cache-read and 0 cache-write tokens. Quota errors recorded: 0. These are cumulative provider/harness counters, not unique context, billing or measured decoding tokens/s. Request timestamps, finishes, error names and usage counters are retained in JSON; assistant text and reasoning are excluded.
 
 ## Reading these results
 
