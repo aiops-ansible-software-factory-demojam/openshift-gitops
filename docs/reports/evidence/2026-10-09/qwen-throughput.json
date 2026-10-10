@@ -1,0 +1,145 @@
+{
+  "method": "Five serial streaming requests from workspace directly to configured LiteLLM /chat/completions. max_tokens=256, temperature=0, thinking disabled, usage requested. Content not retained. Decode approximation is (completion_tokens-1)/(last-first content-chunk timestamp); total throughput is completion_tokens/full-request seconds. Synthetic inputs do not reconstruct native tool schemas or production concurrency. The repeated-prefix request differs in its suffix.",
+  "results": [
+    {
+      "case": "short-1",
+      "recorded_at": "2026-10-09T08:23:08.699856+00:00",
+      "model": "qwen38-27b",
+      "max_tokens": 256,
+      "thinking": false,
+      "temperature": 0,
+      "prompt_characters": 237,
+      "usage": {
+        "completion_tokens": 256,
+        "prompt_tokens": 56,
+        "total_tokens": 312,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "stream_events": 256,
+      "finish_reason": "length",
+      "end_to_end_seconds": 13.434500048868358,
+      "ttft_seconds": 0.4594791107811034,
+      "first_to_last_output_seconds": 12.959141905419528,
+      "output_tokens_per_total_second": 19.055416954020846,
+      "decode_output_tokens_per_second": 19.677228774951427,
+      "response_headers": {
+        "x-litellm-model-id": "REDACTED_PROVIDER_DEPLOYMENT_ID",
+        "x-litellm-version": "1.81.0"
+      }
+    },
+    {
+      "case": "short-2",
+      "recorded_at": "2026-10-09T08:23:22.160323+00:00",
+      "model": "qwen38-27b",
+      "max_tokens": 256,
+      "thinking": false,
+      "temperature": 0,
+      "prompt_characters": 261,
+      "usage": {
+        "completion_tokens": 256,
+        "prompt_tokens": 60,
+        "total_tokens": 316,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "stream_events": 256,
+      "finish_reason": "length",
+      "end_to_end_seconds": 13.46016470529139,
+      "ttft_seconds": 0.47847827803343534,
+      "first_to_last_output_seconds": 12.965818400029093,
+      "output_tokens_per_total_second": 19.01908376346707,
+      "decode_output_tokens_per_second": 19.667096370825913,
+      "response_headers": {
+        "x-litellm-model-id": "REDACTED_PROVIDER_DEPLOYMENT_ID",
+        "x-litellm-version": "1.81.0"
+      }
+    },
+    {
+      "case": "audit-context",
+      "recorded_at": "2026-10-09T08:23:39.944048+00:00",
+      "model": "qwen38-27b",
+      "max_tokens": 256,
+      "thinking": false,
+      "temperature": 0,
+      "prompt_characters": 21934,
+      "usage": {
+        "completion_tokens": 256,
+        "prompt_tokens": 8408,
+        "total_tokens": 8664,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "stream_events": 256,
+      "finish_reason": "length",
+      "end_to_end_seconds": 17.783379937987775,
+      "ttft_seconds": 4.470107317902148,
+      "first_to_last_output_seconds": 13.295634815003723,
+      "output_tokens_per_total_second": 14.395463679722006,
+      "decode_output_tokens_per_second": 19.17922713342278,
+      "response_headers": {
+        "x-litellm-model-id": "REDACTED_PROVIDER_DEPLOYMENT_ID",
+        "x-litellm-version": "1.81.0"
+      }
+    },
+    {
+      "case": "agent-scale-context",
+      "recorded_at": "2026-10-09T08:26:15.567557+00:00",
+      "model": "qwen38-27b",
+      "max_tokens": 256,
+      "thinking": false,
+      "temperature": 0,
+      "prompt_characters": 173806,
+      "usage": {
+        "completion_tokens": 256,
+        "prompt_tokens": 66872,
+        "total_tokens": 67128,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "stream_events": 256,
+      "finish_reason": "length",
+      "end_to_end_seconds": 47.03943589376286,
+      "ttft_seconds": 31.350502580869943,
+      "first_to_last_output_seconds": 15.67256741411984,
+      "output_tokens_per_total_second": 5.4422421344118215,
+      "decode_output_tokens_per_second": 16.270467579566038,
+      "response_headers": {
+        "x-litellm-model-id": "REDACTED_PROVIDER_DEPLOYMENT_ID",
+        "x-litellm-version": "1.81.0"
+      }
+    },
+    {
+      "case": "agent-scale-prefix-repeat",
+      "recorded_at": "2026-10-09T08:31:10.760512+00:00",
+      "model": "qwen38-27b",
+      "max_tokens": 256,
+      "thinking": false,
+      "temperature": 0,
+      "prompt_characters": 173830,
+      "usage": {
+        "completion_tokens": 256,
+        "prompt_tokens": 66876,
+        "total_tokens": 67132,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "stream_events": 256,
+      "finish_reason": "length",
+      "end_to_end_seconds": 13.378098514396697,
+      "ttft_seconds": 0.8710035523399711,
+      "first_to_last_output_seconds": 12.490726203657687,
+      "output_tokens_per_total_second": 19.135753838597342,
+      "decode_output_tokens_per_second": 20.415146072558038,
+      "response_headers": {
+        "x-litellm-model-id": "REDACTED_PROVIDER_DEPLOYMENT_ID",
+        "x-litellm-version": "1.81.0"
+      }
+    }
+  ]
+}

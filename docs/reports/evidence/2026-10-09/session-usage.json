@@ -1,0 +1,20 @@
+{
+  "id": "REDACTED_OMNIGENT_SESSION_ID",
+  "created_at": 1791517942,
+  "updated_at": 1791520254,
+  "harness": "opencode-native",
+  "llm_model": "demo/qwen38-27b",
+  "last_total_tokens": 69866,
+  "total_cost_usd": 0.0,
+  "usage_by_model": {
+    "demo/qwen38-27b": {
+      "input_tokens": 4163249,
+      "output_tokens": 17981,
+      "total_tokens": 4181230,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": null,
+      "total_cost_usd": 0.0
+    }
+  },
+  "usage_included": true
+}

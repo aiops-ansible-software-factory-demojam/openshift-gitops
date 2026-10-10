@@ -1,0 +1,267 @@
+{
+  "verification_utc": "2026-10-09T04:40:34Z",
+  "merge": {
+    "number": 3,
+    "merged": true,
+    "merged_at": "2026-10-09T04:32:00Z",
+    "merge_commit_sha": "18b32c93291647ee05d28442e878baf3487da364",
+    "head": "8617480ece1661388b2278c43c4ed452dc33e52b"
+  },
+  "native_role_validation": {
+    "role_file_count": 12,
+    "mismatches": [],
+    "molecule_results": [
+      "INFO     [nginx > dependency] Executed: Successful",
+      "INFO     [nginx > syntax] Executed: Successful",
+      "INFO     [nginx > create] Executed: Successful",
+      "centos-stream10            : ok=5    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0",
+      "INFO     [nginx > prepare] Executed: Successful",
+      "centos-stream10            : ok=12   changed=7    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0",
+      "INFO     [nginx > converge] Executed: Successful",
+      "centos-stream10            : ok=12   changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0",
+      "INFO     [nginx > idempotence] Executed: Successful",
+      "centos-stream10            : ok=8    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0",
+      "INFO     [nginx > verify] Executed: Successful",
+      "INFO     [nginx > destroy] Executed: Successful",
+      "INFO     Molecule executed 1 scenario (1 successful)",
+      "nginx > dependency: Executed: Successful",
+      "nginx > syntax: Executed: Successful",
+      "nginx > create: Executed: Successful",
+      "nginx > prepare: Executed: Successful",
+      "nginx > converge: Executed: Successful",
+      "nginx > idempotence: Executed: Successful",
+      "nginx > verify: Executed: Successful",
+      "nginx > destroy: Executed: Successful"
+    ]
+  },
+  "native_validation_outputs": [
+    "WARNING  Another version of 'demo.webapp' 0.1.0 was found installed in /home/omnigent/workspace/issue-2/.ansible/collections/ansible_collections, only the first one will be used, 0.1.0 (/home/omnigent/.ansible/collections/ansible_collections).\nWARNING  Directory expansion discovered 15 file(s). If this is more than expected, use 'exclude_paths' in your ansible-lint configuration to narrow the scope. See: https://docs.ansible.com/projects/lint/configuring/\n\nPassed: 0 failure(s), 0 warning(s) in 15 files processed of 18 encountered. Last profile that met the validation criteria was 'production'.\nLINT_EXIT=0\nBUILD_EXIT=0\n",
+    "EXIT=2\n\nTASK [david_igou.molecule_provisioners.kubevirt : Delete NodePort SSH service] ***\nskipping: [localhost] => (item=centos-stream10)\nskipping: [localhost]\n\nPLAY RECAP *********************************************************************\nlocalhost                  : ok=9    changed=1    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0\n\nINFO     [nginx > destroy] Executed: Successful\nINFO     [nginx > scenario] Pruning extra files from scenario ephemeral directory\nERROR    Ansible return code was 2, command was: ansible-playbook --inventory /home/omnigent/.ansible/tmp/molecule.3bIP.nginx/inventory --skip-tags molecule-notest,notest --inventory=../utils/inventory/ --inventory=/home/omnigent/.ansible/tmp/molecule.3bIP.nginx/inventory/ /home/omnigent/workspace/issue-2/extensions/molecule/nginx/converge.yml\nERROR    Molecule executed 1 scenario (1 failed)\n\nDETAILS                                                                        \nnginx > dependency: Executed: Successful\nnginx > syntax: Executed: Successful\nnginx > create: Executed: Successful\nnginx > prepare: Executed: Successful\nnginx > converge: Executed: Failed (Ansible return code was 2, command was: ansible-playbook --inventory /home/omnigent/.ansible/tmp/molecule.3bIP.nginx/inventory --skip-tags molecule-notest,notest --inventory=../utils/inventory/ --inventory=/home/omnigent/.ansible/tmp/molecule.3bIP.nginx/inventory/ /home/omnigent/workspace/issue-2/extensions/molecule/nginx/converge.yml)\nnginx > cleanup: Executed: Missing playbook (Remove from test_sequence to suppress)\nnginx > destroy: Executed: Successful\n\nSCENARIO RECAP                                                                 \nnginx                     : actions=7  successful=4  disabled=0  skipped=0  missing=1  failed=1\n\n",
+    "BUILD_EXIT=0\n",
+    "WARNING  Another version of 'demo.webapp' 0.1.0 was found installed in /home/omnigent/workspace/issue-2/.ansible/collections/ansible_collections, only the first one will be used, 0.1.0 (/home/omnigent/.ansible/collections/ansible_collections).\nWARNING  Directory expansion discovered 15 file(s). If this is more than expected, use 'exclude_paths' in your ansible-lint configuration to narrow the scope. See: https://docs.ansible.com/projects/lint/configuring/\n\nPassed: 0 failure(s), 0 warning(s) in 15 files processed of 18 encountered. Last profile that met the validation criteria was 'production'.\nLINT_EXIT=0\n[ERROR]: The file '/tmp/demo-webapp-0.1.0.tar.gz' already exists. You can use --force to re-create the collection artifact.\nBUILD_EXIT=1\n",
+    "EXIT=2\n\nTASK [Run provisioner destroy] *************************************************\nincluded: david_igou.molecule_provisioners.kubevirt for localhost\n\nTASK [david_igou.molecule_provisioners.kubevirt : Validating arguments against arg spec 'destroy' - Delete KubeVirt VirtualMachines and NodePort services.] ***\nok: [localhost]\n\nTASK [david_igou.molecule_provisioners.kubevirt : Initialize kubevirt spec map] ***\nok: [localhost]\n\nTASK [david_igou.molecule_provisioners.kubevirt : Merge per-host specs with mp_defaults and role defaults] ***\nok: [localhost] => (item=centos-stream10)\n\nTASK [david_igou.molecule_provisioners.kubevirt : Delete VirtualMachine in KubeVirt] ***\nchanged: [localhost] => (item=centos-stream10)\n\nTASK [david_igou.molecule_provisioners.kubevirt : Delete NodePort SSH service] ***\nskipping: [localhost] => (item=centos-stream10)\nskipping: [localhost]\n\nPLAY RECAP *********************************************************************\nlocalhost                  : ok=9    changed=1    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0\n\nINFO     [nginx > destroy] Executed: Successful\nINFO     [nginx > scenario] Pruning extra files from scenario ephemeral directory\nERROR    Ansible return code was 2, command was: ansible-playbook --inventory /home/omnigent/.ansible/tmp/molecule.3bIP.nginx/inventory --skip-tags molecule-notest,notest --inventory=../utils/inventory/ --inventory=/home/omnigent/.ansible/tmp/molecule.3bIP.nginx/inventory/ /home/omnigent/workspace/issue-2/extensions/molecule/nginx/converge.yml\nERROR    Molecule executed 1 scenario (1 failed)\n\nDETAILS                                                                        \nnginx > dependency: Executed: Successful\nnginx > syntax: Executed: Successful\nnginx > create: Executed: Successful\nnginx > prepare: Executed: Successful\nnginx > converge: Executed: Failed (Ansible return code was 2, command was: ansible-playbook --inventory /home/omnigent/.ansible/tmp/molecule.3bIP.nginx/inventory --skip-tags molecule-notest,notest --inventory=../utils/inventory/ --inventory=/home/omnigent/.ansible/tmp/molecule.3bIP.nginx/inventory/ /home/omnigent/workspace/issue-2/extensions/molecule/nginx/converge.yml)\nnginx > cleanup: Executed: Missing playbook (Remove from test_sequence to suppress)\nnginx > destroy: Executed: Successful\n\nSCENARIO RECAP                                                                 \nnginx                     : actions=7  successful=4  disabled=0  skipped=0  missing=1  failed=1\n\n",
+    "ansible-lint 26.9.0 using ansible-core:2.21.4 ansible-compat:26.9.0 ruamel-yaml:0.19.1\nWARNING  Directory expansion discovered 15 file(s). If this is more than expected, use 'exclude_paths' in your ansible-lint configuration to narrow the scope. See: https://docs.ansible.com/projects/lint/configuring/\n\nPassed: 0 failure(s), 0 warning(s) in 15 files processed of 18 encountered. Last profile that met the validation criteria was 'production'.\nEXIT=0\n"
+  ],
+  "live_deployment": {
+    "id": 342,
+    "status": "successful",
+    "started": "2026-10-09T04:35:53.056785Z",
+    "finished": "2026-10-09T04:36:32.567067Z",
+    "scm_revision": "4f1905f647a0ca521e4dd93350e46bda849e261e"
+  },
+  "live_selinux_tasks": [
+    {
+      "task": "Set SELinux to permissive",
+      "changed": true,
+      "stdout": null,
+      "mode": null,
+      "config_mode": null,
+      "status": null
+    },
+    {
+      "task": "install | Install SELinux Python bindings and policy tools",
+      "changed": false,
+      "stdout": null,
+      "mode": null,
+      "config_mode": null,
+      "status": null
+    },
+    {
+      "task": "install | Gather SELinux facts needed for nginx file context conditions",
+      "changed": false,
+      "stdout": null,
+      "mode": null,
+      "config_mode": null,
+      "status": null
+    },
+    {
+      "task": "install | Keep SELinux enforcing",
+      "changed": true,
+      "stdout": null,
+      "mode": null,
+      "config_mode": null,
+      "status": null
+    },
+    {
+      "task": "Create custom docroot",
+      "changed": false,
+      "stdout": null,
+      "mode": "0755",
+      "config_mode": null,
+      "status": null
+    },
+    {
+      "task": "Point nginx.conf root at custom docroot",
+      "changed": false,
+      "stdout": null,
+      "mode": null,
+      "config_mode": null,
+      "status": null
+    },
+    {
+      "task": "Map docroot to its required SELinux type",
+      "changed": true,
+      "stdout": null,
+      "mode": null,
+      "config_mode": null,
+      "status": null
+    },
+    {
+      "task": "Apply SELinux file contexts to the docroot",
+      "changed": true,
+      "stdout": "Relabeled /web from unconfined_u:object_r:default_t:s0 to unconfined_u:object_r:httpd_sys_content_t:s0\nRelabeled /web/index.html from system_u:object_r:default_t:s0 to system_u:object_r:httpd_sys_content_t:s0",
+      "mode": null,
+      "config_mode": null,
+      "status": null
+    },
+    {
+      "task": "Drop demo index.html in custom docroot",
+      "changed": false,
+      "stdout": null,
+      "mode": "0644",
+      "config_mode": null,
+      "status": null
+    },
+    {
+      "task": "Check nginx serves HTTP inside the guest",
+      "changed": false,
+      "stdout": null,
+      "mode": null,
+      "config_mode": null,
+      "status": 200
+    }
+  ],
+  "live_enforcement": {
+    "id": 348,
+    "status": "successful",
+    "started": "2026-10-09T04:39:59.127749Z",
+    "finished": "2026-10-09T04:40:10.351177Z"
+  },
+  "independent_getenforce": [
+    {
+      "rc": 0,
+      "stdout": "Enforcing"
+    }
+  ],
+  "origin_probe": "probe_http_status_code 200\nprobe_success 1\n",
+  "alert": [
+    {
+      "state": "inactive",
+      "alerts": []
+    }
+  ],
+  "molecule_cleanup": {
+    "remaining_test_resources": 0
+  },
+  "final_gitops": [
+    {
+      "name": "agent-sandbox-operator",
+      "sync": "Synced",
+      "health": "Healthy"
+    },
+    {
+      "name": "ansible-automation-platform",
+      "sync": "Synced",
+      "health": "Healthy"
+    },
+    {
+      "name": "ansible-automation-platform-operator",
+      "sync": "Synced",
+      "health": "Healthy"
+    },
+    {
+      "name": "automation-orchestrator",
+      "sync": "Synced",
+      "health": "Healthy"
+    },
+    {
+      "name": "cloudnative-pg",
+      "sync": "Synced",
+      "health": "Healthy"
+    },
+    {
+      "name": "cluster",
+      "sync": "Synced",
+      "health": "Healthy"
+    },
+    {
+      "name": "demojam-keycloak",
+      "sync": "Synced",
+      "health": "Healthy"
+    },
+    {
+      "name": "forgejo",
+      "sync": "Synced",
+      "health": "Healthy"
+    },
+    {
+      "name": "homepage",
+      "sync": "Synced",
+      "health": "Healthy"
+    },
+    {
+      "name": "omnigent",
+      "sync": "Synced",
+      "health": "Healthy"
+    },
+    {
+      "name": "openshift-pipelines",
+      "sync": "Synced",
+      "health": "Healthy"
+    },
+    {
+      "name": "openshift-virtualization",
+      "sync": "Synced",
+      "health": "Healthy"
+    },
+    {
+      "name": "rhdh",
+      "sync": "Synced",
+      "health": "Healthy"
+    },
+    {
+      "name": "user-workload-monitoring",
+      "sync": "Synced",
+      "health": "Healthy"
+    },
+    {
+      "name": "webapp-vms",
+      "sync": "Synced",
+      "health": "Healthy"
+    }
+  ],
+  "eda": [
+    {
+      "id": 2,
+      "name": "demojam-forgejo-remediation",
+      "is_enabled": true,
+      "status": "running"
+    },
+    {
+      "id": 1,
+      "name": "demojam-webapp-issues",
+      "is_enabled": true,
+      "status": "running"
+    }
+  ],
+  "aap_before": {
+    "uid": "REDACTED_AAP_INSTANCE_UID"
+  },
+  "aap_after": {
+    "uid": "REDACTED_AAP_INSTANCE_UID"
+  },
+  "aap_pvcs_before": [
+    {
+      "name": "postgres-15-aap-postgres-15-0",
+      "uid": "REDACTED_AAP_DATABASE_PVC_UID",
+      "volume": "pvc-REDACTED_AAP_DATABASE_PVC_UID"
+    }
+  ],
+  "aap_pvcs_after": [
+    {
+      "name": "postgres-15-aap-postgres-15-0",
+      "uid": "REDACTED_AAP_DATABASE_PVC_UID",
+      "volume": "pvc-REDACTED_AAP_DATABASE_PVC_UID"
+    }
+  ]
+}

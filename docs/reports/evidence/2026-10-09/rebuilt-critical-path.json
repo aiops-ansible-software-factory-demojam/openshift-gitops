@@ -1,0 +1,173 @@
+{
+  "notes": "Additive partition of 51m50s. Detailed overlapping activity/job spans are in separate evidence files and must not be summed with this partition.",
+  "phases": [
+    {
+      "phase": "Command launch and AAP refresh to fault job finish",
+      "started_at": "2026-10-09T03:48:44Z",
+      "finished_at": "2026-10-09T03:49:45.430527Z",
+      "elapsed_seconds": 61.43052697181702,
+      "notes": "Includes project327/inventory328,330 and nested project329,331 plus faultjob332."
+    },
+    {
+      "phase": "Fault finish to Prometheus firing timestamp",
+      "started_at": "2026-10-09T03:49:45.430527Z",
+      "finished_at": "2026-10-09T03:50:58.702000Z",
+      "elapsed_seconds": 73.2714729309082,
+      "notes": "Alert startsAt denotes firing/hold completion, not the instant the app broke."
+    },
+    {
+      "phase": "Firing timestamp to EDA alert rule",
+      "started_at": "2026-10-09T03:50:58.702000Z",
+      "finished_at": "2026-10-09T03:51:08.921018Z",
+      "elapsed_seconds": 10.21901798248291,
+      "notes": ""
+    },
+    {
+      "phase": "EDA alert to AO RCA execution",
+      "started_at": "2026-10-09T03:51:08.921018Z",
+      "finished_at": "2026-10-09T03:51:17.294240Z",
+      "elapsed_seconds": 8.37322211265564,
+      "notes": "Includes AAPjob333; AO starts before its job finishes."
+    },
+    {
+      "phase": "AO dispatch before audit activity",
+      "started_at": "2026-10-09T03:51:17.294240Z",
+      "finished_at": "2026-10-09T03:51:17.962565Z",
+      "elapsed_seconds": 0.6683249473571777,
+      "notes": ""
+    },
+    {
+      "phase": "Audit activity incl AAPjob334",
+      "started_at": "2026-10-09T03:51:17.962565Z",
+      "finished_at": "2026-10-09T03:51:30.002386Z",
+      "elapsed_seconds": 12.039821147918701,
+      "notes": ""
+    },
+    {
+      "phase": "Audit-to-model transition",
+      "started_at": "2026-10-09T03:51:30.002386Z",
+      "finished_at": "2026-10-09T03:51:30.220062Z",
+      "elapsed_seconds": 0.21767592430114746,
+      "notes": ""
+    },
+    {
+      "phase": "AO RCA model activity",
+      "started_at": "2026-10-09T03:51:30.220062Z",
+      "finished_at": "2026-10-09T03:51:57.165461Z",
+      "elapsed_seconds": 26.945399045944214,
+      "notes": "176 output/3918 input tokens. Activity span includes AO/bridge orchestration."
+    },
+    {
+      "phase": "Model-to-issue transition",
+      "started_at": "2026-10-09T03:51:57.165461Z",
+      "finished_at": "2026-10-09T03:51:57.492357Z",
+      "elapsed_seconds": 0.32689595222473145,
+      "notes": ""
+    },
+    {
+      "phase": "Create-issue activity to Forgejo issue timestamp",
+      "started_at": "2026-10-09T03:51:57.492357Z",
+      "finished_at": "2026-10-09T03:52:07Z",
+      "elapsed_seconds": 9.507642984390259,
+      "notes": "Forgejo timestamp has one-second resolution. Issue activity continues to 03:52:09.420326Z."
+    },
+    {
+      "phase": "Issue timestamp to Forgejo EDA rule",
+      "started_at": "2026-10-09T03:52:07Z",
+      "finished_at": "2026-10-09T03:52:08.531681Z",
+      "elapsed_seconds": 1.5316810607910156,
+      "notes": ""
+    },
+    {
+      "phase": "EDA Forgejo rule to AO remediation",
+      "started_at": "2026-10-09T03:52:08.531681Z",
+      "finished_at": "2026-10-09T03:52:18.265362Z",
+      "elapsed_seconds": 9.733680963516235,
+      "notes": "Includes AAPjob336; webhook HTTP arrival not separately retained."
+    },
+    {
+      "phase": "AO dispatch before Backstage",
+      "started_at": "2026-10-09T03:52:18.265362Z",
+      "finished_at": "2026-10-09T03:52:18.675051Z",
+      "elapsed_seconds": 0.40968894958496094,
+      "notes": ""
+    },
+    {
+      "phase": "Backstage incident branch preparation",
+      "started_at": "2026-10-09T03:52:18.675051Z",
+      "finished_at": "2026-10-09T03:52:21.981377Z",
+      "elapsed_seconds": 3.306325912475586,
+      "notes": ""
+    },
+    {
+      "phase": "Prepare-to-auth transition",
+      "started_at": "2026-10-09T03:52:21.981377Z",
+      "finished_at": "2026-10-09T03:52:22.113004Z",
+      "elapsed_seconds": 0.13162708282470703,
+      "notes": ""
+    },
+    {
+      "phase": "Machine-token acquisition",
+      "started_at": "2026-10-09T03:52:22.113004Z",
+      "finished_at": "2026-10-09T03:52:22.183619Z",
+      "elapsed_seconds": 0.07061505317687988,
+      "notes": ""
+    },
+    {
+      "phase": "Auth-to-session transition",
+      "started_at": "2026-10-09T03:52:22.183619Z",
+      "finished_at": "2026-10-09T03:52:22.236776Z",
+      "elapsed_seconds": 0.05315709114074707,
+      "notes": ""
+    },
+    {
+      "phase": "Create session request",
+      "started_at": "2026-10-09T03:52:22.236776Z",
+      "finished_at": "2026-10-09T03:52:23.281599Z",
+      "elapsed_seconds": 1.0448229312896729,
+      "notes": ""
+    },
+    {
+      "phase": "Session-to-task transition",
+      "started_at": "2026-10-09T03:52:23.281599Z",
+      "finished_at": "2026-10-09T03:52:23.637236Z",
+      "elapsed_seconds": 0.3556370735168457,
+      "notes": "Session-sharing activity runs alongside this transition."
+    },
+    {
+      "phase": "Send-task request / sandbox readiness",
+      "started_at": "2026-10-09T03:52:23.637236Z",
+      "finished_at": "2026-10-09T03:53:13.487454Z",
+      "elapsed_seconds": 49.85021781921387,
+      "notes": ""
+    },
+    {
+      "phase": "Handoff completion bookkeeping",
+      "started_at": "2026-10-09T03:53:13.487454Z",
+      "finished_at": "2026-10-09T03:53:15.805315Z",
+      "elapsed_seconds": 2.3178610801696777,
+      "notes": "Initial user task stored at 03:53:15."
+    },
+    {
+      "phase": "Assisted agent work to PR",
+      "started_at": "2026-10-09T03:53:15.805315Z",
+      "finished_at": "2026-10-09T04:30:24Z",
+      "elapsed_seconds": 2228.1946849823,
+      "notes": ""
+    },
+    {
+      "phase": "Human review to merge request start",
+      "started_at": "2026-10-09T04:30:24Z",
+      "finished_at": "2026-10-09T04:31:59Z",
+      "elapsed_seconds": 95.0,
+      "notes": "Actual Forgejo merge recorded one second later."
+    },
+    {
+      "phase": "Merge request and final deployment verification",
+      "started_at": "2026-10-09T04:31:59Z",
+      "finished_at": "2026-10-09T04:40:34Z",
+      "elapsed_seconds": 515,
+      "notes": ""
+    }
+  ]
+}

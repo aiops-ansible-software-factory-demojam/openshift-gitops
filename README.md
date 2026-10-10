@@ -6,6 +6,13 @@ Red Hat Developer Hub (Backstage), and an Omnigent agent to a pull request.
 The cluster also runs Ansible Automation Platform (AAP), a RHEL 9 nginx VM,
 and monitoring.
 
+A SELinux outage follows the complete automatic path: blackbox alert → EDA →
+AO audit-log RCA → Forgejo incident → Forgejo webhook → EDA → AO → Omnigent
+fix PR. Bootstrap installs and connects every stage; PR review and merge remain
+manual. LiteLLM's `qwen38-27b` is the default model in the configuration template.
+Bootstrap disables thinking for this model in the coding harness because the
+demo endpoint can otherwise time out before returning a streamed tool call.
+
 ## Before you start
 
 You need cluster-admin access, Operator Lifecycle Manager (OLM) with Red Hat and
@@ -37,7 +44,7 @@ make bootstrap
 In `.env`, use the [configuration template](.env.example) to select
 `MODEL_PROVIDER` (`opencode-go` or `litellm`) and fill in its key, endpoint,
 and model. Endpoints are HTTPS API base URLs,
-before `/responses` or `/chat/completions`. Place your AAP subscription ZIP,
+before `/responses`, `/chat/completions`, or `/messages`. Place your AAP subscription ZIP,
 including RHEL CDN entitlement, at `aap_manifest.zip`, or set `AAP_LICENSE_FILE`.
 The ZIP and `.env` are ignored by Git; quote values as trusted Bash configuration.
 
@@ -46,7 +53,8 @@ Argo CD reads published Git commits. Publish changes before setup and set
 three Ansible repos are configured separately; see [Forgejo](cluster/forgejo/README.md).
 
 Bootstrap installs the stack, seeds Forgejo, builds the agent image, configures
-AAP, provisions nginx, and checks HTTPS and monitoring. Wait for
+AAP, provisions the RHEL VM, runs the separate permissive setup playbook,
+installs nginx, and checks HTTPS and monitoring. Wait for
 `Bootstrap completed`, then open the printed Homepage URL. Sign in as
 `demo-user` with `DEMO_USER_PASSWORD` (default `changeme` for new accounts).
 This demo account has application administrator and OpenShift cluster-admin
@@ -54,7 +62,27 @@ access. Keep your populated `.env` for reruns.
 
 ## Run the demo
 
+Agents can use the repository's
+[run-demojam skill](.agents/skills/run-demojam/SKILL.md) to run the full demo
+without coaching the coding agent or repairing the run. It merges the Forgejo
+fix only after tests pass on the published commit.
+
 Run these commands from the repository root:
+
+```bash
+bash bootstrap/bootstrap.sh aap launch webapp_selinux_enable
+```
+
+The seeded job enables SELinux enforcing on the webapp VM. Follow the new
+Forgejo incident and its RCA into the Omnigent session; the agent tests its
+collection fix and submits a PR. Merge the tested PR, then run
+`make webapp-nginx` once to deploy it. This job preserves SELinux Enforcing;
+run `bash bootstrap/bootstrap.sh webapp verify-enforcing` to check recovery.
+To restore only the permissive mode for an unmerged demonstration, run
+`bash bootstrap/bootstrap.sh aap launch webapp_selinux_permissive`.
+A full reset and bootstrap also restore the unfixed collection.
+
+The starter issue exercises the Backstage feature flow directly:
 
 ```bash
 make demo-hydrate     # Print the starter issue URL and number
@@ -71,6 +99,23 @@ the PR URL.
 then reseeds the baseline. It leaves demo VMs absent; rerun `make bootstrap`
 to restore the full environment. `make teardown` removes the entire demo stack,
 operators, identities, and persistent data. Both discard disposable demo work.
+Use `make teardown-keep-aap` to retain AAP, its operator and database volumes
+while removing the rest. It stops the demo EDA listeners until the next bootstrap.
+Bootstrap reconciles Homepage's new reader password with the preserved AAP
+account before verifying the dashboard.
+The permissive setup job runs after VM provisioning during bootstrap.
+It is separate from nginx installation, so deploying a merged fix preserves
+the Enforcing state established by the fault job.
+For `qwen38-27b`, bootstrap also configures an authenticated LiteLLM bridge for
+AO's RCA requests with thinking disabled, matching the Omnigent configuration.
+Setup and reset silence only `WebappDown` while the baseline is unavailable.
+Bootstrap waits for monitoring to observe recovery before ending maintenance.
+Recovery notifications and a 30-second group interval allow repeat demo runs;
+EDA dispatches only firing alerts, and repeats reuse the open incident.
+Before script launches, bootstrap waits for node storage readiness and refreshes
+the AAP project and inventories sequentially. Ensuing EDA/AO jobs reuse a
+ten-minute dependency cache; script launches always refresh it, including after
+creating a VM, so inventory still discovers the new guest.
 Setup, reset, and teardown share the implementation in
 `bootstrap/bootstrap.sh`; Make targets invoke that script directly.
 
@@ -78,6 +123,22 @@ Setup, reset, and teardown share the implementation in
 
 `make help-all` lists maintenance commands; `make preflight` checks prerequisites
 without changing the cluster, and `make render` renders manifests locally.
+
+Read the [October 9 run report](docs/reports/2026-10-09-demo-runs.md) for measured
+phase timings, Qwen throughput, interventions, and remaining acceptance work.
+The [prompt appendix](docs/reports/2026-10-09-demo-prompts.md) preserves incident
+text, agent-task revisions, and reviewer messages from the rebuilt run.
+The [Haiku rehearsal report](docs/reports/2026-10-09-haiku-bootstrap.md) records
+the later live bootstrap, preloaded sandbox checks, and automatic outage-to-PR run.
+The [latest Haiku end-to-end report](docs/reports/2026-10-09-haiku-no-intervention.md)
+records a test-gated merge and one-job Enforcing recovery, including the
+operator's test-runner correction. Use the
+[run-demojam skill](.agents/skills/run-demojam/SKILL.md) for the operator sequence.
+
+The [six-model LiteLLM sweep](docs/reports/2026-10-09-litellm-model-sweep.md)
+records one attempt per model from both supplied credentials, with no operator
+interventions. It separates provider access, bootstrap, RCA, session handoff,
+coding work, and the test gate, with timings, prompts, and redacted evidence.
 
 - [Login and users](cluster/demojam-keycloak/README.md) · [Homepage](cluster/homepage/README.md)
 - [Forgejo](cluster/forgejo/README.md) · [Developer Hub](cluster/rhdh/README.md) · [Agent sessions and tests](cluster/omnigent/README.md)

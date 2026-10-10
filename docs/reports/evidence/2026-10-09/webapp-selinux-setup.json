@@ -1,0 +1,130 @@
+{
+  "completed_at": "2026-10-09T21:17:25.864777+00:00",
+  "scope": "Live regression on the existing provisioned VM and already merged MiniMax collection fix; no new agent incident or fresh cluster bootstrap.",
+  "project_source_commit": "c557ad5f8b33ad1621abb0a211cc59fd078385b4",
+  "commands": {
+    "configure": {
+      "name": "configure",
+      "started_at": "2026-10-09T20:59:52.848871+00:00",
+      "finished_at": "2026-10-09T21:08:41.852645+00:00",
+      "elapsed_seconds": 529.004,
+      "exit_code": 0
+    },
+    "setup": {
+      "name": "setup",
+      "started_at": "2026-10-09T21:08:41.882084+00:00",
+      "finished_at": "2026-10-09T21:11:04.721983+00:00",
+      "elapsed_seconds": 142.84,
+      "exit_code": 0
+    },
+    "fault-mode": {
+      "name": "fault-mode",
+      "started_at": "2026-10-09T21:11:12.425425+00:00",
+      "finished_at": "2026-10-09T21:13:30.656432+00:00",
+      "elapsed_seconds": 138.231,
+      "exit_code": 0
+    },
+    "recovery": {
+      "name": "recovery",
+      "started_at": "2026-10-09T21:13:37.907290+00:00",
+      "finished_at": "2026-10-09T21:17:01.075299+00:00",
+      "elapsed_seconds": 203.168,
+      "exit_code": 0
+    },
+    "verify": {
+      "name": "verify",
+      "started_at": "2026-10-09T21:17:08.857719+00:00",
+      "finished_at": "2026-10-09T21:17:21.345464+00:00",
+      "elapsed_seconds": 12.488,
+      "exit_code": 0
+    }
+  },
+  "jobs": {
+    "configure": {
+      "id": 266,
+      "name": "aap_configure_all",
+      "status": "successful",
+      "started": "2026-10-09T21:04:40.721644Z",
+      "finished": "2026-10-09T21:08:36.664958Z",
+      "elapsed": 235.943,
+      "scm_revision": "2f2c8db9064eb080b6f2217a564628e0407746af"
+    },
+    "setup": {
+      "id": 276,
+      "name": "webapp_selinux_permissive",
+      "status": "successful",
+      "started": "2026-10-09T21:10:53.653104Z",
+      "finished": "2026-10-09T21:11:02.616198Z",
+      "elapsed": 8.963,
+      "scm_revision": "2f2c8db9064eb080b6f2217a564628e0407746af"
+    },
+    "fault-mode": {
+      "id": 283,
+      "name": "webapp_selinux_enable",
+      "status": "successful",
+      "started": "2026-10-09T21:13:19.284732Z",
+      "finished": "2026-10-09T21:13:27.239469Z",
+      "elapsed": 7.955,
+      "scm_revision": "2f2c8db9064eb080b6f2217a564628e0407746af"
+    },
+    "recovery": {
+      "id": 290,
+      "name": "webapp_nginx",
+      "status": "successful",
+      "started": "2026-10-09T21:16:38.276589Z",
+      "finished": "2026-10-09T21:16:57.847645Z",
+      "elapsed": 19.571,
+      "scm_revision": "2f2c8db9064eb080b6f2217a564628e0407746af"
+    }
+  },
+  "modes": {
+    "before": {
+      "stage": "before",
+      "completed_at": "2026-10-09T21:04:38.316000+00:00",
+      "command_id": 265,
+      "status": "successful",
+      "actual_mode": "Enforcing",
+      "expected_mode": "Enforcing"
+    },
+    "setup": {
+      "stage": "setup",
+      "completed_at": "2026-10-09T21:11:12.405062+00:00",
+      "command_id": 277,
+      "status": "successful",
+      "actual_mode": "Permissive",
+      "expected_mode": "Permissive"
+    },
+    "fault-mode": {
+      "stage": "fault-mode",
+      "completed_at": "2026-10-09T21:13:37.885884+00:00",
+      "command_id": 284,
+      "status": "successful",
+      "actual_mode": "Enforcing",
+      "expected_mode": "Enforcing"
+    },
+    "recovery": {
+      "stage": "recovery",
+      "completed_at": "2026-10-09T21:17:08.836020+00:00",
+      "command_id": 291,
+      "status": "successful",
+      "actual_mode": "Enforcing",
+      "expected_mode": "Enforcing"
+    }
+  },
+  "recovery_http_status": 200,
+  "recovery_had_permissive_task": false,
+  "eda": [
+    {
+      "name": "demojam-forgejo-remediation",
+      "status": "running",
+      "is_enabled": true
+    },
+    {
+      "name": "demojam-webapp-issues",
+      "status": "running",
+      "is_enabled": true
+    }
+  ],
+  "collection_main_before": "4991428dc897baa0cc77694de4f937d2f38b0547",
+  "collection_main_after": "4991428dc897baa0cc77694de4f937d2f38b0547"
+}

@@ -91,7 +91,12 @@ demo_model_inputs() {
       model_endpoint=${OPENCODE_GO_ENDPOINT:-https://opencode.ai/zen/go/v1}
       model_name=${OPENCODE_GO_MODEL:-gpt-6-luna}
       model_key=${OPENCODE_GO_API_KEY:-}
-      model_npm=@ai-sdk/openai
+      case ${OPENCODE_GO_PROTOCOL:-responses} in
+        responses) model_npm=@ai-sdk/openai ;;
+        chat) model_npm=@ai-sdk/openai-compatible ;;
+        anthropic) model_npm=@ai-sdk/anthropic ;;
+        *) echo 'OPENCODE_GO_PROTOCOL must be responses, chat, or anthropic.' >&2; return 2 ;;
+      esac
       ;;
     litellm)
       model_endpoint=${LITELLM_ENDPOINT:-}
@@ -106,7 +111,8 @@ demo_model_inputs() {
   }
   model_endpoint=${model_endpoint%/}
   [[ $model_endpoint == https://* && $model_endpoint != *[[:space:]?#]* &&
-     $model_endpoint != */chat/completions && $model_endpoint != */responses ]] || {
+     $model_endpoint != */chat/completions && $model_endpoint != */responses &&
+     $model_endpoint != */messages ]] || {
     echo 'The provider endpoint must be an HTTPS API base URL.' >&2; return 2;
   }
   local host=${model_endpoint#https://}
@@ -297,8 +303,10 @@ EOF
   unset model_key
   # Keep the existing Secret key for in-place upgrades; the selected endpoint is
   # the baseURL below, not the name of this environment variable.
+  # Qwen can exceed the endpoint's 60-second idle timeout before a tool call.
+  # Disable thinking for this demo model to keep streamed requests responsive.
   jq -cn --arg base "$model_endpoint" --arg model "$model_name" \
-    --arg npm "$model_npm" '
+    --arg npm "$model_npm" --arg provider "${MODEL_PROVIDER:-opencode-go}" '
     {
       "$schema": "https://opencode.ai/config.json",
       model: ("demo/" + $model),
@@ -311,9 +319,11 @@ EOF
             apiKey: "{env:OPENAI_API_KEY}"
           },
           models: {
-            ($model): {
+            ($model): ({
               name: $model
-            }
+            } + (if $provider == "litellm" and $model == "qwen38-27b" then {
+              options: {chat_template_kwargs: {enable_thinking: false}}
+            } else {} end))
           }
         }
       }
@@ -962,37 +972,46 @@ demo_ao_integration() {
   printf '%s\n' "$id"
 }
 
-# AO 2026.8 uses Chat Completions and cannot set provider headers. LiteLLM's
-# maintained bridge translates Responses models and adds Go's routing headers.
+# AO 2026.8 cannot set provider headers or chat-template options. LiteLLM's
+# bridge handles Go routing and keeps Qwen's RCA within the agent timeout.
 # Keep the runtime configuration here rather than a second bootstrap program.
-demo_ao_go_proxy() {
-  local proxy_model protocol config_status secret_status existing
-  existing=$(oc -n "$namespace" get deployment ao-opencode-go --ignore-not-found -o name)
-  protocol=${OPENCODE_GO_PROTOCOL:-responses}
-  case $protocol in
-    responses) proxy_model="openai/responses/$model_name" ;;
-    chat) proxy_model="openai/$model_name" ;;
-    *) demo_die 'OPENCODE_GO_PROTOCOL must be responses or chat.' ;;
-  esac
+demo_ao_llm_proxy() {
+  local proxy_name=ao-opencode-go proxy_model proxy_base=$model_endpoint protocol config_status secret_status existing qwen=false
+  if [[ ${MODEL_PROVIDER:-opencode-go} == litellm && $model_name == qwen38-27b ]]; then
+    proxy_name=ao-litellm-qwen
+    proxy_model="openai/$model_name"
+    qwen=true
+  else
+    protocol=${OPENCODE_GO_PROTOCOL:-responses}
+    case $protocol in
+      responses) proxy_model="openai/responses/$model_name" ;;
+      chat) proxy_model="openai/$model_name" ;;
+      # LiteLLM accepts the full Messages URL; the SDK uses the API base above.
+      anthropic) proxy_model="anthropic/$model_name"; proxy_base="$model_endpoint/messages" ;;
+      *) demo_die 'OPENCODE_GO_PROTOCOL must be responses, chat, or anthropic.' ;;
+    esac
+  fi
+  existing=$(oc -n "$namespace" get deployment "$proxy_name" --ignore-not-found -o name)
   printf '%s' "$model_key" >"$omnigent_scratch/go-api-key"
-  if [[ -n $(oc -n "$namespace" get secret ao-opencode-go --ignore-not-found -o name) ]]; then
-    oc -n "$namespace" get secret ao-opencode-go \
+  if [[ -n $(oc -n "$namespace" get secret "$proxy_name" --ignore-not-found -o name) ]]; then
+    oc -n "$namespace" get secret "$proxy_name" \
       -o go-template='{{index .data "LITELLM_MASTER_KEY" | base64decode}}' >"$omnigent_scratch/go-proxy-key"
-    [[ -s $omnigent_scratch/go-proxy-key ]] || demo_die 'The Go proxy master key is empty.'
+    [[ -s $omnigent_scratch/go-proxy-key ]] || demo_die 'The LLM proxy master key is empty.'
   else
     printf 'sk-%s' "$(openssl rand -hex 32)" >"$omnigent_scratch/go-proxy-key"
   fi
-  secret_status=$(oc -n "$namespace" create secret generic ao-opencode-go \
-    --from-file=OPENCODE_GO_API_KEY="$omnigent_scratch/go-api-key" \
+  secret_status=$(oc -n "$namespace" create secret generic "$proxy_name" \
+    --from-file=PROVIDER_API_KEY="$omnigent_scratch/go-api-key" \
     --from-file=LITELLM_MASTER_KEY="$omnigent_scratch/go-proxy-key" --dry-run=client -o yaml |
     oc -n "$namespace" apply -f -)
-  jq -n --arg model "$model_name" --arg backend "$proxy_model" --arg url "$model_endpoint" '
-    {model_list:[{model_name:$model,litellm_params:{model:$backend,api_base:$url,
-      api_key:"os.environ/OPENCODE_GO_API_KEY"}}],
+  jq -n --arg model "$model_name" --arg backend "$proxy_model" --arg url "$proxy_base" --argjson qwen "$qwen" '
+    {model_list:[{model_name:$model,litellm_params:({model:$backend,api_base:$url,
+      api_key:"os.environ/PROVIDER_API_KEY"} +
+      (if $qwen then {extra_body:{chat_template_kwargs:{enable_thinking:false}}} else {} end))}],
       general_settings:{master_key:"os.environ/LITELLM_MASTER_KEY"},
-      litellm_settings:{callbacks:["go_headers.callback"],num_retries:0}}' |
+      litellm_settings:{num_retries:0,callbacks:[if $qwen then "provider_options.qwen" else "provider_options.go" end]}}' |
     yq -y . >"$omnigent_scratch/go-config.yaml"
-  cat >"$omnigent_scratch/go_headers.py" <<'PY'
+  cat >"$omnigent_scratch/provider_options.py" <<'PY'
 from uuid import uuid4
 from litellm.integrations.custom_logger import CustomLogger
 
@@ -1005,26 +1024,37 @@ class GoHeaders(CustomLogger):
         headers["User-Agent"] = "automation-orchestrator-demojam/1.0"
         return data
 
-callback = GoHeaders()
+class QwenOptions(CustomLogger):
+    async def async_pre_call_hook(self, user_api_key_dict, cache, data, call_type):
+        # AO binds an empty list for questions without tools. The upstream
+        # endpoint requires that optional field to be omitted instead.
+        if data.get("tools") == []:
+            data.pop("tools")
+            data.pop("tool_choice", None)
+            data.pop("parallel_tool_calls", None)
+        return data
+
+go = GoHeaders()
+qwen = QwenOptions()
 PY
-  config_status=$(oc -n "$namespace" create configmap ao-opencode-go \
+  config_status=$(oc -n "$namespace" create configmap "$proxy_name" \
     --from-file=config.yaml="$omnigent_scratch/go-config.yaml" \
-    --from-file=go_headers.py="$omnigent_scratch/go_headers.py" --dry-run=client -o yaml |
+    --from-file=provider_options.py="$omnigent_scratch/provider_options.py" --dry-run=client -o yaml |
     oc -n "$namespace" apply -f -)
-  cat <<'YAML' | oc -n "$namespace" apply -f - >/dev/null
+  cat <<YAML | oc -n "$namespace" apply -f - >/dev/null
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ao-opencode-go
+  name: $proxy_name
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ao-opencode-go
+      app: $proxy_name
   template:
     metadata:
       labels:
-        app: ao-opencode-go
+        app: $proxy_name
     spec:
       automountServiceAccountToken: false
       containers:
@@ -1037,7 +1067,7 @@ spec:
             - "4000"
           envFrom:
             - secretRef:
-                name: ao-opencode-go
+                name: $proxy_name
           env:
             - name: PYTHONPATH
               value: /etc/litellm
@@ -1062,32 +1092,33 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: ao-opencode-go
+            name: $proxy_name
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: ao-opencode-go
+  name: $proxy_name
 spec:
   selector:
-    app: ao-opencode-go
+    app: $proxy_name
   ports:
     - port: 4000
       targetPort: 4000
 YAML
   if [[ -n $existing && ( $config_status != *' unchanged' || $secret_status != *' unchanged' ) ]]; then
-    oc -n "$namespace" rollout restart deployment/ao-opencode-go >/dev/null
+    oc -n "$namespace" rollout restart "deployment/$proxy_name" >/dev/null
   fi
-  oc -n "$namespace" rollout status deployment/ao-opencode-go --timeout=10m
-  model_endpoint=http://ao-opencode-go.automation-orchestrator.svc:4000/v1
+  oc -n "$namespace" rollout status "deployment/$proxy_name" --timeout=10m
+  model_endpoint="http://$proxy_name.automation-orchestrator.svc:4000/v1"
   model_key=$(<"$omnigent_scratch/go-proxy-key")
 }
 
 demo_ao_integrations() {
   local configuration inputs allowed_hosts deploy current expected code disabled_models
   demo_model_inputs
-  if [[ ${MODEL_PROVIDER:-opencode-go} == opencode-go ]]; then
-    demo_ao_go_proxy
+  if [[ ${MODEL_PROVIDER:-opencode-go} == opencode-go ||
+        ( ${MODEL_PROVIDER:-opencode-go} == litellm && $model_name == qwen38-27b ) ]]; then
+    demo_ao_llm_proxy
   fi
   # The integration policy is checked in backend, worker and background worker.
   # The operator loads this supported ConfigMap in all three processes. Argo
@@ -1510,19 +1541,16 @@ demo_ao_reconcile() (
   fi
 
   # Inject runtime integration and credential references into portable definitions;
-  # only omnigent-dispatch needs its dynamic agent and user-sharing nodes.
+  # Both agent workflows need the machine credential and user-sharing nodes.
   for workflow_file in "$script_dir"/workflows/*.yaml; do
     workflow_name=$(yq -er '.name' "$workflow_file")
-    if [[ $workflow_name == omnigent-dispatch ]]; then
+    if [[ $workflow_name == omnigent-dispatch || $workflow_name == omnigent-remediation ]]; then
       workflow_definition=$(demo_ao_workflow_definition "$workflow_file" "$credential_id" "$agent_id")
     else
       workflow_definition=$(yq -c . "$workflow_file" | jq -c \
         --arg llm_credential "$llm_credential_id" --arg llm_integration "$llm_integration_id" \
         --arg llm_model "$llm_model_id" --arg aap_credential "$aap_credential_id" \
-        --arg aap_integration "$aap_integration_id" --arg eda_account "$eda_service_account_id" '
-        .triggers |= map(if .type == "eda_trigger" then
-          .parameters.authorized_service_account_ids=[$eda_account]
-        else . end) |
+        --arg aap_integration "$aap_integration_id" '
         .nodes |= map(if .type == "agentic" then
           .parameters.credential_id=$llm_credential | .parameters.integration_id=$llm_integration |
           .parameters.llm_model_id=$llm_model
@@ -1530,6 +1558,10 @@ demo_ao_reconcile() (
           .parameters.credential_id=$aap_credential | .parameters.integration_id=$aap_integration
         else . end)')
     fi
+    workflow_definition=$(jq -c --arg eda_account "$eda_service_account_id" '
+      .triggers |= map(if .type == "eda_trigger" then
+        .parameters.authorized_service_account_ids=[$eda_account]
+      else . end)' <<<"$workflow_definition")
     validation_payload=$(jq -n --argjson definition "$workflow_definition" \
       '{workflow_definition: $definition}')
     http_code=$(ao_curl POST "$base_url/workflows/validate" -H "$auth_header" \
@@ -1729,6 +1761,98 @@ demo_alerting_prepare() (
     oc apply --server-side --field-manager=demo-bootstrap -f -
 )
 
+# Mute setup outages until monitoring has observed baseline recovery.
+demo_alerting_maintenance() {
+  local action=$1 id previous alerts deadline=$((SECONDS + 600))
+  local -a client=(oc -n openshift-user-workload-monitoring exec alertmanager-user-workload-0
+    -c alertmanager -- /bin/amtool --alertmanager.url=http://localhost:9093)
+  until [[ -n $(oc -n openshift-user-workload-monitoring get statefulset alertmanager-user-workload \
+    --ignore-not-found -o name) ]]; do
+    (( SECONDS < deadline )) || demo_die 'Timed out waiting for demo Alertmanager.'
+    sleep 5
+  done
+  oc -n openshift-user-workload-monitoring rollout status statefulset/alertmanager-user-workload --timeout=10m
+  if [[ $action == pause ]]; then
+    # Create coverage before removing earlier bootstrap silences on a rerun.
+    id=$("${client[@]}" silence add --author=demo-bootstrap --duration=2h \
+      --comment='Demojam setup and reset' alertname=WebappDown namespace=blackbox-exporter)
+    [[ $id =~ ^[0-9a-f-]{36}$ ]] || demo_die 'Alertmanager did not return a silence ID.'
+  elif [[ $action == resume ]]; then
+    # HTTP may recover before the next scrape and alert evaluation. Keep setup
+    # muted until Alertmanager has observed that real recovery.
+    deadline=$((SECONDS + 300))
+    while :; do
+      alerts=$("${client[@]}" -o json alert query --active --silenced --inhibited --unprocessed \
+        alertname=WebappDown namespace=blackbox-exporter)
+      if jq -e 'all(.[]; (.endsAt | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601) <= now)' <<<"$alerts" >/dev/null; then break; fi
+      (( SECONDS < deadline )) || demo_die 'WebappDown is still active; leaving setup maintenance in place.'
+      sleep 10
+    done
+    id=
+  else
+    demo_die 'Unknown alerting maintenance action.'
+  fi
+  while read -r previous; do
+    [[ $previous == "$id" ]] || "${client[@]}" silence expire "$previous" >/dev/null
+  done < <("${client[@]}" -o json silence query --created-by=demo-bootstrap \
+    alertname=WebappDown namespace=blackbox-exporter |
+    jq -r '.[] | select(.comment == "Demojam setup and reset") | .id')
+  printf 'Demo alerting maintenance: %s.\n' "$action"
+}
+
+# A separate token and stable listener URL keep Forgejo deliveries independent
+# of Alertmanager. Register the hook only after EDA and AO are ready.
+demo_forgejo_webhook_prepare() (
+  umask 077
+  local scratch host uuid
+  scratch=$(mktemp -d)
+  trap 'rm -rf -- "$scratch"' EXIT
+  host=${AAP_HOST:-https://$(oc -n ansible-automation-platform get route aap -o jsonpath='{.status.ingress[0].host}')}
+  uuid=$(yq -er '.demo_forgejo_event_stream.uuid' \
+    "$(demo_source_checkout demojam-ansible)/group_vars/aap/eda.yml")
+  if [[ -n $(oc -n forgejo get secret forgejo-eda-webhook --ignore-not-found -o name) ]]; then
+    oc -n forgejo get secret forgejo-eda-webhook \
+      -o go-template='{{index .data "token" | base64decode}}' >"$scratch/token"
+    [[ -s $scratch/token ]] || demo_die 'The existing Forgejo EDA webhook Secret has no token.'
+  else
+    openssl rand -hex 32 | tr -d '\n' >"$scratch/token"
+  fi
+  printf '%s/eda-event-streams/api/eda/v1/external_event_stream/%s/post/' \
+    "${host%/}" "$uuid" >"$scratch/url"
+  oc -n forgejo create secret generic forgejo-eda-webhook \
+    --from-file=token="$scratch/token" --from-file=url="$scratch/url" --dry-run=client -o yaml |
+    oc apply --server-side --field-manager=demo-bootstrap -f -
+)
+
+demo_forgejo_webhook_configure() (
+  umask 077
+  local scratch repository hook_id payload state_dir domain
+  scratch=$(mktemp -d)
+  trap 'rm -rf -- "$scratch"' EXIT
+  domain=$(oc -n openshift-ingress-operator get ingresscontroller default -o jsonpath='{.status.domain}')
+  state_dir=${FORGEJO_STATE_DIR:-$demo_repo_root/cluster/forgejo/.state/$domain}
+  FORGEJO_URL="https://$(oc -n forgejo get route forgejo -o jsonpath='{.status.ingress[0].host}')"
+  FORGEJO_TOKEN=$(<"$state_dir/admin-token")
+  repository=demo-owner/ansible-collection-demo.webapp
+  oc -n forgejo get secret forgejo-eda-webhook -o json |
+    jq '.data | map_values(@base64d)' >"$scratch/webhook.json"
+  # Forgejo encrypts authorization_header in its database. Never print API hook
+  # responses: they can contain the Authorization credential.
+  payload=$(jq '{type:"forgejo",active:true,events:["issues"],
+    config:{url:.url,content_type:"json",http_method:"POST"},
+    authorization_header:("Bearer " + .token)}' "$scratch/webhook.json")
+  forgejo_api GET "/repos/$repository/hooks?limit=100" >"$scratch/hooks.json"
+  hook_id=$(jq -r --slurpfile desired "$scratch/webhook.json" \
+    '.[] | select(.type == "forgejo" and .config.url == $desired[0].url) | .id' "$scratch/hooks.json")
+  [[ $(wc -w <<<"$hook_id") -le 1 ]] || demo_die 'Multiple Forgejo incident hooks exist; inspect them before setup.'
+  if [[ -n $hook_id ]]; then
+    forgejo_api PATCH "/repos/$repository/hooks/$hook_id" "$(jq 'del(.type)' <<<"$payload")" >/dev/null
+  else
+    forgejo_api POST "/repos/$repository/hooks" "$payload" >/dev/null
+  fi
+  echo 'Forgejo issue webhook is connected to the EDA remediation listener.'
+)
+
 aap_credentials() {
   local namespace=ansible-automation-platform org config galaxy community oidc_issuer
   demo_manifest "$aap_scratch" || demo_die 'The subscription ZIP must contain valid RHEL entitlement material.'
@@ -1766,7 +1890,7 @@ YAML
   org=$(aap_upsert organizations/ demo '{"description":"Disposable automation demo"}' | jq -er .id)
   # AAP forbids changing the schema of a credential type that is already in use.
   # Version it so aap_upsert migrates the dispatch credential and reattaches it.
-  config=$(aap_upsert credential_types/ 'Demo AAP configuration v3' \
+  config=$(aap_upsert credential_types/ 'Demo AAP configuration v4' \
     "$(yq . "$demo_repo_root/bootstrap/aap-dispatch-credential-type.yaml")" | jq -er .id)
   oc -n demojam-keycloak get secret identity-credentials \
     -o go-template='{{index .data "aap-client-secret" | base64decode}}' >"$aap_scratch/oidc-secret"
@@ -1775,11 +1899,13 @@ YAML
     -o go-template='{{index .data "token" | base64decode}}' >"$aap_scratch/eda-token"
   oc -n omnigent-sandboxes get secret omnigent-model \
     -o go-template='{{index .data "FORGEJO_TOKEN" | base64decode}}' >"$aap_scratch/forgejo-token"
+  oc -n forgejo get secret forgejo-eda-webhook \
+    -o go-template='{{index .data "token" | base64decode}}' >"$aap_scratch/forgejo-eda-token"
   oc -n automation-orchestrator get secret demojam-eda-webhook-client \
     -o go-template='{{index .data "client-id" | base64decode}}' >"$aap_scratch/ao-client-id"
   oc -n automation-orchestrator get secret demojam-eda-webhook-client \
     -o go-template='{{index .data "client-secret" | base64decode}}' >"$aap_scratch/ao-client-secret"
-  [[ -s $aap_scratch/eda-token && -s $aap_scratch/forgejo-token &&
+  [[ -s $aap_scratch/eda-token && -s $aap_scratch/forgejo-token && -s $aap_scratch/forgejo-eda-token &&
      -s $aap_scratch/ao-client-id && -s $aap_scratch/ao-client-secret ]] ||
     demo_die 'Hydrate Forgejo and prepare the EDA and AO webhook clients before configuring AAP.'
   aap_upsert credentials/ demo-aap-dispatch "$(jq -n --argjson org "$org" --argjson kind "$config" \
@@ -1789,11 +1915,13 @@ YAML
     --rawfile vm_ca "$aap_scratch/ca.crt" --rawfile ssh_private "$aap_scratch/ssh-private" \
     --rawfile ssh_public "$aap_scratch/ssh-public" --rawfile entitlement "$aap_scratch/entitlement.pem" \
     --rawfile eda_token "$aap_scratch/eda-token" --rawfile forgejo_token "$aap_scratch/forgejo-token" \
+    --rawfile forgejo_eda_token "$aap_scratch/forgejo-eda-token" \
     --rawfile ao_client_id "$aap_scratch/ao-client-id" --rawfile ao_client_secret "$aap_scratch/ao-client-secret" \
     '{organization:$org,credential_type:$kind,inputs:{host:$host,username:$username,password:$password,
       oidc_issuer:$issuer,oidc_secret:$oidc_secret,ee_image:$ee_image,vm_host:$vm_host,vm_token:($vm_token|rtrimstr("\n")),
       vm_ca:$vm_ca,ssh_private:$ssh_private,ssh_public:($ssh_public|rtrimstr("\n")),entitlement:$entitlement,
-      eda_token:$eda_token,forgejo_token:$forgejo_token,ao_client_id:$ao_client_id,ao_client_secret:$ao_client_secret}}')" >/dev/null
+      eda_token:$eda_token,forgejo_token:$forgejo_token,forgejo_eda_token:$forgejo_eda_token,
+      ao_client_id:$ao_client_id,ao_client_secret:$ao_client_secret}}')" >/dev/null
   galaxy=$(aap_find credential_types/ 'Ansible Galaxy/Automation Hub API Token' | jq -er .id)
   community=$(aap_upsert credentials/ demo-galaxy "$(jq -n --argjson org "$org" --argjson kind "$galaxy" \
     '{organization:$org,credential_type:$kind,inputs:{url:"https://galaxy.ansible.com/"}}')" | jq -er .id)
@@ -1805,19 +1933,77 @@ YAML
 }
 
 aap_launch() {
-  local name=$1 extra=${2:-'{}'} reset=${3:-false} org template result
+  local name=$1 extra=${2:-'{}'} reset=${3:-false} org template record result project inventory sources source update
   case $name in
-    webapp_vm|webapp_nginx|aap_configure_all) ;;
+    webapp_vm|webapp_nginx|webapp_selinux_permissive|webapp_selinux_enable|aap_configure_all) ;;
     openshift_virtualization_machine) [[ $reset == true ]] || demo_die 'Only seeded demo templates may be launched.' ;;
     *) demo_die 'Only seeded demo templates may be launched.' ;;
   esac
+  # Controller dependencies use short-lived execution pods. Wait out node
+  # storage pressure before launch instead of submitting pods for eviction.
+  oc wait node --all --for=condition=DiskPressure=False --timeout=10m
   org=$(aap_find organizations/ demo | jq -er .id)
-  template=$(aap_find job_templates/ "$name" "$(jq -n --argjson org "$org" '{organization:$org}')" | jq -er .id)
+  record=$(aap_find job_templates/ "$name" "$(jq -n --argjson org "$org" '{organization:$org}')")
+  template=$(jq -er .id <<<"$record")
+  project=$(jq -er .project <<<"$record")
+  inventory=$(jq -er .inventory <<<"$record")
+  # Always refresh before script launches (including after VM creation), but
+  # serialize the execution pods and let ensuing EDA/AO jobs reuse the results.
+  # Zero inventory cache starts several project/inventory pods per job on SNO.
+  aap_request PATCH "projects/$project/" '{"scm_update_cache_timeout":600}' >/dev/null
+  sources=$(aap_request GET "inventory_sources/?inventory=$inventory&page_size=200")
+  while read -r source; do
+    aap_request PATCH "inventory_sources/$source/" '{"update_cache_timeout":600}' >/dev/null
+  done < <(jq -r '.results[] | select(.source == "scm" and .update_on_launch) | .id' <<<"$sources")
+  update=$(aap_request POST "projects/$project/update/" '{}')
+  aap_wait "project_updates/$(jq -er .id <<<"$update")/"
+  while read -r source; do
+    update=$(aap_request POST "inventory_sources/$source/update/" '{}')
+    aap_wait "inventory_updates/$(jq -er .id <<<"$update")/"
+  done < <(jq -r '.results[] | select(.source == "scm" and .update_on_launch) | .id' <<<"$sources")
   result=$(aap_request POST "job_templates/$template/launch/" "$(jq -n --argjson extra "$extra" '{extra_vars:$extra}')")
   local job
   job=$(jq -er .job <<<"$result")
   printf 'Launched %s: job %s\n' "$name" "$job"
   aap_wait "jobs/$job/"
+}
+
+aap_verify_enforcing() {
+  local org scope inventory credential environment result job events
+  org=$(aap_find organizations/ demo | jq -er .id)
+  scope=$(jq -n --argjson org "$org" '{organization:$org}')
+  inventory=$(aap_find inventories/ demo-inventory "$scope" | jq -er .id)
+  credential=$(aap_find credentials/ demo-webapp-ssh "$scope" | jq -er .id)
+  environment=$(aap_find execution_environments/ demo-aap-ee | jq -er .id)
+  result=$(aap_request POST ad_hoc_commands/ "$(jq -n --argjson inventory "$inventory" \
+    --argjson credential "$credential" --argjson environment "$environment" \
+    '{inventory:$inventory,credential:$credential,execution_environment:$environment,
+      limit:"webapps",module_name:"command",module_args:"getenforce",become_enabled:true}')")
+  job=$(jq -er .id <<<"$result")
+  aap_wait "ad_hoc_commands/$job/"
+  events=$(aap_request GET "ad_hoc_commands/$job/events/?event=runner_on_ok&page_size=200")
+  jq -e '.count > 0 and all(.results[]; .event_data.res.rc == 0 and
+    (.event_data.res.stdout | rtrimstr("\n")) == "Enforcing")' <<<"$events" >/dev/null ||
+    demo_die 'The webapp SELinux check did not return Enforcing.'
+  printf 'Webapp SELinux is Enforcing (AAP ad hoc command %s).\n' "$job"
+}
+
+# Config-as-code enables these again during the next bootstrap.
+aap_stop_demo_listeners() {
+  local activations id activation deadline
+  activations=$(aap_request GET 'activations/?page_size=200' '' /api/eda/v1/)
+  while read -r id; do
+    aap_request POST "activations/$id/disable/" '{}' /api/eda/v1/ >/dev/null
+    deadline=$((SECONDS + 300))
+    while :; do
+      activation=$(aap_request GET "activations/$id/" '' /api/eda/v1/)
+      if jq -e '.is_enabled == false and .status == "stopped"' <<<"$activation" >/dev/null; then break; fi
+      (( SECONDS < deadline )) || demo_die "Timed out stopping demo EDA activation $id."
+      sleep 5
+    done
+    printf 'Stopped demo EDA activation %s.\n' "$id"
+  done < <(jq -r '.results[] | select(.is_enabled and
+    (.name == "demojam-webapp-issues" or .name == "demojam-forgejo-remediation")) | .id' <<<"$activations")
 }
 
 aap_reset_vms() {
@@ -1853,7 +2039,7 @@ aap_dispatch() {
     '{organization:$org,image:$image,pull:"always"}')" | jq -er .id)
   project_record=$(aap_upsert projects/ demojam-ansible "$(jq -n --argjson org "$org" '{
     organization:$org,scm_type:"git",scm_url:"http://forgejo.forgejo.svc.cluster.local:3000/demo-owner/demojam-ansible.git",
-    scm_branch:"main",credential:null,scm_update_on_launch:true,scm_update_cache_timeout:30}')")
+    scm_branch:"main",credential:null,scm_update_on_launch:true,scm_update_cache_timeout:600}')")
   project=$(jq -er .id <<<"$project_record")
   if jq -e '.current_update != null' <<<"$project_record" >/dev/null; then
     aap_wait "project_updates/$(jq -er .current_update <<<"$project_record")/"
@@ -1878,19 +2064,22 @@ aap_dispatch() {
 
 # An enabled activation record does not prove that its rulebook is running.
 aap_wait_eda() {
-  local name query status previous='' deadline=$((SECONDS + 600))
-  name=$(yq -er '.demo_eda_activation.name' \
-    "$(demo_source_checkout demojam-ansible)/group_vars/aap/eda.yml")
-  query=$(jq -rn --arg name "$name" '$name | @uri')
-  while (( SECONDS < deadline )); do
-    status=$(aap_request GET "activations/?name=$query" '' /api/eda/v1/ |
-      jq -er '.results[0].status // "absent"')
-    [[ $status != running ]] || { printf 'EDA activation %s is running.\n' "$name"; return; }
-    [[ $status == "$previous" ]] || printf 'Waiting for EDA activation %s: %s\n' "$name" "$status"
-    previous=$status
-    sleep 10
-  done
-  demo_die "Timed out waiting for EDA activation $name ($status); inspect its logs in AAP."
+  local name query status previous deadline source
+  source=$(demo_source_checkout demojam-ansible)
+  while read -r name; do
+    previous=''
+    deadline=$((SECONDS + 600))
+    query=$(jq -rn --arg name "$name" '$name | @uri')
+    while (( SECONDS < deadline )); do
+      status=$(aap_request GET "activations/?name=$query" '' /api/eda/v1/ |
+        jq -er '.results[0].status // "absent"')
+      [[ $status != running ]] || { printf 'EDA activation %s is running.\n' "$name"; break; }
+      [[ $status == "$previous" ]] || printf 'Waiting for EDA activation %s: %s\n' "$name" "$status"
+      previous=$status
+      sleep 10
+    done
+    [[ $status == running ]] || demo_die "Timed out waiting for EDA activation $name ($status); inspect its logs in AAP."
+  done < <(yq -er '.demo_eda_activation.name, .demo_forgejo_activation.name' "$source/group_vars/aap/eda.yml")
 }
 
 # Retire only the three legacy bootstrap CRs. No finalizer means deleting the
@@ -1918,6 +2107,8 @@ demo_aap() (
     credentials) aap_credentials ;;
     dispatch) aap_dispatch ;;
     reset-vms) aap_reset_vms ;;
+    verify-enforcing) aap_verify_enforcing ;;
+    stop-listeners) aap_stop_demo_listeners ;;
     launch) shift; aap_launch "$@" ;;
     *) demo_die 'Unknown AAP action.' ;;
   esac
@@ -1929,6 +2120,7 @@ demo_aap_configure() {
   demo_readiness aap
   aap_retire_resource_crs
   demo_alerting_prepare
+  demo_forgejo_webhook_prepare
   demo_ao_reconcile webhook-client
   demo_aap credentials
 
@@ -1945,6 +2137,7 @@ demo_webapp() {
     nginx) demo_aap launch webapp_nginx ;;
     delete) demo_aap launch webapp_vm '{"vm_state":"absent"}' ;;
     sync) demo_aap launch aap_configure_all ;;
+    verify-enforcing) demo_aap verify-enforcing; demo_webapp verify ;;
     verify)
       local host pod metrics login_redirect ingress_domain
       oc -n webapp-vms wait --for=condition=Ready vm/webapp --timeout=15m
@@ -1960,7 +2153,7 @@ demo_webapp() {
       [[ $metrics == *'probe_success 1'* ]] || demo_die 'Webapp blackbox probe failed.'
       printf 'RHEL webapp and blackbox probe are healthy: https://%s/\n' "$host"
       ;;
-    *) demo_die 'Usage: webapp create|nginx|delete|sync|verify' ;;
+    *) demo_die 'Usage: webapp create|nginx|delete|sync|verify|verify-enforcing' ;;
   esac
 }
 
@@ -2233,6 +2426,7 @@ demo_bootstrap() (
   demo_identity_configure
   demo_readiness sandbox
   demo_readiness aap
+  demo_alerting_maintenance pause
 
   # Build only after the operator rollout, keeping image storage on a PVC.
   demo_step 'Build or reuse the OpenCode sandbox image'
@@ -2287,17 +2481,21 @@ demo_bootstrap() (
   if [[ ${BOOTSTRAP_RECONCILE_WORKFLOW:-true} == true ]]; then
     demo_step 'Validate and publish the AO workflow'
     demo_ao_reconcile
+    demo_forgejo_webhook_configure
   else
     demo_ao_reconcile identity-only
   fi
   demo_step 'Provision the RHEL webapp through AAP'
   demo_webapp create
+  demo_step 'Prepare the permissive demo baseline through AAP'
+  demo_aap launch webapp_selinux_permissive
   demo_step 'Install nginx through AAP'
   demo_webapp nginx
   demo_step 'Verify the webapp and monitoring probe'
   demo_webapp verify
+  demo_alerting_maintenance resume
   demo_step 'Populate and verify Homepage navigation and dashboard'
-  demo_homepage_configure bootstrap
+  demo_homepage_reconcile bootstrap
 
   printf '\nBootstrap completed on %s at %s.\n' "$gitops_branch" "$target_revision"
   for ref in homepage/homepage demojam-keycloak/keycloak forgejo/forgejo rhdh/backstage-rhdh-developer-hub \
@@ -2314,6 +2512,8 @@ demo_reset() (
   [[ $# == 1 && $1 == --confirm-demo-reset ]] ||
     demo_die 'Usage: demo-reset --confirm-demo-reset (deletes demo repos, sessions, VMs and disks).'
   demo_verify_cluster
+  demo_alerting_maintenance pause
+  demo_aap stop-listeners
   local ingress_domain omnigent_host scratch agent_id cursor page session_id namespace remaining
   local -a session_ids=() page_ids=()
   ingress_domain=$(oc -n openshift-ingress-operator get ingresscontroller default -o jsonpath='{.status.domain}')
@@ -2364,14 +2564,22 @@ demo_reset() (
   demo_hydrate reset --confirm-forgejo
   demo_aap_configure
   demo_ao_reconcile
+  demo_forgejo_webhook_configure
   echo 'Demo reset complete: VMs and test disks removed, Forgejo reseeded, AAP configured, and Omnigent ready.'
 )
 
 # Full removal keeps controllers running until their operands have finalized.
 # The durable, secret-free inventory also supports resuming interrupted removal.
 demo_teardown() (
-  [[ $# == 1 && $1 == --confirm-demo-teardown ]] ||
-    demo_die 'Usage: teardown --confirm-demo-teardown (deletes demo data and operators).'
+  local keep_aap=false confirmed=false argument
+  for argument in "$@"; do
+    case $argument in
+      --confirm-demo-teardown) confirmed=true ;;
+      --keep-aap) keep_aap=true ;;
+      *) demo_die 'Usage: teardown --confirm-demo-teardown [--keep-aap]' ;;
+    esac
+  done
+  [[ $confirmed == true ]] || demo_die 'Usage: teardown --confirm-demo-teardown [--keep-aap]'
   demo_verify_cluster
   local state="$demo_repo_root/.rendered/demo-teardown.json" scratch app namespace kind group name resource csv crd
   local -a namespaces=(homepage blackbox-exporter webapp-vms automation-vms molecule-tests
@@ -2382,6 +2590,22 @@ demo_teardown() (
   scratch=$(mktemp -d)
   trap 'find "$scratch" -type f -delete; rmdir "$scratch"' EXIT
   mkdir -p "$demo_repo_root/.rendered"
+  if [[ $keep_aap == true ]]; then
+    state="$demo_repo_root/.rendered/demo-teardown-keep-aap.json"
+    local -a removed_namespaces=()
+    for namespace in "${namespaces[@]}"; do
+      [[ $namespace == ansible-automation-platform ]] || removed_namespaces+=("$namespace")
+    done
+    namespaces=("${removed_namespaces[@]}")
+    oc -n ansible-automation-platform get ansibleautomationplatform aap -o json |
+      jq '{uid:.metadata.uid}' >"$scratch/aap.json"
+    oc -n ansible-automation-platform get pvc -o json |
+      jq '[.items[] | {name:.metadata.name,uid:.metadata.uid,volume:.spec.volumeName}] | sort_by(.name)' >"$scratch/aap-pvcs.json"
+    demo_aap stop-listeners
+  else
+    printf 'null' >"$scratch/aap.json"
+    printf '[]' >"$scratch/aap-pvcs.json"
+  fi
   if [[ -n $(oc get crd applications.argoproj.io --ignore-not-found -o name) ]]; then
     oc -n openshift-gitops get applications -o json >"$scratch/apps.json"
   else
@@ -2402,14 +2626,28 @@ demo_teardown() (
           crds:[$csv.spec.customresourcedefinitions.owned[]?.name]}]' >"$scratch/csvs.json"
     oc get crd -o json | jq '[.items[] | select(.spec.group | test("(^|\\.)(kubevirt\\.io|tekton\\.dev)$")) | .metadata.name]' >"$scratch/operand-crds.json"
     jq -n --arg server "$DEMO_CLUSTER_SERVER" --arg repo "$BOOTSTRAP_REPO_URL" \
+      --argjson keep_aap "$keep_aap" --slurpfile aap "$scratch/aap.json" --slurpfile pvcs "$scratch/aap-pvcs.json" \
       --slurpfile apps "$scratch/apps.json" --slurpfile subscriptions "$scratch/subscriptions.json" \
       --slurpfile csvs "$scratch/csvs.json" --slurpfile operands "$scratch/operand-crds.json" \
-      '{server:$server,repo:$repo,apps:[$apps[0].items[].metadata.name],
+      '([$csvs[0][] | select(.namespace == "ansible-automation-platform") | .crds[]] | unique) as $aap_crds |
+       {server:$server,repo:$repo,keep_aap:$keep_aap,aap:$aap[0],aap_pvcs:$pvcs[0],apps:[$apps[0].items[].metadata.name],
         resources:([$apps[0].items[].status.resources[]?] | unique_by([.group,.kind,.namespace,.name])),
-        subscriptions:$subscriptions[0],csvs:$csvs[0],crds:([$csvs[0][].crds[]]+$operands[0]|unique)}' >"$state"
+        subscriptions:$subscriptions[0],csvs:$csvs[0],crds:([$csvs[0][].crds[]]+$operands[0]|unique)} |
+       if $keep_aap then
+         .resources |= map(select(.namespace != "ansible-automation-platform")) |
+         .subscriptions |= map(select(.namespace != "ansible-automation-platform")) |
+         .csvs |= map(select(.namespace != "ansible-automation-platform")) |
+         .crds -= $aap_crds
+       else . end' >"$state"
   fi
-  jq -e --arg server "$DEMO_CLUSTER_SERVER" --arg repo "$BOOTSTRAP_REPO_URL" \
-    '.server == $server and .repo == $repo' "$state" >/dev/null || demo_die 'Teardown inventory belongs to a different cluster or repository.'
+  jq -e --arg server "$DEMO_CLUSTER_SERVER" --arg repo "$BOOTSTRAP_REPO_URL" --argjson keep_aap "$keep_aap" \
+    '.server == $server and .repo == $repo and (.keep_aap // false) == $keep_aap' "$state" >/dev/null ||
+    demo_die 'Teardown inventory belongs to a different cluster, repository or preservation mode.'
+  if [[ $keep_aap == true ]]; then
+    jq -e --slurpfile aap "$scratch/aap.json" --slurpfile pvcs "$scratch/aap-pvcs.json" \
+      '.aap == $aap[0] and .aap_pvcs == $pvcs[0]' "$state" >/dev/null ||
+      demo_die 'AAP or its persistent volumes changed since this teardown began.'
+  fi
 
   demo_step 'Stop demo GitOps reconciliation'
   # Root first: it must not recreate children while they are being detached.
@@ -2508,7 +2746,9 @@ demo_teardown() (
   while IFS= read -r name; do
     oc delete operators.operators.coreos.com "$name" --ignore-not-found
   done < <(yq -s . "$demo_repo_root"/cluster/*/*subscription.yaml "$demo_repo_root"/bootstrap/*subscription.yaml |
-    jq -r '.[] | (.spec.name + "." + .metadata.namespace)[0:63]')
+    jq -r --argjson keep_aap "$keep_aap" '.[] |
+      select($keep_aap == false or .metadata.namespace != "ansible-automation-platform") |
+      (.spec.name + "." + .metadata.namespace)[0:63]')
   oc delete -f "$demo_repo_root/bootstrap/config/openshift-gitops-cluster-permissions.yaml" --ignore-not-found
 
   demo_step 'Remove demo namespaces and persistent data'
@@ -2526,11 +2766,46 @@ demo_teardown() (
   remaining=$(oc get pv -o json | jq -r --argjson namespaces "$(printf '%s\n' "${namespaces[@]}" | jq -R . | jq -s .)" \
     '.items[] | .spec.claimRef.namespace as $ns | select($namespaces | index($ns)) | .metadata.name')
   [[ -z $remaining ]] || demo_die "Demo PVs are still being reclaimed: $remaining. Inspect storage before reinstalling."
-  echo 'Demo teardown completed: applications, operators, APIs, identity integration and persistent data removed.'
+  if [[ $keep_aap == true ]]; then
+    oc -n ansible-automation-platform get ansibleautomationplatform aap -o json |
+      jq '{uid:.metadata.uid}' >"$scratch/aap-after.json"
+    oc -n ansible-automation-platform get pvc -o json |
+      jq '[.items[] | {name:.metadata.name,uid:.metadata.uid,volume:.spec.volumeName}] | sort_by(.name)' >"$scratch/aap-pvcs-after.json"
+    cmp "$scratch/aap.json" "$scratch/aap-after.json"
+    cmp "$scratch/aap-pvcs.json" "$scratch/aap-pvcs-after.json"
+    oc -n ansible-automation-platform wait --for=condition=Successful ansibleautomationplatform/aap --timeout=15m
+    for name in aap-gateway aap-controller-web aap-controller-task; do
+      oc -n ansible-automation-platform rollout status "deployment/$name" --timeout=15m
+    done
+    echo 'Demo teardown completed; AAP, its operator and persistent volumes are preserved.'
+  else
+    echo 'Demo teardown completed: applications, operators, APIs, identity integration and persistent data removed.'
+  fi
 )
 
 # Command entry point. Help is local and does not load .env.
 # -----------------------------------------------------------------------------
+
+# Homepage is disposable while --keep-aap preserves its gateway reader account.
+# Reconcile the newly generated password before the existing dashboard checks.
+demo_homepage_reconcile() (
+  set +x
+  umask 077
+  local ingress_domain aap_scratch reader payload
+  ingress_domain=$(oc -n openshift-ingress-operator get ingresscontroller default -o jsonpath='{.status.domain}')
+  demo_homepage_prepare
+  aap_scratch=$(mktemp -d)
+  trap 'find "$aap_scratch" -type f -delete; rmdir "$aap_scratch"' EXIT
+  aap_connect
+  reader=$(aap_request GET 'users/?username=homepage-reader' '' /api/gateway/v1/ | jq -r '.results[0].id // empty')
+  if [[ -n $reader ]]; then
+    oc -n homepage get secret homepage-dashboard-credentials -o json |
+      jq -er '.data."aap-password" | @base64d' >"$aap_scratch/reader-password"
+    payload=$(jq -n --rawfile password "$aap_scratch/reader-password" '{password:($password|rtrimstr("\n"))}')
+    aap_request PATCH "users/$reader/" "$payload" /api/gateway/v1/ >/dev/null
+  fi
+  demo_homepage_configure "${1:-refresh}"
+)
 
 demo_main() {
   local command=${1:-bootstrap}
@@ -2539,7 +2814,7 @@ demo_main() {
 Usage: bash bootstrap/bootstrap.sh [COMMAND]
 
   bootstrap          Install/configure the platform, create the RHEL VM, install nginx, verify
-  teardown --confirm-demo-teardown Remove the entire demo stack, operators and persistent data
+  teardown --confirm-demo-teardown [--keep-aap] Remove demo data/operators; optionally preserve AAP
   demo-reset --confirm-demo-reset Reset disposable demo repos, sessions, VMs and disks
   preflight          Read-only input and pre-install cluster checks (also --check)
   sandbox-build      Build the configured :latest sandbox image
@@ -2550,13 +2825,15 @@ Usage: bash bootstrap/bootstrap.sh [COMMAND]
   ao-configure      Reconcile AO LLM/AAP integrations and publish all demo workflows
   ao-run NAME [JSON] Execute a published workflow and print its result
   reconcile-workflow Alias for ao-configure
-  aap-configure      Prepare AAP credentials/license and run config-as-code
-  webapp ACTION      create | nginx | verify | delete | sync
+  aap-configure      Configure AAP/EDA, publish AO workflows, connect the Forgejo webhook
+  webapp ACTION      create | nginx | verify | verify-enforcing | delete | sync
   aap ACTION         credentials | wait-project | dispatch | reset-vms | launch TEMPLATE [JSON]
   readiness TARGET   sandbox | aap
 
 Populate .env first. An inherited KUBECONFIG takes precedence over .env.
-Default bootstrap includes the complete webapp; issue-to-PR dispatch is separate.
+Default bootstrap connects the incident-to-PR flow, provisions the VM,
+prepares the permissive demo baseline, and installs nginx.
+Run aap launch webapp_selinux_enable to trigger the SELinux outage demo.
 HELP
     return
   fi
@@ -2571,7 +2848,7 @@ HELP
     bootstrap) [[ $# == 0 ]] || demo_die 'bootstrap takes no arguments'; demo_bootstrap ;;
     teardown) demo_teardown "$@" ;;
     demo-reset) demo_reset "$@" ;;
-    homepage-refresh) [[ $# == 0 ]] || demo_die 'homepage-refresh takes no arguments'; demo_verify_cluster; demo_homepage_configure ;;
+    homepage-refresh) [[ $# == 0 ]] || demo_die 'homepage-refresh takes no arguments'; demo_verify_cluster; demo_homepage_reconcile ;;
     identity)
       [[ $# == 0 ]] || demo_die 'identity takes no arguments'
       demo_verify_cluster
@@ -2599,7 +2876,7 @@ HELP
     reconcile-workflow|ao-configure) demo_verify_cluster; demo_ao_reconcile ;;
     dispatch-issue) demo_dispatch_issue "$@" ;;
     ao-run) [[ $# -ge 1 && $# -le 2 ]] || demo_die 'ao-run requires WORKFLOW [INPUT_JSON]'; demo_verify_cluster; demo_ao_reconcile run "$@" ;;
-    aap-configure) demo_aap_configure ;;
+    aap-configure) demo_aap_configure; demo_ao_reconcile; demo_forgejo_webhook_configure ;;
     webapp) [[ $# == 1 ]] || demo_die 'webapp requires one action'; demo_webapp "$@" ;;
     aap) [[ $# -gt 0 ]] || demo_die 'aap requires an action'; demo_verify_cluster; demo_aap "$@" ;;
     readiness) [[ $# == 1 ]] || demo_die 'readiness requires sandbox or aap'; demo_verify_cluster; demo_readiness "$@" ;;

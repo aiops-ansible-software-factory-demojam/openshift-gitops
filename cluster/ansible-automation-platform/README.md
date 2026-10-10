@@ -18,14 +18,21 @@ From the repository root:
 
 ```bash
 make webapp-create    # Clone the RHEL 9 DataSource into webapp-vms
+bash bootstrap/bootstrap.sh aap launch webapp_selinux_permissive
 make webapp-nginx     # Install nginx using demo.webapp.nginx
 make webapp-verify    # Check VM readiness, HTTPS, and the blackbox probe
 ```
 
 Bootstrap already runs these jobs in order. `webapp_vm` provisions the guest
-and SSH key; `webapp_nginx` discovers it and uses the manifest's RHEL entitlement
-to install packages. GitOps owns its namespace, Services, Route, and probe.
+and SSH key; `webapp_selinux_permissive` prepares the demo baseline in a
+separate playbook after provisioning. `webapp_nginx` discovers the guest and
+uses the manifest's RHEL entitlement to install packages. GitOps owns its
+namespace, Services, Route, and probe.
 The probe is expected to be down until nginx is installed.
+
+The nginx job leaves SELinux mode unchanged. After the fault job enables
+Enforcing and the tested collection fix is merged, launch `webapp_nginx`
+once and run `bash bootstrap/bootstrap.sh webapp verify-enforcing`.
 
 Use `make aap-configure` to refresh the license, credentials, and configuration,
 or `make aap-sync` to apply configuration alone. `make webapp-delete` deletes
