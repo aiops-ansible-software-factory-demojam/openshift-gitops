@@ -1,6 +1,6 @@
 # LiteLLM model sweep — started October 9, 2026
 
-Status: 4 of 6 model attempts logged. The remaining models are pending. Each listed model gets one fresh reset/bootstrap and demo attempt through the [run-demojam skill](../../.agents/skills/run-demojam/SKILL.md). AAP is retained; cluster commands use `~/.kube/config`.
+Status: 5 of 6 model attempts logged. The remaining models are pending. Each listed model gets one fresh reset/bootstrap and demo attempt through the [run-demojam skill](../../.agents/skills/run-demojam/SKILL.md). AAP is retained; cluster commands use `~/.kube/config`.
 
 No operator code review, coaching, candidate edit, runner correction, test retry, manual dispatch, compaction, flow replay or runtime repair is allowed. The automatic fault-to-eligible-PR stage has a 30-minute cutoff. A clean published head must independently pass scoped lint, package build and every Molecule lifecycle before a guarded merge. Recovery gets one nginx job, followed by read-only Enforcing, HTTP, artifact and normal alert-resolution checks. Failed attempts remain failures; the next model begins with its normal authorized reset.
 
@@ -14,7 +14,7 @@ Both authenticated model catalogues returned HTTP 200, and every listed model ac
 | `litellm.txt` | `qwen38-27b` | `qwen38-27b` | cutoff · automatic-agent-stage | 10m50.569s | 10m41.704s | — | — | 30m0.003s | 52m27.459s |
 | `litellm2.txt` | `deepseek-r1-distill-qwen-14b` | `deepseek-r1-distill-qwen-14b` | cutoff · automatic-agent-stage | 9m20.165s | 14m58.232s | — | — | 30m0.003s | 55m12.794s |
 | `litellm2.txt` | `gpt-oss-120b` | `openai/gpt-oss-120b-maas` | cutoff · automatic-agent-stage | 9m46.215s | 13m42.555s | — | — | 30m0.461s | 54m12.469s |
-| `litellm2.txt` | `minimax-m2` | `minimaxai/minimax-m2-maas` | Pending | — | — | — | — | — | — |
+| `litellm2.txt` | `minimax-m2` | `minimaxai/minimax-m2-maas` | failed · bootstrap | 9m47.819s | 3m20.392s | — | — | — | 13m11.332s |
 | `litellm2.txt` | `qwen3-235b` | `qwen/qwen3-235b-a22b-instruct-2507-maas` | Pending | — | — | — | — | — | — |
 
 Successful runs end at completed live proof. Failed runs end when the failure or cutoff is recorded; later read-only evidence collection and publication are outside that attempt clock. Whole-run times include API calls, polling and operator bookkeeping. The automated incident clock begins when the fault launch command starts, including AAP refresh overhead.
@@ -244,6 +244,33 @@ No eligible idle PR was available by the 30-minute deadline. No abort, prompt or
 | `send_task` | 10-10 01:16:32.387 | 10-10 01:17:14.677 | 42.290s | completed |
 
 Native counters: 1 assistant records, 0 tools, 0 child sessions, 3,321 input tokens, 0 output tokens, 137 reasoning tokens, 0 cache-read and 0 cache-write tokens. Quota errors recorded: 0. These are cumulative provider/harness counters, not unique context, billing or measured decoding tokens/s. Request timestamps, finishes, error names and usage counters are retained in JSON; assistant text and reasoning are excluded.
+
+## 5. minimax-m2
+
+Outcome: **failed · bootstrap**. [JSON evidence](evidence/2026-10-09/litellm-sweep-05-litellm2-minimax-m2.json) · [Submitted prompts](2026-10-09-sweep-05-litellm2-minimax-m2-prompts.md).
+
+Sources: GitOps `6413335`, unfixed collection `c78d4c8`, AAP/EDA `c557ad5`. Bootstrap script SHA-256: `4bbbe525b94d028623bc28aa153faf429d47ebcf5651f64646c70c753576ab8b`. Only model/credential selection and report files change between attempts.
+
+AAP configuration job 637 failed before VM provisioning or the incident launch. The model's coding agent was not evaluated.
+
+Failed task: `Create/Update Controller Credential Type Demo Forgejo issues | Wait for finish the credential type creation` at 10-10 01:57:52.872 UTC. Details censored by Ansible `no_log`: `True`.
+
+Failed task: `handle_error | Show error and stop execution` at 10-10 01:57:53.064 UTC. Details censored by Ansible `no_log`: `True`.
+
+Observed 0 outage issue(s), 0 Omnigent session(s), 0 delivered user message(s), and 0 PR(s). Operator follow-up messages: 0. The seeded README exercise issue is excluded from the incident count.
+
+| Operator command | Start UTC | Finish UTC | Elapsed | Exit |
+|---|---|---|---:|---:|
+| `reset` | 10-10 01:44:45.017 | 10-10 01:54:32.836 | 9m47.819s | 0 |
+| `reset-baseline-check` | 10-10 01:54:32.859 | 10-10 01:54:35.927 | 3.068s | 0 |
+| `bootstrap` | 10-10 01:54:35.954 | 10-10 01:57:56.346 | 3m20.392s | 2 |
+
+| AAP job | Name | Actual start UTC | Actual finish UTC | Job time | Status |
+|---:|---|---|---|---:|---|
+| 613 | `webapp_vm` | 10-10 01:46:13.313 | 10-10 01:46:29.111 | 15.798s | successful |
+| 619 | `openshift_virtualization_machine` | 10-10 01:47:23.597 | 10-10 01:47:29.409 | 5.813s | successful |
+| 626 | `aap_configure_all` | 10-10 01:52:15.902 | 10-10 01:53:39.244 | 1m23.341s | successful |
+| 637 | `aap_configure_all` | 10-10 01:57:45.374 | 10-10 01:57:54.196 | 8.822s | failed |
 
 ## Reading these results
 
