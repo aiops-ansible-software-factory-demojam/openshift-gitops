@@ -3519,5 +3519,1865 @@
   "operator_follow_up_messages": 0,
   "automatic_helper_prompts": [],
   "published_at": "2026-10-09T23:51:21.843667+00:00",
-  "observed_workflow_failures": []
+  "observed_workflow_failures": [],
+  "native_request_records": [
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588227433,
+        "completed": 1791588232457
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 15443,
+        "input": 15410,
+        "output": 33,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588232461,
+        "completed": 1791588236246
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 16085,
+        "input": 16010,
+        "output": 75,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588236249,
+        "completed": 1791588239850
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 16868,
+        "input": 16797,
+        "output": 71,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588239853,
+        "completed": 1791588253538
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 17705,
+        "input": 17378,
+        "output": 327,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588253542,
+        "completed": 1791588270788
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 19619,
+        "input": 19215,
+        "output": 404,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588270792,
+        "completed": 1791588275870
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 21763,
+        "input": 21686,
+        "output": 77,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588275874,
+        "completed": 1791588280180
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 21942,
+        "input": 21864,
+        "output": 78,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588280183,
+        "completed": 1791588285147
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 22315,
+        "input": 22237,
+        "output": 78,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588285150,
+        "completed": 1791588288456
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 22849,
+        "input": 22799,
+        "output": 50,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588288459,
+        "completed": 1791588292272
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 22962,
+        "input": 22901,
+        "output": 61,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588292277,
+        "completed": 1791588299814
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 27060,
+        "input": 26931,
+        "output": 129,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588299817,
+        "completed": 1791588310748
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 27414,
+        "input": 27156,
+        "output": 258,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588310752,
+        "completed": 1791588318181
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 28608,
+        "input": 28453,
+        "output": 155,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588318186,
+        "completed": 1791588326146
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 30807,
+        "input": 30649,
+        "output": 158,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588326150,
+        "completed": 1791588332988
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 31470,
+        "input": 31318,
+        "output": 152,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588332992,
+        "completed": 1791588336861
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 32727,
+        "input": 32666,
+        "output": 61,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588336866,
+        "completed": 1791588342555
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 32926,
+        "input": 32802,
+        "output": 124,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588342559,
+        "completed": 1791588347160
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 33439,
+        "input": 33349,
+        "output": 90,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588347164,
+        "completed": 1791588354594
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 34455,
+        "input": 34297,
+        "output": 158,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588354599,
+        "completed": 1791588361599
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 35119,
+        "input": 34971,
+        "output": 148,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588361604,
+        "completed": 1791588364714
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 35268,
+        "input": 35209,
+        "output": 59,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588364718,
+        "completed": 1791588367515
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 35422,
+        "input": 35374,
+        "output": 48,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588367519,
+        "completed": 1791588370275
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 35638,
+        "input": 35583,
+        "output": 55,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588370279,
+        "completed": 1791588387323
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 36065,
+        "input": 35658,
+        "output": 407,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588387328,
+        "completed": 1791588394513
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 36242,
+        "input": 36107,
+        "output": 135,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588394518,
+        "completed": 1791588397946
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 36394,
+        "input": 36331,
+        "output": 63,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588397950,
+        "completed": 1791588409184
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 36809,
+        "input": 36547,
+        "output": 262,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588409190,
+        "completed": 1791588442062
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 37943,
+        "input": 37158,
+        "output": 785,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588442067,
+        "completed": 1791588456582
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 38298,
+        "input": 37965,
+        "output": 333,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588456587,
+        "completed": 1791588472739
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 38719,
+        "input": 38340,
+        "output": 379,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588472744,
+        "completed": 1791588475439
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 38791,
+        "input": 38749,
+        "output": 42,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588475444,
+        "completed": 1791588540122
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 41426,
+        "input": 39866,
+        "output": 1560,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588540128,
+        "completed": 1791588562858
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 41968,
+        "input": 41447,
+        "output": 521,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588562864,
+        "completed": 1791588584639
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 42506,
+        "input": 41999,
+        "output": 507,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588584646,
+        "completed": 1791588610600
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 43139,
+        "input": 42527,
+        "output": 612,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588610606,
+        "completed": 1791588630423
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 43624,
+        "input": 43160,
+        "output": 464,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588630427,
+        "completed": 1791588635295
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 43744,
+        "input": 43654,
+        "output": 90,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588635300,
+        "completed": 1791588689168
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 44093,
+        "input": 43925,
+        "output": 168,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588689176,
+        "completed": 1791588692909
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 44307,
+        "input": 44241,
+        "output": 66,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588692914,
+        "completed": 1791588697509
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 44426,
+        "input": 44340,
+        "output": 86,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588697515,
+        "completed": 1791588704170
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 44580,
+        "input": 44459,
+        "output": 121,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588704174,
+        "completed": 1791588712530
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 44817,
+        "input": 44633,
+        "output": 184,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588712535,
+        "completed": 1791588716699
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 45066,
+        "input": 45003,
+        "output": 63,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588716706,
+        "completed": 1791588741304
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 45708,
+        "input": 45124,
+        "output": 584,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588741311,
+        "completed": 1791588751668
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 45797,
+        "input": 45738,
+        "output": 59,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588751672,
+        "completed": 1791588754690
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 46097,
+        "input": 46041,
+        "output": 56,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588754694,
+        "completed": 1791588758305
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 46239,
+        "input": 46170,
+        "output": 69,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588758310,
+        "completed": 1791588764273
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 46435,
+        "input": 46357,
+        "output": 78,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588764278,
+        "completed": 1791588766998
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 46521,
+        "input": 46469,
+        "output": 52,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588767005,
+        "completed": 1791588831997
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 47104,
+        "input": 47016,
+        "output": 88,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588832009,
+        "completed": 1791588911124
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 47552,
+        "input": 47124,
+        "output": 428,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588911131,
+        "completed": 1791588917818
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 47684,
+        "input": 47614,
+        "output": 70,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588917825,
+        "completed": 1791588921040
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 48018,
+        "input": 47964,
+        "output": 54,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588921046,
+        "completed": 1791588932796
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 48769,
+        "input": 48578,
+        "output": 191,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588932802,
+        "completed": 1791588944552
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 49135,
+        "input": 48874,
+        "output": 261,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588944557,
+        "completed": 1791588947550
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 49220,
+        "input": 49165,
+        "output": 55,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588947557,
+        "completed": 1791588950455
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 49502,
+        "input": 49455,
+        "output": 47,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588950463,
+        "completed": 1791588955809
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 49684,
+        "input": 49569,
+        "output": 115,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588955816,
+        "completed": 1791588966099
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 49800,
+        "input": 49741,
+        "output": 59,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588966106,
+        "completed": 1791588979918
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 50057,
+        "input": 49907,
+        "output": 150,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588979929,
+        "completed": 1791588986851
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 50278,
+        "input": 50151,
+        "output": 127,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588986862,
+        "completed": 1791588997554
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 50424,
+        "input": 50364,
+        "output": 60,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791588997562,
+        "completed": 1791589080114
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 50572,
+        "input": 50488,
+        "output": 84,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589080122,
+        "completed": 1791589084480
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 50678,
+        "input": 50595,
+        "output": 83,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589084488,
+        "completed": 1791589089248
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 51995,
+        "input": 51914,
+        "output": 81,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589089254,
+        "completed": 1791589092867
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 53881,
+        "input": 53831,
+        "output": 50,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589092874,
+        "completed": 1791589102881
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 54960,
+        "input": 54747,
+        "output": 213,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589102887,
+        "completed": 1791589191192
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 55097,
+        "input": 54981,
+        "output": 116,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589191202,
+        "completed": 1791589196056
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 55229,
+        "input": 55132,
+        "output": 97,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589196065,
+        "completed": 1791589204214
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 55620,
+        "input": 55442,
+        "output": 178,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589204222,
+        "completed": 1791589218850
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 56525,
+        "input": 56220,
+        "output": 305,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589218858,
+        "completed": 1791589232522
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 57059,
+        "input": 56756,
+        "output": 303,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589232530,
+        "completed": 1791589324079
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 57307,
+        "input": 57081,
+        "output": 226,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589324090,
+        "completed": 1791589329081
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 58078,
+        "input": 57994,
+        "output": 84,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589329090,
+        "completed": 1791589334015
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 58197,
+        "input": 58103,
+        "output": 94,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589334026,
+        "completed": 1791589342150
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 58681,
+        "input": 58560,
+        "output": 121,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589342157,
+        "completed": 1791589352358
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 59324,
+        "input": 59105,
+        "output": 219,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589352364,
+        "completed": 1791589446532
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 59441,
+        "input": 59345,
+        "output": 96,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589446547,
+        "completed": 1791589450269
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 59528,
+        "input": 59464,
+        "output": 64,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589450276,
+        "completed": 1791589461715
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 59928,
+        "input": 59753,
+        "output": 175,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589461722,
+        "completed": 1791589469847
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 60205,
+        "input": 60028,
+        "output": 177,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589469854,
+        "completed": 1791589476027
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 60448,
+        "input": 60321,
+        "output": 127,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589476033,
+        "completed": 1791589599147
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 60583,
+        "input": 60469,
+        "output": 114,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589599156,
+        "completed": 1791589603962
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 60737,
+        "input": 60642,
+        "output": 95,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589603982,
+        "completed": 1791589607301
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 61737,
+        "input": 61687,
+        "output": 50,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589607308,
+        "completed": 1791589615388
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 62263,
+        "input": 62094,
+        "output": 169,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589615395,
+        "completed": 1791589751612
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 62396,
+        "input": 62284,
+        "output": 112,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589751619,
+        "completed": 1791589758769
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 62603,
+        "input": 62455,
+        "output": 148,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589758776,
+        "completed": 1791589779707
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 63169,
+        "input": 63010,
+        "output": 159,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589779714,
+        "completed": 1791589788186
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 63439,
+        "input": 63281,
+        "output": 158,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589788196,
+        "completed": 1791589791504
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 63562,
+        "input": 63509,
+        "output": 53,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589791511,
+        "completed": 1791589793867
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "total": 63827,
+        "input": 63787,
+        "output": 40,
+        "reasoning": 0,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "session": "primary",
+      "time": {
+        "created": 1791589793874
+      },
+      "modelID": "qwen38-27b",
+      "providerID": "demo",
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "reasoning": 0,
+        "cache": {
+          "read": 0,
+          "write": 0
+        }
+      },
+      "finish": null
+    }
+  ]
 }

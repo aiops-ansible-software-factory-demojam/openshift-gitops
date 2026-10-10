@@ -130,7 +130,7 @@ No eligible idle PR was available by the 30-minute deadline. No abort, prompt or
 | `molecule` | 10-09 23:47:00.650 | 2m10.954s | 0 | — | — |
 | `scoped_lint` | 10-09 23:49:26.420 | 13.280s | 0 | — | — |
 
-Native counters: 93 assistant records, 136 tools, 0 child sessions, 4,095,663 input tokens, 16,291 output tokens, 0 cache-read and 0 cache-write tokens. Quota errors recorded: 2. These are cumulative provider/harness counters, not unique context, billing or measured decoding tokens/s.
+Native counters: 93 assistant records, 136 tools, 0 child sessions, 4,095,663 input tokens, 16,291 output tokens, 0 reasoning tokens, 0 cache-read and 0 cache-write tokens. Quota errors recorded: 2. These are cumulative provider/harness counters, not unique context, billing or measured decoding tokens/s. Request timestamps, finishes, error names and usage counters are retained in JSON; assistant text and reasoning are excluded.
 
 ## 3. deepseek-r1-distill-qwen-14b
 
