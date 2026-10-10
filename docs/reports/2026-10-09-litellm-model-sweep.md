@@ -1,6 +1,6 @@
 # LiteLLM model sweep — started October 9, 2026
 
-Status: 2 of 6 model attempts logged. The remaining models are pending. Each listed model gets one fresh reset/bootstrap and demo attempt through the [run-demojam skill](../../.agents/skills/run-demojam/SKILL.md). AAP is retained; cluster commands use `~/.kube/config`.
+Status: 3 of 6 model attempts logged. The remaining models are pending. Each listed model gets one fresh reset/bootstrap and demo attempt through the [run-demojam skill](../../.agents/skills/run-demojam/SKILL.md). AAP is retained; cluster commands use `~/.kube/config`.
 
 No operator code review, coaching, candidate edit, runner correction, test retry, manual dispatch, compaction, flow replay or runtime repair is allowed. The automatic fault-to-eligible-PR stage has a 30-minute cutoff. A clean published head must independently pass scoped lint, package build and every Molecule lifecycle before a guarded merge. Recovery gets one nginx job, followed by read-only Enforcing, HTTP, artifact and normal alert-resolution checks. Failed attempts remain failures; the next model begins with its normal authorized reset.
 
@@ -12,7 +12,7 @@ Both authenticated model catalogues returned HTTP 200, and every listed model ac
 |---|---|---|---|---:|---:|---:|---:|---:|---:|
 | `litellm.txt` | `qwen36-35b-a3b` | `qwen-3.6-36b-a3b-test` | failed · ao-smoke | 12m12.052s | 10m13.122s | — | — | — | 23m23.827s |
 | `litellm.txt` | `qwen38-27b` | `qwen38-27b` | cutoff · automatic-agent-stage | 10m50.569s | 10m41.704s | — | — | 30m0.003s | 52m27.459s |
-| `litellm2.txt` | `deepseek-r1-distill-qwen-14b` | `deepseek-r1-distill-qwen-14b` | Pending | — | — | — | — | — | — |
+| `litellm2.txt` | `deepseek-r1-distill-qwen-14b` | `deepseek-r1-distill-qwen-14b` | cutoff · automatic-agent-stage | 9m20.165s | 14m58.232s | — | — | 30m0.003s | 55m12.794s |
 | `litellm2.txt` | `gpt-oss-120b` | `openai/gpt-oss-120b-maas` | Pending | — | — | — | — | — | — |
 | `litellm2.txt` | `minimax-m2` | `minimaxai/minimax-m2-maas` | Pending | — | — | — | — | — | — |
 | `litellm2.txt` | `qwen3-235b` | `qwen/qwen3-235b-a22b-instruct-2507-maas` | Pending | — | — | — | — | — | — |
@@ -131,6 +131,58 @@ No eligible idle PR was available by the 30-minute deadline. No abort, prompt or
 | `scoped_lint` | 10-09 23:49:26.420 | 13.280s | 0 | — | — |
 
 Native counters: 93 assistant records, 136 tools, 0 child sessions, 4,095,663 input tokens, 16,291 output tokens, 0 cache-read and 0 cache-write tokens. Quota errors recorded: 2. These are cumulative provider/harness counters, not unique context, billing or measured decoding tokens/s.
+
+## 3. deepseek-r1-distill-qwen-14b
+
+Outcome: **cutoff · automatic-agent-stage**. [JSON evidence](evidence/2026-10-09/litellm-sweep-03-litellm2-deepseek-r1-distill-qwen-14b.json) · [Submitted prompts](2026-10-09-sweep-03-litellm2-deepseek-r1-distill-qwen-14b-prompts.md).
+
+Sources: GitOps `779b3a5`, unfixed collection `c78d4c8`, AAP/EDA `c557ad5`. Bootstrap script SHA-256: `4bbbe525b94d028623bc28aa153faf429d47ebcf5651f64646c70c753576ab8b`. Only model/credential selection and report files change between attempts.
+
+Model/credential and retained AAP identities verified: `demo/deepseek-r1-distill-qwen-14b`, `@ai-sdk/openai-compatible`.
+
+Workflow `Check Audit logs, Determine RCA, Create Issue` failed at `airca` on 10-10 00:22:56.771 UTC, 5m55.194s after the fault launch. The failure time is separate from the later observation cutoff or command return.
+
+Observed 0 outage issue(s), 0 Omnigent session(s), 0 delivered user message(s), and 0 PR(s). Operator follow-up messages: 0. The seeded README exercise issue is excluded from the incident count.
+
+No eligible idle PR was available by the 30-minute deadline. No abort, prompt or repair was sent. The next authorized reset removes the unfinished run before starting a different model.
+
+| Operator command | Start UTC | Finish UTC | Elapsed | Exit |
+|---|---|---|---:|---:|
+| `reset` | 10-09 23:51:48.786 | 10-10 00:01:08.952 | 9m20.165s | 0 |
+| `reset-baseline-check` | 10-10 00:01:08.972 | 10-10 00:01:11.999 | 3.027s | 0 |
+| `bootstrap` | 10-10 00:01:12.021 | 10-10 00:16:10.253 | 14m58.232s | 0 |
+| `model-verification` | 10-10 00:16:10.276 | 10-10 00:16:11.176 | 0.901s | 0 |
+| `baseline-check` | 10-10 00:16:11.200 | 10-10 00:16:38.408 | 27.208s | 0 |
+| `ao-smoke` | 10-10 00:16:38.434 | 10-10 00:16:59.555 | 21.121s | 0 |
+| `break` | 10-10 00:17:01.577 | 10-10 00:18:40.081 | 1m38.503s | 0 |
+| `fault-probe-check` | 10-10 00:18:40.104 | 10-10 00:18:40.749 | 0.645s | 0 |
+| `fault-mode-check` | 10-10 00:18:40.772 | 10-10 00:18:49.566 | 8.794s | 0 |
+
+| AAP job | Name | Actual start UTC | Actual finish UTC | Job time | Status |
+|---:|---|---|---|---:|---|
+| 487 | `webapp_vm` | 10-09 23:52:50.132 | 10-09 23:53:05.931 | 15.800s | successful |
+| 493 | `openshift_virtualization_machine` | 10-09 23:53:38.704 | 10-09 23:53:44.862 | 6.157s | successful |
+| 500 | `aap_configure_all` | 10-09 23:58:48.216 | 10-10 00:00:06.770 | 1m18.553s | successful |
+| 511 | `aap_configure_all` | 10-10 00:06:13.877 | 10-10 00:08:07.276 | 1m53.399s | successful |
+| 521 | `webapp_vm` | 10-10 00:10:01.106 | 10-10 00:10:41.932 | 40.826s | successful |
+| 527 | `webapp_selinux_permissive` | 10-10 00:12:18.774 | 10-10 00:12:25.593 | 6.819s | successful |
+| 533 | `webapp_nginx` | 10-10 00:14:14.533 | 10-10 00:15:25.480 | 1m10.947s | successful |
+| 540 | `webapp_selinux_enable` | 10-10 00:18:28.984 | 10-10 00:18:35.015 | 6.031s | successful |
+| 542 | `call_ao_webhook` | 10-10 00:20:23.575 | 10-10 00:20:30.109 | 6.533s | successful |
+| 543 | `pull_audit_logs` | 10-10 00:20:30.869 | 10-10 00:20:36.457 | 5.589s | successful |
+
+| AO workflow/activity | Start UTC | Finish UTC | Duration | Status |
+|---|---|---|---:|---|
+| llm-question | 10-10 00:16:43.184 | 10-10 00:16:55.991 | 12.807s | completed |
+| `start` | 10-10 00:16:43.631 | 10-10 00:16:43.637 | 0.006s | completed |
+| `ask_model` | 10-10 00:16:43.759 | 10-10 00:16:55.974 | 12.215s | completed |
+| Check Audit logs, Determine RCA, Create Issue | 10-10 00:20:29.550 | 10-10 00:22:56.792 | 2m27.242s | failed |
+| `createissue` | — | 10-10 00:22:58.157 | — | skipped |
+| `alertmanagereda` | 10-10 00:20:30.008 | 10-10 00:20:30.015 | 0.007s | completed |
+| `auditlogs` | 10-10 00:20:30.155 | 10-10 00:20:41.409 | 11.254s | completed |
+| `airca` | 10-10 00:20:41.516 | 10-10 00:22:56.771 | 2m15.255s | failed |
+
+Activity error: AgentTimeoutError: The AI Agent did not respond in time. Try again, increase the node timeout, or simplify the prompt. If the agent may still be running, check execution details before re-running.
 
 ## Reading these results
 
