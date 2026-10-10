@@ -27,7 +27,9 @@ Sources: GitOps `54da639`, unfixed collection `c78d4c8`, AAP/EDA `c557ad5`. Boot
 
 Model/credential and retained AAP identities verified: `demo/qwen36-35b-a3b`, `@ai-sdk/openai-compatible`.
 
-Observed 0 Omnigent session(s), 0 delivered user message(s), and 0 PR(s). Operator follow-up messages: 0.
+Workflow `llm-question` failed at `ask_model` on 10-09 22:55:56.549 UTC. The failure time is separate from the later observation cutoff or command return.
+
+Observed 0 outage issue(s), 0 Omnigent session(s), 0 delivered user message(s), and 0 PR(s). Operator follow-up messages: 0. The seeded README exercise issue is excluded from the incident count.
 
 | Operator command | Start UTC | Finish UTC | Elapsed | Exit |
 |---|---|---|---:|---:|
@@ -64,7 +66,9 @@ Sources: GitOps `0328687`, unfixed collection `c78d4c8`, AAP/EDA `c557ad5`. Boot
 
 Model/credential and retained AAP identities verified: `demo/qwen38-27b`, `@ai-sdk/openai-compatible`.
 
-Observed 1 Omnigent session(s), 1 delivered user message(s), and 0 PR(s). Operator follow-up messages: 0.
+Observed 1 outage issue(s), 1 Omnigent session(s), 1 delivered user message(s), and 0 PR(s). Operator follow-up messages: 0. The seeded README exercise issue is excluded from the incident count.
+
+Outage issue #2: `[WebappDown] Demo webapp is unavailable`, created 10-09 23:23:02.000, state `open`.
 
 No eligible idle PR was available by the 30-minute deadline. No abort, prompt or repair was sent. The next authorized reset removes the unfinished run before starting a different model.
 
