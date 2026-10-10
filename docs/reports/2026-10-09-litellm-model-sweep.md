@@ -1,10 +1,10 @@
 # LiteLLM model sweep — started October 9, 2026
 
-Status: 5 of 6 model attempts logged. The remaining models are pending. Each listed model gets one fresh reset/bootstrap and demo attempt through the [run-demojam skill](../../.agents/skills/run-demojam/SKILL.md). AAP is retained; cluster commands use `~/.kube/config`.
+Status: 6 of 6 model attempts logged. Sweep complete. Each listed model gets one fresh reset/bootstrap and demo attempt through the [run-demojam skill](../../.agents/skills/run-demojam/SKILL.md). AAP is retained; cluster commands use `~/.kube/config`.
 
 No operator code review, coaching, candidate edit, runner correction, test retry, manual dispatch, compaction, flow replay or runtime repair is allowed. The automatic fault-to-eligible-PR stage has a 30-minute cutoff. A clean published head must independently pass scoped lint, package build and every Molecule lifecycle before a guarded merge. Recovery gets one nginx job, followed by read-only Enforcing, HTTP, artifact and normal alert-resolution checks. Failed attempts remain failures; the next model begins with its normal authorized reset.
 
-Both authenticated model catalogues returned HTTP 200, and every listed model accepted one authenticated chat completion. The access probe requested `MODEL_READY` with a 256-token cap. DeepSeek reached the cap without a visible answer; it remains in the queue. This probe is not a tool-compatibility test or a decoding benchmark. Qwen 38 uses the existing bootstrap thinking-disabled setting; other models keep the existing provider defaults. The automatic remediation task and bootstrap implementation are unchanged across the sweep.
+Both authenticated model catalogues returned HTTP 200, and every listed model accepted one authenticated chat completion. The access probe requested `MODEL_READY` with a 256-token cap. DeepSeek reached the cap without a visible answer and was still included in the sweep. This probe is not a tool-compatibility test or a decoding benchmark. Qwen 38 uses the existing bootstrap thinking-disabled setting; other models keep the existing provider defaults. The automatic remediation task and bootstrap implementation are unchanged across the sweep.
 
 ## Model results
 
@@ -15,9 +15,13 @@ Both authenticated model catalogues returned HTTP 200, and every listed model ac
 | `litellm2.txt` | `deepseek-r1-distill-qwen-14b` | `deepseek-r1-distill-qwen-14b` | cutoff · automatic-agent-stage | 9m20.165s | 14m58.232s | — | — | 30m0.003s | 55m12.794s |
 | `litellm2.txt` | `gpt-oss-120b` | `openai/gpt-oss-120b-maas` | cutoff · automatic-agent-stage | 9m46.215s | 13m42.555s | — | — | 30m0.461s | 54m12.469s |
 | `litellm2.txt` | `minimax-m2` | `minimaxai/minimax-m2-maas` | failed · bootstrap | 9m47.819s | 3m20.392s | — | — | — | 13m11.332s |
-| `litellm2.txt` | `qwen3-235b` | `qwen/qwen3-235b-a22b-instruct-2507-maas` | Pending | — | — | — | — | — | — |
+| `litellm2.txt` | `qwen3-235b` | `qwen/qwen3-235b-a22b-instruct-2507-maas` | cutoff · automatic-agent-stage | 11m6.674s | 11m0.027s | — | — | 30m0.003s | 52m53.882s |
 
 Successful runs end at completed live proof. Failed runs end when the failure or cutoff is recorded; later read-only evidence collection and publication are outside that attempt clock. Whole-run times include API calls, polling and operator bookkeeping. The automated incident clock begins when the fault launch command starts, including AAP refresh overhead.
+
+Completed 6 attempts; 0 reached successful recovery. All six model-access probes were accepted. The demo reached the fault in 4 attempts, created an outage issue in 3, delivered an Omnigent task in 2, recorded native tool work in 1, and produced a PR in 0. Independent candidate validations: 0. These counts describe observed stages; models blocked before task delivery were not evaluated as coding agents.
+
+Campaign time from the first reset at 10-09 22:32:39.258 UTC to the last recorded attempt outcome at 10-10 02:54:53.819 UTC: **4h22m14.561s**. This includes gaps for read-only collection and publication between models; initial discovery and final publication are outside this clock.
 
 ## 1. qwen36-35b-a3b
 
@@ -271,6 +275,73 @@ Observed 0 outage issue(s), 0 Omnigent session(s), 0 delivered user message(s), 
 | 619 | `openshift_virtualization_machine` | 10-10 01:47:23.597 | 10-10 01:47:29.409 | 5.813s | successful |
 | 626 | `aap_configure_all` | 10-10 01:52:15.902 | 10-10 01:53:39.244 | 1m23.341s | successful |
 | 637 | `aap_configure_all` | 10-10 01:57:45.374 | 10-10 01:57:54.196 | 8.822s | failed |
+
+## 6. qwen3-235b
+
+Outcome: **cutoff · automatic-agent-stage**. [JSON evidence](evidence/2026-10-09/litellm-sweep-06-litellm2-qwen3-235b.json) · [Submitted prompts](2026-10-09-sweep-06-litellm2-qwen3-235b-prompts.md).
+
+Sources: GitOps `c10d10f`, unfixed collection `c78d4c8`, AAP/EDA `c557ad5`. Bootstrap script SHA-256: `4bbbe525b94d028623bc28aa153faf429d47ebcf5651f64646c70c753576ab8b`. Only model/credential selection and report files change between attempts.
+
+Model/credential and retained AAP identities verified: `demo/qwen3-235b`, `@ai-sdk/openai-compatible`.
+
+Read-only readiness snapshot at 10-10 02:32:53.099 UTC: 0 sandbox pod(s).
+
+Session `idle`, inference configured `False`, 0 delivered user message(s). This describes that observation, not a claim that the model received or completed the task.
+
+Workflow `omnigent-remediation` failed at `send_task` on 10-10 02:32:00.381 UTC, 7m6.566s after the fault launch. The failure time is separate from the later observation cutoff or command return.
+
+Observed 1 outage issue(s), 1 Omnigent session(s), 0 delivered user message(s), and 0 PR(s). Operator follow-up messages: 0. The seeded README exercise issue is excluded from the incident count.
+
+Outage issue #2: `[WebappDown] Demo webapp is unavailable`, created 10-10 02:27:53.000, state `open`.
+
+No eligible idle PR was available by the 30-minute deadline. No abort, prompt or repair was sent. No further reset or cleanup followed the final attempt; the demo remains faulted and AAP is retained.
+
+| Operator command | Start UTC | Finish UTC | Elapsed | Exit |
+|---|---|---|---:|---:|
+| `reset` | 10-10 02:01:59.937 | 10-10 02:13:06.611 | 11m6.674s | 0 |
+| `reset-baseline-check` | 10-10 02:13:06.631 | 10-10 02:13:09.534 | 2.903s | 0 |
+| `bootstrap` | 10-10 02:13:09.557 | 10-10 02:24:09.584 | 11m0.027s | 0 |
+| `model-verification` | 10-10 02:24:09.606 | 10-10 02:24:10.511 | 0.905s | 0 |
+| `baseline-check` | 10-10 02:24:10.536 | 10-10 02:24:36.047 | 25.511s | 0 |
+| `ao-smoke` | 10-10 02:24:36.074 | 10-10 02:24:51.788 | 15.715s | 0 |
+| `break` | 10-10 02:24:53.816 | 10-10 02:25:59.817 | 1m6.002s | 0 |
+| `fault-probe-check` | 10-10 02:25:59.839 | 10-10 02:26:00.406 | 0.567s | 0 |
+| `fault-mode-check` | 10-10 02:26:00.426 | 10-10 02:26:09.128 | 8.702s | 0 |
+
+| AAP job | Name | Actual start UTC | Actual finish UTC | Job time | Status |
+|---:|---|---|---|---:|---|
+| 643 | `webapp_vm` | 10-10 02:04:18.170 | 10-10 02:04:23.927 | 5.757s | successful |
+| 649 | `openshift_virtualization_machine` | 10-10 02:05:34.525 | 10-10 02:05:40.896 | 6.372s | successful |
+| 656 | `aap_configure_all` | 10-10 02:10:45.089 | 10-10 02:12:13.644 | 1m28.555s | successful |
+| 667 | `aap_configure_all` | 10-10 02:16:29.848 | 10-10 02:17:48.622 | 1m18.774s | successful |
+| 677 | `webapp_vm` | 10-10 02:19:27.466 | 10-10 02:19:53.817 | 26.351s | successful |
+| 683 | `webapp_selinux_permissive` | 10-10 02:20:51.241 | 10-10 02:20:58.210 | 6.969s | successful |
+| 689 | `webapp_nginx` | 10-10 02:21:52.581 | 10-10 02:23:02.317 | 1m9.736s | successful |
+| 696 | `webapp_selinux_enable` | 10-10 02:25:48.745 | 10-10 02:25:54.798 | 6.053s | successful |
+| 698 | `call_ao_webhook` | 10-10 02:27:23.443 | 10-10 02:27:29.525 | 6.081s | successful |
+| 699 | `pull_audit_logs` | 10-10 02:27:30.383 | 10-10 02:27:35.962 | 5.579s | successful |
+| 700 | `webapp_alert_issue` | 10-10 02:27:48.233 | 10-10 02:27:53.987 | 5.754s | successful |
+| 701 | `call_ao_webhook` | 10-10 02:27:54.971 | 10-10 02:28:00.770 | 5.800s | successful |
+
+| AO workflow/activity | Start UTC | Finish UTC | Duration | Status |
+|---|---|---|---:|---|
+| llm-question | 10-10 02:24:40.851 | 10-10 02:24:46.987 | 6.136s | completed |
+| `start` | 10-10 02:24:43.784 | 10-10 02:24:43.792 | 0.008s | completed |
+| `ask_model` | 10-10 02:24:43.907 | 10-10 02:24:46.965 | 3.058s | completed |
+| Check Audit logs, Determine RCA, Create Issue | 10-10 02:27:29.079 | 10-10 02:27:58.721 | 29.641s | completed |
+| `alertmanagereda` | 10-10 02:27:29.623 | 10-10 02:27:29.631 | 0.008s | completed |
+| `auditlogs` | 10-10 02:27:29.791 | 10-10 02:27:40.926 | 11.135s | completed |
+| `airca` | 10-10 02:27:41.031 | 10-10 02:27:47.387 | 6.357s | completed |
+| `createissue` | 10-10 02:27:47.526 | 10-10 02:27:58.692 | 11.167s | completed |
+| omnigent-remediation | 10-10 02:28:00.267 | 10-10 02:32:00.429 | 4m0.161s | failed |
+| `forgejo_issue` | 10-10 02:28:00.558 | 10-10 02:28:00.570 | 0.012s | completed |
+| `prepare_feature` | 10-10 02:28:00.599 | 10-10 02:28:03.774 | 3.175s | completed |
+| `authenticate_omnigent` | 10-10 02:28:03.867 | 10-10 02:28:03.903 | 0.036s | completed |
+| `create_session` | 10-10 02:28:03.943 | 10-10 02:28:04.749 | 0.805s | completed |
+| `share_session_0` | 10-10 02:28:04.844 | 10-10 02:28:04.939 | 0.095s | completed |
+| `send_task` | 10-10 02:32:00.327 | 10-10 02:32:00.381 | 0.055s | failed |
+
+Activity error: HTTP 503 Service Unavailable (url=http://omnigent.omnigent.svc:8000/v1/sessions/[runtime-id]/events, elapsed=0.04s)
 
 ## Reading these results
 

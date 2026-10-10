@@ -1,0 +1,3340 @@
+{
+  "schema_version": 2,
+  "run": "sweep-06-litellm2-qwen3-235b",
+  "model": "qwen3-235b",
+  "provider": "litellm",
+  "credential_file": "/workspace/scratch/litellm2.txt",
+  "scope": "Warm reset and full bootstrap with existing AAP retained.",
+  "skill": ".agents/skills/run-demojam/SKILL.md",
+  "kubeconfig": "~/.kube/config",
+  "no_operator_interventions": true,
+  "policy": "No code review, feedback, candidate edits, runner corrections, test retries, compaction, flow replay or runtime repairs. One fault launch, test-gated merge and one recovery launch.",
+  "plan": {
+    "model": "qwen3-235b",
+    "provider": "litellm",
+    "credential_file": "/workspace/scratch/litellm2.txt",
+    "sweep_index": 6,
+    "run": "sweep-06-litellm2-qwen3-235b",
+    "source_gitops": "c10d10f3c0c3aae4e4be3509b420205b6b2ce50c",
+    "source_collection": "c78d4c8844477087e4499f1a342532bc2fb1f71b",
+    "source_aap_eda": "c557ad5f8b33ad1621abb0a211cc59fd078385b4",
+    "aap_retained": true,
+    "one_recovery_job_required": true,
+    "no_operator_interventions": true,
+    "operator_test_runner_corrections_allowed": false,
+    "prepared_at": "2026-10-10T02:01:59.183704+00:00",
+    "bootstrap_script_sha256": "4bbbe525b94d028623bc28aa153faf429d47ebcf5651f64646c70c753576ab8b"
+  },
+  "provider_check": {
+    "credential_file": "/workspace/scratch/litellm2.txt",
+    "model": "qwen3-235b",
+    "started_at": "2026-10-09T22:30:29.115085+00:00",
+    "prompt": "Reply with exactly: MODEL_READY",
+    "available": true,
+    "requested_max_tokens": 256,
+    "http_status": 200,
+    "response_model": "qwen/qwen3-235b-a22b-instruct-2507-maas",
+    "usage": {
+      "completion_tokens": 3,
+      "prompt_tokens": 14,
+      "total_tokens": 17,
+      "prompt_tokens_details": {
+        "cached_tokens": 2
+      },
+      "extra_properties": {
+        "google": {
+          "traffic_type": "ON_DEMAND"
+        }
+      }
+    },
+    "finish_reasons": [
+      "stop"
+    ],
+    "ready_answer_seen": true,
+    "completed_at": "2026-10-09T22:30:30.062328+00:00",
+    "elapsed_seconds": 0.947
+  },
+  "reset": {
+    "name": "reset",
+    "started_at": "2026-10-10T02:01:59.937478+00:00",
+    "finished_at": "2026-10-10T02:13:06.611443+00:00",
+    "elapsed_seconds": 666.674,
+    "exit_code": 0
+  },
+  "reset_baseline": {
+    "observed_at": "2026-10-10T02:13:09.528926+00:00",
+    "aap_instance_and_pvc_preserved": true,
+    "main_revision": "f8f0cd4facec3a5b7d3a6d5c8232a7122d069aa0",
+    "pr_count": 0,
+    "disposable_vm_resources_empty": true,
+    "unfixed_role": true
+  },
+  "bootstrap": {
+    "name": "bootstrap",
+    "started_at": "2026-10-10T02:13:09.557672+00:00",
+    "finished_at": "2026-10-10T02:24:09.584475+00:00",
+    "elapsed_seconds": 660.027,
+    "exit_code": 0
+  },
+  "sandbox_readiness_summary": {
+    "observed_at": "2026-10-10T02:32:53.099893+00:00",
+    "sandbox_pod_count": 0,
+    "sessions": [
+      {
+        "status": "idle",
+        "harness": "opencode-native",
+        "llm_model": "demo/qwen3-235b",
+        "runner_online": true,
+        "inference_configured": false,
+        "inference_error": null,
+        "last_task_error": null,
+        "user_messages": 0,
+        "item_count": 0
+      }
+    ],
+    "sandbox_pods": []
+  },
+  "native_model_verification": {
+    "observed_at": "2026-10-10T02:24:10.504293+00:00",
+    "model": "demo/qwen3-235b",
+    "sdk": "@ai-sdk/openai-compatible",
+    "selected_credential_matches": true,
+    "aap_instance_and_pvc_preserved": true
+  },
+  "baseline_guest_verification": {
+    "started_at": "2026-10-10T02:24:12.198256+00:00",
+    "completed_at": "2026-10-10T02:24:17.898744+00:00",
+    "command_id": 690,
+    "status": "successful",
+    "started": "2026-10-10T02:24:12.783559Z",
+    "finished": "2026-10-10T02:24:17.338261Z",
+    "elapsed": 4.555,
+    "result": {
+      "selinux": "Permissive",
+      "labels": "unconfined_u:object_r:default_t:s0 /web\n    system_u:object_r:default_t:s0 /web/index.html",
+      "release": "Red Hat Enterprise Linux release 9.8 (Plow)"
+    }
+  },
+  "baseline_health": {
+    "observed_at": "2026-10-10T02:24:18.741013+00:00",
+    "aap": {
+      "jobs": [
+        {
+          "id": 689,
+          "name": "webapp_nginx",
+          "status": "successful",
+          "created": "2026-10-10T02:21:52.304713Z",
+          "started": "2026-10-10T02:21:52.581772Z",
+          "finished": "2026-10-10T02:23:02.317548Z",
+          "elapsed": 69.736
+        },
+        {
+          "id": 683,
+          "name": "webapp_selinux_permissive",
+          "status": "successful",
+          "created": "2026-10-10T02:20:50.999414Z",
+          "started": "2026-10-10T02:20:51.241897Z",
+          "finished": "2026-10-10T02:20:58.210807Z",
+          "elapsed": 6.969
+        },
+        {
+          "id": 677,
+          "name": "webapp_vm",
+          "status": "successful",
+          "created": "2026-10-10T02:19:27.215241Z",
+          "started": "2026-10-10T02:19:27.466300Z",
+          "finished": "2026-10-10T02:19:53.817783Z",
+          "elapsed": 26.351
+        },
+        {
+          "id": 667,
+          "name": "aap_configure_all",
+          "status": "successful",
+          "created": "2026-10-10T02:16:29.576169Z",
+          "started": "2026-10-10T02:16:29.848459Z",
+          "finished": "2026-10-10T02:17:48.622083Z",
+          "elapsed": 78.774
+        },
+        {
+          "id": 656,
+          "name": "aap_configure_all",
+          "status": "successful",
+          "created": "2026-10-10T02:10:44.779995Z",
+          "started": "2026-10-10T02:10:45.089834Z",
+          "finished": "2026-10-10T02:12:13.644962Z",
+          "elapsed": 88.555
+        },
+        {
+          "id": 649,
+          "name": "openshift_virtualization_machine",
+          "status": "successful",
+          "created": "2026-10-10T02:05:34.268167Z",
+          "started": "2026-10-10T02:05:34.525145Z",
+          "finished": "2026-10-10T02:05:40.896714Z",
+          "elapsed": 6.372
+        },
+        {
+          "id": 643,
+          "name": "webapp_vm",
+          "status": "successful",
+          "created": "2026-10-10T02:04:17.887718Z",
+          "started": "2026-10-10T02:04:18.170320Z",
+          "finished": "2026-10-10T02:04:23.927615Z",
+          "elapsed": 5.757
+        }
+      ],
+      "project_updates": [
+        {
+          "id": 688,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:21:35.579387Z",
+          "started": "2026-10-10T02:21:35.579246Z",
+          "finished": "2026-10-10T02:21:45.879368Z",
+          "elapsed": 10.3,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:21:37.326888Z",
+              "completed_at": "2026-10-10T02:21:45.045328Z",
+              "command_delta": "0:00:07.424169",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 686,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:21:18.349332Z",
+          "started": "2026-10-10T02:21:18.349140Z",
+          "finished": "2026-10-10T02:21:27.897845Z",
+          "elapsed": 9.549,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:21:20.021348Z",
+              "completed_at": "2026-10-10T02:21:27.213619Z",
+              "command_delta": "0:00:06.904087",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 684,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:21:06.743044Z",
+          "started": "2026-10-10T02:21:06.859398Z",
+          "finished": "2026-10-10T02:21:12.840381Z",
+          "elapsed": 5.981,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:21:08.478372Z",
+              "completed_at": "2026-10-10T02:21:12.407793Z",
+              "command_delta": "0:00:03.654582",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 682,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:20:34.009828Z",
+          "started": "2026-10-10T02:20:34.009693Z",
+          "finished": "2026-10-10T02:20:41.062161Z",
+          "elapsed": 7.052,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:20:35.762920Z",
+              "completed_at": "2026-10-10T02:20:40.278149Z",
+              "command_delta": "0:00:04.227837",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 680,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:20:11.162129Z",
+          "started": "2026-10-10T02:20:11.162027Z",
+          "finished": "2026-10-10T02:20:28.720518Z",
+          "elapsed": 17.558,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:20:13.073792Z",
+              "completed_at": "2026-10-10T02:20:27.972557Z",
+              "command_delta": "0:00:14.612652",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 678,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:19:59.298873Z",
+          "started": "2026-10-10T02:19:59.403802Z",
+          "finished": "2026-10-10T02:20:05.644354Z",
+          "elapsed": 6.241,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:20:01.162136Z",
+              "completed_at": "2026-10-10T02:20:05.256795Z",
+              "command_delta": "0:00:03.820759",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 676,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:19:05.023717Z",
+          "started": "2026-10-10T02:19:05.023526Z",
+          "finished": "2026-10-10T02:19:18.329388Z",
+          "elapsed": 13.306,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:19:07.276087Z",
+              "completed_at": "2026-10-10T02:19:17.460779Z",
+              "command_delta": "0:00:09.910008",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 674,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:18:42.711853Z",
+          "started": "2026-10-10T02:18:42.711735Z",
+          "finished": "2026-10-10T02:18:56.023357Z",
+          "elapsed": 13.312,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:18:44.441661Z",
+              "completed_at": "2026-10-10T02:18:55.296585Z",
+              "command_delta": "0:00:10.554198",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 672,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:18:25.712421Z",
+          "started": "2026-10-10T02:18:25.832065Z",
+          "finished": "2026-10-10T02:18:39.071571Z",
+          "elapsed": 13.24,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:18:27.720419Z",
+              "completed_at": "2026-10-10T02:18:38.467573Z",
+              "command_delta": "0:00:10.459071",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 671,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:16:57.210302Z",
+          "started": "2026-10-10T02:16:57.210148Z",
+          "finished": "2026-10-10T02:17:04.259552Z",
+          "elapsed": 7.049,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:16:58.952314Z",
+              "completed_at": "2026-10-10T02:17:03.497445Z",
+              "command_delta": "0:00:04.277199",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 670,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:16:51.022350Z",
+          "started": "2026-10-10T02:16:51.022132Z",
+          "finished": "2026-10-10T02:16:57.075648Z",
+          "elapsed": 6.054,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:16:52.712374Z",
+              "completed_at": "2026-10-10T02:16:56.263408Z",
+              "command_delta": "0:00:03.284479",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 666,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:16:12.707522Z",
+          "started": "2026-10-10T02:16:12.707429Z",
+          "finished": "2026-10-10T02:16:22.756697Z",
+          "elapsed": 10.049,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:16:14.402475Z",
+              "completed_at": "2026-10-10T02:16:21.935736Z",
+              "command_delta": "0:00:07.254756",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 664,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:15:50.439846Z",
+          "started": "2026-10-10T02:15:50.439729Z",
+          "finished": "2026-10-10T02:16:07.999666Z",
+          "elapsed": 17.56,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:15:52.185807Z",
+              "completed_at": "2026-10-10T02:16:07.226892Z",
+              "command_delta": "0:00:14.726047",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 662,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:15:38.639321Z",
+          "started": "2026-10-10T02:15:38.747049Z",
+          "finished": "2026-10-10T02:15:46.469382Z",
+          "elapsed": 7.722,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:15:40.396619Z",
+              "completed_at": "2026-10-10T02:15:46.005438Z",
+              "command_delta": "0:00:05.339935",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 661,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:15:15.518850Z",
+          "started": "2026-10-10T02:15:15.626523Z",
+          "finished": "2026-10-10T02:15:31.614159Z",
+          "elapsed": 15.988,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:15:17.376949Z",
+              "completed_at": "2026-10-10T02:15:31.161225Z",
+              "command_delta": "0:00:13.511398",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 660,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:11:18.107175Z",
+          "started": "2026-10-10T02:11:18.107031Z",
+          "finished": "2026-10-10T02:11:27.884144Z",
+          "elapsed": 9.777,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:11:19.805558Z",
+              "completed_at": "2026-10-10T02:11:27.227852Z",
+              "command_delta": "0:00:07.148269",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 659,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:11:05.936749Z",
+          "started": "2026-10-10T02:11:05.936642Z",
+          "finished": "2026-10-10T02:11:17.223551Z",
+          "elapsed": 11.287,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:11:07.623047Z",
+              "completed_at": "2026-10-10T02:11:16.554946Z",
+              "command_delta": "0:00:08.651586",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 655,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:10:22.600320Z",
+          "started": "2026-10-10T02:10:22.600183Z",
+          "finished": "2026-10-10T02:10:36.642737Z",
+          "elapsed": 14.043,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:10:24.304581Z",
+              "completed_at": "2026-10-10T02:10:35.967182Z",
+              "command_delta": "0:00:11.379398",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 653,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:10:05.253312Z",
+          "started": "2026-10-10T02:10:05.253161Z",
+          "finished": "2026-10-10T02:10:14.544649Z",
+          "elapsed": 9.291,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:10:07.018265Z",
+              "completed_at": "2026-10-10T02:10:13.780627Z",
+              "command_delta": "0:00:06.473006",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 651,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:09:53.604935Z",
+          "started": "2026-10-10T02:09:53.721674Z",
+          "finished": "2026-10-10T02:10:02.720110Z",
+          "elapsed": 8.998,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:09:55.430184Z",
+              "completed_at": "2026-10-10T02:10:02.229072Z",
+              "command_delta": "0:00:06.530440",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 650,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:09:35.191058Z",
+          "started": "2026-10-10T02:09:35.316096Z",
+          "finished": "2026-10-10T02:09:42.340198Z",
+          "elapsed": 7.024,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:09:37.074485Z",
+              "completed_at": "2026-10-10T02:09:41.722660Z",
+              "command_delta": "0:00:04.345965",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 648,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:05:12.081161Z",
+          "started": "2026-10-10T02:05:12.081056Z",
+          "finished": "2026-10-10T02:05:28.138536Z",
+          "elapsed": 16.057,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:05:13.762022Z",
+              "completed_at": "2026-10-10T02:05:27.460751Z",
+              "command_delta": "0:00:13.428544",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 646,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:04:44.327522Z",
+          "started": "2026-10-10T02:04:44.327356Z",
+          "finished": "2026-10-10T02:05:06.912758Z",
+          "elapsed": 22.585,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:04:45.988425Z",
+              "completed_at": "2026-10-10T02:05:06.065981Z",
+              "command_delta": "0:00:19.799753",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 644,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:04:32.311932Z",
+          "started": "2026-10-10T02:04:32.417545Z",
+          "finished": "2026-10-10T02:04:39.625332Z",
+          "elapsed": 7.208,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:04:34.099559Z",
+              "completed_at": "2026-10-10T02:04:39.055055Z",
+              "command_delta": "0:00:04.683743",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 642,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:03:44.589921Z",
+          "started": "2026-10-10T02:03:44.589782Z",
+          "finished": "2026-10-10T02:04:11.799983Z",
+          "elapsed": 27.21,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:03:46.803545Z",
+              "completed_at": "2026-10-10T02:04:10.926669Z",
+              "command_delta": "0:00:23.846326",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 640,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:03:11.266646Z",
+          "started": "2026-10-10T02:03:11.266477Z",
+          "finished": "2026-10-10T02:03:37.337425Z",
+          "elapsed": 26.071,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:03:12.971077Z",
+              "completed_at": "2026-10-10T02:03:36.682184Z",
+              "command_delta": "0:00:23.440669",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 638,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:02:32.470868Z",
+          "started": "2026-10-10T02:02:32.589305Z",
+          "finished": "2026-10-10T02:03:05.842601Z",
+          "elapsed": 33.253,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:02:34.754038Z",
+              "completed_at": "2026-10-10T02:03:05.241781Z",
+              "command_delta": "0:00:30.204283",
+              "rc": 0
+            }
+          ]
+        }
+      ],
+      "inventory_updates": [
+        {
+          "id": 687,
+          "name": "demo-inventory - demo-virtualmachines",
+          "status": "successful",
+          "created": "2026-10-10T02:21:35.379859Z",
+          "started": "2026-10-10T02:21:35.555567Z",
+          "finished": "2026-10-10T02:21:50.981485Z",
+          "elapsed": 15.426
+        },
+        {
+          "id": 685,
+          "name": "demo-inventory - demo-inventory-scm",
+          "status": "successful",
+          "created": "2026-10-10T02:21:18.161888Z",
+          "started": "2026-10-10T02:21:18.324943Z",
+          "finished": "2026-10-10T02:21:31.884669Z",
+          "elapsed": 13.56
+        },
+        {
+          "id": 681,
+          "name": "demo-inventory - demo-virtualmachines",
+          "status": "successful",
+          "created": "2026-10-10T02:20:33.794549Z",
+          "started": "2026-10-10T02:20:33.981826Z",
+          "finished": "2026-10-10T02:20:45.906925Z",
+          "elapsed": 11.925
+        },
+        {
+          "id": 679,
+          "name": "demo-inventory - demo-inventory-scm",
+          "status": "successful",
+          "created": "2026-10-10T02:20:10.954068Z",
+          "started": "2026-10-10T02:20:11.138684Z",
+          "finished": "2026-10-10T02:20:32.207693Z",
+          "elapsed": 21.069
+        },
+        {
+          "id": 675,
+          "name": "demo-inventory - demo-virtualmachines",
+          "status": "successful",
+          "created": "2026-10-10T02:19:04.757028Z",
+          "started": "2026-10-10T02:19:04.994171Z",
+          "finished": "2026-10-10T02:19:22.601960Z",
+          "elapsed": 17.608
+        },
+        {
+          "id": 673,
+          "name": "demo-inventory - demo-inventory-scm",
+          "status": "successful",
+          "created": "2026-10-10T02:18:42.506664Z",
+          "started": "2026-10-10T02:18:42.684815Z",
+          "finished": "2026-10-10T02:19:00.279966Z",
+          "elapsed": 17.595
+        },
+        {
+          "id": 669,
+          "name": "demo-inventory - demo-virtualmachines",
+          "status": "successful",
+          "created": "2026-10-10T02:16:50.982060Z",
+          "started": "2026-10-10T02:16:51.163352Z",
+          "finished": "2026-10-10T02:17:08.512989Z",
+          "elapsed": 17.35
+        },
+        {
+          "id": 668,
+          "name": "demo-inventory - demo-inventory-scm",
+          "status": "successful",
+          "created": "2026-10-10T02:16:50.798699Z",
+          "started": "2026-10-10T02:16:50.994883Z",
+          "finished": "2026-10-10T02:17:00.562238Z",
+          "elapsed": 9.567
+        },
+        {
+          "id": 665,
+          "name": "demo-inventory - demo-virtualmachines",
+          "status": "successful",
+          "created": "2026-10-10T02:16:12.499755Z",
+          "started": "2026-10-10T02:16:12.685639Z",
+          "finished": "2026-10-10T02:16:26.996735Z",
+          "elapsed": 14.311
+        },
+        {
+          "id": 663,
+          "name": "demo-inventory - demo-inventory-scm",
+          "status": "successful",
+          "created": "2026-10-10T02:15:50.240289Z",
+          "started": "2026-10-10T02:15:50.416361Z",
+          "finished": "2026-10-10T02:16:11.475366Z",
+          "elapsed": 21.059
+        },
+        {
+          "id": 658,
+          "name": "demo-inventory - demo-virtualmachines",
+          "status": "successful",
+          "created": "2026-10-10T02:11:05.849731Z",
+          "started": "2026-10-10T02:11:06.032181Z",
+          "finished": "2026-10-10T02:11:32.111720Z",
+          "elapsed": 26.08
+        },
+        {
+          "id": 657,
+          "name": "demo-inventory - demo-inventory-scm",
+          "status": "successful",
+          "created": "2026-10-10T02:11:05.729536Z",
+          "started": "2026-10-10T02:11:05.909776Z",
+          "finished": "2026-10-10T02:11:21.181486Z",
+          "elapsed": 15.272
+        },
+        {
+          "id": 654,
+          "name": "demo-inventory - demo-virtualmachines",
+          "status": "successful",
+          "created": "2026-10-10T02:10:22.407402Z",
+          "started": "2026-10-10T02:10:22.578260Z",
+          "finished": "2026-10-10T02:10:40.852485Z",
+          "elapsed": 18.274
+        },
+        {
+          "id": 652,
+          "name": "demo-inventory - demo-inventory-scm",
+          "status": "successful",
+          "created": "2026-10-10T02:10:05.008977Z",
+          "started": "2026-10-10T02:10:05.228487Z",
+          "finished": "2026-10-10T02:10:18.534041Z",
+          "elapsed": 13.306
+        },
+        {
+          "id": 647,
+          "name": "demo-inventory - demo-virtualmachines",
+          "status": "successful",
+          "created": "2026-10-10T02:05:11.879108Z",
+          "started": "2026-10-10T02:05:12.059241Z",
+          "finished": "2026-10-10T02:05:32.662800Z",
+          "elapsed": 20.604
+        },
+        {
+          "id": 645,
+          "name": "demo-inventory - demo-inventory-scm",
+          "status": "successful",
+          "created": "2026-10-10T02:04:44.118874Z",
+          "started": "2026-10-10T02:04:44.303005Z",
+          "finished": "2026-10-10T02:05:10.655381Z",
+          "elapsed": 26.352
+        },
+        {
+          "id": 641,
+          "name": "demo-inventory - demo-virtualmachines",
+          "status": "successful",
+          "created": "2026-10-10T02:03:44.380997Z",
+          "started": "2026-10-10T02:03:44.557901Z",
+          "finished": "2026-10-10T02:04:16.306991Z",
+          "elapsed": 31.749
+        },
+        {
+          "id": 639,
+          "name": "demo-inventory - demo-inventory-scm",
+          "status": "successful",
+          "created": "2026-10-10T02:03:11.034830Z",
+          "started": "2026-10-10T02:03:11.220912Z",
+          "finished": "2026-10-10T02:03:41.085313Z",
+          "elapsed": 29.864
+        }
+      ],
+      "ad_hoc_commands": [
+        {
+          "id": 690,
+          "name": "command",
+          "status": "successful",
+          "created": "2026-10-10T02:24:12.527692Z",
+          "started": "2026-10-10T02:24:12.783559Z",
+          "finished": "2026-10-10T02:24:17.338261Z",
+          "elapsed": 4.555
+        }
+      ]
+    },
+    "collection_started_at": "2026-10-10T02:24:18.741013+00:00",
+    "probe": {
+      "probe_http_status_code": 200.0,
+      "probe_success": 1.0
+    },
+    "active_webapp_down_alerts": 0,
+    "applications": [
+      {
+        "name": "agent-sandbox-operator",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "ansible-automation-platform",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "ansible-automation-platform-operator",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "automation-orchestrator",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "cloudnative-pg",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "cluster",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "demojam-keycloak",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "forgejo",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "homepage",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "omnigent",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "openshift-pipelines",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "openshift-virtualization",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "rhdh",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "user-workload-monitoring",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "webapp-vms",
+        "sync": "Synced",
+        "health": "Healthy"
+      }
+    ],
+    "activations": [
+      {
+        "name": "demojam-forgejo-remediation",
+        "status": "running",
+        "is_enabled": true
+      },
+      {
+        "name": "demojam-webapp-issues",
+        "status": "running",
+        "is_enabled": true
+      }
+    ],
+    "session_count": 0,
+    "collection_completed_at": "2026-10-10T02:24:36.012586+00:00"
+  },
+  "ao_smoke": {
+    "name": "ao-smoke",
+    "started_at": "2026-10-10T02:24:36.074014+00:00",
+    "finished_at": "2026-10-10T02:24:51.788698+00:00",
+    "elapsed_seconds": 15.715,
+    "exit_code": 0
+  },
+  "ao_readiness": {
+    "checked_at": "2026-10-10T02:24:51.793462+00:00",
+    "workflow_completed": true,
+    "answer_seen": true
+  },
+  "incident_deadline": {
+    "fault_started_at": "2026-10-10T02:24:53.816092+00:00",
+    "deadline_at": "2026-10-10T02:54:53.816092+00:00",
+    "maximum_automatic_stage_minutes": 30,
+    "cutoff_action": "Record failure with no abort, feedback, repair or restart; next model begins with its authorized reset."
+  },
+  "break": {
+    "name": "break",
+    "started_at": "2026-10-10T02:24:53.816092+00:00",
+    "finished_at": "2026-10-10T02:25:59.817947+00:00",
+    "elapsed_seconds": 66.002,
+    "exit_code": 0
+  },
+  "fault_probe": {
+    "started_at": "2026-10-10T02:25:59.856083+00:00",
+    "completed_at": "2026-10-10T02:26:00.403048+00:00",
+    "probe": {
+      "probe_http_status_code": 403.0,
+      "probe_success": 0.0
+    }
+  },
+  "fault_guest_verification": {
+    "started_at": "2026-10-10T02:26:02.080948+00:00",
+    "completed_at": "2026-10-10T02:26:09.122882+00:00",
+    "command_id": 697,
+    "status": "successful",
+    "started": "2026-10-10T02:26:02.716505Z",
+    "finished": "2026-10-10T02:26:07.011315Z",
+    "elapsed": 4.295,
+    "result": {
+      "selinux": "Enforcing",
+      "labels": "unconfined_u:object_r:default_t:s0 /web\n    system_u:object_r:default_t:s0 /web/index.html",
+      "release": "Red Hat Enterprise Linux release 9.8 (Plow)"
+    }
+  },
+  "state_snapshot": {
+    "observed_at": "2026-10-10T02:54:57.997474+00:00",
+    "aap": {
+      "jobs": [
+        {
+          "id": 701,
+          "name": "call_ao_webhook",
+          "status": "successful",
+          "created": "2026-10-10T02:27:54.751734Z",
+          "started": "2026-10-10T02:27:54.971046Z",
+          "finished": "2026-10-10T02:28:00.770763Z",
+          "elapsed": 5.8
+        },
+        {
+          "id": 700,
+          "name": "webapp_alert_issue",
+          "status": "successful",
+          "created": "2026-10-10T02:27:47.981563Z",
+          "started": "2026-10-10T02:27:48.233387Z",
+          "finished": "2026-10-10T02:27:53.987198Z",
+          "elapsed": 5.754
+        },
+        {
+          "id": 699,
+          "name": "pull_audit_logs",
+          "status": "successful",
+          "created": "2026-10-10T02:27:30.157147Z",
+          "started": "2026-10-10T02:27:30.383225Z",
+          "finished": "2026-10-10T02:27:35.962529Z",
+          "elapsed": 5.579
+        },
+        {
+          "id": 698,
+          "name": "call_ao_webhook",
+          "status": "successful",
+          "created": "2026-10-10T02:27:23.213161Z",
+          "started": "2026-10-10T02:27:23.443955Z",
+          "finished": "2026-10-10T02:27:29.525435Z",
+          "elapsed": 6.081
+        },
+        {
+          "id": 696,
+          "name": "webapp_selinux_enable",
+          "status": "successful",
+          "created": "2026-10-10T02:25:48.519675Z",
+          "started": "2026-10-10T02:25:48.745503Z",
+          "finished": "2026-10-10T02:25:54.798114Z",
+          "elapsed": 6.053
+        },
+        {
+          "id": 689,
+          "name": "webapp_nginx",
+          "status": "successful",
+          "created": "2026-10-10T02:21:52.304713Z",
+          "started": "2026-10-10T02:21:52.581772Z",
+          "finished": "2026-10-10T02:23:02.317548Z",
+          "elapsed": 69.736
+        },
+        {
+          "id": 683,
+          "name": "webapp_selinux_permissive",
+          "status": "successful",
+          "created": "2026-10-10T02:20:50.999414Z",
+          "started": "2026-10-10T02:20:51.241897Z",
+          "finished": "2026-10-10T02:20:58.210807Z",
+          "elapsed": 6.969
+        },
+        {
+          "id": 677,
+          "name": "webapp_vm",
+          "status": "successful",
+          "created": "2026-10-10T02:19:27.215241Z",
+          "started": "2026-10-10T02:19:27.466300Z",
+          "finished": "2026-10-10T02:19:53.817783Z",
+          "elapsed": 26.351
+        },
+        {
+          "id": 667,
+          "name": "aap_configure_all",
+          "status": "successful",
+          "created": "2026-10-10T02:16:29.576169Z",
+          "started": "2026-10-10T02:16:29.848459Z",
+          "finished": "2026-10-10T02:17:48.622083Z",
+          "elapsed": 78.774
+        },
+        {
+          "id": 656,
+          "name": "aap_configure_all",
+          "status": "successful",
+          "created": "2026-10-10T02:10:44.779995Z",
+          "started": "2026-10-10T02:10:45.089834Z",
+          "finished": "2026-10-10T02:12:13.644962Z",
+          "elapsed": 88.555
+        },
+        {
+          "id": 649,
+          "name": "openshift_virtualization_machine",
+          "status": "successful",
+          "created": "2026-10-10T02:05:34.268167Z",
+          "started": "2026-10-10T02:05:34.525145Z",
+          "finished": "2026-10-10T02:05:40.896714Z",
+          "elapsed": 6.372
+        },
+        {
+          "id": 643,
+          "name": "webapp_vm",
+          "status": "successful",
+          "created": "2026-10-10T02:04:17.887718Z",
+          "started": "2026-10-10T02:04:18.170320Z",
+          "finished": "2026-10-10T02:04:23.927615Z",
+          "elapsed": 5.757
+        }
+      ],
+      "project_updates": [
+        {
+          "id": 695,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:25:31.645825Z",
+          "started": "2026-10-10T02:25:31.645721Z",
+          "finished": "2026-10-10T02:25:40.714203Z",
+          "elapsed": 9.068,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:25:33.307096Z",
+              "completed_at": "2026-10-10T02:25:39.943662Z",
+              "command_delta": "0:00:06.359853",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 693,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:25:14.675731Z",
+          "started": "2026-10-10T02:25:14.675611Z",
+          "finished": "2026-10-10T02:25:22.468747Z",
+          "elapsed": 7.793,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:25:16.333417Z",
+              "completed_at": "2026-10-10T02:25:21.737001Z",
+              "command_delta": "0:00:05.137617",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 691,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:24:57.684872Z",
+          "started": "2026-10-10T02:24:57.794213Z",
+          "finished": "2026-10-10T02:25:09.781633Z",
+          "elapsed": 11.987,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:24:59.587187Z",
+              "completed_at": "2026-10-10T02:25:09.196066Z",
+              "command_delta": "0:00:09.342526",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 688,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:21:35.579387Z",
+          "started": "2026-10-10T02:21:35.579246Z",
+          "finished": "2026-10-10T02:21:45.879368Z",
+          "elapsed": 10.3,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:21:37.326888Z",
+              "completed_at": "2026-10-10T02:21:45.045328Z",
+              "command_delta": "0:00:07.424169",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 686,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:21:18.349332Z",
+          "started": "2026-10-10T02:21:18.349140Z",
+          "finished": "2026-10-10T02:21:27.897845Z",
+          "elapsed": 9.549,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:21:20.021348Z",
+              "completed_at": "2026-10-10T02:21:27.213619Z",
+              "command_delta": "0:00:06.904087",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 684,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:21:06.743044Z",
+          "started": "2026-10-10T02:21:06.859398Z",
+          "finished": "2026-10-10T02:21:12.840381Z",
+          "elapsed": 5.981,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:21:08.478372Z",
+              "completed_at": "2026-10-10T02:21:12.407793Z",
+              "command_delta": "0:00:03.654582",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 682,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:20:34.009828Z",
+          "started": "2026-10-10T02:20:34.009693Z",
+          "finished": "2026-10-10T02:20:41.062161Z",
+          "elapsed": 7.052,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:20:35.762920Z",
+              "completed_at": "2026-10-10T02:20:40.278149Z",
+              "command_delta": "0:00:04.227837",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 680,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:20:11.162129Z",
+          "started": "2026-10-10T02:20:11.162027Z",
+          "finished": "2026-10-10T02:20:28.720518Z",
+          "elapsed": 17.558,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:20:13.073792Z",
+              "completed_at": "2026-10-10T02:20:27.972557Z",
+              "command_delta": "0:00:14.612652",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 678,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:19:59.298873Z",
+          "started": "2026-10-10T02:19:59.403802Z",
+          "finished": "2026-10-10T02:20:05.644354Z",
+          "elapsed": 6.241,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:20:01.162136Z",
+              "completed_at": "2026-10-10T02:20:05.256795Z",
+              "command_delta": "0:00:03.820759",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 676,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:19:05.023717Z",
+          "started": "2026-10-10T02:19:05.023526Z",
+          "finished": "2026-10-10T02:19:18.329388Z",
+          "elapsed": 13.306,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:19:07.276087Z",
+              "completed_at": "2026-10-10T02:19:17.460779Z",
+              "command_delta": "0:00:09.910008",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 674,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:18:42.711853Z",
+          "started": "2026-10-10T02:18:42.711735Z",
+          "finished": "2026-10-10T02:18:56.023357Z",
+          "elapsed": 13.312,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:18:44.441661Z",
+              "completed_at": "2026-10-10T02:18:55.296585Z",
+              "command_delta": "0:00:10.554198",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 672,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:18:25.712421Z",
+          "started": "2026-10-10T02:18:25.832065Z",
+          "finished": "2026-10-10T02:18:39.071571Z",
+          "elapsed": 13.24,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:18:27.720419Z",
+              "completed_at": "2026-10-10T02:18:38.467573Z",
+              "command_delta": "0:00:10.459071",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 671,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:16:57.210302Z",
+          "started": "2026-10-10T02:16:57.210148Z",
+          "finished": "2026-10-10T02:17:04.259552Z",
+          "elapsed": 7.049,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:16:58.952314Z",
+              "completed_at": "2026-10-10T02:17:03.497445Z",
+              "command_delta": "0:00:04.277199",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 670,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:16:51.022350Z",
+          "started": "2026-10-10T02:16:51.022132Z",
+          "finished": "2026-10-10T02:16:57.075648Z",
+          "elapsed": 6.054,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:16:52.712374Z",
+              "completed_at": "2026-10-10T02:16:56.263408Z",
+              "command_delta": "0:00:03.284479",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 666,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:16:12.707522Z",
+          "started": "2026-10-10T02:16:12.707429Z",
+          "finished": "2026-10-10T02:16:22.756697Z",
+          "elapsed": 10.049,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:16:14.402475Z",
+              "completed_at": "2026-10-10T02:16:21.935736Z",
+              "command_delta": "0:00:07.254756",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 664,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:15:50.439846Z",
+          "started": "2026-10-10T02:15:50.439729Z",
+          "finished": "2026-10-10T02:16:07.999666Z",
+          "elapsed": 17.56,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:15:52.185807Z",
+              "completed_at": "2026-10-10T02:16:07.226892Z",
+              "command_delta": "0:00:14.726047",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 662,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:15:38.639321Z",
+          "started": "2026-10-10T02:15:38.747049Z",
+          "finished": "2026-10-10T02:15:46.469382Z",
+          "elapsed": 7.722,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:15:40.396619Z",
+              "completed_at": "2026-10-10T02:15:46.005438Z",
+              "command_delta": "0:00:05.339935",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 661,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:15:15.518850Z",
+          "started": "2026-10-10T02:15:15.626523Z",
+          "finished": "2026-10-10T02:15:31.614159Z",
+          "elapsed": 15.988,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:15:17.376949Z",
+              "completed_at": "2026-10-10T02:15:31.161225Z",
+              "command_delta": "0:00:13.511398",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 660,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:11:18.107175Z",
+          "started": "2026-10-10T02:11:18.107031Z",
+          "finished": "2026-10-10T02:11:27.884144Z",
+          "elapsed": 9.777,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:11:19.805558Z",
+              "completed_at": "2026-10-10T02:11:27.227852Z",
+              "command_delta": "0:00:07.148269",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 659,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:11:05.936749Z",
+          "started": "2026-10-10T02:11:05.936642Z",
+          "finished": "2026-10-10T02:11:17.223551Z",
+          "elapsed": 11.287,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:11:07.623047Z",
+              "completed_at": "2026-10-10T02:11:16.554946Z",
+              "command_delta": "0:00:08.651586",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 655,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:10:22.600320Z",
+          "started": "2026-10-10T02:10:22.600183Z",
+          "finished": "2026-10-10T02:10:36.642737Z",
+          "elapsed": 14.043,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:10:24.304581Z",
+              "completed_at": "2026-10-10T02:10:35.967182Z",
+              "command_delta": "0:00:11.379398",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 653,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:10:05.253312Z",
+          "started": "2026-10-10T02:10:05.253161Z",
+          "finished": "2026-10-10T02:10:14.544649Z",
+          "elapsed": 9.291,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:10:07.018265Z",
+              "completed_at": "2026-10-10T02:10:13.780627Z",
+              "command_delta": "0:00:06.473006",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 651,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:09:53.604935Z",
+          "started": "2026-10-10T02:09:53.721674Z",
+          "finished": "2026-10-10T02:10:02.720110Z",
+          "elapsed": 8.998,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:09:55.430184Z",
+              "completed_at": "2026-10-10T02:10:02.229072Z",
+              "command_delta": "0:00:06.530440",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 650,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:09:35.191058Z",
+          "started": "2026-10-10T02:09:35.316096Z",
+          "finished": "2026-10-10T02:09:42.340198Z",
+          "elapsed": 7.024,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:09:37.074485Z",
+              "completed_at": "2026-10-10T02:09:41.722660Z",
+              "command_delta": "0:00:04.345965",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 648,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:05:12.081161Z",
+          "started": "2026-10-10T02:05:12.081056Z",
+          "finished": "2026-10-10T02:05:28.138536Z",
+          "elapsed": 16.057,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:05:13.762022Z",
+              "completed_at": "2026-10-10T02:05:27.460751Z",
+              "command_delta": "0:00:13.428544",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 646,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:04:44.327522Z",
+          "started": "2026-10-10T02:04:44.327356Z",
+          "finished": "2026-10-10T02:05:06.912758Z",
+          "elapsed": 22.585,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:04:45.988425Z",
+              "completed_at": "2026-10-10T02:05:06.065981Z",
+              "command_delta": "0:00:19.799753",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 644,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:04:32.311932Z",
+          "started": "2026-10-10T02:04:32.417545Z",
+          "finished": "2026-10-10T02:04:39.625332Z",
+          "elapsed": 7.208,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:04:34.099559Z",
+              "completed_at": "2026-10-10T02:04:39.055055Z",
+              "command_delta": "0:00:04.683743",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 642,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:03:44.589921Z",
+          "started": "2026-10-10T02:03:44.589782Z",
+          "finished": "2026-10-10T02:04:11.799983Z",
+          "elapsed": 27.21,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:03:46.803545Z",
+              "completed_at": "2026-10-10T02:04:10.926669Z",
+              "command_delta": "0:00:23.846326",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 640,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:03:11.266646Z",
+          "started": "2026-10-10T02:03:11.266477Z",
+          "finished": "2026-10-10T02:03:37.337425Z",
+          "elapsed": 26.071,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:03:12.971077Z",
+              "completed_at": "2026-10-10T02:03:36.682184Z",
+              "command_delta": "0:00:23.440669",
+              "rc": 0
+            }
+          ]
+        },
+        {
+          "id": 638,
+          "name": "demojam-ansible",
+          "status": "successful",
+          "created": "2026-10-10T02:02:32.470868Z",
+          "started": "2026-10-10T02:02:32.589305Z",
+          "finished": "2026-10-10T02:03:05.842601Z",
+          "elapsed": 33.253,
+          "collection_fetches": [
+            {
+              "task": "Fetch galaxy roles and collections from requirements.(yml/yaml)",
+              "started_at": "2026-10-10T02:02:34.754038Z",
+              "completed_at": "2026-10-10T02:03:05.241781Z",
+              "command_delta": "0:00:30.204283",
+              "rc": 0
+            }
+          ]
+        }
+      ],
+      "inventory_updates": [
+        {
+          "id": 694,
+          "name": "demo-inventory - demo-virtualmachines",
+          "status": "successful",
+          "created": "2026-10-10T02:25:31.447829Z",
+          "started": "2026-10-10T02:25:31.623306Z",
+          "finished": "2026-10-10T02:25:45.484710Z",
+          "elapsed": 13.861
+        },
+        {
+          "id": 692,
+          "name": "demo-inventory - demo-inventory-scm",
+          "status": "successful",
+          "created": "2026-10-10T02:25:14.477563Z",
+          "started": "2026-10-10T02:25:14.647799Z",
+          "finished": "2026-10-10T02:25:26.429410Z",
+          "elapsed": 11.782
+        },
+        {
+          "id": 687,
+          "name": "demo-inventory - demo-virtualmachines",
+          "status": "successful",
+          "created": "2026-10-10T02:21:35.379859Z",
+          "started": "2026-10-10T02:21:35.555567Z",
+          "finished": "2026-10-10T02:21:50.981485Z",
+          "elapsed": 15.426
+        },
+        {
+          "id": 685,
+          "name": "demo-inventory - demo-inventory-scm",
+          "status": "successful",
+          "created": "2026-10-10T02:21:18.161888Z",
+          "started": "2026-10-10T02:21:18.324943Z",
+          "finished": "2026-10-10T02:21:31.884669Z",
+          "elapsed": 13.56
+        },
+        {
+          "id": 681,
+          "name": "demo-inventory - demo-virtualmachines",
+          "status": "successful",
+          "created": "2026-10-10T02:20:33.794549Z",
+          "started": "2026-10-10T02:20:33.981826Z",
+          "finished": "2026-10-10T02:20:45.906925Z",
+          "elapsed": 11.925
+        },
+        {
+          "id": 679,
+          "name": "demo-inventory - demo-inventory-scm",
+          "status": "successful",
+          "created": "2026-10-10T02:20:10.954068Z",
+          "started": "2026-10-10T02:20:11.138684Z",
+          "finished": "2026-10-10T02:20:32.207693Z",
+          "elapsed": 21.069
+        },
+        {
+          "id": 675,
+          "name": "demo-inventory - demo-virtualmachines",
+          "status": "successful",
+          "created": "2026-10-10T02:19:04.757028Z",
+          "started": "2026-10-10T02:19:04.994171Z",
+          "finished": "2026-10-10T02:19:22.601960Z",
+          "elapsed": 17.608
+        },
+        {
+          "id": 673,
+          "name": "demo-inventory - demo-inventory-scm",
+          "status": "successful",
+          "created": "2026-10-10T02:18:42.506664Z",
+          "started": "2026-10-10T02:18:42.684815Z",
+          "finished": "2026-10-10T02:19:00.279966Z",
+          "elapsed": 17.595
+        },
+        {
+          "id": 669,
+          "name": "demo-inventory - demo-virtualmachines",
+          "status": "successful",
+          "created": "2026-10-10T02:16:50.982060Z",
+          "started": "2026-10-10T02:16:51.163352Z",
+          "finished": "2026-10-10T02:17:08.512989Z",
+          "elapsed": 17.35
+        },
+        {
+          "id": 668,
+          "name": "demo-inventory - demo-inventory-scm",
+          "status": "successful",
+          "created": "2026-10-10T02:16:50.798699Z",
+          "started": "2026-10-10T02:16:50.994883Z",
+          "finished": "2026-10-10T02:17:00.562238Z",
+          "elapsed": 9.567
+        },
+        {
+          "id": 665,
+          "name": "demo-inventory - demo-virtualmachines",
+          "status": "successful",
+          "created": "2026-10-10T02:16:12.499755Z",
+          "started": "2026-10-10T02:16:12.685639Z",
+          "finished": "2026-10-10T02:16:26.996735Z",
+          "elapsed": 14.311
+        },
+        {
+          "id": 663,
+          "name": "demo-inventory - demo-inventory-scm",
+          "status": "successful",
+          "created": "2026-10-10T02:15:50.240289Z",
+          "started": "2026-10-10T02:15:50.416361Z",
+          "finished": "2026-10-10T02:16:11.475366Z",
+          "elapsed": 21.059
+        },
+        {
+          "id": 658,
+          "name": "demo-inventory - demo-virtualmachines",
+          "status": "successful",
+          "created": "2026-10-10T02:11:05.849731Z",
+          "started": "2026-10-10T02:11:06.032181Z",
+          "finished": "2026-10-10T02:11:32.111720Z",
+          "elapsed": 26.08
+        },
+        {
+          "id": 657,
+          "name": "demo-inventory - demo-inventory-scm",
+          "status": "successful",
+          "created": "2026-10-10T02:11:05.729536Z",
+          "started": "2026-10-10T02:11:05.909776Z",
+          "finished": "2026-10-10T02:11:21.181486Z",
+          "elapsed": 15.272
+        },
+        {
+          "id": 654,
+          "name": "demo-inventory - demo-virtualmachines",
+          "status": "successful",
+          "created": "2026-10-10T02:10:22.407402Z",
+          "started": "2026-10-10T02:10:22.578260Z",
+          "finished": "2026-10-10T02:10:40.852485Z",
+          "elapsed": 18.274
+        },
+        {
+          "id": 652,
+          "name": "demo-inventory - demo-inventory-scm",
+          "status": "successful",
+          "created": "2026-10-10T02:10:05.008977Z",
+          "started": "2026-10-10T02:10:05.228487Z",
+          "finished": "2026-10-10T02:10:18.534041Z",
+          "elapsed": 13.306
+        },
+        {
+          "id": 647,
+          "name": "demo-inventory - demo-virtualmachines",
+          "status": "successful",
+          "created": "2026-10-10T02:05:11.879108Z",
+          "started": "2026-10-10T02:05:12.059241Z",
+          "finished": "2026-10-10T02:05:32.662800Z",
+          "elapsed": 20.604
+        },
+        {
+          "id": 645,
+          "name": "demo-inventory - demo-inventory-scm",
+          "status": "successful",
+          "created": "2026-10-10T02:04:44.118874Z",
+          "started": "2026-10-10T02:04:44.303005Z",
+          "finished": "2026-10-10T02:05:10.655381Z",
+          "elapsed": 26.352
+        },
+        {
+          "id": 641,
+          "name": "demo-inventory - demo-virtualmachines",
+          "status": "successful",
+          "created": "2026-10-10T02:03:44.380997Z",
+          "started": "2026-10-10T02:03:44.557901Z",
+          "finished": "2026-10-10T02:04:16.306991Z",
+          "elapsed": 31.749
+        },
+        {
+          "id": 639,
+          "name": "demo-inventory - demo-inventory-scm",
+          "status": "successful",
+          "created": "2026-10-10T02:03:11.034830Z",
+          "started": "2026-10-10T02:03:11.220912Z",
+          "finished": "2026-10-10T02:03:41.085313Z",
+          "elapsed": 29.864
+        }
+      ],
+      "ad_hoc_commands": [
+        {
+          "id": 697,
+          "name": "command",
+          "status": "successful",
+          "created": "2026-10-10T02:26:02.526038Z",
+          "started": "2026-10-10T02:26:02.716505Z",
+          "finished": "2026-10-10T02:26:07.011315Z",
+          "elapsed": 4.295
+        },
+        {
+          "id": 690,
+          "name": "command",
+          "status": "successful",
+          "created": "2026-10-10T02:24:12.527692Z",
+          "started": "2026-10-10T02:24:12.783559Z",
+          "finished": "2026-10-10T02:24:17.338261Z",
+          "elapsed": 4.555
+        }
+      ]
+    },
+    "collection_started_at": "2026-10-10T02:54:57.997474+00:00",
+    "probe": {
+      "probe_http_status_code": 403.0,
+      "probe_success": 0.0
+    },
+    "active_webapp_down_alerts": 1,
+    "applications": [
+      {
+        "name": "agent-sandbox-operator",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "ansible-automation-platform",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "ansible-automation-platform-operator",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "automation-orchestrator",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "cloudnative-pg",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "cluster",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "demojam-keycloak",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "forgejo",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "homepage",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "omnigent",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "openshift-pipelines",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "openshift-virtualization",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "rhdh",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "user-workload-monitoring",
+        "sync": "Synced",
+        "health": "Healthy"
+      },
+      {
+        "name": "webapp-vms",
+        "sync": "Synced",
+        "health": "Healthy"
+      }
+    ],
+    "activations": [
+      {
+        "name": "demojam-forgejo-remediation",
+        "status": "running",
+        "is_enabled": true
+      },
+      {
+        "name": "demojam-webapp-issues",
+        "status": "running",
+        "is_enabled": true
+      }
+    ],
+    "session_count": 1,
+    "collection_completed_at": "2026-10-10T02:55:17.104334+00:00"
+  },
+  "outcome": {
+    "outcome": "cutoff",
+    "failed_or_completed_phase": "automatic-agent-stage",
+    "recorded_at": "2026-10-10T02:54:53.819558+00:00",
+    "operator_code_reviews": 0,
+    "operator_model_follow_up_messages": 0,
+    "operator_candidate_edits": 0,
+    "operator_flow_repairs": 0,
+    "operator_test_runner_corrections": 0,
+    "operator_test_retries": 0,
+    "human_recovery_job_count": 0,
+    "model": "qwen3-235b"
+  },
+  "operator_commands": [
+    {
+      "name": "model-verification",
+      "started_at": "2026-10-10T02:24:09.606951+00:00",
+      "finished_at": "2026-10-10T02:24:10.511844+00:00",
+      "elapsed_seconds": 0.905,
+      "exit_code": 0
+    },
+    {
+      "name": "reset-baseline-check",
+      "started_at": "2026-10-10T02:13:06.631665+00:00",
+      "finished_at": "2026-10-10T02:13:09.534239+00:00",
+      "elapsed_seconds": 2.903,
+      "exit_code": 0
+    },
+    {
+      "name": "reset",
+      "started_at": "2026-10-10T02:01:59.937478+00:00",
+      "finished_at": "2026-10-10T02:13:06.611443+00:00",
+      "elapsed_seconds": 666.674,
+      "exit_code": 0
+    },
+    {
+      "name": "bootstrap",
+      "started_at": "2026-10-10T02:13:09.557672+00:00",
+      "finished_at": "2026-10-10T02:24:09.584475+00:00",
+      "elapsed_seconds": 660.027,
+      "exit_code": 0
+    },
+    {
+      "name": "break",
+      "started_at": "2026-10-10T02:24:53.816092+00:00",
+      "finished_at": "2026-10-10T02:25:59.817947+00:00",
+      "elapsed_seconds": 66.002,
+      "exit_code": 0
+    },
+    {
+      "name": "fault-mode-check",
+      "started_at": "2026-10-10T02:26:00.426425+00:00",
+      "finished_at": "2026-10-10T02:26:09.128551+00:00",
+      "elapsed_seconds": 8.702,
+      "exit_code": 0
+    },
+    {
+      "name": "fault-probe-check",
+      "started_at": "2026-10-10T02:25:59.839177+00:00",
+      "finished_at": "2026-10-10T02:26:00.406213+00:00",
+      "elapsed_seconds": 0.567,
+      "exit_code": 0
+    },
+    {
+      "name": "baseline-check",
+      "started_at": "2026-10-10T02:24:10.536011+00:00",
+      "finished_at": "2026-10-10T02:24:36.047392+00:00",
+      "elapsed_seconds": 25.511,
+      "exit_code": 0
+    },
+    {
+      "name": "ao-smoke",
+      "started_at": "2026-10-10T02:24:36.074014+00:00",
+      "finished_at": "2026-10-10T02:24:51.788698+00:00",
+      "elapsed_seconds": 15.715,
+      "exit_code": 0
+    }
+  ],
+  "aap": {
+    "jobs": [
+      {
+        "id": 701,
+        "name": "call_ao_webhook",
+        "status": "successful",
+        "created": "2026-10-10T02:27:54.751734Z",
+        "started": "2026-10-10T02:27:54.971046Z",
+        "finished": "2026-10-10T02:28:00.770763Z",
+        "elapsed": 5.8
+      },
+      {
+        "id": 700,
+        "name": "webapp_alert_issue",
+        "status": "successful",
+        "created": "2026-10-10T02:27:47.981563Z",
+        "started": "2026-10-10T02:27:48.233387Z",
+        "finished": "2026-10-10T02:27:53.987198Z",
+        "elapsed": 5.754
+      },
+      {
+        "id": 699,
+        "name": "pull_audit_logs",
+        "status": "successful",
+        "created": "2026-10-10T02:27:30.157147Z",
+        "started": "2026-10-10T02:27:30.383225Z",
+        "finished": "2026-10-10T02:27:35.962529Z",
+        "elapsed": 5.579
+      },
+      {
+        "id": 698,
+        "name": "call_ao_webhook",
+        "status": "successful",
+        "created": "2026-10-10T02:27:23.213161Z",
+        "started": "2026-10-10T02:27:23.443955Z",
+        "finished": "2026-10-10T02:27:29.525435Z",
+        "elapsed": 6.081
+      },
+      {
+        "id": 696,
+        "name": "webapp_selinux_enable",
+        "status": "successful",
+        "created": "2026-10-10T02:25:48.519675Z",
+        "started": "2026-10-10T02:25:48.745503Z",
+        "finished": "2026-10-10T02:25:54.798114Z",
+        "elapsed": 6.053
+      },
+      {
+        "id": 689,
+        "name": "webapp_nginx",
+        "status": "successful",
+        "created": "2026-10-10T02:21:52.304713Z",
+        "started": "2026-10-10T02:21:52.581772Z",
+        "finished": "2026-10-10T02:23:02.317548Z",
+        "elapsed": 69.736
+      },
+      {
+        "id": 683,
+        "name": "webapp_selinux_permissive",
+        "status": "successful",
+        "created": "2026-10-10T02:20:50.999414Z",
+        "started": "2026-10-10T02:20:51.241897Z",
+        "finished": "2026-10-10T02:20:58.210807Z",
+        "elapsed": 6.969
+      },
+      {
+        "id": 677,
+        "name": "webapp_vm",
+        "status": "successful",
+        "created": "2026-10-10T02:19:27.215241Z",
+        "started": "2026-10-10T02:19:27.466300Z",
+        "finished": "2026-10-10T02:19:53.817783Z",
+        "elapsed": 26.351
+      },
+      {
+        "id": 667,
+        "name": "aap_configure_all",
+        "status": "successful",
+        "created": "2026-10-10T02:16:29.576169Z",
+        "started": "2026-10-10T02:16:29.848459Z",
+        "finished": "2026-10-10T02:17:48.622083Z",
+        "elapsed": 78.774
+      },
+      {
+        "id": 656,
+        "name": "aap_configure_all",
+        "status": "successful",
+        "created": "2026-10-10T02:10:44.779995Z",
+        "started": "2026-10-10T02:10:45.089834Z",
+        "finished": "2026-10-10T02:12:13.644962Z",
+        "elapsed": 88.555
+      },
+      {
+        "id": 649,
+        "name": "openshift_virtualization_machine",
+        "status": "successful",
+        "created": "2026-10-10T02:05:34.268167Z",
+        "started": "2026-10-10T02:05:34.525145Z",
+        "finished": "2026-10-10T02:05:40.896714Z",
+        "elapsed": 6.372
+      },
+      {
+        "id": 643,
+        "name": "webapp_vm",
+        "status": "successful",
+        "created": "2026-10-10T02:04:17.887718Z",
+        "started": "2026-10-10T02:04:18.170320Z",
+        "finished": "2026-10-10T02:04:23.927615Z",
+        "elapsed": 5.757
+      }
+    ],
+    "project_updates": [
+      {
+        "id": 695,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:25:31.645825Z",
+        "started": "2026-10-10T02:25:31.645721Z",
+        "finished": "2026-10-10T02:25:40.714203Z",
+        "elapsed": 9.068,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:25:39.943662Z",
+            "delta": "0:00:06.359853",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "id": 693,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:25:14.675731Z",
+        "started": "2026-10-10T02:25:14.675611Z",
+        "finished": "2026-10-10T02:25:22.468747Z",
+        "elapsed": 7.793,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:25:21.737001Z",
+            "delta": "0:00:05.137617",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "id": 691,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:24:57.684872Z",
+        "started": "2026-10-10T02:24:57.794213Z",
+        "finished": "2026-10-10T02:25:09.781633Z",
+        "elapsed": 11.987,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:25:09.196066Z",
+            "delta": "0:00:09.342526",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "id": 688,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:21:35.579387Z",
+        "started": "2026-10-10T02:21:35.579246Z",
+        "finished": "2026-10-10T02:21:45.879368Z",
+        "elapsed": 10.3,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:21:45.045328Z",
+            "delta": "0:00:07.424169",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "id": 686,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:21:18.349332Z",
+        "started": "2026-10-10T02:21:18.349140Z",
+        "finished": "2026-10-10T02:21:27.897845Z",
+        "elapsed": 9.549,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:21:27.213619Z",
+            "delta": "0:00:06.904087",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "id": 684,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:21:06.743044Z",
+        "started": "2026-10-10T02:21:06.859398Z",
+        "finished": "2026-10-10T02:21:12.840381Z",
+        "elapsed": 5.981,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:21:12.407793Z",
+            "delta": "0:00:03.654582",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "id": 682,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:20:34.009828Z",
+        "started": "2026-10-10T02:20:34.009693Z",
+        "finished": "2026-10-10T02:20:41.062161Z",
+        "elapsed": 7.052,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:20:40.278149Z",
+            "delta": "0:00:04.227837",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "id": 680,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:20:11.162129Z",
+        "started": "2026-10-10T02:20:11.162027Z",
+        "finished": "2026-10-10T02:20:28.720518Z",
+        "elapsed": 17.558,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:20:27.972557Z",
+            "delta": "0:00:14.612652",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "id": 678,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:19:59.298873Z",
+        "started": "2026-10-10T02:19:59.403802Z",
+        "finished": "2026-10-10T02:20:05.644354Z",
+        "elapsed": 6.241,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:20:05.256795Z",
+            "delta": "0:00:03.820759",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "id": 676,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:19:05.023717Z",
+        "started": "2026-10-10T02:19:05.023526Z",
+        "finished": "2026-10-10T02:19:18.329388Z",
+        "elapsed": 13.306,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:19:17.460779Z",
+            "delta": "0:00:09.910008",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "id": 674,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:18:42.711853Z",
+        "started": "2026-10-10T02:18:42.711735Z",
+        "finished": "2026-10-10T02:18:56.023357Z",
+        "elapsed": 13.312,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:18:55.296585Z",
+            "delta": "0:00:10.554198",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "id": 672,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:18:25.712421Z",
+        "started": "2026-10-10T02:18:25.832065Z",
+        "finished": "2026-10-10T02:18:39.071571Z",
+        "elapsed": 13.24,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:18:38.467573Z",
+            "delta": "0:00:10.459071",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "id": 671,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:16:57.210302Z",
+        "started": "2026-10-10T02:16:57.210148Z",
+        "finished": "2026-10-10T02:17:04.259552Z",
+        "elapsed": 7.049,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:17:03.497445Z",
+            "delta": "0:00:04.277199",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "id": 670,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:16:51.022350Z",
+        "started": "2026-10-10T02:16:51.022132Z",
+        "finished": "2026-10-10T02:16:57.075648Z",
+        "elapsed": 6.054,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:16:56.263408Z",
+            "delta": "0:00:03.284479",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "id": 666,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:16:12.707522Z",
+        "started": "2026-10-10T02:16:12.707429Z",
+        "finished": "2026-10-10T02:16:22.756697Z",
+        "elapsed": 10.049,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:16:21.935736Z",
+            "delta": "0:00:07.254756",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "id": 664,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:15:50.439846Z",
+        "started": "2026-10-10T02:15:50.439729Z",
+        "finished": "2026-10-10T02:16:07.999666Z",
+        "elapsed": 17.56,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:16:07.226892Z",
+            "delta": "0:00:14.726047",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "id": 662,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:15:38.639321Z",
+        "started": "2026-10-10T02:15:38.747049Z",
+        "finished": "2026-10-10T02:15:46.469382Z",
+        "elapsed": 7.722,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:15:46.005438Z",
+            "delta": "0:00:05.339935",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "id": 661,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:15:15.518850Z",
+        "started": "2026-10-10T02:15:15.626523Z",
+        "finished": "2026-10-10T02:15:31.614159Z",
+        "elapsed": 15.988,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:15:31.161225Z",
+            "delta": "0:00:13.511398",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "id": 660,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:11:18.107175Z",
+        "started": "2026-10-10T02:11:18.107031Z",
+        "finished": "2026-10-10T02:11:27.884144Z",
+        "elapsed": 9.777,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:11:27.227852Z",
+            "delta": "0:00:07.148269",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "id": 659,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:11:05.936749Z",
+        "started": "2026-10-10T02:11:05.936642Z",
+        "finished": "2026-10-10T02:11:17.223551Z",
+        "elapsed": 11.287,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:11:16.554946Z",
+            "delta": "0:00:08.651586",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "id": 655,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:10:22.600320Z",
+        "started": "2026-10-10T02:10:22.600183Z",
+        "finished": "2026-10-10T02:10:36.642737Z",
+        "elapsed": 14.043,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:10:35.967182Z",
+            "delta": "0:00:11.379398",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "id": 653,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:10:05.253312Z",
+        "started": "2026-10-10T02:10:05.253161Z",
+        "finished": "2026-10-10T02:10:14.544649Z",
+        "elapsed": 9.291,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:10:13.780627Z",
+            "delta": "0:00:06.473006",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "id": 651,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:09:53.604935Z",
+        "started": "2026-10-10T02:09:53.721674Z",
+        "finished": "2026-10-10T02:10:02.720110Z",
+        "elapsed": 8.998,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:10:02.229072Z",
+            "delta": "0:00:06.530440",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "id": 650,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:09:35.191058Z",
+        "started": "2026-10-10T02:09:35.316096Z",
+        "finished": "2026-10-10T02:09:42.340198Z",
+        "elapsed": 7.024,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:09:41.722660Z",
+            "delta": "0:00:04.345965",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "id": 648,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:05:12.081161Z",
+        "started": "2026-10-10T02:05:12.081056Z",
+        "finished": "2026-10-10T02:05:28.138536Z",
+        "elapsed": 16.057,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:05:27.460751Z",
+            "delta": "0:00:13.428544",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "id": 646,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:04:44.327522Z",
+        "started": "2026-10-10T02:04:44.327356Z",
+        "finished": "2026-10-10T02:05:06.912758Z",
+        "elapsed": 22.585,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:05:06.065981Z",
+            "delta": "0:00:19.799753",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "id": 644,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:04:32.311932Z",
+        "started": "2026-10-10T02:04:32.417545Z",
+        "finished": "2026-10-10T02:04:39.625332Z",
+        "elapsed": 7.208,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:04:39.055055Z",
+            "delta": "0:00:04.683743",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "id": 642,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:03:44.589921Z",
+        "started": "2026-10-10T02:03:44.589782Z",
+        "finished": "2026-10-10T02:04:11.799983Z",
+        "elapsed": 27.21,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:04:10.926669Z",
+            "delta": "0:00:23.846326",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "id": 640,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:03:11.266646Z",
+        "started": "2026-10-10T02:03:11.266477Z",
+        "finished": "2026-10-10T02:03:37.337425Z",
+        "elapsed": 26.071,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:03:36.682184Z",
+            "delta": "0:00:23.440669",
+            "rc": 0
+          }
+        ]
+      },
+      {
+        "id": 638,
+        "name": "demojam-ansible",
+        "status": "successful",
+        "created": "2026-10-10T02:02:32.470868Z",
+        "started": "2026-10-10T02:02:32.589305Z",
+        "finished": "2026-10-10T02:03:05.842601Z",
+        "elapsed": 33.253,
+        "collection_fetches": [
+          {
+            "completed_at": "2026-10-10T02:03:05.241781Z",
+            "delta": "0:00:30.204283",
+            "rc": 0
+          }
+        ]
+      }
+    ],
+    "inventory_updates": [
+      {
+        "id": 694,
+        "name": "demo-inventory - demo-virtualmachines",
+        "status": "successful",
+        "created": "2026-10-10T02:25:31.447829Z",
+        "started": "2026-10-10T02:25:31.623306Z",
+        "finished": "2026-10-10T02:25:45.484710Z",
+        "elapsed": 13.861
+      },
+      {
+        "id": 692,
+        "name": "demo-inventory - demo-inventory-scm",
+        "status": "successful",
+        "created": "2026-10-10T02:25:14.477563Z",
+        "started": "2026-10-10T02:25:14.647799Z",
+        "finished": "2026-10-10T02:25:26.429410Z",
+        "elapsed": 11.782
+      },
+      {
+        "id": 687,
+        "name": "demo-inventory - demo-virtualmachines",
+        "status": "successful",
+        "created": "2026-10-10T02:21:35.379859Z",
+        "started": "2026-10-10T02:21:35.555567Z",
+        "finished": "2026-10-10T02:21:50.981485Z",
+        "elapsed": 15.426
+      },
+      {
+        "id": 685,
+        "name": "demo-inventory - demo-inventory-scm",
+        "status": "successful",
+        "created": "2026-10-10T02:21:18.161888Z",
+        "started": "2026-10-10T02:21:18.324943Z",
+        "finished": "2026-10-10T02:21:31.884669Z",
+        "elapsed": 13.56
+      },
+      {
+        "id": 681,
+        "name": "demo-inventory - demo-virtualmachines",
+        "status": "successful",
+        "created": "2026-10-10T02:20:33.794549Z",
+        "started": "2026-10-10T02:20:33.981826Z",
+        "finished": "2026-10-10T02:20:45.906925Z",
+        "elapsed": 11.925
+      },
+      {
+        "id": 679,
+        "name": "demo-inventory - demo-inventory-scm",
+        "status": "successful",
+        "created": "2026-10-10T02:20:10.954068Z",
+        "started": "2026-10-10T02:20:11.138684Z",
+        "finished": "2026-10-10T02:20:32.207693Z",
+        "elapsed": 21.069
+      },
+      {
+        "id": 675,
+        "name": "demo-inventory - demo-virtualmachines",
+        "status": "successful",
+        "created": "2026-10-10T02:19:04.757028Z",
+        "started": "2026-10-10T02:19:04.994171Z",
+        "finished": "2026-10-10T02:19:22.601960Z",
+        "elapsed": 17.608
+      },
+      {
+        "id": 673,
+        "name": "demo-inventory - demo-inventory-scm",
+        "status": "successful",
+        "created": "2026-10-10T02:18:42.506664Z",
+        "started": "2026-10-10T02:18:42.684815Z",
+        "finished": "2026-10-10T02:19:00.279966Z",
+        "elapsed": 17.595
+      },
+      {
+        "id": 669,
+        "name": "demo-inventory - demo-virtualmachines",
+        "status": "successful",
+        "created": "2026-10-10T02:16:50.982060Z",
+        "started": "2026-10-10T02:16:51.163352Z",
+        "finished": "2026-10-10T02:17:08.512989Z",
+        "elapsed": 17.35
+      },
+      {
+        "id": 668,
+        "name": "demo-inventory - demo-inventory-scm",
+        "status": "successful",
+        "created": "2026-10-10T02:16:50.798699Z",
+        "started": "2026-10-10T02:16:50.994883Z",
+        "finished": "2026-10-10T02:17:00.562238Z",
+        "elapsed": 9.567
+      },
+      {
+        "id": 665,
+        "name": "demo-inventory - demo-virtualmachines",
+        "status": "successful",
+        "created": "2026-10-10T02:16:12.499755Z",
+        "started": "2026-10-10T02:16:12.685639Z",
+        "finished": "2026-10-10T02:16:26.996735Z",
+        "elapsed": 14.311
+      },
+      {
+        "id": 663,
+        "name": "demo-inventory - demo-inventory-scm",
+        "status": "successful",
+        "created": "2026-10-10T02:15:50.240289Z",
+        "started": "2026-10-10T02:15:50.416361Z",
+        "finished": "2026-10-10T02:16:11.475366Z",
+        "elapsed": 21.059
+      },
+      {
+        "id": 658,
+        "name": "demo-inventory - demo-virtualmachines",
+        "status": "successful",
+        "created": "2026-10-10T02:11:05.849731Z",
+        "started": "2026-10-10T02:11:06.032181Z",
+        "finished": "2026-10-10T02:11:32.111720Z",
+        "elapsed": 26.08
+      },
+      {
+        "id": 657,
+        "name": "demo-inventory - demo-inventory-scm",
+        "status": "successful",
+        "created": "2026-10-10T02:11:05.729536Z",
+        "started": "2026-10-10T02:11:05.909776Z",
+        "finished": "2026-10-10T02:11:21.181486Z",
+        "elapsed": 15.272
+      },
+      {
+        "id": 654,
+        "name": "demo-inventory - demo-virtualmachines",
+        "status": "successful",
+        "created": "2026-10-10T02:10:22.407402Z",
+        "started": "2026-10-10T02:10:22.578260Z",
+        "finished": "2026-10-10T02:10:40.852485Z",
+        "elapsed": 18.274
+      },
+      {
+        "id": 652,
+        "name": "demo-inventory - demo-inventory-scm",
+        "status": "successful",
+        "created": "2026-10-10T02:10:05.008977Z",
+        "started": "2026-10-10T02:10:05.228487Z",
+        "finished": "2026-10-10T02:10:18.534041Z",
+        "elapsed": 13.306
+      },
+      {
+        "id": 647,
+        "name": "demo-inventory - demo-virtualmachines",
+        "status": "successful",
+        "created": "2026-10-10T02:05:11.879108Z",
+        "started": "2026-10-10T02:05:12.059241Z",
+        "finished": "2026-10-10T02:05:32.662800Z",
+        "elapsed": 20.604
+      },
+      {
+        "id": 645,
+        "name": "demo-inventory - demo-inventory-scm",
+        "status": "successful",
+        "created": "2026-10-10T02:04:44.118874Z",
+        "started": "2026-10-10T02:04:44.303005Z",
+        "finished": "2026-10-10T02:05:10.655381Z",
+        "elapsed": 26.352
+      },
+      {
+        "id": 641,
+        "name": "demo-inventory - demo-virtualmachines",
+        "status": "successful",
+        "created": "2026-10-10T02:03:44.380997Z",
+        "started": "2026-10-10T02:03:44.557901Z",
+        "finished": "2026-10-10T02:04:16.306991Z",
+        "elapsed": 31.749
+      },
+      {
+        "id": 639,
+        "name": "demo-inventory - demo-inventory-scm",
+        "status": "successful",
+        "created": "2026-10-10T02:03:11.034830Z",
+        "started": "2026-10-10T02:03:11.220912Z",
+        "finished": "2026-10-10T02:03:41.085313Z",
+        "elapsed": 29.864
+      }
+    ],
+    "ad_hoc_commands": [
+      {
+        "id": 697,
+        "name": "command",
+        "status": "successful",
+        "created": "2026-10-10T02:26:02.526038Z",
+        "started": "2026-10-10T02:26:02.716505Z",
+        "finished": "2026-10-10T02:26:07.011315Z",
+        "elapsed": 4.295
+      },
+      {
+        "id": 690,
+        "name": "command",
+        "status": "successful",
+        "created": "2026-10-10T02:24:12.527692Z",
+        "started": "2026-10-10T02:24:12.783559Z",
+        "finished": "2026-10-10T02:24:17.338261Z",
+        "elapsed": 4.555
+      }
+    ]
+  },
+  "ao": {
+    "executions": [
+      {
+        "status": "failed",
+        "created_at": "2026-10-10T02:28:00.267744Z",
+        "completed_at": "2026-10-10T02:32:00.429098Z",
+        "error": null,
+        "name": "omnigent-remediation",
+        "activities": [
+          {
+            "activity_name": "share_session_0",
+            "status": "completed",
+            "started_at": "2026-10-10T02:28:04.844762Z",
+            "completed_at": "2026-10-10T02:28:04.939867Z",
+            "error_details": null,
+            "elapsed_seconds": 0.095
+          },
+          {
+            "activity_name": "send_task",
+            "status": "failed",
+            "started_at": "2026-10-10T02:32:00.327041Z",
+            "completed_at": "2026-10-10T02:32:00.381855Z",
+            "error_details": "HTTP 503 Service Unavailable (url=http://omnigent.omnigent.svc:8000/v1/sessions/[runtime-id]/events, elapsed=0.04s)",
+            "elapsed_seconds": 0.055
+          },
+          {
+            "activity_name": "create_session",
+            "status": "completed",
+            "started_at": "2026-10-10T02:28:03.943943Z",
+            "completed_at": "2026-10-10T02:28:04.749209Z",
+            "error_details": null,
+            "elapsed_seconds": 0.805
+          },
+          {
+            "activity_name": "authenticate_omnigent",
+            "status": "completed",
+            "started_at": "2026-10-10T02:28:03.867990Z",
+            "completed_at": "2026-10-10T02:28:03.903825Z",
+            "error_details": null,
+            "elapsed_seconds": 0.036
+          },
+          {
+            "activity_name": "prepare_feature",
+            "status": "completed",
+            "started_at": "2026-10-10T02:28:00.599610Z",
+            "completed_at": "2026-10-10T02:28:03.774776Z",
+            "error_details": null,
+            "elapsed_seconds": 3.175
+          },
+          {
+            "activity_name": "forgejo_issue",
+            "status": "completed",
+            "started_at": "2026-10-10T02:28:00.558130Z",
+            "completed_at": "2026-10-10T02:28:00.570246Z",
+            "error_details": null,
+            "elapsed_seconds": 0.012
+          }
+        ],
+        "elapsed_seconds": 240.161
+      },
+      {
+        "status": "completed",
+        "created_at": "2026-10-10T02:27:29.079565Z",
+        "completed_at": "2026-10-10T02:27:58.721052Z",
+        "error": null,
+        "name": "Check Audit logs, Determine RCA, Create Issue",
+        "activities": [
+          {
+            "activity_name": "createissue",
+            "status": "completed",
+            "started_at": "2026-10-10T02:27:47.526040Z",
+            "completed_at": "2026-10-10T02:27:58.692856Z",
+            "error_details": null,
+            "elapsed_seconds": 11.167
+          },
+          {
+            "activity_name": "airca",
+            "status": "completed",
+            "started_at": "2026-10-10T02:27:41.031128Z",
+            "completed_at": "2026-10-10T02:27:47.387980Z",
+            "error_details": null,
+            "elapsed_seconds": 6.357
+          },
+          {
+            "activity_name": "auditlogs",
+            "status": "completed",
+            "started_at": "2026-10-10T02:27:29.791369Z",
+            "completed_at": "2026-10-10T02:27:40.926169Z",
+            "error_details": null,
+            "elapsed_seconds": 11.135
+          },
+          {
+            "activity_name": "alertmanagereda",
+            "status": "completed",
+            "started_at": "2026-10-10T02:27:29.623753Z",
+            "completed_at": "2026-10-10T02:27:29.631331Z",
+            "error_details": null,
+            "elapsed_seconds": 0.008
+          }
+        ],
+        "elapsed_seconds": 29.641
+      },
+      {
+        "status": "completed",
+        "created_at": "2026-10-10T02:24:40.851308Z",
+        "completed_at": "2026-10-10T02:24:46.987401Z",
+        "error": null,
+        "name": "llm-question",
+        "activities": [
+          {
+            "activity_name": "ask_model",
+            "status": "completed",
+            "started_at": "2026-10-10T02:24:43.907703Z",
+            "completed_at": "2026-10-10T02:24:46.965397Z",
+            "error_details": null,
+            "elapsed_seconds": 3.058
+          },
+          {
+            "activity_name": "start",
+            "status": "completed",
+            "started_at": "2026-10-10T02:24:43.784639Z",
+            "completed_at": "2026-10-10T02:24:43.792720Z",
+            "error_details": null,
+            "elapsed_seconds": 0.008
+          }
+        ],
+        "elapsed_seconds": 6.136
+      }
+    ]
+  },
+  "observed_workflow_failures": [
+    {
+      "workflow": "omnigent-remediation",
+      "activity": "send_task",
+      "completed_at": "2026-10-10T02:32:00.381855Z",
+      "error": "HTTP 503 Service Unavailable (url=http://omnigent.omnigent.svc:8000/v1/sessions/[runtime-id]/events, elapsed=0.04s)"
+    }
+  ],
+  "incident": {
+    "observed_at": "2026-10-10T02:54:54.875011+00:00",
+    "issues": [
+      {
+        "number": 2,
+        "title": "[WebappDown] Demo webapp is unavailable",
+        "state": "open",
+        "created_at": "2026-10-10T02:27:53Z",
+        "updated_at": "2026-10-10T02:27:53Z"
+      },
+      {
+        "number": 1,
+        "title": "Add a test line to the README",
+        "state": "open",
+        "created_at": "2026-10-10T02:06:45Z",
+        "updated_at": "2026-10-10T02:06:45Z"
+      }
+    ],
+    "incident_issues": [
+      {
+        "number": 2,
+        "title": "[WebappDown] Demo webapp is unavailable",
+        "state": "open",
+        "created_at": "2026-10-10T02:27:53Z",
+        "updated_at": "2026-10-10T02:27:53Z"
+      }
+    ],
+    "seeded_issues": [
+      {
+        "number": 1,
+        "title": "Add a test line to the README",
+        "state": "open",
+        "created_at": "2026-10-10T02:06:45Z",
+        "updated_at": "2026-10-10T02:06:45Z"
+      }
+    ],
+    "prs": [],
+    "session_count": 1,
+    "delivered_user_messages": 0,
+    "session_states": [
+      {
+        "status": "idle",
+        "last_task_error": null,
+        "inference_error": null,
+        "items": 0,
+        "user_messages": 0
+      }
+    ]
+  },
+  "alert_observations": [
+    {
+      "observed_at": "2026-10-10T02:24:51.793989+00:00",
+      "observer_error_type": "URLError"
+    },
+    {
+      "observed_at": "2026-10-10T02:24:53.794481+00:00",
+      "observer_error_type": "TypeError"
+    },
+    {
+      "observed_at": "2026-10-10T02:26:14.542672+00:00",
+      "alerts": [
+        {
+          "state": "pending",
+          "activeAt": "2026-10-10T02:26:12.675043176Z",
+          "value": "0e+00"
+        }
+      ]
+    },
+    {
+      "observed_at": "2026-10-10T02:27:14.051908+00:00",
+      "alerts": [
+        {
+          "state": "firing",
+          "activeAt": "2026-10-10T02:26:12.675043176Z",
+          "value": "0e+00"
+        }
+      ]
+    }
+  ],
+  "reset_step_observations": [
+    {
+      "observed_at": "2026-10-10T02:02:09.851243+00:00",
+      "message": "Stopped demo EDA activation 2."
+    },
+    {
+      "observed_at": "2026-10-10T02:02:21.743579+00:00",
+      "message": "Stopped demo EDA activation 1."
+    },
+    {
+      "observed_at": "2026-10-10T02:02:24.186718+00:00",
+      "message": "Removed 0 automation-developer sessions."
+    },
+    {
+      "observed_at": "2026-10-10T02:03:10.753679+00:00",
+      "message": "AAP project_updates/638/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:03:44.022433+00:00",
+      "message": "AAP inventory_updates/639/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:04:17.590698+00:00",
+      "message": "AAP inventory_updates/641/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:04:17.978326+00:00",
+      "message": "Launched webapp_vm: job 643"
+    },
+    {
+      "observed_at": "2026-10-10T02:04:29.276223+00:00",
+      "message": "AAP jobs/643/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:04:43.735866+00:00",
+      "message": "AAP project_updates/644/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:05:11.599870+00:00",
+      "message": "AAP inventory_updates/645/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:05:33.911475+00:00",
+      "message": "AAP inventory_updates/647/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:05:34.385745+00:00",
+      "message": "Launched openshift_virtualization_machine: job 649"
+    },
+    {
+      "observed_at": "2026-10-10T02:05:45.749047+00:00",
+      "message": "AAP jobs/649/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:06:15.977770+00:00",
+      "message": "Removed 0 generated collection catalog locations."
+    },
+    {
+      "observed_at": "2026-10-10T02:09:32.445304+00:00",
+      "message": "AAP license, persistent key material, and configuration credential are ready."
+    },
+    {
+      "observed_at": "2026-10-10T02:09:46.456964+00:00",
+      "message": "AAP project_updates/650/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:10:04.674249+00:00",
+      "message": "AAP project_updates/651/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:10:22.129772+00:00",
+      "message": "AAP inventory_updates/652/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:10:44.443773+00:00",
+      "message": "AAP inventory_updates/654/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:10:44.905312+00:00",
+      "message": "Launched aap_configure_all: job 656"
+    },
+    {
+      "observed_at": "2026-10-10T02:12:17.702753+00:00",
+      "message": "AAP jobs/656/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:12:18.298609+00:00",
+      "message": "Waiting for EDA activation demojam-webapp-issues: starting"
+    },
+    {
+      "observed_at": "2026-10-10T02:12:39.147579+00:00",
+      "message": "EDA activation demojam-webapp-issues is running."
+    },
+    {
+      "observed_at": "2026-10-10T02:12:39.441206+00:00",
+      "message": "EDA activation demojam-forgejo-remediation is running."
+    },
+    {
+      "observed_at": "2026-10-10T02:12:42.063864+00:00",
+      "message": "AAP OIDC client uses the exact callback generated by the gateway."
+    },
+    {
+      "observed_at": "2026-10-10T02:12:42.065748+00:00",
+      "message": "AAP configuration from Forgejo completed."
+    },
+    {
+      "observed_at": "2026-10-10T02:13:06.605000+00:00",
+      "message": "Demo reset complete: VMs and test disks removed, Forgejo reseeded, AAP configured, and Omnigent ready."
+    }
+  ],
+  "bootstrap_step_observations": [
+    {
+      "observed_at": "2026-10-10T02:13:09.573090+00:00",
+      "message": "== Check operator inputs and cluster prerequisites =="
+    },
+    {
+      "observed_at": "2026-10-10T02:13:15.190278+00:00",
+      "message": "== Install OpenShift GitOps =="
+    },
+    {
+      "observed_at": "2026-10-10T02:13:20.101773+00:00",
+      "message": "== Prepare demo identity credentials and user catalog =="
+    },
+    {
+      "observed_at": "2026-10-10T02:13:40.936442+00:00",
+      "message": "== Roll out applications and hydrate Forgejo =="
+    },
+    {
+      "observed_at": "2026-10-10T02:13:42.698002+00:00",
+      "message": "== Provision demo identity before application OIDC discovery =="
+    },
+    {
+      "observed_at": "2026-10-10T02:14:43.749018+00:00",
+      "message": "== Build or reuse the OpenCode sandbox image =="
+    },
+    {
+      "observed_at": "2026-10-10T02:14:50.413354+00:00",
+      "message": "== Configure AAP through its Controller =="
+    },
+    {
+      "observed_at": "2026-10-10T02:15:12.846341+00:00",
+      "message": "AAP license, persistent key material, and configuration credential are ready."
+    },
+    {
+      "observed_at": "2026-10-10T02:15:31.960357+00:00",
+      "message": "AAP project_updates/661/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:15:49.862097+00:00",
+      "message": "AAP project_updates/662/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:16:12.195401+00:00",
+      "message": "AAP inventory_updates/663/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:16:29.252520+00:00",
+      "message": "AAP inventory_updates/665/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:16:29.684597+00:00",
+      "message": "Launched aap_configure_all: job 667"
+    },
+    {
+      "observed_at": "2026-10-10T02:17:50.593661+00:00",
+      "message": "AAP jobs/667/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:17:51.128878+00:00",
+      "message": "EDA activation demojam-webapp-issues is running."
+    },
+    {
+      "observed_at": "2026-10-10T02:17:51.693379+00:00",
+      "message": "EDA activation demojam-forgejo-remediation is running."
+    },
+    {
+      "observed_at": "2026-10-10T02:17:53.732022+00:00",
+      "message": "AAP OIDC client uses the exact callback generated by the gateway."
+    },
+    {
+      "observed_at": "2026-10-10T02:17:53.734117+00:00",
+      "message": "AAP configuration from Forgejo completed."
+    },
+    {
+      "observed_at": "2026-10-10T02:17:53.734152+00:00",
+      "message": "== Validate and publish the AO workflow =="
+    },
+    {
+      "observed_at": "2026-10-10T02:18:19.465490+00:00",
+      "message": "== Provision the RHEL webapp through AAP =="
+    },
+    {
+      "observed_at": "2026-10-10T02:18:42.205429+00:00",
+      "message": "AAP project_updates/672/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:19:04.382914+00:00",
+      "message": "AAP inventory_updates/673/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:19:26.910955+00:00",
+      "message": "AAP inventory_updates/675/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:19:27.297589+00:00",
+      "message": "Launched webapp_vm: job 677"
+    },
+    {
+      "observed_at": "2026-10-10T02:19:54.903580+00:00",
+      "message": "AAP jobs/677/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:19:54.905569+00:00",
+      "message": "== Prepare the permissive demo baseline through AAP =="
+    },
+    {
+      "observed_at": "2026-10-10T02:20:10.671545+00:00",
+      "message": "AAP project_updates/678/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:20:33.500873+00:00",
+      "message": "AAP inventory_updates/679/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:20:50.591887+00:00",
+      "message": "AAP inventory_updates/681/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:20:51.091322+00:00",
+      "message": "Launched webapp_selinux_permissive: job 683"
+    },
+    {
+      "observed_at": "2026-10-10T02:21:02.126966+00:00",
+      "message": "AAP jobs/683/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:21:02.129008+00:00",
+      "message": "== Install nginx through AAP =="
+    },
+    {
+      "observed_at": "2026-10-10T02:21:17.845500+00:00",
+      "message": "AAP project_updates/684/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:21:35.102929+00:00",
+      "message": "AAP inventory_updates/685/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:21:51.964402+00:00",
+      "message": "AAP inventory_updates/687/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:21:52.419133+00:00",
+      "message": "Launched webapp_nginx: job 689"
+    },
+    {
+      "observed_at": "2026-10-10T02:23:04.045044+00:00",
+      "message": "AAP jobs/689/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:23:04.046615+00:00",
+      "message": "== Verify the webapp and monitoring probe =="
+    },
+    {
+      "observed_at": "2026-10-10T02:23:52.180124+00:00",
+      "message": "== Populate and verify Homepage navigation and dashboard =="
+    },
+    {
+      "observed_at": "2026-10-10T02:24:07.544108+00:00",
+      "message": "Bootstrap completed on feature/forgejo-eda-remediation at c10d10f3c0c3aae4e4be3509b420205b6b2ce50c."
+    }
+  ],
+  "break_step_observations": [
+    {
+      "observed_at": "2026-10-10T02:25:14.201250+00:00",
+      "message": "AAP project_updates/691/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:25:31.154670+00:00",
+      "message": "AAP inventory_updates/692/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:25:48.224916+00:00",
+      "message": "AAP inventory_updates/694/ successful"
+    },
+    {
+      "observed_at": "2026-10-10T02:25:48.605311+00:00",
+      "message": "Launched webapp_selinux_enable: job 696"
+    },
+    {
+      "observed_at": "2026-10-10T02:25:59.811792+00:00",
+      "message": "AAP jobs/696/ successful"
+    }
+  ],
+  "delivered_user_messages": 0,
+  "operator_follow_up_messages": 0,
+  "automatic_helper_prompts": [],
+  "published_at": "2026-10-10T03:00:12.076425+00:00"
+}

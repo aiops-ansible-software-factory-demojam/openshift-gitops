@@ -135,6 +135,11 @@ records a test-gated merge and one-job Enforcing recovery, including the
 operator's test-runner correction. Use the
 [run-demojam skill](.agents/skills/run-demojam/SKILL.md) for the operator sequence.
 
+The [six-model LiteLLM sweep](docs/reports/2026-10-09-litellm-model-sweep.md)
+records one attempt per model from both supplied credentials, with no operator
+interventions. It separates provider access, bootstrap, RCA, session handoff,
+coding work, and the test gate, with timings, prompts, and redacted evidence.
+
 - [Login and users](cluster/demojam-keycloak/README.md) · [Homepage](cluster/homepage/README.md)
 - [Forgejo](cluster/forgejo/README.md) · [Developer Hub](cluster/rhdh/README.md) · [Agent sessions and tests](cluster/omnigent/README.md)
 - [AO](cluster/automation-orchestrator/README.md) · [Workflows](cluster/automation-orchestrator/workflows/README.md)
