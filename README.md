@@ -133,6 +133,9 @@ Use the
 The [October 12 Qwen run report](docs/reports/2026-10-12-qwen38.md) records
 the fresh bootstrap, medium retry and two low-thinking/90-second attempts, with timings,
 prompts and failures.
+The [October 12 Haiku 5.5 report](docs/reports/2026-10-12-haiku55.md) records
+a tested merge and recovery through OpenCode Go, plus the observer and AAP
+verification issues found during the run.
 
 - [Login and users](cluster/demojam-keycloak/README.md) · [Homepage](cluster/homepage/README.md)
 - [Forgejo](cluster/forgejo/README.md) · [Developer Hub](cluster/rhdh/README.md) · [Agent sessions and tests](cluster/omnigent/README.md)
