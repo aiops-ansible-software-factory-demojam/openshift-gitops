@@ -131,7 +131,7 @@ without changing the cluster, and `make render` renders manifests locally.
 Use the
 [run-demojam skill](.agents/skills/run-demojam/SKILL.md) for the operator sequence.
 The [October 12 Qwen run report](docs/reports/2026-10-12-qwen38.md) records
-the fresh bootstrap, medium retry and low-thinking/90-second retry, with timings,
+the fresh bootstrap, medium retry and two low-thinking/90-second attempts, with timings,
 prompts and failures.
 
 - [Login and users](cluster/demojam-keycloak/README.md) · [Homepage](cluster/homepage/README.md)
