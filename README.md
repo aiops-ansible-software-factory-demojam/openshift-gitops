@@ -124,21 +124,8 @@ Setup, reset, and teardown share the implementation in
 `make help-all` lists maintenance commands; `make preflight` checks prerequisites
 without changing the cluster, and `make render` renders manifests locally.
 
-Read the [October 9 run report](docs/reports/2026-10-09-demo-runs.md) for measured
-phase timings, Qwen throughput, interventions, and remaining acceptance work.
-The [prompt appendix](docs/reports/2026-10-09-demo-prompts.md) preserves incident
-text, agent-task revisions, and reviewer messages from the rebuilt run.
-The [Haiku rehearsal report](docs/reports/2026-10-09-haiku-bootstrap.md) records
-the later live bootstrap, preloaded sandbox checks, and automatic outage-to-PR run.
-The [latest Haiku end-to-end report](docs/reports/2026-10-09-haiku-no-intervention.md)
-records a test-gated merge and one-job Enforcing recovery, including the
-operator's test-runner correction. Use the
+Use the
 [run-demojam skill](.agents/skills/run-demojam/SKILL.md) for the operator sequence.
-
-The [six-model LiteLLM sweep](docs/reports/2026-10-09-litellm-model-sweep.md)
-records one attempt per model from both supplied credentials, with no operator
-interventions. It separates provider access, bootstrap, RCA, session handoff,
-coding work, and the test gate, with timings, prompts, and redacted evidence.
 
 - [Login and users](cluster/demojam-keycloak/README.md) · [Homepage](cluster/homepage/README.md)
 - [Forgejo](cluster/forgejo/README.md) · [Developer Hub](cluster/rhdh/README.md) · [Agent sessions and tests](cluster/omnigent/README.md)
