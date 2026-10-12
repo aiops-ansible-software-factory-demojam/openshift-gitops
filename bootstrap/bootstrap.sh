@@ -120,6 +120,12 @@ demo_model_inputs() {
   [[ $host =~ ^[a-zA-Z0-9.-]+(:[0-9]+)?$ && $model_name =~ ^[a-zA-Z0-9._:/-]+$ ]] || {
     echo 'Invalid provider host or model name.' >&2; return 2;
   }
+  if [[ ${MODEL_PROVIDER:-opencode-go} == litellm && $model_name == qwen38-27b ]]; then
+    case ${QWEN_REASONING_EFFORT:-none} in
+      none|low|medium|xhigh) ;;
+      *) echo 'QWEN_REASONING_EFFORT must be none, low, medium, or xhigh.' >&2; return 2 ;;
+    esac
+  fi
 }
 
 # -----------------------------------------------------------------------------
@@ -303,10 +309,11 @@ EOF
   unset model_key
   # Keep the existing Secret key for in-place upgrades; the selected endpoint is
   # the baseURL below, not the name of this environment variable.
-  # Qwen can exceed the endpoint's 60-second idle timeout before a tool call.
-  # Disable thinking for this demo model to keep streamed requests responsive.
+  # Preserve the fast preset unless an explicit Qwen reasoning effort is set.
+  # Qwen's native chat template needs thinking enabled as well as the effort.
   jq -cn --arg base "$model_endpoint" --arg model "$model_name" \
-    --arg npm "$model_npm" --arg provider "${MODEL_PROVIDER:-opencode-go}" '
+    --arg npm "$model_npm" --arg provider "${MODEL_PROVIDER:-opencode-go}" \
+    --arg effort "${QWEN_REASONING_EFFORT:-none}" '
     {
       "$schema": "https://opencode.ai/config.json",
       model: ("demo/" + $model),
@@ -322,7 +329,12 @@ EOF
             ($model): ({
               name: $model
             } + (if $provider == "litellm" and $model == "qwen38-27b" then {
-              options: {chat_template_kwargs: {enable_thinking: false}}
+              options: (if $effort == "none" then
+                {chat_template_kwargs: {enable_thinking: false}}
+              else
+                {reasoningEffort: $effort,
+                 chat_template_kwargs: {enable_thinking: true, reasoning_effort: $effort}}
+              end)
             } else {} end))
           }
         }
@@ -973,7 +985,7 @@ demo_ao_integration() {
 }
 
 # AO 2026.8 cannot set provider headers or chat-template options. LiteLLM's
-# bridge handles Go routing and keeps Qwen's RCA within the agent timeout.
+# bridge handles Go routing and forwards the selected Qwen reasoning effort.
 # Keep the runtime configuration here rather than a second bootstrap program.
 demo_ao_llm_proxy() {
   local proxy_name=ao-opencode-go proxy_model proxy_base=$model_endpoint protocol config_status secret_status existing qwen=false
@@ -1004,10 +1016,18 @@ demo_ao_llm_proxy() {
     --from-file=PROVIDER_API_KEY="$omnigent_scratch/go-api-key" \
     --from-file=LITELLM_MASTER_KEY="$omnigent_scratch/go-proxy-key" --dry-run=client -o yaml |
     oc -n "$namespace" apply -f -)
-  jq -n --arg model "$model_name" --arg backend "$proxy_model" --arg url "$proxy_base" --argjson qwen "$qwen" '
+  jq -n --arg model "$model_name" --arg backend "$proxy_model" --arg url "$proxy_base" \
+    --argjson qwen "$qwen" --arg effort "${QWEN_REASONING_EFFORT:-none}" '
     {model_list:[{model_name:$model,litellm_params:({model:$backend,api_base:$url,
       api_key:"os.environ/PROVIDER_API_KEY"} +
-      (if $qwen then {extra_body:{chat_template_kwargs:{enable_thinking:false}}} else {} end))}],
+      (if $qwen then
+        (if $effort == "none" then
+          {extra_body:{chat_template_kwargs:{enable_thinking:false}}}
+        else
+          {reasoning_effort:$effort,
+           extra_body:{chat_template_kwargs:{enable_thinking:true,reasoning_effort:$effort}}}
+        end)
+      else {} end))}],
       general_settings:{master_key:"os.environ/LITELLM_MASTER_KEY"},
       litellm_settings:{num_retries:0,callbacks:[if $qwen then "provider_options.qwen" else "provider_options.go" end]}}' |
     yq -y . >"$omnigent_scratch/go-config.yaml"
