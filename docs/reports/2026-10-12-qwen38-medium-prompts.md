@@ -49,7 +49,7 @@ type=SYSCALL msg=audit(1791825628.338:926): arch=c000003e syscall=262 success=no
 
 ## Configured coding-agent instructions
 
-These were configured for the retry; no coding session received a task after RCA failed.
+Configured coding-agent instructions; task delivery is recorded separately below.
 
 ```text
 AO runs the Backstage feature golden path before launching you. For an

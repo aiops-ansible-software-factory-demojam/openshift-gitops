@@ -82,6 +82,23 @@
       }
     ]
   },
+  "timeout_diagnosis": {
+    "cause": "AO GenericAgent has a 30-second timeout around each full execution attempt, through retry_with_backoff/asyncio.wait_for. All four attempts exhausted that budget; BaseAgent converts TimeoutError into AgentTimeoutError.",
+    "per_attempt_timeout_seconds": 30.0,
+    "configured_retries": 3,
+    "total_attempts": 4,
+    "attempts_plus_backoff_seconds": 126.72727394104004,
+    "rca_activity_elapsed_seconds": 128.513573,
+    "workflow_node_default_timeout_seconds": 300,
+    "node_settings_override": {},
+    "coding_session_started": false,
+    "runtime_mutations": 0,
+    "evidence_sources": [
+      "Live AO background-worker Settings",
+      "Live GenericAgent._execute / retry_with_backoff / BaseAgent._handle_execution_error source",
+      "Background-worker retry exhaustion log at 2026-10-12T17:22:53.320489Z"
+    ]
+  },
   "observer_notes": {
     "recorded_at": "2026-10-12T16:53:23.602993+00:00",
     "preincident_observer_corrections": 1,
@@ -2685,5 +2702,5 @@
   "delivered_user_messages": 0,
   "operator_follow_up_messages": 0,
   "automatic_helper_prompts": [],
-  "published_at": "2026-10-12T17:29:42.323084+00:00"
+  "published_at": "2026-10-12T19:22:10.360611+00:00"
 }
