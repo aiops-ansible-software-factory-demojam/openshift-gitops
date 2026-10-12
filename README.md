@@ -110,6 +110,8 @@ For `qwen38-27b`, bootstrap also configures an authenticated LiteLLM bridge for
 AO's RCA requests with the same reasoning settings as Omnigent. Set
 `QWEN_REASONING_EFFORT` in `.env` to `medium`, `low`, or `xhigh` to enable
 thinking; the default `none` keeps thinking disabled.
+Bootstrap sets AO's per-attempt LLM timeout to 90 seconds in backend, worker,
+and background worker. Override it with `AO_LLM_REQUEST_TIMEOUT_SECONDS` in `.env`.
 Setup and reset silence only `WebappDown` while the baseline is unavailable.
 Bootstrap waits for monitoring to observe recovery before ending maintenance.
 Recovery notifications and a 30-second group interval allow repeat demo runs;

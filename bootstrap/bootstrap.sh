@@ -126,6 +126,9 @@ demo_model_inputs() {
       *) echo 'QWEN_REASONING_EFFORT must be none, low, medium, or xhigh.' >&2; return 2 ;;
     esac
   fi
+  [[ ${AO_LLM_REQUEST_TIMEOUT_SECONDS:-90} =~ ^[1-9][0-9]*$ ]] || {
+    echo 'AO_LLM_REQUEST_TIMEOUT_SECONDS must be a positive integer.' >&2; return 2;
+  }
 }
 
 # -----------------------------------------------------------------------------
@@ -1134,7 +1137,8 @@ YAML
 }
 
 demo_ao_integrations() {
-  local configuration inputs allowed_hosts deploy current expected code disabled_models
+  local configuration inputs allowed_hosts deploy current current_timeout expected code disabled_models
+  local request_timeout=${AO_LLM_REQUEST_TIMEOUT_SECONDS:-90}
   demo_model_inputs
   if [[ ${MODEL_PROVIDER:-opencode-go} == opencode-go ||
         ( ${MODEL_PROVIDER:-opencode-go} == litellm && $model_name == qwen38-27b ) ]]; then
@@ -1142,23 +1146,29 @@ demo_ao_integrations() {
   fi
   # The integration policy is checked in backend, worker and background worker.
   # The operator loads this supported ConfigMap in all three processes. Argo
-  # ignores this one bootstrap-owned key while retaining the OIDC setting.
+  # ignores the bootstrap-owned host list and request timeout while retaining OIDC.
   aap_scratch=$omnigent_scratch
   aap_connect
   allowed_hosts=$(jq -cn --arg llm "${model_endpoint#*://}" --arg aap "${aap_host#https://}" \
     '[$llm,$aap] | map(split("/")[0] | split(":")[0]) | unique')
   expected=$(jq -c . <<<"$allowed_hosts")
   oc -n "$namespace" patch configmap automation-orchestrator-admin-settings --type=merge \
-    --patch "$(jq -cn --arg hosts "$expected" '{data:{APP_INTEGRATION_URL_ALLOWED_HOSTS:$hosts}}')" >/dev/null
+    --patch "$(jq -cn --arg hosts "$expected" --arg timeout "$request_timeout" \
+      '{data:{APP_INTEGRATION_URL_ALLOWED_HOSTS:$hosts,APP_ADAPTER_REQUEST_TIMEOUT_SECONDS:$timeout}}')" >/dev/null
   for deploy in backend worker background-worker; do
     current=$(oc -n "$namespace" exec "deployment/automation-orchestrator-$deploy" -- \
       printenv APP_INTEGRATION_URL_ALLOWED_HOSTS 2>/dev/null || true)
-    if [[ $current != "$expected" ]]; then
+    current_timeout=$(oc -n "$namespace" exec "deployment/automation-orchestrator-$deploy" -- \
+      printenv APP_ADAPTER_REQUEST_TIMEOUT_SECONDS 2>/dev/null || true)
+    if [[ $current != "$expected" || $current_timeout != "$request_timeout" ]]; then
       oc -n "$namespace" rollout restart "deployment/automation-orchestrator-$deploy" >/dev/null
       oc -n "$namespace" rollout status "deployment/automation-orchestrator-$deploy" --timeout=10m
       [[ $(oc -n "$namespace" exec "deployment/automation-orchestrator-$deploy" -- \
         printenv APP_INTEGRATION_URL_ALLOWED_HOSTS) == "$expected" ]] ||
         demo_die "AO $deploy did not load its integration settings."
+      [[ $(oc -n "$namespace" exec "deployment/automation-orchestrator-$deploy" -- \
+        printenv APP_ADAPTER_REQUEST_TIMEOUT_SECONDS) == "$request_timeout" ]] ||
+        demo_die "AO $deploy did not load its LLM request timeout."
     fi
   done
   inputs=$(jq -n --arg key "$model_key" '{api_key:$key}')
