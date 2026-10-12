@@ -107,7 +107,9 @@ The permissive setup job runs after VM provisioning during bootstrap.
 It is separate from nginx installation, so deploying a merged fix preserves
 the Enforcing state established by the fault job.
 For `qwen38-27b`, bootstrap also configures an authenticated LiteLLM bridge for
-AO's RCA requests with thinking disabled, matching the Omnigent configuration.
+AO's RCA requests with the same reasoning settings as Omnigent. Set
+`QWEN_REASONING_EFFORT` in `.env` to `medium`, `low`, or `xhigh` to enable
+thinking; the default `none` keeps thinking disabled.
 Setup and reset silence only `WebappDown` while the baseline is unavailable.
 Bootstrap waits for monitoring to observe recovery before ending maintenance.
 Recovery notifications and a 30-second group interval allow repeat demo runs;
@@ -126,6 +128,8 @@ without changing the cluster, and `make render` renders manifests locally.
 
 Use the
 [run-demojam skill](.agents/skills/run-demojam/SKILL.md) for the operator sequence.
+The [October 12 Qwen run report](docs/reports/2026-10-12-qwen38.md) records
+the fresh bootstrap and medium-effort retry, with timings, prompts and failures.
 
 - [Login and users](cluster/demojam-keycloak/README.md) · [Homepage](cluster/homepage/README.md)
 - [Forgejo](cluster/forgejo/README.md) · [Developer Hub](cluster/rhdh/README.md) · [Agent sessions and tests](cluster/omnigent/README.md)
