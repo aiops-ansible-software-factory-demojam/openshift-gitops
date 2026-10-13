@@ -2356,6 +2356,10 @@ demo_bootstrap() (
   # Identity preparation created the consumer namespaces. The sandbox runner
   # also needs its namespace before the first child sync can mount its Secrets.
   oc apply --server-side --field-manager=demo-bootstrap -f "$repo_root/cluster/omnigent/omnigent-sandboxes-namespace.yaml"
+  # HCO and the later AAP/sandbox image-reader bindings require this namespace
+  # while the virtualization operands are still installing on a fresh cluster.
+  oc create namespace openshift-virtualization-os-images --dry-run=client -o yaml |
+    oc apply --server-side --field-manager=demo-bootstrap -f -
   if ! oc -n rhdh get secret rhdh-pg-credentials >/dev/null 2>&1; then
     umask 077
     db_password_file=$(mktemp)
