@@ -2724,7 +2724,7 @@ demo_backend_root_override() {
       ]),
       patch({kind:"Application",name:"webapp-vms"}; [
         {op:"add",path:"/spec/source/kustomize",value:{patches:[
-          patch({kind:"Service"}; [{op:"remove",path:"/spec/selector"}]),
+          patch({kind:"Service",name:"^webapp(-ssh)?$"}; [{op:"remove",path:"/spec/selector"}]),
           patch({kind:"Role",name:"aap-vm-admin"}; [{op:"replace",path:"/rules",value:[
             {apiGroups:["discovery.k8s.io"],resources:["endpointslices"],verbs:["get","list","watch","create","patch","update","delete"]},
             {apiGroups:[""],resources:["services"],verbs:["get","list"]}

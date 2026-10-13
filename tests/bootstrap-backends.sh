@@ -58,3 +58,20 @@ printf "AWS_BOOTSTRAP_ACCESS_KEY_ID=''\nAWS_BOOTSTRAP_SECRET_ACCESS_KEY=''\nAWS_
   [[ $AWS_DEMO_REGION == us-west-2 ]]
 )
 printf 'PASS inherited AWS inputs survive dotenv placeholders\n'
+
+# AWS replaces guest endpoints; the login proxy still selects its own pod.
+DEMO_BACKEND=aws
+jq -n '{spec:{source:{kustomize:{patches:[]}}}}' |
+  demo_backend_root_override |
+  jq --arg resources "$(realpath --relative-to="$test_scratch" "$test_repo_root/cluster/webapp-vms")" '
+    .spec.source.kustomize.patches[] | select(.target.name == "webapp-vms") |
+    .patch | fromjson | .[0].value | .resources=[$resources] |
+    .apiVersion="kustomize.config.k8s.io/v1beta1" | .kind="Kustomization"' \
+    >"$test_scratch/kustomization.yaml"
+command oc kustomize "$test_scratch" --load-restrictor=LoadRestrictionsNone |
+  yq -j . | jq -s -e '
+    [.[] | select(.kind == "Service")] as $services |
+    ($services | map(select(.metadata.name == "webapp-login")) | .[0].spec.selector.app == "webapp-login") and
+    ($services | map(select(.metadata.name == "webapp" or .metadata.name == "webapp-ssh")) |
+      length == 2 and all(.spec | has("selector") | not))' >/dev/null
+printf 'PASS AWS guest Services omit selectors while the login Service retains one\n'
