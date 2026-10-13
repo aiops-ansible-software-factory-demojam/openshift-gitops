@@ -3,7 +3,13 @@
 # Pin transitive dependencies so sandbox rebuilds use the tested versions.
 collections:
   - name: david_igou.molecule_provisioners
-    version: 0.0.5-alpha
+    version: 0.0.7-alpha
+  - name: amazon.aws
+    version: 11.5.0
+  - name: ansible.netcommon
+    version: 8.7.1
+  - name: ansible.utils
+    version: 6.1.1
   - name: containers.podman
     version: 1.21.1
   - name: kubernetes.core

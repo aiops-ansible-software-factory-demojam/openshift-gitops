@@ -52,9 +52,10 @@ Do not merge the GitHub implementation PRs as part of this demo.
    code, edit its branch, compact/resume it, or change the guest or cluster.
 
 4. Wait for the coding session to become idle. Record the actual issue, PR,
-   branch and published head SHA; do not assume their numbers. If there is
-   no eligible PR within 30 minutes of the fault launch, report the incomplete
-   stage and stop. Do not repair or restart the flow to get a passing result.
+   branch and published head SHA; do not assume their numbers. Use no overall
+   incident deadline unless the user supplies one. If the session ends without
+   an eligible PR, report its actual failure and stop. Do not repair or restart
+   the flow to get a passing result.
 
 5. Independently test that exact published commit in its existing managed
    sandbox, without asking the model to run anything. Require a clean tracked
@@ -77,6 +78,12 @@ Do not merge the GitHub implementation PRs as part of this demo.
    kubeconfig is `/home/omnigent/.config/molecule/kubeconfig`, and the collection
    path is `/home/omnigent/.ansible/collections:/usr/share/ansible/collections`.
    Local cluster commands still use `~/.kube/config`.
+
+   For an AWS deployment, source `/etc/profile.d/molecule.sh` in the existing
+   sandbox instead of imposing the CNV kubeconfig. It selects `PROVISIONER=aws`,
+   the scoped credential file and pinned network/images. Require both RHEL 9
+   and RHEL 10 to complete the selected scenario. Do not switch providers or
+   substitute local credentials when testing the candidate.
 
    Capture each real exit status separately. Require every discovered
    Molecule scenario to complete its full lifecycle, including idempotence,

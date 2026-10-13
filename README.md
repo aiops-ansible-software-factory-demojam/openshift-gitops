@@ -18,12 +18,14 @@ demo endpoint can otherwise time out before returning a streamed tool call.
 You need cluster-admin access, Operator Lifecycle Manager (OLM) with Red Hat and
 certified operator catalogs, trusted HTTPS ingress, a default StorageClass for
 ReadWriteOnce (RWO) volumes, and enough CPU, memory, and disk for the stack.
-At least one node must expose hardware virtualization (KVM) for the VMs.
-Bootstrap waits for Virtualization and the required OS DataSources.
+For CNV guests, at least one node must expose hardware virtualization (KVM).
+For AWS guests, block storage is sufficient; bootstrap omits Virtualization.
 
 Install Bash, GNU Make, `oc`, `kustomize`, `helm`, `jq`, jq-wrapper `yq`,
 `openssl`, `curl`, `git`, `unzip`, `ssh-keygen`, and standard GNU utilities.
 `yq '.'` must emit JSON that `jq` can read.
+AWS bootstrap also needs Python 3 with `venv` support. It installs its pinned
+SDK in an isolated directory under `.rendered/`.
 
 ## Set up the cluster
 
@@ -40,6 +42,20 @@ oc whoami --show-server
 oc whoami
 make bootstrap
 ```
+
+To put the Linux guests in AWS, fill `AWS_BOOTSTRAP_ACCESS_KEY_ID` and
+`AWS_BOOTSTRAP_SECRET_ACCESS_KEY` in `.env`, then run `make bootstrap BACKEND=aws`.
+Bootstrap uses those credentials locally to create a dedicated public VPC/subnet
+and separate scoped AAP and Molecule keys. It mounts only the Molecule key into
+the coding sandbox. Defaults are `us-east-2`, `t3.medium`, and encrypted 30 GiB
+gp3 disks. Account, availability zone and RHEL image choices are discovered and
+saved; normal resets reuse them. The monitored guest uses RHEL 9, while
+`make molecule` tests RHEL 9 and RHEL 10. AWS guests use their AMI's RHUI repositories.
+
+Use `BACKEND=cnv` for the existing guest behavior. The recorded backend prevents
+an accidental switch on a live installation. See the
+[backend specification](docs/specs/aws-cnv-backends.md) for credential scopes,
+overrides and resource ownership.
 
 In `.env`, use the [configuration template](.env.example) to select
 the provider (`opencode-go` or `litellm`) and fill in its key, endpoint,
@@ -153,7 +169,7 @@ endpoint, covering its ten-minute container startup probe window.
 ## Find your next step
 
 The [AWS and CNV backend specification](docs/specs/aws-cnv-backends.md) describes
-the proposed AWS guest support. The current implementation still uses CNV.
+the AWS guest support and the existing CNV behavior.
 
 `make help-all` lists maintenance commands; `make preflight` checks prerequisites
 without changing the cluster, and `make render` renders manifests locally.

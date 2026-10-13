@@ -1,5 +1,8 @@
 .DEFAULT_GOAL := help
 export ISSUE QUESTION
+ifneq ($(strip $(BACKEND)),)
+export DEMO_BACKEND := $(BACKEND)
+endif
 
 .PHONY: help help-all preflight bootstrap teardown teardown-keep-aap identity homepage-refresh model-config sandbox-build demo-hydrate demo render demo-reset aap-configure aap-sync ao-configure ao-llm-test ao-aap-run webapp-create webapp-nginx webapp-delete webapp-verify
 
@@ -7,7 +10,7 @@ help:
 	@printf '%s\n' \
 	  'Set up and run the demo:' \
 	  '' \
-	  '  make bootstrap       Set up the complete environment' \
+	  '  make bootstrap [BACKEND=cnv|aws] Set up the complete environment' \
 	  '  make demo ISSUE=N    Start the issue-to-PR demo' \
 	  '  make demo-reset      Reset disposable demo state' \
 	  '  make webapp-verify   Check webapp health' \

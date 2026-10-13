@@ -1,7 +1,7 @@
 # AWS and CNV backends for the SELinux outage demo
 
-Status: proposed implementation. This specification adds a backend selector;
-the current implementation still supports CNV only.
+Status: implementation in feature branches. AWS lifecycle checks have passed;
+full platform bootstrap and the incident demo are still being validated.
 
 Bootstrap must install the demo on OpenShift and provision its Linux targets
 through either CNV or AWS. CNV remains the default and retains its current
@@ -295,12 +295,14 @@ must not block readiness.
 
 ## Shared Molecule contract
 
-The pinned `david_igou.molecule_provisioners` release `0.0.5-alpha` registers
-Podman, Docker, QEMU and KubeVirt; it has no AWS backend. Add an `aws` backend
-there using the reference's AWS module-based lifecycle and guest assumptions.
-Publish a version containing it and pin that version in both consumer
-collections and the sandbox image. Do not copy AWS lifecycle tasks into each
-scenario or replace real guest tests with container tests.
+The shared provisioner adds the `aws` backend alongside Podman, Docker, QEMU
+and KubeVirt. The template, webapp collection and sandbox require `0.0.7-alpha`.
+Until that version is released on Galaxy, the sandbox builds the collection
+from the exact Git commit in its Containerfile and installs it before resolving
+the pinned requirements. Consumer dependency setup then uses that preload.
+The shared provisioner has its own PR and implementation thread. Keep its
+source pin aligned when adopting a newer build. AWS lifecycle tasks stay in
+that dependency; scenarios retain the public create/prepare/destroy imports.
 
 Keep Ansible-native Molecule configuration, the public shared create/prepare/
 destroy dispatchers, and `make molecule` → `molecule test --all`. Each scenario

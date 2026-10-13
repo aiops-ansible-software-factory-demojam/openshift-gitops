@@ -14,15 +14,17 @@ def listwidget($name;$url;$icon;$description;$items;$namefield;$label;$target):
 [
   {"Environment":[
     widget("Current environment";($console + "/dashboards");"openshift";"The cluster serving this demo";
-      [["environment.cluster","Cluster"],["environment.ingress","Ingress"],["environment.branch","Branch"]]),
+      [["environment.cluster","Cluster"],["environment.backend","Guests"],["environment.ingress","Ingress"],["environment.branch","Branch"]]),
     widget("Bootstrap and deployment";($source + "/tree/" + $branch);"github";"Last successful bootstrap and reconciled Git revision";
       [["environment.bootstrapCompleted","Bootstrap completed"],["environment.revision","Git revision"],["environment.refreshed","Status refreshed"]])
   ]},
   {"Demo walkthrough":[
-    link("1. Choose an issue";($forgejo + "/demo-owner/ansible-collection-demo.webapp/issues");"forgejo";"Open the starter issue or describe a new feature"),
-    link("2. Run the workflow";($ao + "/workflows");"mdi-sitemap";"Open omnigent-dispatch and run it with the issue number"),
-    link("3. Follow the agent";$omnigent;"mdi-robot";"Watch the coding session and its progress"),
-    link("4. Review the pull request";($forgejo + "/demo-owner/ansible-collection-demo.webapp/pulls");"mdi-source-pull";"Review the proposed collection changes")
+    link("1. Trigger the outage";($aap + "/execution/templates");"ansible";"Run webapp_selinux_enable once"),
+    link("2. Follow the issue";($forgejo + "/demo-owner/ansible-collection-demo.webapp/issues");"forgejo";"The alert and RCA open the issue automatically"),
+    link("3. Follow the workflow";($ao + "/executions");"mdi-sitemap";"Forgejo webhook → EDA → Omnigent handoff"),
+    link("4. Follow the agent";$omnigent;"mdi-robot";"Watch the coding session and its progress"),
+    link("5. Merge after tests";($forgejo + "/demo-owner/ansible-collection-demo.webapp/pulls");"mdi-source-pull";"Merge when lint, build and every Molecule scenario pass"),
+    link("6. Deploy the fix";($aap + "/execution/templates");"ansible";"Run webapp_nginx once after merge; SELinux stays Enforcing")
   ]},
   {"Automation":([
     $routes[0][] | .Automation // empty | .[]
@@ -37,7 +39,11 @@ def listwidget($name;$url;$icon;$description;$items;$namefield;$label;$target):
     link("Workflow guide";($docs + "cluster/automation-orchestrator/workflows/README.md");"mdi-sitemap";"How issue-to-PR dispatch works"),
     link("Alerting guide";($docs + "cluster/user-workload-monitoring/README.md");"prometheus";"Blackbox → Alertmanager → EDA → issue"),
     link("Golden paths";($rhdh + "/create");"backstage";"Create a collection or dispatch a feature"),
-    link("Webapp virtual machine";($console + "/k8s/ns/webapp-vms/kubevirt.io~v1~VirtualMachine/webapp");"mdi-desktop-classic";"VM status, console and lifecycle"),
+    (if env.DEMO_BACKEND == "aws" then
+      link("Webapp EC2 instance";("https://" + env.AWS_DEMO_REGION + ".console.aws.amazon.com/ec2/home?region=" + env.AWS_DEMO_REGION + "#Instances:tag:demojam%3Apurpose=webapp");"aws";"Monitored guest status and lifecycle")
+    else
+      link("Webapp virtual machine";($console + "/k8s/ns/webapp-vms/kubevirt.io~v1~VirtualMachine/webapp");"mdi-desktop-classic";"VM status, console and lifecycle")
+    end),
     link("Monitoring alerts";($console + "/monitoring/alerts");"prometheus";"Inspect WebappDown and other alerts")
   ]},
   {"Live status":[

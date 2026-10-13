@@ -3,7 +3,7 @@ FROM ghcr.io/ansible/community-ansible-dev-tools@sha256:775c81d53058009dd47b9787
 # Keep Omnigent's dependencies separate from the Ansible tools in the base image.
 RUN dnf5 install -y bubblewrap nodejs npm tmux \
     && dnf5 clean all \
-    && /usr/bin/python3 -m pip install --no-cache-dir kubernetes==35.0.0 \
+    && /usr/bin/python3 -m pip install --no-cache-dir kubernetes==35.0.0 boto3==1.43.113 botocore==1.43.113 \
     && /usr/bin/python3 -m pip check \
     && /usr/bin/python3 -m venv /opt/omnigent \
     && /opt/omnigent/bin/python -m pip install --no-cache-dir omnigent==0.15.0 \
@@ -14,6 +14,15 @@ ENV MOLECULE_GLOB="extensions/molecule/*/molecule.yml"
 ENV ANSIBLE_COLLECTIONS_PATH="~/.ansible/collections:/usr/share/ansible/collections"
 
 COPY requirements.yml /opt/omnigent/requirements.yml
+# The AWS provisioner is an unreleased dependency. Install its exact source
+# commit first so consumers' version pin resolves entirely from the preload.
+RUN git clone --no-checkout https://github.com/david-igou/ansible-collection-molecule_provisioners.git /tmp/molecule-provisioners \
+    && git -C /tmp/molecule-provisioners checkout 85fe445ff1cfa54c830603a4aa45156911426b85 \
+    && cd /tmp/molecule-provisioners \
+    && ansible-galaxy collection build --output-path /tmp \
+    && ansible-galaxy collection install --no-deps \
+        /tmp/david_igou-molecule_provisioners-0.0.7-alpha.tar.gz -p /usr/share/ansible/collections \
+    && rm -rf /tmp/molecule-provisioners /tmp/david_igou-molecule_provisioners-0.0.7-alpha.tar.gz
 RUN ansible-galaxy collection install \
         -r /opt/omnigent/requirements.yml \
         -p /usr/share/ansible/collections
@@ -26,4 +35,4 @@ COPY molecule-profile.sh /etc/profile.d/molecule.sh
 COPY demo-goldenpath.py /usr/local/bin/demo-goldenpath
 RUN chmod 755 /usr/local/bin/demo-goldenpath \
     && bash -lc 'command -v omnigent && command -v bwrap && command -v tmux && command -v ansible && command -v molecule && command -v make && command -v opencode && command -v git && command -v ssh && command -v ssh-keygen && command -v demo-goldenpath' \
-    && /usr/bin/python3 -c 'import kubernetes'
+    && /usr/bin/python3 -c 'import kubernetes, boto3, botocore'
