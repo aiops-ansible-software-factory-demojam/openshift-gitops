@@ -152,6 +152,9 @@ endpoint, covering its ten-minute container startup probe window.
 
 ## Find your next step
 
+The [AWS and CNV backend specification](docs/specs/aws-cnv-backends.md) describes
+the proposed AWS guest support. The current implementation still uses CNV.
+
 `make help-all` lists maintenance commands; `make preflight` checks prerequisites
 without changing the cluster, and `make render` renders manifests locally.
 
