@@ -15,10 +15,17 @@ Do not merge the GitHub implementation PRs as part of this demo.
 
 ## Walk through
 
-1. Select the requested model in the ignored `.env`. Keep credentials private.
-   For OpenCode Go Haiku, use `MODEL_PROVIDER=opencode-go`,
-   `OPENCODE_GO_MODEL=claude-haiku-5-5` and `OPENCODE_GO_PROTOCOL=anthropic`.
-   Verify provider access before resetting. Preserve the selected source
+1. Select the requested models independently in the ignored `.env`. Keep
+   credentials private. For Qwen decisions and Go Haiku coding, use
+   `AO_MODEL_PROVIDER=litellm`, `AO_MODEL=qwen38-27b`,
+   `OMNIGENT_MODEL_PROVIDER=opencode-go`,
+   `OMNIGENT_MODEL=claude-haiku-5-5` and `OMNIGENT_MODEL_PROTOCOL=anthropic`.
+   Empty overrides inherit the existing shared provider defaults; see
+   [.env.example](../../../.env.example) for endpoint/key and reasoning overrides.
+   Verify access to both selected providers before resetting. Before fault
+   launch, verify AO's integration/workflow model and the native Omnigent
+   model/SDK separately. Apply Qwen reasoning checks only to a Qwen consumer.
+   Preserve the selected source
    branches so bootstrap seeds the intended published implementation.
 
 2. Run these commands once, in order, and record their start/end times:

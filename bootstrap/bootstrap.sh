@@ -86,28 +86,47 @@ demo_sandbox_image() {
 }
 
 demo_model_inputs() {
-  case ${MODEL_PROVIDER:-opencode-go} in
+  local consumer=${1:-omnigent} prefix setting host
+  case $consumer in
+    ao) prefix=AO ;;
+    omnigent) prefix=OMNIGENT ;;
+    *) echo 'Model consumer must be ao or omnigent.' >&2; return 2 ;;
+  esac
+  setting=${prefix}_MODEL_PROVIDER
+  model_provider=${!setting:-${MODEL_PROVIDER:-opencode-go}}
+  case $model_provider in
     opencode-go)
       model_endpoint=${OPENCODE_GO_ENDPOINT:-https://opencode.ai/zen/go/v1}
       model_name=${OPENCODE_GO_MODEL:-gpt-6-luna}
       model_key=${OPENCODE_GO_API_KEY:-}
-      case ${OPENCODE_GO_PROTOCOL:-responses} in
-        responses) model_npm=@ai-sdk/openai ;;
-        chat) model_npm=@ai-sdk/openai-compatible ;;
-        anthropic) model_npm=@ai-sdk/anthropic ;;
-        *) echo 'OPENCODE_GO_PROTOCOL must be responses, chat, or anthropic.' >&2; return 2 ;;
-      esac
+      model_protocol=${OPENCODE_GO_PROTOCOL:-responses}
       ;;
     litellm)
       model_endpoint=${LITELLM_ENDPOINT:-}
       model_name=${LITELLM_MODEL:-}
       model_key=${LITELLM_API_KEY:-}
-      model_npm=@ai-sdk/openai-compatible
+      model_protocol=chat
       ;;
-    *) echo 'MODEL_PROVIDER must be opencode-go or litellm.' >&2; return 2 ;;
+    *) echo "$prefix model provider must be opencode-go or litellm." >&2; return 2 ;;
   esac
+  # Resolve overrides against the selected provider, never the other consumer.
+  setting=${prefix}_MODEL; model_name=${!setting:-$model_name}
+  setting=${prefix}_MODEL_ENDPOINT; model_endpoint=${!setting:-$model_endpoint}
+  setting=${prefix}_MODEL_API_KEY; model_key=${!setting:-$model_key}
+  setting=${prefix}_MODEL_PROTOCOL; model_protocol=${!setting:-$model_protocol}
+  setting=${prefix}_QWEN_REASONING_EFFORT
+  model_reasoning_effort=${!setting:-${QWEN_REASONING_EFFORT:-none}}
+  case $model_protocol in
+    responses) model_npm=@ai-sdk/openai ;;
+    chat) model_npm=@ai-sdk/openai-compatible ;;
+    anthropic) model_npm=@ai-sdk/anthropic ;;
+    *) echo "$prefix model protocol must be responses, chat, or anthropic." >&2; return 2 ;;
+  esac
+  [[ $model_provider != litellm || $model_protocol == chat ]] || {
+    echo "$prefix LiteLLM protocol must be chat." >&2; return 2;
+  }
   [[ -n $model_key && -n $model_endpoint && -n $model_name ]] || {
-    echo 'Populate the selected provider key, endpoint, and model in .env.' >&2; return 2;
+    echo "Populate the selected $prefix provider key, endpoint, and model in .env." >&2; return 2;
   }
   model_endpoint=${model_endpoint%/}
   [[ $model_endpoint == https://* && $model_endpoint != *[[:space:]?#]* &&
@@ -115,18 +134,18 @@ demo_model_inputs() {
      $model_endpoint != */messages ]] || {
     echo 'The provider endpoint must be an HTTPS API base URL.' >&2; return 2;
   }
-  local host=${model_endpoint#https://}
+  host=${model_endpoint#https://}
   host=${host%%/*}
   [[ $host =~ ^[a-zA-Z0-9.-]+(:[0-9]+)?$ && $model_name =~ ^[a-zA-Z0-9._:/-]+$ ]] || {
     echo 'Invalid provider host or model name.' >&2; return 2;
   }
-  if [[ ${MODEL_PROVIDER:-opencode-go} == litellm && $model_name == qwen38-27b ]]; then
-    case ${QWEN_REASONING_EFFORT:-none} in
+  if [[ $model_provider == litellm && $model_name == qwen38-27b ]]; then
+    case $model_reasoning_effort in
       none|low|medium|xhigh) ;;
-      *) echo 'QWEN_REASONING_EFFORT must be none, low, medium, or xhigh.' >&2; return 2 ;;
+      *) echo "$prefix Qwen reasoning effort must be none, low, medium, or xhigh." >&2; return 2 ;;
     esac
   fi
-  [[ ${AO_LLM_REQUEST_TIMEOUT_SECONDS:-90} =~ ^[1-9][0-9]*$ ]] || {
+  [[ $consumer != ao || ${AO_LLM_REQUEST_TIMEOUT_SECONDS:-90} =~ ^[1-9][0-9]*$ ]] || {
     echo 'AO_LLM_REQUEST_TIMEOUT_SECONDS must be a positive integer.' >&2; return 2;
   }
 }
@@ -200,7 +219,8 @@ demo_preflight() (
   fi
   demo_check 'yq/jq compatibility' 'Install jq-wrapper yq; yq must emit JSON.' \
     bash -c 'printf "check: true\n" | yq . | jq -e ".check == true" >/dev/null'
-  demo_check 'model inputs' 'Fill the selected provider inputs in .env.' demo_model_inputs
+  demo_check 'AO model inputs' 'Fill the selected AO provider inputs in .env.' demo_model_inputs ao
+  demo_check 'Omnigent model inputs' 'Fill the selected Omnigent provider inputs in .env.' demo_model_inputs omnigent
   demo_check 'demo users' 'Set DEMO_USERS_FILE to valid user metadata; see bootstrap/users.example.json.' \
     demo_identity_validate_users "$(demo_identity_users_file)"
   demo_check 'manifest structure and RHEL material' 'Supply the subscription ZIP with consumer_export.zip and RHEL certificate/key.' \
@@ -282,7 +302,7 @@ demo_readiness() {
 # -----------------------------------------------------------------------------
 
 demo_model_config() (
-  demo_model_inputs
+  demo_model_inputs omnigent
   demo_verify_cluster
   agent_name=automation-developer
   agent_file=${agent_name}.yaml
@@ -315,8 +335,8 @@ EOF
   # Preserve the fast preset unless an explicit Qwen reasoning effort is set.
   # Qwen's native chat template needs thinking enabled as well as the effort.
   jq -cn --arg base "$model_endpoint" --arg model "$model_name" \
-    --arg npm "$model_npm" --arg provider "${MODEL_PROVIDER:-opencode-go}" \
-    --arg effort "${QWEN_REASONING_EFFORT:-none}" '
+    --arg npm "$model_npm" --arg provider "$model_provider" \
+    --arg effort "$model_reasoning_effort" '
     {
       "$schema": "https://opencode.ai/config.json",
       model: ("demo/" + $model),
@@ -358,7 +378,7 @@ EOF
   if [[ $agent_status != *' unchanged' ]] && oc -n omnigent get deployment omnigent >/dev/null 2>&1; then
     oc -n omnigent rollout restart deployment/omnigent
   fi
-  echo "Omnigent is configured for ${MODEL_PROVIDER:-opencode-go}: $model_endpoint model $model_name."
+  echo "Omnigent is configured for $model_provider: $model_endpoint model $model_name."
 )
 
 demo_omnigent_auth() (
@@ -992,18 +1012,18 @@ demo_ao_integration() {
 # Keep the runtime configuration here rather than a second bootstrap program.
 demo_ao_llm_proxy() {
   local proxy_name=ao-opencode-go proxy_model proxy_base=$model_endpoint protocol config_status secret_status existing qwen=false
-  if [[ ${MODEL_PROVIDER:-opencode-go} == litellm && $model_name == qwen38-27b ]]; then
-    proxy_name=ao-litellm-qwen
+  if [[ $model_provider == litellm && $model_name == qwen38-27b ]]; then
+    proxy_name='ao-litellm-qwen'
     proxy_model="openai/$model_name"
     qwen=true
   else
-    protocol=${OPENCODE_GO_PROTOCOL:-responses}
+    protocol=$model_protocol
     case $protocol in
       responses) proxy_model="openai/responses/$model_name" ;;
       chat) proxy_model="openai/$model_name" ;;
       # LiteLLM accepts the full Messages URL; the SDK uses the API base above.
       anthropic) proxy_model="anthropic/$model_name"; proxy_base="$model_endpoint/messages" ;;
-      *) demo_die 'OPENCODE_GO_PROTOCOL must be responses, chat, or anthropic.' ;;
+      *) demo_die 'AO model protocol must be responses, chat, or anthropic.' ;;
     esac
   fi
   existing=$(oc -n "$namespace" get deployment "$proxy_name" --ignore-not-found -o name)
@@ -1020,7 +1040,7 @@ demo_ao_llm_proxy() {
     --from-file=LITELLM_MASTER_KEY="$omnigent_scratch/go-proxy-key" --dry-run=client -o yaml |
     oc -n "$namespace" apply -f -)
   jq -n --arg model "$model_name" --arg backend "$proxy_model" --arg url "$proxy_base" \
-    --argjson qwen "$qwen" --arg effort "${QWEN_REASONING_EFFORT:-none}" '
+    --argjson qwen "$qwen" --arg effort "$model_reasoning_effort" '
     {model_list:[{model_name:$model,litellm_params:({model:$backend,api_base:$url,
       api_key:"os.environ/PROVIDER_API_KEY"} +
       (if $qwen then
@@ -1139,9 +1159,9 @@ YAML
 demo_ao_integrations() {
   local configuration inputs allowed_hosts deploy current current_timeout expected code disabled_models
   local request_timeout=${AO_LLM_REQUEST_TIMEOUT_SECONDS:-90}
-  demo_model_inputs
-  if [[ ${MODEL_PROVIDER:-opencode-go} == opencode-go ||
-        ( ${MODEL_PROVIDER:-opencode-go} == litellm && $model_name == qwen38-27b ) ]]; then
+  demo_model_inputs ao
+  if [[ $model_provider == opencode-go ||
+        ( $model_provider == litellm && $model_name == qwen38-27b ) ]]; then
     demo_ao_llm_proxy
   fi
   # The integration policy is checked in backend, worker and background worker.
@@ -1172,11 +1192,11 @@ demo_ao_integrations() {
     fi
   done
   inputs=$(jq -n --arg key "$model_key" '{api_key:$key}')
-  llm_credential_id=$(demo_ao_credential "demo-llm-${MODEL_PROVIDER:-opencode-go}" 'LLM Provider' "$inputs")
+  llm_credential_id=$(demo_ao_credential "demo-llm-$model_provider" 'LLM Provider' "$inputs")
   unset model_key inputs
   configuration=$(jq -n --arg url "$model_endpoint" \
     '{integration_type:"llm_provider",base_url:$url,provider_hint:"custom",allow_http:($url|startswith("http://"))}')
-  llm_integration_id=$(demo_ao_integration "Demo LLM (${MODEL_PROVIDER:-opencode-go})" llm_provider "$llm_credential_id" "$configuration")
+  llm_integration_id=$(demo_ao_integration "Demo LLM ($model_provider)" llm_provider "$llm_credential_id" "$configuration")
   code=$(ao_curl POST "$base_url/integrations/$llm_integration_id/refresh" -H "$auth_header" \
     -H 'Content-Type: application/json' --data-binary '{}')
   ao_require_json 'discover selected LLM models' "$code"
@@ -1199,7 +1219,7 @@ demo_ao_integrations() {
   unset inputs
   configuration=$(jq -n --arg url "$aap_host" '{integration_type:"ansible_automation_platform",base_url:$url}')
   aap_integration_id=$(demo_ao_integration 'Demo AAP' ansible_automation_platform "$aap_credential_id" "$configuration")
-  printf 'AO integrations are configured; selected model: %s\n' "$model_name"
+  printf 'AO integrations are configured; provider: %s, selected model: %s\n' "$model_provider" "$model_name"
 }
 
 demo_ao_run() {
@@ -1999,7 +2019,7 @@ aap_launch() {
 }
 
 aap_verify_enforcing() {
-  local org scope inventory credential environment result job events
+  local org scope inventory credential environment result job events deadline
   org=$(aap_find organizations/ demo | jq -er .id)
   scope=$(jq -n --argjson org "$org" '{organization:$org}')
   inventory=$(aap_find inventories/ demo-inventory "$scope" | jq -er .id)
@@ -2011,8 +2031,16 @@ aap_verify_enforcing() {
       limit:"webapps",module_name:"command",module_args:"getenforce",become_enabled:true}')")
   job=$(jq -er .id <<<"$result")
   aap_wait "ad_hoc_commands/$job/"
-  events=$(aap_request GET "ad_hoc_commands/$job/events/?event=runner_on_ok&page_size=200")
-  jq -e '.count > 0 and all(.results[]; .event_data.res.rc == 0 and
+  # Terminal status can become visible before the result event is indexed.
+  # Poll only for that event; never rerun the command or retry a wrong mode.
+  deadline=$((SECONDS + 30))
+  while :; do
+    events=$(aap_request GET "ad_hoc_commands/$job/events/?event=runner_on_ok&page_size=200")
+    [[ $(jq -r '.count' <<<"$events") == 0 ]] || break
+    (( SECONDS < deadline )) || demo_die 'The webapp SELinux result event is not available.'
+    sleep 1
+  done
+  jq -e '.count > 0 and (.results | length) > 0 and all(.results[]; .event_data.res.rc == 0 and
     (.event_data.res.stdout | rtrimstr("\n")) == "Enforcing")' <<<"$events" >/dev/null ||
     demo_die 'The webapp SELinux check did not return Enforcing.'
   printf 'Webapp SELinux is Enforcing (AAP ad hoc command %s).\n' "$job"
@@ -2542,6 +2570,9 @@ demo_reset() (
   [[ $# == 1 && $1 == --confirm-demo-reset ]] ||
     demo_die 'Usage: demo-reset --confirm-demo-reset (deletes demo repos, sessions, VMs and disks).'
   demo_verify_cluster
+  demo_model_inputs ao
+  demo_model_inputs omnigent
+  unset model_key
   demo_alerting_maintenance pause
   demo_aap stop-listeners
   local ingress_domain omnigent_host scratch agent_id cursor page session_id namespace remaining
@@ -2550,8 +2581,6 @@ demo_reset() (
   omnigent_host=$(oc -n omnigent get route omnigent -o jsonpath='{.status.ingress[0].host}')
   [[ -n $ingress_domain && $omnigent_host == "omnigent.$ingress_domain" ]] ||
     demo_die 'Omnigent Route does not match this cluster ingress domain.'
-  demo_model_inputs
-  unset model_key
 
   umask 077
   scratch=$(mktemp -d)
@@ -2848,7 +2877,7 @@ Usage: bash bootstrap/bootstrap.sh [COMMAND]
   demo-reset --confirm-demo-reset Reset disposable demo repos, sessions, VMs and disks
   preflight          Read-only input and pre-install cluster checks (also --check)
   sandbox-build      Build the configured :latest sandbox image
-  model-config       Apply the selected model/agent configuration
+  model-config       Apply independent Omnigent and AO model configuration
   identity           Reconcile demo users, clients and application login
   homepage-refresh   Refresh Homepage links, repositories and environment details
   hydrate            Seed Forgejo and refresh Backstage/agent credentials
@@ -2894,6 +2923,9 @@ HELP
     preflight|--check) [[ $# == 0 ]] || demo_die 'preflight takes no arguments'; demo_preflight ;;
     sandbox-build) demo_sandbox_build ;;
     model-config)
+      demo_model_inputs ao
+      demo_model_inputs omnigent
+      unset model_key
       demo_model_config
       if [[ -n $(oc -n automation-orchestrator get automationorchestrator automation-orchestrator --ignore-not-found -o name 2>/dev/null) ]]; then
         demo_ao_reconcile

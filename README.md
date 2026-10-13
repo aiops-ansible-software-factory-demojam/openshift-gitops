@@ -42,8 +42,29 @@ make bootstrap
 ```
 
 In `.env`, use the [configuration template](.env.example) to select
-`MODEL_PROVIDER` (`opencode-go` or `litellm`) and fill in its key, endpoint,
-and model. Endpoints are HTTPS API base URLs,
+the provider (`opencode-go` or `litellm`) and fill in its key, endpoint,
+and model. `MODEL_PROVIDER` and the provider-specific fields remain shared
+defaults. AO and Omnigent can select providers and models independently:
+
+```bash
+AO_MODEL_PROVIDER='litellm'
+AO_MODEL='qwen38-27b'
+AO_QWEN_REASONING_EFFORT='low'
+OMNIGENT_MODEL_PROVIDER='opencode-go'
+OMNIGENT_MODEL='claude-haiku-5-5'
+OMNIGENT_MODEL_PROTOCOL='anthropic'
+```
+
+This uses `LITELLM_ENDPOINT`/`LITELLM_API_KEY` for AO and
+`OPENCODE_GO_ENDPOINT`/`OPENCODE_GO_API_KEY` for Omnigent. Optional
+`AO_MODEL_ENDPOINT`, `AO_MODEL_API_KEY`, `OMNIGENT_MODEL_ENDPOINT` and
+`OMNIGENT_MODEL_API_KEY` override those defaults for separate accounts.
+`AO_MODEL_PROTOCOL` and `OMNIGENT_MODEL_PROTOCOL` select each consumer's transport.
+Empty overrides inherit the defaults for that consumer's selected provider.
+`make model-config` applies both selections; existing coding sessions retain
+their startup configuration, so use a new session to test a model change.
+
+Endpoints are HTTPS API base URLs,
 before `/responses`, `/chat/completions`, or `/messages`. Place your AAP subscription ZIP,
 including RHEL CDN entitlement, at `aap_manifest.zip`, or set `AAP_LICENSE_FILE`.
 The ZIP and `.env` are ignored by Git; quote values as trusted Bash configuration.
@@ -107,9 +128,10 @@ The permissive setup job runs after VM provisioning during bootstrap.
 It is separate from nginx installation, so deploying a merged fix preserves
 the Enforcing state established by the fault job.
 For `qwen38-27b`, bootstrap also configures an authenticated LiteLLM bridge for
-AO's RCA requests with the same reasoning settings as Omnigent. Set
-`QWEN_REASONING_EFFORT` in `.env` to `medium`, `low`, or `xhigh` to enable
-thinking; the default `none` keeps thinking disabled.
+AO's RCA requests. Set `AO_QWEN_REASONING_EFFORT` or
+`OMNIGENT_QWEN_REASONING_EFFORT` to `medium`, `low`, or `xhigh` to enable
+thinking for the corresponding Qwen consumer. Each falls back to
+`QWEN_REASONING_EFFORT`; the default `none` keeps Qwen thinking disabled.
 Bootstrap sets AO's per-attempt LLM timeout to 90 seconds in backend, worker,
 and background worker. Override it with `AO_LLM_REQUEST_TIMEOUT_SECONDS` in `.env`.
 Setup and reset silence only `WebappDown` while the baseline is unavailable.
@@ -120,6 +142,9 @@ Before script launches, bootstrap waits for node storage readiness and refreshes
 the AAP project and inventories sequentially. Ensuing EDA/AO jobs reuse a
 ten-minute dependency cache; script launches always refresh it, including after
 creating a VM, so inventory still discovers the new guest.
+The Enforcing check waits for its AAP result event to become visible after
+command completion. A returned non-Enforcing state fails immediately; the
+verification command is never re-executed while waiting for its event.
 Setup, reset, and teardown share the implementation in
 `bootstrap/bootstrap.sh`; Make targets invoke that script directly.
 
