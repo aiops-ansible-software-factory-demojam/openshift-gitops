@@ -147,6 +147,8 @@ command completion. A returned non-Enforcing state fails immediately; the
 verification command is never re-executed while waiting for its event.
 Setup, reset, and teardown share the implementation in
 `bootstrap/bootstrap.sh`; Make targets invoke that script directly.
+Bootstrap waits up to fifteen minutes for Keycloak's public OIDC discovery
+endpoint, covering its ten-minute container startup probe window.
 
 ## Find your next step
 

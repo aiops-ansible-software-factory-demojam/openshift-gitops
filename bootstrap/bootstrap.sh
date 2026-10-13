@@ -76,6 +76,17 @@ demo_wait_for_api() {
   done
 }
 
+demo_wait_for_identity_route() {
+  local identity_url=$1 deadline=$((SECONDS + 900))
+  # Keycloak's container has a ten-minute startup probe window. Deployment
+  # status can precede a restart, so require the public discovery endpoint.
+  until curl -fsS --connect-timeout 5 --max-time 10 \
+    "$identity_url/realms/master/.well-known/openid-configuration" >/dev/null 2>&1; do
+    (( SECONDS < deadline )) || demo_die 'Demo Keycloak Route did not become ready.'
+    sleep 5
+  done
+}
+
 demo_sandbox_image() {
   local image
   image=$(yq -er '.data."config.yaml"' \
