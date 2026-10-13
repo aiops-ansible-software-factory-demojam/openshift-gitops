@@ -119,13 +119,13 @@ Normal bootstrap reruns reuse IAM access keys rather than rotating them.
 
 ## Operator inputs
 
-These are proposed inputs, not settings implemented by this documentation commit.
+Bootstrap reads these fields from the protected `.env` or inherited environment.
 
 | Input | Default / requirement |
 | --- | --- |
 | `DEMO_BACKEND` | Empty; fresh installs default to `cnv` |
-| `AWS_BOOTSTRAP_ACCESS_KEY_ID` | Required for AWS setup; operator-supplied root key ID |
-| `AWS_BOOTSTRAP_SECRET_ACCESS_KEY` | Required for AWS setup; matching root secret |
+| `AWS_BOOTSTRAP_ACCESS_KEY_ID` | Required for AWS setup; operator-supplied root/admin key ID |
+| `AWS_BOOTSTRAP_SECRET_ACCESS_KEY` | Required for AWS setup; matching root/admin secret |
 | `AWS_DEMO_ACCOUNT_ID` | Optional expected account; resolved and recorded on first setup |
 | `AWS_DEMO_REGION` | `us-east-2` |
 | `AWS_DEMO_AZ` | Optional; otherwise choose and record a supported AZ in that account |
@@ -413,5 +413,5 @@ shared provisioner repository as a separate dependency change.
    root/runtime credentials before publishing evidence.
 
 No AWS root credentials or new-account resources are needed to review this
-specification. Implementation and live validation begin after the design is
-accepted and the AWS setup inputs are provided.
+specification. The design is accepted, AWS inputs are supplied, and live validation is in
+progress. The shared provisioner is owned by its separate implementation thread.

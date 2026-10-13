@@ -47,3 +47,14 @@ demo_readiness aap
 rg -q 'tektonconfig' "$test_scratch/waits"
 rg -q 'ansibleautomationplatform' "$test_scratch/waits"
 printf 'PASS AWS waits only for installed platform APIs\n'
+
+printf "AWS_BOOTSTRAP_ACCESS_KEY_ID=''\nAWS_BOOTSTRAP_SECRET_ACCESS_KEY=''\nAWS_DEMO_REGION='us-east-2'\n" >"$test_scratch/inherited"
+(
+  export ENV_FILE="$test_scratch/inherited" AWS_BOOTSTRAP_ACCESS_KEY_ID=example-inherited-id
+  export AWS_BOOTSTRAP_SECRET_ACCESS_KEY=example-inherited-secret AWS_DEMO_REGION=us-west-2
+  demo_load_env
+  [[ $AWS_BOOTSTRAP_ACCESS_KEY_ID == example-inherited-id ]]
+  [[ $AWS_BOOTSTRAP_SECRET_ACCESS_KEY == example-inherited-secret ]]
+  [[ $AWS_DEMO_REGION == us-west-2 ]]
+)
+printf 'PASS inherited AWS inputs survive dotenv placeholders\n'

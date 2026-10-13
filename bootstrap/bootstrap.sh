@@ -14,7 +14,16 @@ source "$demo_repo_root/bootstrap/homepage.sh"
 # -----------------------------------------------------------------------------
 
 demo_load_env() {
+  set +x
   local inherited_backend=${DEMO_BACKEND:-}
+  local input_name
+  local -A inherited_aws=()
+  for input_name in AWS_BOOTSTRAP_ACCESS_KEY_ID AWS_BOOTSTRAP_SECRET_ACCESS_KEY AWS_DEMO_ACCOUNT_ID \
+    AWS_DEMO_REGION AWS_DEMO_AZ AWS_DEMO_VPC_CIDR AWS_DEMO_SSH_CIDR AWS_DEMO_HTTP_CIDR \
+    AWS_WEBAPP_INSTANCE_TYPE AWS_MOLECULE_INSTANCE_TYPE AWS_DEMO_ROOT_VOLUME_SIZE_GIB \
+    AWS_RHEL9_AMI_ID AWS_RHEL10_AMI_ID; do
+    [[ -z ${!input_name:-} ]] || inherited_aws[$input_name]=${!input_name}
+  done
   local inherited_kubeconfig=${KUBECONFIG:-} inherited_branch=${BOOTSTRAP_BRANCH:-} original_dir=$PWD
   local inherited_template_branch=${ANSIBLE_COLLECTION_TEMPLATE_BRANCH:-}
   local inherited_collection_branch=${ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH:-}
@@ -33,6 +42,9 @@ demo_load_env() {
   cd -- "$original_dir"
 
   export KUBECONFIG=${inherited_kubeconfig:-${KUBECONFIG:-}}
+  for input_name in "${!inherited_aws[@]}"; do
+    export "$input_name=${inherited_aws[$input_name]}"
+  done
   export KUBECONFIG=${KUBECONFIG:-$HOME/.kube/config}
   export DEMO_BACKEND=${inherited_backend:-${DEMO_BACKEND:-}}
   export AWS_DEMO_REGION=${AWS_DEMO_REGION:-us-east-2}
