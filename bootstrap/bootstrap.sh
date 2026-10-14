@@ -1856,7 +1856,7 @@ YAML
 }
 
 demo_ao_integrations() {
-  local configuration inputs allowed_hosts deploy current current_timeout expected code disabled_models
+  local configuration inputs allowed_hosts deploy current current_timeout current_scripts expected code disabled_models
   local request_timeout=${AO_LLM_REQUEST_TIMEOUT_SECONDS:-90}
   demo_model_inputs ao
   if [[ $model_provider == opencode-go ||
@@ -1882,7 +1882,9 @@ demo_ao_integrations() {
       printenv APP_INTEGRATION_URL_ALLOWED_HOSTS 2>/dev/null || true)
     current_timeout=$(oc -n "$namespace" exec "deployment/automation-orchestrator-$deploy" -- \
       printenv APP_ADAPTER_REQUEST_TIMEOUT_SECONDS 2>/dev/null || true)
-    if [[ $current != "$expected" || $current_timeout != "$request_timeout" ]]; then
+    current_scripts=$(oc -n "$namespace" exec "deployment/automation-orchestrator-$deploy" -- \
+      printenv APP_SCRIPT_NODES_ENABLED 2>/dev/null || true)
+    if [[ $current != "$expected" || $current_timeout != "$request_timeout" || $current_scripts != true ]]; then
       oc -n "$namespace" rollout restart "deployment/automation-orchestrator-$deploy" >/dev/null
       oc -n "$namespace" rollout status "deployment/automation-orchestrator-$deploy" --timeout=10m
       [[ $(oc -n "$namespace" exec "deployment/automation-orchestrator-$deploy" -- \
@@ -1891,6 +1893,9 @@ demo_ao_integrations() {
       [[ $(oc -n "$namespace" exec "deployment/automation-orchestrator-$deploy" -- \
         printenv APP_ADAPTER_REQUEST_TIMEOUT_SECONDS) == "$request_timeout" ]] ||
         demo_die "AO $deploy did not load its LLM request timeout."
+      [[ $(oc -n "$namespace" exec "deployment/automation-orchestrator-$deploy" -- \
+        printenv APP_SCRIPT_NODES_ENABLED) == true ]] ||
+        demo_die "AO $deploy did not enable trusted prompt-formatting steps."
     fi
   done
   inputs=$(jq -n --arg key "$model_key" '{api_key:$key}')

@@ -43,7 +43,9 @@ limitations. `evidence` bounds the alert/audit excerpts to 5,000 characters;
 `mcpsummary` bounds structured diagnostic content to 2,400 characters. These
 trusted data-formatting steps run on the AO worker. Tool traces remain in AO
 and are excluded from the final prompt, which must fit AO's 10,000-character
-invocation limit. Its 120-second timeout and `continue_on_failure` let the final
+invocation limit. The admin-settings ConfigMap enables AO's Developer Preview script nodes via
+`APP_SCRIPT_NODES_ENABLED=true`; reconciliation reloads the caller processes.
+Its 120-second timeout and `continue_on_failure` let the final
 text-only `airca` step use available audit/alert evidence when diagnostics fail.
 The final prompt reports unavailable evidence and excludes raw logs and
 connection error details. The `rootCause`, `escalateTo`, `remediationSteps`

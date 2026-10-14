@@ -4,10 +4,11 @@ import asyncio
 import json
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 from syntara.workflows.models.workflow_definition import WorkflowDefinition
 from syntara.workflows.utils.namespace_resolver import NamespaceResolver
-from syntara.workflows.workflow_engine.activities.script_activity import _execute_script_common
+from syntara.workflows.workflow_engine.activities.script_activity import execute_script_activity
 from syntara.workflows.workflow_engine.models.workflow_definition import AgenticOutput, ScriptExecutorParameters, ScriptOutput
 
 
@@ -18,10 +19,11 @@ nodes = {node["id"]: node for node in definition["nodes"]}
 
 async def script_output(resolver, node):
     parameters = ScriptExecutorParameters.model_validate(resolver.resolve_dict(node["parameters"]))
-    output = await _execute_script_common(
-        [sys.executable, "-c", parameters.code], environment=parameters.environment,
-        timeout_seconds=10, max_output_bytes=8192,
-    )
+    # The unit runner has no Temporal heartbeat context. Exercise the real
+    # feature gate, parameter validation and activity executor beneath it.
+    with patch("syntara.workflows.workflow_engine.activities.script_activity.activity.heartbeat"):
+        result = await execute_script_activity(parameters.model_dump(mode="json"), None)
+    output = result["output"]
     assert output["return_code"] == 0 and not output["stderr"]
     return output
 
