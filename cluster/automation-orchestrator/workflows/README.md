@@ -39,7 +39,11 @@ The issue job reuses an existing open incident when Alertmanager sends repeats.
 When MCP is enabled, bootstrap adds a read-only investigation between audit collection
 and final RCA. `mcpdiag` receives the alert and audit evidence, queries only the
 selected `Demo Webapp Diagnostics` tools, and returns bounded observations and
-limitations. Its 120-second timeout and `continue_on_failure` let the final
+limitations. `evidence` bounds the alert/audit excerpts to 5,000 characters;
+`mcpsummary` bounds structured diagnostic content to 2,400 characters. These
+trusted data-formatting steps run on the AO worker. Tool traces remain in AO
+and are excluded from the final prompt, which must fit AO's 10,000-character
+invocation limit. Its 120-second timeout and `continue_on_failure` let the final
 text-only `airca` step use available audit/alert evidence when diagnostics fail.
 The final prompt reports unavailable evidence and excludes raw logs and
 connection error details. The `rootCause`, `escalateTo`, `remediationSteps`
@@ -51,8 +55,8 @@ UUIDs and binds an explicit runtime credential through
 `integration_connections`. The integration's management credential is also
 configured for health checks. All other discovered tools are disabled. An
 unchanged tool selection preserves IDs and therefore does not create an
-unnecessary workflow version. Disabled mode removes the diagnostic step and
-its references and restores `auditlogs → airca → createissue`.
+unnecessary workflow version. Disabled mode removes the diagnostic and summary
+steps and their references, leaving `auditlogs → evidence → airca → createissue`.
 
 See the top-level README for `WEBAPP_MCP_ENABLED`, credential/certificate
 lifecycle, maintenance commands and validation limits. MCP never applies

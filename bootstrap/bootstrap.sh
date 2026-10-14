@@ -982,10 +982,10 @@ demo_ao_rca_definition() {
         .parameters.integration_connections=[{integration_id:$integration,credential_id:$credential}]
       else . end)
     else
-      .nodes |= map(select(.id != "mcpdiag") | if .id == "airca" then
-        .parameters.prompt |= gsub("MCP diagnostics: \\$\\{mcpdiag\\}"; "MCP diagnostics: unavailable (audit-only mode)")
+      .nodes |= map(select(.id != "mcpdiag" and .id != "mcpsummary") | if .id == "airca" then
+        .parameters.prompt |= gsub("MCP diagnostics: \\$\\{mcpsummary.stdout\\}"; "MCP diagnostics: unavailable (audit-only mode)")
       else . end) |
-      .edges |= map(select(.from != "mcpdiag") | if .to == "mcpdiag" then .to="airca" else . end)
+      .edges |= map(select(.from != "mcpdiag" and .from != "mcpsummary") | if .to == "mcpdiag" then .to="airca" else . end)
     end'
 }
 

@@ -55,8 +55,8 @@ demo_mcp_material "$scratch/renewed"
 yq -c . "$root/cluster/automation-orchestrator/workflows/rootcause.yaml" >"$scratch/workflow.json"
 demo_ao_rca_definition <"$scratch/workflow.json" >"$scratch/disabled.json"
 jq -e 'all(.nodes[]; .id != "mcpdiag") and
-  any(.edges[]; .from == "auditlogs" and .to == "airca") and
-  ([.nodes[].parameters.prompt // ""] | join("") | contains("${mcpdiag}") | not)' "$scratch/disabled.json" >/dev/null
+  any(.edges[]; .from == "evidence" and .to == "airca") and
+  ([.nodes[].parameters.prompt // ""] | join("") | contains("${mcpsummary.stdout}") | not)' "$scratch/disabled.json" >/dev/null
 export mcp_integration_id=11111111-1111-4111-8111-111111111111
 export mcp_credential_id=22222222-2222-4222-8222-222222222222
 export mcp_tool_ids='["33333333-3333-4333-8333-333333333333"]'

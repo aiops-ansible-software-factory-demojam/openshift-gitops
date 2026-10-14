@@ -27,6 +27,30 @@ nodes:
   position:
     x: 291
     "y": 0
+- id: evidence
+  type: script
+  name: Bound the alert and audit evidence for AO
+  parameters:
+    language: python
+    environment:
+      ALERT_INPUT: ${trigger.alert_payload}
+      AUDIT_INPUT: ${auditlogs.artifacts.affected_host_log_output}
+    code: |-
+      import json, os
+      alert = os.environ.get("ALERT_INPUT", "")
+      audit = os.environ.get("AUDIT_INPUT", "")
+      data = {"alert": alert[:900], "audit": audit[-3500:],
+              "alert_truncated": len(alert) > 900, "audit_truncated": len(audit) > 3500}
+      while len(json.dumps(data)) > 5000:
+          data["alert"] = data["alert"][:len(data["alert"]) * 7 // 8]
+          data["audit"] = data["audit"][len(data["audit"]) // 8 + 1:]
+          data["alert_truncated"] = data["audit_truncated"] = True
+      print(json.dumps(data))
+  settings:
+    timeout: 30
+  position:
+    x: 370
+    "y": 0
 - id: mcpdiag
   type: agentic
   name: Inspect the webapp with read-only MCP tools
@@ -45,10 +69,10 @@ nodes:
       data, raw logs and internal reasoning. Do not claim HTTP recovery from
       a running service alone. If tools fail, say what evidence is unavailable.
 
-      Alert context: ${trigger.alert_payload}
-      Audit evidence: ${auditlogs.artifacts.affected_host_log_output}
+      Alert/audit excerpts (truncation is marked): ${evidence.stdout}
     response_schema:
       type: object
+      additionalProperties: false
       required: [status, observations, limitations]
       properties:
         status:
@@ -75,6 +99,38 @@ nodes:
   position:
     x: 450
     "y": 0
+- id: mcpsummary
+  type: script
+  name: Bound the diagnostic summary for final RCA
+  parameters:
+    language: python
+    environment:
+      # Only structured content crosses this boundary; the invocation's tool
+      # trace stays available in AO and is never embedded in the final prompt.
+      MCP_CONTENT: ${mcpdiag.result.content}
+    code: |-
+      import json, os
+      try:
+          content = json.loads(os.environ.get("MCP_CONTENT", "null"))
+      except (ValueError, TypeError):
+          content = None
+      data = {"status": "unavailable", "observations": [], "limitations": ["No usable live diagnostic summary."]}
+      if isinstance(content, dict) and content.get("status") in ("observed", "unavailable"):
+          data = {"status": content["status"],
+                  "observations": [str(item)[:220] for item in content.get("observations", [])[:8]],
+                  "limitations": [str(item)[:180] for item in content.get("limitations", [])[:4]]}
+      while len(json.dumps(data)) > 2400:
+          for field in ("observations", "limitations"):
+              data[field] = [item[:len(item) * 7 // 8] for item in data[field]]
+      print(json.dumps(data))
+  settings:
+    timeout: 30
+    # A failed diagnostic has no result.content. AO then supplies the uniform
+    # ScriptOutput stdout=None, so final RCA still uses the bounded audit data.
+    continue_on_failure: true
+  position:
+    x: 520
+    "y": 0
 - id: airca
   type: agentic
   name: Get RCA and Next steps from AI
@@ -90,12 +146,10 @@ nodes:
             Identify the best-suited role to address the issue in the "escalateTo" field (Developer, DBA, Server Engineer, Network Engineer, DevOps Engineer).
             List recommended steps for additional analysis or remediation in the "remediationSteps" array, providing actionable text strings that could help resolve the incident or gather more information.'
 
-      ${auditlogs.artifacts.affected_host_log_output}
-
-      Original alert: ${trigger.alert_payload}
-      MCP diagnostics: ${mcpdiag}
-      Use successful MCP observations as additional evidence. Missing/null
-      observations, failed status or an unavailable result mean live diagnostics
+      Alert/audit excerpts (truncation is marked): ${evidence.stdout}
+      MCP diagnostics: ${mcpsummary.stdout}
+      Use successful MCP observations as additional evidence. A missing/null/None
+      summary, failed status or an unavailable result mean live diagnostics
       were unavailable: say so and use only the audit/alert evidence. Never invent
       host observations. Distinguish facts from hypotheses, redact sensitive data,
       and exclude raw logs, internal reasoning and connection error details.
@@ -138,8 +192,12 @@ edges:
 - from: alertmanagereda
   to: auditlogs
 - from: auditlogs
+  to: evidence
+- from: evidence
   to: mcpdiag
 - from: mcpdiag
+  to: mcpsummary
+- from: mcpsummary
   to: airca
 - from: airca
   to: createissue

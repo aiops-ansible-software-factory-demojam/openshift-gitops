@@ -23,6 +23,10 @@ before opening the incident. A failed or timed-out diagnostic step falls back
 to the available audit/alert evidence and reports the limitation. MCP applies
 no fixes; the incident-to-PR, human review and AAP recovery flow remain in place.
 
+AO worker steps bound the alert/audit excerpts and structured diagnostic summary
+before the model calls. The final prompt fits AO's 10,000-character invocation
+limit; diagnostic tool traces remain in AO for inspection.
+
 `WEBAPP_MCP_ENABLED` defaults to true for CNV and false for AWS. Set it to
 true to opt an AWS deployment into MCP diagnostics.
 Set it to false and run `make webapp-mcp` to restore audit-only RCA before
