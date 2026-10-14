@@ -1189,9 +1189,14 @@ demo_source_checkout() (
 )
 
 demo_forgejo_seed_repos() (
+  local selected_repo=${1:-}
   root="$demo_repo_root/cluster/forgejo"
   config=${SEED_CONFIG:-$root/seed.json}
   jq -e '.users | length > 0' "$config" >/dev/null
+  if [[ -n $selected_repo ]]; then
+    jq -e --arg name "$selected_repo" 'any(.repositories[]; .name == $name)' "$config" >/dev/null ||
+      demo_die "Unknown seed repository: $selected_repo"
+  fi
   tmp=$(mktemp -d)
   trap 'rm -rf "$tmp"' EXIT
   # Fetch all selected branches before changing any Forgejo baseline. A missing
@@ -1201,7 +1206,7 @@ demo_forgejo_seed_repos() (
     name=$(jq -r .name <<< "$repo")
     [[ $owner/$name =~ ^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$ ]] || exit 2
     demo_source_checkout "$name" "$tmp/source-$name" >/dev/null || return
-  done < <(jq -c '.repositories[]' "$config")
+  done < <(jq -c --arg selected "$selected_repo" '.repositories[] | select($selected == "" or .name == $selected)' "$config")
   users='[]'
   page=1
   while :; do
@@ -1219,7 +1224,9 @@ demo_forgejo_seed_repos() (
       body=$(jq -n --arg name "$name" '{password:$name,must_change_password:false}')
       forgejo_api PATCH "/admin/users/$name" "$body" >/dev/null
     fi
-  done < <(jq -c '.users[]' "$config")
+  # Refreshing one existing repository must preserve account passwords and
+  # other demo repositories, including a previously merged collection fix.
+  done < <(jq -c --arg selected "$selected_repo" '.users[] | select($selected == "")' "$config")
   # Git uses an askpass helper: no credentials in clone URLs or persistent remotes.
   cat > "$tmp/askpass" <<'ASKPASS'
   #!/usr/bin/env bash
@@ -1277,7 +1284,7 @@ ASKPASS
     while IFS= read -r collaborator; do
       forgejo_api PUT "/repos/$owner/$name/collaborators/$collaborator" '{"permission":"write"}' >/dev/null
     done < <(jq -r '.collaborators[]' <<< "$repo")
-  done < <(jq -c '.repositories[]' "$config")
+  done < <(jq -c --arg selected "$selected_repo" '.repositories[] | select($selected == "" or .name == $selected)' "$config")
   echo 'Seed complete. Create the trigger issue after the agent integration is ready.'
 )
 
@@ -3827,7 +3834,7 @@ HELP
     aap) [[ $# -gt 0 ]] || demo_die 'aap requires an action'; demo_verify_cluster; demo_aap "$@" ;;
     readiness) [[ $# == 1 ]] || demo_die 'readiness requires sandbox or aap'; demo_verify_cluster; demo_readiness "$@" ;;
     forgejo-seed) demo_forgejo_lifecycle seed ;;
-    forgejo-repos) demo_forgejo_seed_repos ;;
+    forgejo-repos) [[ $# -le 1 ]] || demo_die 'forgejo-repos accepts an optional repository name'; demo_forgejo_seed_repos "$@" ;;
     forgejo-issue) demo_forgejo_issue ;;
     *) demo_die "Unknown command: $command (use --help)." ;;
   esac

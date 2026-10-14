@@ -67,6 +67,11 @@ alerting. `webapp-mcp-ready` records that installation milestone. Reset clears
 the marker, and explicit VM deletion restores audit-only RCA first. Select the
 matching published `demojam-ansible` implementation branch when testing these
 changes, using `DEMOJAM_ANSIBLE_BRANCH` and `BOOTSTRAP_BRANCH`.
+For an existing demo, refresh only the seeded `demojam-ansible` repository and
+force its AAP project sync before publishing a workflow that consumes new
+artifacts. The seeding helper accepts an optional repository name and preserves
+the other repositories and account passwords during that selective refresh.
+Refreshing every baseline would overwrite a previously merged collection fix.
 
 For AWS, bootstrap removes the Service selector and publishes an EndpointSlice
 using the EC2 webapp's current public address. The same Service hostname and TLS

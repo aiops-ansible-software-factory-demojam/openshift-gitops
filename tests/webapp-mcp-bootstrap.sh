@@ -101,4 +101,15 @@ sleep() { echo 'A terminal execution must not be polled again' >&2; return 1; }
 demo_ao_run probe '{}' >"$scratch/run-output"
 unset -f sleep
 tail -n +2 "$scratch/run-output" | jq -e '.status=="completed_with_errors" and .results[0].output=="audit only"' >/dev/null
+
+# A selective source refresh must not fetch/reset the recovered collection.
+# Stop at the first fetch, before any Forgejo mutation, and record its name.
+demo_source_checkout() { printf '%s\n' "$1" >>"$scratch/seed-fetches"; return 1; }
+if demo_forgejo_seed_repos demojam-ansible; then
+  echo 'The mocked source fetch must abort seeding' >&2; exit 1
+fi
+[[ $(cat "$scratch/seed-fetches") == demojam-ansible ]]
+if (demo_forgejo_seed_repos unknown-repository) 2>/dev/null; then
+  echo 'An unknown repository must fail before seeding' >&2; exit 1
+fi
 printf 'MCP bootstrap: Secret reuse, TLS, rotation, expiry renewal, workflow modes and backend gating passed\n'
