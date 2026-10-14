@@ -1,6 +1,11 @@
 # shellcheck shell=sh
 # Omnigent mounts the dedicated test identity only on the main host container.
 # The init container and local image development do not need test credentials.
+if [ -r /mnt/secrets/molecule-aws/profile.sh ] && [ -r /mnt/secrets/molecule-aws/credentials ]; then
+  # Only nonsecret region/network/image settings are exported by this profile.
+  # shellcheck disable=SC1091
+  . /mnt/secrets/molecule-aws/profile.sh
+fi
 if [ -r /mnt/secrets/molecule/token ] && [ -r /mnt/secrets/molecule/ca.crt ]; then
   (
     umask 077

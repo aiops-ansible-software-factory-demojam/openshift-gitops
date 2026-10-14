@@ -1,0 +1,149 @@
+name: omnigent-remediation
+description: Turn a Forgejo outage issue and its RCA into a verified collection fix PR.
+schema_version: 2.0.0
+triggers:
+  - id: forgejo_issue
+    name: Forgejo incident received through EDA
+    type: eda_trigger
+    position:
+      x: 0
+      y: 300
+    parameters:
+      webhook_path: forgejo-issue-remediation
+      # Bootstrap binds this trigger to the local EDA service account.
+      authorized_service_account_ids: []
+nodes:
+  - id: prepare_feature
+    name: Prepare the incident branch through Backstage
+    type: http_request
+    position:
+      x: 300
+      y: 300
+    parameters:
+      method: POST
+      url: http://backstage-feature-gate.automation-orchestrator.svc:8080/prepare
+      headers:
+        Content-Type: application/json
+      body:
+        issue_number: ${trigger.issue_number}
+    settings:
+      timeout: 360
+      retry_policy:
+        max_retries: 0
+  - id: authenticate_omnigent
+    name: Obtain Omnigent machine access token
+    type: http_request
+    position:
+      x: 600
+      y: 300
+    parameters:
+      method: POST
+      url: http://omnigent.omnigent.svc:8000/oauth/token
+      headers:
+        Content-Type: application/x-www-form-urlencoded
+      body: grant_type=client_credentials
+    settings:
+      timeout: 30
+      retry_policy:
+        max_retries: 0
+  - id: create_session
+    name: Create the incident remediation session
+    type: http_request
+    position:
+      x: 900
+      y: 300
+    parameters:
+      method: POST
+      url: http://omnigent.omnigent.svc:8000/v1/sessions
+      headers:
+        Content-Type: application/json
+        Authorization: Bearer ${authenticate_omnigent.body.access_token}
+      body:
+        agent_id: DEMO_AGENT_ID
+        host_type: managed
+        title: Webapp outage issue ${trigger.issue_number}
+        initial_items: []
+    settings:
+      timeout: 360
+      retry_policy:
+        max_retries: 0
+  - id: send_task
+    name: Ask the agent to fix the root cause and submit a PR
+    type: http_request
+    position:
+      x: 1200
+      y: 300
+    parameters:
+      method: POST
+      url: http://omnigent.omnigent.svc:8000/v1/sessions/${create_session.body.id}/events
+      headers:
+        Content-Type: application/json
+        Authorization: Bearer ${authenticate_omnigent.body.access_token}
+      body:
+        type: message
+        data:
+          role: user
+          content:
+            - type: input_text
+              text: |
+                Fix the root cause of Forgejo incident #${trigger.issue_number}
+                in demo-owner/ansible-collection-demo.webapp. Backstage has
+                prepared feature/issue-${trigger.issue_number}. Run
+                demo-goldenpath checkout ${trigger.issue_number}, then read
+                AGENTS.md and the incident. Use the RCA below as diagnostic
+                evidence and confirm it against the collection code.
+
+                Implement the durable fix in the collection. Keep SELinux
+                enforcing; correct the policy or file contexts needed by nginx.
+                The nginx Molecule converge play disables fact gathering;
+                gather any facts your new conditions require and install the
+                SELinux system dependencies before using them. Do not silently
+                skip the fix because a fact or Python binding is missing.
+                On these RHEL/CentOS guests, use python3-libselinux,
+                python3-libsemanage, and policycoreutils-python-utils. Refresh
+                facts after installing bindings. The SELinux policy name is
+                ansible_facts.selinux.type; confirm facts against the collector
+                or actual setup output. Report restorecon changes from its
+                verbose relabel output instead of unconditionally hiding them.
+                Confirm new Ansible modules, parameters, and return fields with
+                ansible-doc. Declare collection dependencies in galaxy.yml so
+                AAP project sync installs them; Molecule test requirements
+                alone do not supply production dependencies. The sandbox
+                preloads the pinned test requirements. If you change
+                extensions/molecule/requirements-test.yml, install the updated
+                requirements before validation.
+                Run validation from the checked-out collection root. Scope
+                ansible-lint to roles/nginx and extensions/molecule/nginx;
+                do not lint /tmp or installed dependency collections. Keep
+                the normal collection paths so provisioners remain available.
+                Add a regression check that nginx serves HTTP while SELinux is
+                enforcing in the nginx scenario. Run ansible-lint, build the
+                collection, and run make molecule to test every scenario.
+                Check the actual command exit codes. Fix failed checks,
+                review the diff, and commit it.
+                Write the PR summary and actual validation results to a file
+                outside the repository, then run demo-goldenpath pr
+                ${trigger.issue_number} --body-file <path>. Report the PR URL
+                and any remaining limitations. Do not merge or change the
+                application VM; the submitted PR is the review boundary.
+
+                Incident: ${prepare_feature.body.issue.title}
+                URL: ${prepare_feature.body.issue.html_url}
+                Issue and root cause analysis:
+                ${prepare_feature.body.issue.body}
+    settings:
+      timeout: 360
+      retry_policy:
+        max_retries: 12
+        initial_interval: 5
+        max_interval: 20
+        backoff_coefficient: 1.5
+edges:
+  - from: forgejo_issue
+    to: prepare_feature
+  - from: prepare_feature
+    to: authenticate_omnigent
+  - from: authenticate_omnigent
+    to: create_session
+  - from: create_session
+    to: send_task

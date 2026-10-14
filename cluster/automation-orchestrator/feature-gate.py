@@ -68,7 +68,12 @@ def prepare(number):
             raise RuntimeError(f"Backstage task {task_id} timed out")
     if not backstage(path, token=token, missing_ok=True):
         raise RuntimeError(f"Backstage did not create {branch}")
-    return {"issue_number": number, "branch": branch, "task_id": task_id}
+    return {
+        "issue_number": number,
+        "branch": branch,
+        "task_id": task_id,
+        "issue": {key: issue.get(key) or "" for key in ("title", "body", "html_url")},
+    }
 
 
 class Handler(BaseHTTPRequestHandler):

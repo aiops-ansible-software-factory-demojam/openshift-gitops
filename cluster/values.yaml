@@ -117,6 +117,7 @@ applications:
         name: automation-orchestrator-admin-settings
         jsonPointers:
           - /data/APP_INTEGRATION_URL_ALLOWED_HOSTS
+          - /data/APP_ADAPTER_REQUEST_TIMEOUT_SECONDS
     syncOptions:
       - RespectIgnoreDifferences=true
     annotations:

@@ -6,17 +6,26 @@ Red Hat Developer Hub (Backstage), and an Omnigent agent to a pull request.
 The cluster also runs Ansible Automation Platform (AAP), a RHEL 9 nginx VM,
 and monitoring.
 
+A SELinux outage follows the complete automatic path: blackbox alert → EDA →
+AO audit-log RCA → Forgejo incident → Forgejo webhook → EDA → AO → Omnigent
+fix PR. Bootstrap installs and connects every stage; PR review and merge remain
+manual. LiteLLM's `qwen38-27b` is the default model in the configuration template.
+Bootstrap disables thinking for this model in the coding harness because the
+demo endpoint can otherwise time out before returning a streamed tool call.
+
 ## Before you start
 
 You need cluster-admin access, Operator Lifecycle Manager (OLM) with Red Hat and
 certified operator catalogs, trusted HTTPS ingress, a default StorageClass for
 ReadWriteOnce (RWO) volumes, and enough CPU, memory, and disk for the stack.
-At least one node must expose hardware virtualization (KVM) for the VMs.
-Bootstrap waits for Virtualization and the required OS DataSources.
+For CNV guests, at least one node must expose hardware virtualization (KVM).
+For AWS guests, block storage is sufficient; bootstrap omits Virtualization.
 
 Install Bash, GNU Make, `oc`, `kustomize`, `helm`, `jq`, jq-wrapper `yq`,
 `openssl`, `curl`, `git`, `unzip`, `ssh-keygen`, and standard GNU utilities.
 `yq '.'` must emit JSON that `jq` can read.
+AWS bootstrap also needs Python 3 with `venv` support. It installs its pinned
+SDK in an isolated directory under `.rendered/`.
 
 ## Set up the cluster
 
@@ -34,10 +43,45 @@ oc whoami
 make bootstrap
 ```
 
+To put the Linux guests in AWS, fill `AWS_BOOTSTRAP_ACCESS_KEY_ID` and
+`AWS_BOOTSTRAP_SECRET_ACCESS_KEY` in `.env`, then run `make bootstrap BACKEND=aws`.
+Bootstrap uses those credentials locally to create a dedicated public VPC/subnet
+and separate scoped AAP and Molecule keys. It mounts only the Molecule key into
+the coding sandbox. Defaults are `us-east-2`, `t3.medium`, and encrypted 30 GiB
+gp3 disks. Account, availability zone and RHEL image choices are discovered and
+saved; normal resets reuse them. The monitored guest uses RHEL 9, while
+`make molecule` tests RHEL 9 and RHEL 10. AWS guests use their AMI's RHUI repositories.
+
+Use `BACKEND=cnv` for the existing guest behavior. The recorded backend prevents
+an accidental switch on a live installation. See the
+[backend specification](docs/specs/aws-cnv-backends.md) for credential scopes,
+overrides and resource ownership.
+
 In `.env`, use the [configuration template](.env.example) to select
-`MODEL_PROVIDER` (`opencode-go` or `litellm`) and fill in its key, endpoint,
-and model. Endpoints are HTTPS API base URLs,
-before `/responses` or `/chat/completions`. Place your AAP subscription ZIP,
+the provider (`opencode-go` or `litellm`) and fill in its key, endpoint,
+and model. `MODEL_PROVIDER` and the provider-specific fields remain shared
+defaults. AO and Omnigent can select providers and models independently:
+
+```bash
+AO_MODEL_PROVIDER='litellm'
+AO_MODEL='qwen38-27b'
+AO_QWEN_REASONING_EFFORT='low'
+OMNIGENT_MODEL_PROVIDER='opencode-go'
+OMNIGENT_MODEL='claude-haiku-5-5'
+OMNIGENT_MODEL_PROTOCOL='anthropic'
+```
+
+This uses `LITELLM_ENDPOINT`/`LITELLM_API_KEY` for AO and
+`OPENCODE_GO_ENDPOINT`/`OPENCODE_GO_API_KEY` for Omnigent. Optional
+`AO_MODEL_ENDPOINT`, `AO_MODEL_API_KEY`, `OMNIGENT_MODEL_ENDPOINT` and
+`OMNIGENT_MODEL_API_KEY` override those defaults for separate accounts.
+`AO_MODEL_PROTOCOL` and `OMNIGENT_MODEL_PROTOCOL` select each consumer's transport.
+Empty overrides inherit the defaults for that consumer's selected provider.
+`make model-config` applies both selections; existing coding sessions retain
+their startup configuration, so use a new session to test a model change.
+
+Endpoints are HTTPS API base URLs,
+before `/responses`, `/chat/completions`, or `/messages`. Place your AAP subscription ZIP,
 including RHEL CDN entitlement, at `aap_manifest.zip`, or set `AAP_LICENSE_FILE`.
 The ZIP and `.env` are ignored by Git; quote values as trusted Bash configuration.
 
@@ -46,7 +90,8 @@ Argo CD reads published Git commits. Publish changes before setup and set
 three Ansible repos are configured separately; see [Forgejo](cluster/forgejo/README.md).
 
 Bootstrap installs the stack, seeds Forgejo, builds the agent image, configures
-AAP, provisions nginx, and checks HTTPS and monitoring. Wait for
+AAP, provisions the RHEL VM, runs the separate permissive setup playbook,
+installs nginx, and checks HTTPS and monitoring. Wait for
 `Bootstrap completed`, then open the printed Homepage URL. Sign in as
 `demo-user` with `DEMO_USER_PASSWORD` (default `changeme` for new accounts).
 This demo account has application administrator and OpenShift cluster-admin
@@ -54,7 +99,27 @@ access. Keep your populated `.env` for reruns.
 
 ## Run the demo
 
+Agents can use the repository's
+[run-demojam skill](.agents/skills/run-demojam/SKILL.md) to run the full demo
+without coaching the coding agent or repairing the run. It merges the Forgejo
+fix only after tests pass on the published commit.
+
 Run these commands from the repository root:
+
+```bash
+bash bootstrap/bootstrap.sh aap launch webapp_selinux_enable
+```
+
+The seeded job enables SELinux enforcing on the webapp VM. Follow the new
+Forgejo incident and its RCA into the Omnigent session; the agent tests its
+collection fix and submits a PR. Merge the tested PR, then run
+`make webapp-nginx` once to deploy it. This job preserves SELinux Enforcing;
+run `bash bootstrap/bootstrap.sh webapp verify-enforcing` to check recovery.
+To restore only the permissive mode for an unmerged demonstration, run
+`bash bootstrap/bootstrap.sh aap launch webapp_selinux_permissive`.
+A full reset and bootstrap also restore the unfixed collection.
+
+The starter issue exercises the Backstage feature flow directly:
 
 ```bash
 make demo-hydrate     # Print the starter issue URL and number
@@ -71,13 +136,46 @@ the PR URL.
 then reseeds the baseline. It leaves demo VMs absent; rerun `make bootstrap`
 to restore the full environment. `make teardown` removes the entire demo stack,
 operators, identities, and persistent data. Both discard disposable demo work.
+Use `make teardown-keep-aap` to retain AAP, its operator and database volumes
+while removing the rest. It stops the demo EDA listeners until the next bootstrap.
+Bootstrap reconciles Homepage's new reader password with the preserved AAP
+account before verifying the dashboard.
+The permissive setup job runs after VM provisioning during bootstrap.
+It is separate from nginx installation, so deploying a merged fix preserves
+the Enforcing state established by the fault job.
+For `qwen38-27b`, bootstrap also configures an authenticated LiteLLM bridge for
+AO's RCA requests. Set `AO_QWEN_REASONING_EFFORT` or
+`OMNIGENT_QWEN_REASONING_EFFORT` to `medium`, `low`, or `xhigh` to enable
+thinking for the corresponding Qwen consumer. Each falls back to
+`QWEN_REASONING_EFFORT`; the default `none` keeps Qwen thinking disabled.
+Bootstrap sets AO's per-attempt LLM timeout to 90 seconds in backend, worker,
+and background worker. Override it with `AO_LLM_REQUEST_TIMEOUT_SECONDS` in `.env`.
+Setup and reset silence only `WebappDown` while the baseline is unavailable.
+Bootstrap waits for monitoring to observe recovery before ending maintenance.
+Recovery notifications and a 30-second group interval allow repeat demo runs;
+EDA dispatches only firing alerts, and repeats reuse the open incident.
+Before script launches, bootstrap waits for node storage readiness and refreshes
+the AAP project and inventories sequentially. Ensuing EDA/AO jobs reuse a
+ten-minute dependency cache; script launches always refresh it, including after
+creating a VM, so inventory still discovers the new guest.
+The Enforcing check waits for its AAP result event to become visible after
+command completion. A returned non-Enforcing state fails immediately; the
+verification command is never re-executed while waiting for its event.
 Setup, reset, and teardown share the implementation in
 `bootstrap/bootstrap.sh`; Make targets invoke that script directly.
+Bootstrap waits up to fifteen minutes for Keycloak's public OIDC discovery
+endpoint, covering its ten-minute container startup probe window.
 
 ## Find your next step
 
+The [AWS and CNV backend specification](docs/specs/aws-cnv-backends.md) describes
+the AWS guest support and the existing CNV behavior.
+
 `make help-all` lists maintenance commands; `make preflight` checks prerequisites
 without changing the cluster, and `make render` renders manifests locally.
+
+Use the
+[run-demojam skill](.agents/skills/run-demojam/SKILL.md) for the operator sequence.
 
 - [Login and users](cluster/demojam-keycloak/README.md) · [Homepage](cluster/homepage/README.md)
 - [Forgejo](cluster/forgejo/README.md) · [Developer Hub](cluster/rhdh/README.md) · [Agent sessions and tests](cluster/omnigent/README.md)

@@ -1,13 +1,16 @@
 .DEFAULT_GOAL := help
 export ISSUE QUESTION
+ifneq ($(strip $(BACKEND)),)
+export DEMO_BACKEND := $(BACKEND)
+endif
 
-.PHONY: help help-all preflight bootstrap teardown identity homepage-refresh model-config sandbox-build demo-hydrate demo render demo-reset aap-configure aap-sync ao-configure ao-llm-test ao-aap-run webapp-create webapp-nginx webapp-delete webapp-verify
+.PHONY: help help-all preflight bootstrap teardown teardown-keep-aap identity homepage-refresh model-config sandbox-build demo-hydrate demo render demo-reset aap-configure aap-sync ao-configure ao-llm-test ao-aap-run webapp-create webapp-nginx webapp-delete webapp-verify
 
 help:
 	@printf '%s\n' \
 	  'Set up and run the demo:' \
 	  '' \
-	  '  make bootstrap       Set up the complete environment' \
+	  '  make bootstrap [BACKEND=cnv|aws] Set up the complete environment' \
 	  '  make demo ISSUE=N    Start the issue-to-PR demo' \
 	  '  make demo-reset      Reset disposable demo state' \
 	  '  make webapp-verify   Check webapp health' \
@@ -22,6 +25,7 @@ help-all:
 	  'make help-all      Show all setup and maintenance commands' \
 	  'make bootstrap     Install platform, provision RHEL/nginx, and verify; publish branch first' \
 	  'make teardown      Remove the complete demo stack, operators and persistent data' \
+	  'make teardown-keep-aap Remove the demo while preserving AAP and its database volumes' \
 	  'make render        Render manifests locally into .rendered/' \
 	  'make preflight     Read-only local/cluster prerequisites; .env, manifest, KUBECONFIG' \
 	  'make identity      Reconcile demo users and OIDC clients/providers on an installed stack' \
@@ -47,6 +51,9 @@ bootstrap:
 
 teardown:
 	bash bootstrap/bootstrap.sh teardown --confirm-demo-teardown
+
+teardown-keep-aap:
+	bash bootstrap/bootstrap.sh teardown --confirm-demo-teardown --keep-aap
 
 identity:
 	bash bootstrap/bootstrap.sh identity

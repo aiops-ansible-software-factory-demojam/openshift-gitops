@@ -33,9 +33,19 @@ through Secrets; Git askpass keeps credentials out of Git URLs.
 
 ## Run Molecule tests
 
-The image includes Ansible Development Tools and OpenCode. From a generated
-collection root, run `molecule test`. In the seeded `demo.webapp` collection,
-`molecule test -s nginx` checks nginx; `make test` runs both scenarios sequentially.
+The image includes Ansible Development Tools, OpenCode, the Kubernetes Python
+client, and the pinned Ansible collections in
+[`image/requirements.yml`](image/requirements.yml). This preloads the Molecule
+provisioner, its dependencies, and `ansible.posix` for SELinux modules. The
+collection search path includes the agent's home directory and the image's
+`/usr/share/ansible/collections`, so unchanged test requirements need no download.
+
+From the seeded `demo.webapp` collection root, run `make molecule`. It runs
+`molecule test --all`; nginx is the only scenario. New scenarios under
+`extensions/molecule/` are included automatically. `make test` remains an alias.
+Keep the image's provisioner pin aligned with the collections' test requirements.
+If an agent changes requirements, it must install them before testing. Production
+dependencies still belong in the collection's `galaxy.yml` for AAP project sync.
 
 Tests clone CentOS Stream 10 into `molecule-tests` with a 30 GiB disk, two
 vCPUs, and 2 GiB RAM. The RHEL 10 inventory entry stays disabled until repository
@@ -43,11 +53,9 @@ prerequisites are configured. The dedicated test identity can manage test VMs
 and clone OS disks; it cannot read Secrets or manage application VMs. The runner
 does not automatically mount a Kubernetes API token.
 
-Serialize runs across **all** sandboxes, collections, and scenarios sharing
-`molecule-tests`: the fixed `centos-stream10` name means overlapping runs can
-modify or delete each other's VM. The four-VM/120 GiB quota does not isolate runs.
-After an interrupted test, run `molecule destroy` only when no other run uses
-that VM. Resolve missing credential mounts or unready DataSources before testing.
+This demo runs one agent. After an interrupted test, run `make destroy` from
+the same collection. Resolve missing credential mounts or unready DataSources
+before testing.
 
 ## Image and session lifecycle
 

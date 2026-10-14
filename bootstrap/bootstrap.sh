@@ -14,6 +14,16 @@ source "$demo_repo_root/bootstrap/homepage.sh"
 # -----------------------------------------------------------------------------
 
 demo_load_env() {
+  set +x
+  local inherited_backend=${DEMO_BACKEND:-}
+  local input_name
+  local -A inherited_aws=()
+  for input_name in AWS_BOOTSTRAP_ACCESS_KEY_ID AWS_BOOTSTRAP_SECRET_ACCESS_KEY AWS_DEMO_ACCOUNT_ID \
+    AWS_DEMO_REGION AWS_DEMO_AZ AWS_DEMO_VPC_CIDR AWS_DEMO_SSH_CIDR AWS_DEMO_HTTP_CIDR \
+    AWS_WEBAPP_INSTANCE_TYPE AWS_MOLECULE_INSTANCE_TYPE AWS_DEMO_ROOT_VOLUME_SIZE_GIB \
+    AWS_RHEL9_AMI_ID AWS_RHEL10_AMI_ID; do
+    [[ -z ${!input_name:-} ]] || inherited_aws[$input_name]=${!input_name}
+  done
   local inherited_kubeconfig=${KUBECONFIG:-} inherited_branch=${BOOTSTRAP_BRANCH:-} original_dir=$PWD
   local inherited_template_branch=${ANSIBLE_COLLECTION_TEMPLATE_BRANCH:-}
   local inherited_collection_branch=${ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH:-}
@@ -32,6 +42,18 @@ demo_load_env() {
   cd -- "$original_dir"
 
   export KUBECONFIG=${inherited_kubeconfig:-${KUBECONFIG:-}}
+  for input_name in "${!inherited_aws[@]}"; do
+    export "$input_name=${inherited_aws[$input_name]}"
+  done
+  export KUBECONFIG=${KUBECONFIG:-$HOME/.kube/config}
+  export DEMO_BACKEND=${inherited_backend:-${DEMO_BACKEND:-}}
+  export AWS_DEMO_REGION=${AWS_DEMO_REGION:-us-east-2}
+  export AWS_DEMO_VPC_CIDR=${AWS_DEMO_VPC_CIDR:-10.77.0.0/24}
+  export AWS_DEMO_SSH_CIDR=${AWS_DEMO_SSH_CIDR:-0.0.0.0/0}
+  export AWS_DEMO_HTTP_CIDR=${AWS_DEMO_HTTP_CIDR:-0.0.0.0/0}
+  export AWS_WEBAPP_INSTANCE_TYPE=${AWS_WEBAPP_INSTANCE_TYPE:-t3.medium}
+  export AWS_MOLECULE_INSTANCE_TYPE=${AWS_MOLECULE_INSTANCE_TYPE:-t3.medium}
+  export AWS_DEMO_ROOT_VOLUME_SIZE_GIB=${AWS_DEMO_ROOT_VOLUME_SIZE_GIB:-30}
   export BOOTSTRAP_BRANCH=${inherited_branch:-${BOOTSTRAP_BRANCH:-main}}
   export ANSIBLE_COLLECTION_TEMPLATE_BRANCH=${inherited_template_branch:-${ANSIBLE_COLLECTION_TEMPLATE_BRANCH:-}}
   export ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH=${inherited_collection_branch:-${ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH:-}}
@@ -43,6 +65,433 @@ demo_load_env() {
   [[ $BOOTSTRAP_REPO_URL =~ ^https://[a-zA-Z0-9.-]+/[a-zA-Z0-9._/-]+$ ]] ||
     demo_die 'BOOTSTRAP_REPO_URL must be a public HTTPS Git repository URL without credentials.'
 }
+
+# Backend selection is recorded outside disposable namespaces. A live deployment
+# cannot be silently rebound to another backend or AWS account.
+demo_backend_config() {
+  local recorded
+  recorded=$(oc -n openshift-config get configmap demojam-backend --ignore-not-found \
+    -o jsonpath='{.data.backend}' --request-timeout=20s)
+  export DEMO_BACKEND=${DEMO_BACKEND:-${recorded:-cnv}}
+  case $DEMO_BACKEND in cnv|aws) ;; *) demo_die 'DEMO_BACKEND must be cnv or aws.' ;; esac
+  [[ -z $recorded || $recorded == "$DEMO_BACKEND" ]] ||
+    demo_die 'Tear down the recorded deployment before changing its backend.'
+}
+
+# The AWS SDK stays in an isolated local environment. All lifecycle code remains
+# here; root/admin credentials are explicit SDK inputs, never pod credentials.
+demo_aws_python() {
+  local python="$demo_repo_root/.rendered/aws-bootstrap-venv/bin/python"
+  if [[ ! -x $python ]]; then
+    python3 -m venv "$demo_repo_root/.rendered/aws-bootstrap-venv"
+    "$python" -m pip install --disable-pip-version-check 'boto3==1.43.113' 'botocore==1.43.113' >/dev/null
+  fi
+  printf '%s\n' "$python"
+}
+
+demo_aws() (
+  local action=${1:-preflight} python
+  [[ $DEMO_BACKEND == aws ]] || return 0
+  [[ -n ${AWS_BOOTSTRAP_ACCESS_KEY_ID:-} && -n ${AWS_BOOTSTRAP_SECRET_ACCESS_KEY:-} ]] ||
+    demo_die 'Populate AWS_BOOTSTRAP_ACCESS_KEY_ID and AWS_BOOTSTRAP_SECRET_ACCESS_KEY in .env.'
+  export DEMO_REPO_ROOT=$demo_repo_root
+  python=$(demo_aws_python)
+  "$python" - "$action" <<'PY'
+import base64
+import hashlib
+import ipaddress
+import json
+import os
+import re
+import secrets
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+import boto3
+from botocore.config import Config
+from botocore.exceptions import ClientError
+
+action = sys.argv[1]
+env = os.environ
+region = env['AWS_DEMO_REGION']
+session = boto3.Session(aws_access_key_id=env['AWS_BOOTSTRAP_ACCESS_KEY_ID'],
+                        aws_secret_access_key=env['AWS_BOOTSTRAP_SECRET_ACCESS_KEY'], region_name=region)
+cfg = Config(connect_timeout=10, read_timeout=30, retries={'mode': 'standard', 'max_attempts': 4})
+ec2, iam = session.client('ec2', config=cfg), session.client('iam', config=cfg)
+identity = session.client('sts', config=cfg).get_caller_identity()
+account = identity['Account']
+assert not env.get('AWS_DEMO_ACCOUNT_ID') or env['AWS_DEMO_ACCOUNT_ID'] == account, 'AWS account differs from AWS_DEMO_ACCOUNT_ID'
+
+def oc(*args, data=None):
+    result = subprocess.run(['oc', *args], input=data, text=True, capture_output=True, check=True)
+    return result.stdout
+
+cluster_uid = json.loads(oc('get', 'namespace', 'kube-system', '-o', 'json'))['metadata']['uid']
+receipt_dir = Path(env['DEMO_REPO_ROOT']) / '.rendered' / 'aws-state' / cluster_uid
+receipt_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+state_file, key_file = receipt_dir / 'state.json', receipt_dir / 'runtime-credentials.json'
+record = oc('-n', 'openshift-config', 'get', 'configmap', 'demojam-backend', '--ignore-not-found', '-o', 'json')
+state = json.loads(record)['data'] if record else {}
+state = json.loads(state['aws.json']) if state.get('aws.json') else (json.loads(state_file.read_text()) if state_file.exists() else {})
+if state:
+    assert state['account_id'] == account and state['region'] == region and state['cluster_uid'] == cluster_uid, 'Recorded AWS account/region/cluster differs; refusing to rebind'
+else:
+    state = {'version': 1, 'backend': 'aws', 'account_id': account, 'region': region,
+             'cluster_uid': cluster_uid, 'deployment_id': 'dj-' + secrets.token_hex(6)}
+deployment = state['deployment_id']
+
+def atomic(path, value):
+    tmp = path.with_suffix('.tmp')
+    tmp.write_text(json.dumps(value, indent=2) + '\n')
+    tmp.chmod(0o600)
+    tmp.replace(path)
+
+def save():
+    atomic(state_file, state)
+    manifest = {'apiVersion': 'v1', 'kind': 'ConfigMap', 'metadata': {'name': 'demojam-backend', 'namespace': 'openshift-config'},
+                'data': {'backend': 'aws', 'aws.json': json.dumps(state)}}
+    oc('apply', '-f', '-', data=json.dumps(manifest))
+
+def tags(purpose):
+    return [{'Key': 'demojam:deployment', 'Value': deployment}, {'Key': 'demojam:purpose', 'Value': purpose},
+            {'Key': 'Name', 'Value': 'demojam-' + deployment + '-' + purpose}]
+
+def filters(purpose):
+    return [{'Name': 'tag:demojam:deployment', 'Values': [deployment]}, {'Name': 'tag:demojam:purpose', 'Values': [purpose]}]
+
+def one(items, label):
+    assert len(items) <= 1, 'Multiple owned ' + label + ' resources; refusing ambiguous selection'
+    return items[0] if items else None
+
+def owned(resource):
+    t = {x['Key']: x['Value'] for x in resource.get('Tags', [])}
+    assert t.get('demojam:deployment') == deployment, 'Refusing to mutate a foreign resource'
+
+def if_present(call, **kwargs):
+    try:
+        return call(**kwargs)
+    except ClientError as error:
+        if error.response['Error']['Code'] not in ['NoSuchEntity', 'InvalidSubnetID.NotFound',
+            'InvalidRouteTableID.NotFound', 'InvalidInternetGatewayID.NotFound', 'InvalidVpcID.NotFound']:
+            raise
+        return None
+
+def namespace(name):
+    oc('apply', '-f', '-', data=json.dumps({'apiVersion': 'v1', 'kind': 'Namespace', 'metadata': {'name': name}}))
+
+def secret(namespace_name, name, values):
+    namespace(namespace_name)
+    oc('apply', '-f', '-', data=json.dumps({'apiVersion': 'v1', 'kind': 'Secret',
+       'metadata': {'name': name, 'namespace': namespace_name}, 'type': 'Opaque', 'stringData': values}))
+
+def existing_secret(namespace_name, name):
+    ns = oc('get', 'namespace', namespace_name, '--ignore-not-found', '-o', 'name')
+    if not ns:
+        return {}
+    raw = oc('-n', namespace_name, 'get', 'secret', name, '--ignore-not-found', '-o', 'json')
+    return {k: base64.b64decode(v).decode() for k, v in json.loads(raw).get('data', {}).items()} if raw else {}
+
+def image(major):
+    field = 'rhel' + major + '_ami_id'
+    selected = env.get('AWS_RHEL' + major + '_AMI_ID') or state.get(field)
+    if selected:
+        assert not state.get(field) or selected == state[field], 'AMI changed during a live deployment'
+        items = ec2.describe_images(ImageIds=[selected])['Images']
+    else:
+        items = ec2.describe_images(Owners=['309956199498'], Filters=[
+            {'Name': 'name', 'Values': ['RHEL-' + major + '*HVM*x86_64*']},
+            {'Name': 'state', 'Values': ['available']}, {'Name': 'architecture', 'Values': ['x86_64']},
+            {'Name': 'virtualization-type', 'Values': ['hvm']}])['Images']
+    assert items, 'No approved RHEL ' + major + ' image is available'
+    selected_image = max(items, key=lambda i: i['CreationDate'])
+    assert selected_image['OwnerId'] == '309956199498' and selected_image['Architecture'] == 'x86_64' and selected_image['State'] == 'available', 'AMI must be an available Red Hat x86_64 image'
+    return selected_image['ImageId']
+
+def policy(purpose):
+    arn = 'arn:aws:ec2:' + region + ':' + account + ':'
+    owner = {'aws:ResourceTag/demojam:deployment': deployment, 'aws:ResourceTag/demojam:purpose': purpose}
+    requested = {'aws:RequestTag/demojam:deployment': deployment, 'aws:RequestTag/demojam:purpose': purpose}
+    statements = [
+      {'Effect': 'Allow', 'Action': 'ec2:Describe*', 'Resource': '*', 'Condition': {'StringEquals': {'aws:RequestedRegion': region}}},
+      {'Effect': 'Allow', 'Action': 'ec2:RunInstances', 'Resource': [
+         'arn:aws:ec2:' + region + '::image/' + state['rhel9_ami_id'],
+         *(['arn:aws:ec2:' + region + '::image/' + state['rhel10_ami_id']] if purpose == 'molecule' else []),
+         arn + 'subnet/' + state['subnet_id']], 'Condition': {'StringEquals': {'aws:RequestedRegion': region}}},
+      {'Effect': 'Allow', 'Action': 'ec2:RunInstances',
+       'Resource': [arn + 'security-group/' + state['molecule_security_group_id']] if purpose == 'molecule' else [arn + 'security-group/*', arn + 'key-pair/*'],
+       'Condition': {'StringEquals': {'aws:RequestedRegion': region} if purpose == 'molecule' else owner}},
+      {'Effect': 'Allow', 'Action': 'ec2:RunInstances', 'Resource': arn + 'network-interface/*',
+       'Condition': {'ArnEquals': {'ec2:Subnet': arn + 'subnet/' + state['subnet_id']}}},
+      {'Effect': 'Allow', 'Action': 'ec2:RunInstances', 'Resource': [arn + 'instance/*', arn + 'volume/*'],
+       'Condition': {'StringEquals': requested, 'StringEqualsIfExists': {'ec2:InstanceType': ['t3.micro', 't3.small', 't3.medium', 't3.large', 't3.xlarge']}}},
+      {'Effect': 'Allow', 'Action': ['ec2:CreateSecurityGroup'], 'Resource': arn + 'vpc/' + state['vpc_id']},
+      {'Effect': 'Allow', 'Action': ['ec2:CreateSecurityGroup', 'ec2:ImportKeyPair'],
+       'Resource': [arn + 'security-group/*', arn + 'key-pair/*'], 'Condition': {'StringEquals': requested}},
+      {'Effect': 'Allow', 'Action': 'ec2:CreateTags', 'Resource': [arn + 'instance/*', arn + 'volume/*', arn + 'network-interface/*', arn + 'security-group/*', arn + 'key-pair/*'],
+       'Condition': {'StringEquals': {**requested, 'ec2:CreateAction': ['RunInstances', 'CreateSecurityGroup', 'ImportKeyPair']}}},
+      {'Effect': 'Allow', 'Action': ['ec2:StartInstances', 'ec2:StopInstances', 'ec2:TerminateInstances',
+         'ec2:ModifyInstanceAttribute', 'ec2:ModifyInstanceMetadataOptions', 'ec2:DeleteVolume', 'ec2:DeleteNetworkInterface',
+         'ec2:DeleteKeyPair', 'ec2:DeleteSecurityGroup', 'ec2:AuthorizeSecurityGroupIngress',
+         'ec2:AuthorizeSecurityGroupEgress', 'ec2:RevokeSecurityGroupIngress', 'ec2:RevokeSecurityGroupEgress', 'ec2:CreateTags', 'ec2:DeleteTags'],
+       'Resource': [arn + 'instance/*', arn + 'volume/*', arn + 'network-interface/*', arn + 'security-group/*', arn + 'key-pair/*'],
+       'Condition': {'StringEquals': owner}},
+      {'Effect': 'Deny', 'Action': ['ec2:CreateTags', 'ec2:DeleteTags'], 'Resource': '*',
+       'Condition': {'Null': {'ec2:CreateAction': 'true'}, 'ForAnyValue:StringEquals': {'aws:TagKeys': ['demojam:deployment', 'demojam:purpose']}}}
+    ]
+    return {'Version': '2012-10-17', 'Statement': statements}
+
+def cleanup(purposes):
+    reservations = ec2.describe_instances(Filters=[
+        {'Name': 'tag:demojam:deployment', 'Values': [deployment]}, {'Name': 'tag:demojam:purpose', 'Values': purposes},
+        {'Name': 'instance-state-name', 'Values': ['pending', 'running', 'stopping', 'stopped', 'shutting-down']}])['Reservations']
+    instances = [i for r in reservations for i in r['Instances']]
+    volume_ids = [b['Ebs']['VolumeId'] for i in instances for b in i.get('BlockDeviceMappings', []) if 'Ebs' in b]
+    for instance in instances:
+        owned(instance)
+        assert all(b['Ebs']['DeleteOnTermination'] for b in instance.get('BlockDeviceMappings', []) if 'Ebs' in b), 'Guest disk lacks delete-on-termination; inspect before teardown'
+    ids = [i['InstanceId'] for i in instances]
+    if ids:
+        ec2.terminate_instances(InstanceIds=ids)
+        ec2.get_waiter('instance_terminated').wait(InstanceIds=ids)
+    for attempt in range(60):
+        remaining = ec2.describe_volumes(Filters=[{'Name': 'volume-id', 'Values': volume_ids}])['Volumes'] if volume_ids else []
+        if not remaining:
+            break
+        time.sleep(5)
+    assert not remaining, 'Guest root volumes remain after termination'
+    for purpose in purposes:
+        for group in ec2.describe_security_groups(Filters=filters(purpose))['SecurityGroups']:
+            owned(group)
+            if purpose == 'webapp' and action != 'teardown':
+                continue
+            for attempt in range(60):
+                try:
+                    ec2.delete_security_group(GroupId=group['GroupId']); break
+                except ClientError as error:
+                    if error.response['Error']['Code'] != 'DependencyViolation' or attempt == 59:
+                        raise
+                    time.sleep(5)
+        for key in ec2.describe_key_pairs(Filters=filters(purpose))['KeyPairs']:
+            owned(key)
+            if purpose != 'webapp' or action == 'teardown':
+                ec2.delete_key_pair(KeyPairId=key['KeyPairId'])
+    print('Owned guest instances, root disks and disposable test resources cleaned up.')
+
+if action == 'preflight':
+    for name in ('AWS_DEMO_VPC_CIDR', 'AWS_DEMO_SSH_CIDR', 'AWS_DEMO_HTTP_CIDR'):
+        ipaddress.ip_network(env[name])
+    for name in ('AWS_WEBAPP_INSTANCE_TYPE', 'AWS_MOLECULE_INSTANCE_TYPE'):
+        assert env[name] in ['t3.micro', 't3.small', 't3.medium', 't3.large', 't3.xlarge'], 'Guest type exceeds the approved allowlist'
+    image('9'); image('10')
+    iam.list_users(MaxItems=1)
+    ec2.describe_availability_zones(Filters=[{'Name': 'state', 'Values': ['available']}])
+    print('AWS account, region, image selection and IAM discovery verified.')
+    sys.exit(0)
+
+if action in ('cleanup', 'teardown'):
+    assert state_file.exists() or record, 'No deployment ownership receipt; refusing AWS cleanup'
+    cleanup(['webapp', 'molecule'])
+    if action == 'teardown':
+        cleanup(['molecule-network'])
+        for purpose in ['aap', 'molecule']:
+            user = state.get(purpose + '_iam_user')
+            if user:
+                user_record = if_present(iam.get_user, UserName=user)
+                if not user_record:
+                    continue
+                user_tags = iam.list_user_tags(UserName=user)['Tags']
+                assert {t['Key']: t['Value'] for t in user_tags}.get('demojam:deployment') == deployment, 'Foreign IAM user'
+                keys = iam.list_access_keys(UserName=user)['AccessKeyMetadata']
+                local_keys = json.loads(key_file.read_text()) if key_file.exists() else {}
+                created_key = state.get(purpose + '_access_key_id') or local_keys.get(purpose, {}).get('AccessKeyId')
+                assert all(key['AccessKeyId'] == created_key for key in keys), 'An unrecorded IAM key is present; refusing to delete it'
+                for key in keys:
+                    iam.delete_access_key(UserName=user, AccessKeyId=key['AccessKeyId'])
+                policy_arn = state.get(purpose + '_policy_arn')
+                if policy_arn and if_present(iam.get_policy, PolicyArn=policy_arn):
+                    policy_tags = iam.list_policy_tags(PolicyArn=policy_arn)['Tags']
+                    assert {t['Key']: t['Value'] for t in policy_tags}.get('demojam:deployment') == deployment, 'Foreign IAM policy'
+                    iam.detach_user_policy(UserName=user, PolicyArn=policy_arn)
+                    for version in iam.list_policy_versions(PolicyArn=policy_arn)['Versions']:
+                        if not version['IsDefaultVersion']:
+                            iam.delete_policy_version(PolicyArn=policy_arn, VersionId=version['VersionId'])
+                    iam.delete_policy(PolicyArn=policy_arn)
+                iam.delete_user(UserName=user)
+        subnet_record = if_present(ec2.describe_subnets, SubnetIds=[state['subnet_id']]) if state.get('subnet_id') else None
+        if subnet_record:
+            owned(subnet_record['Subnets'][0])
+            ec2.delete_subnet(SubnetId=state['subnet_id'])
+        route_record = if_present(ec2.describe_route_tables, RouteTableIds=[state['route_table_id']]) if state.get('route_table_id') else None
+        if route_record:
+            owned(route_record['RouteTables'][0])
+            ec2.delete_route_table(RouteTableId=state['route_table_id'])
+        igw_record = if_present(ec2.describe_internet_gateways, InternetGatewayIds=[state['igw_id']]) if state.get('igw_id') else None
+        if igw_record:
+            owned(igw_record['InternetGateways'][0])
+            if igw_record['InternetGateways'][0].get('Attachments'):
+                ec2.detach_internet_gateway(InternetGatewayId=state['igw_id'], VpcId=state['vpc_id'])
+            ec2.delete_internet_gateway(InternetGatewayId=state['igw_id'])
+        vpc_record = if_present(ec2.describe_vpcs, VpcIds=[state['vpc_id']]) if state.get('vpc_id') else None
+        if vpc_record:
+            owned(vpc_record['Vpcs'][0])
+            ec2.delete_vpc(VpcId=state['vpc_id'])
+        oc('-n', 'openshift-config', 'delete', 'configmap', 'demojam-backend', '--ignore-not-found')
+        key_file.unlink(missing_ok=True)
+        state_file.unlink(missing_ok=True)
+        (receipt_dir / 'webapp.pem').unlink(missing_ok=True)
+        (receipt_dir / 'webapp.pem.pub').unlink(missing_ok=True)
+        for namespace_name, secret_name in [('ansible-automation-platform', 'demo-aws-runtime'),
+                                             ('omnigent-sandboxes', 'molecule-aws-credentials')]:
+            oc('-n', namespace_name, 'delete', 'secret', secret_name, '--ignore-not-found')
+        print('Created IAM credentials and dedicated guest network removed.')
+    sys.exit(0)
+
+assert action == 'setup', 'Unsupported AWS lifecycle action'
+save()
+state['rhel9_ami_id'], state['rhel10_ami_id'] = image('9'), image('10')
+zones = ec2.describe_availability_zones(Filters=[{'Name': 'state', 'Values': ['available']}])['AvailabilityZones']
+requested_az = env.get('AWS_DEMO_AZ') or state.get('availability_zone') or sorted(z['ZoneName'] for z in zones)[0]
+assert requested_az in [z['ZoneName'] for z in zones], 'Selected availability zone is unavailable'
+assert not state.get('availability_zone') or state['availability_zone'] == requested_az, 'AZ changed during a live deployment'
+state['availability_zone'] = requested_az
+for field, variable in [('vpc_cidr', 'AWS_DEMO_VPC_CIDR'), ('ssh_cidr', 'AWS_DEMO_SSH_CIDR'),
+                        ('http_cidr', 'AWS_DEMO_HTTP_CIDR'), ('webapp_instance_type', 'AWS_WEBAPP_INSTANCE_TYPE'),
+                        ('molecule_instance_type', 'AWS_MOLECULE_INSTANCE_TYPE'), ('root_volume_size', 'AWS_DEMO_ROOT_VOLUME_SIZE_GIB')]:
+    assert not state.get(field) or str(state[field]) == env[variable], 'Saved AWS settings differ: ' + variable
+    state[field] = int(env[variable]) if field == 'root_volume_size' else env[variable]
+save()
+
+vpc = one(ec2.describe_vpcs(Filters=filters('network'))['Vpcs'], 'VPC')
+if not vpc:
+    vpc = ec2.create_vpc(CidrBlock=state['vpc_cidr'], TagSpecifications=[{'ResourceType': 'vpc', 'Tags': tags('network')}])['Vpc']
+state['vpc_id'] = vpc['VpcId']; save()
+ec2.modify_vpc_attribute(VpcId=state['vpc_id'], EnableDnsSupport={'Value': True})
+ec2.modify_vpc_attribute(VpcId=state['vpc_id'], EnableDnsHostnames={'Value': True})
+subnet = one(ec2.describe_subnets(Filters=filters('network'))['Subnets'], 'subnet')
+if not subnet:
+    subnet = ec2.create_subnet(VpcId=state['vpc_id'], CidrBlock=state['vpc_cidr'], AvailabilityZone=requested_az,
+        TagSpecifications=[{'ResourceType': 'subnet', 'Tags': tags('network')}])['Subnet']
+state['subnet_id'] = subnet['SubnetId']; save()
+ec2.modify_subnet_attribute(SubnetId=state['subnet_id'], MapPublicIpOnLaunch={'Value': True})
+igw = one(ec2.describe_internet_gateways(Filters=filters('network'))['InternetGateways'], 'internet gateway')
+if not igw:
+    igw = ec2.create_internet_gateway(TagSpecifications=[{'ResourceType': 'internet-gateway', 'Tags': tags('network')}])['InternetGateway']
+state['igw_id'] = igw['InternetGatewayId']; save()
+if not igw.get('Attachments'):
+    ec2.attach_internet_gateway(InternetGatewayId=state['igw_id'], VpcId=state['vpc_id'])
+route = one(ec2.describe_route_tables(Filters=filters('network'))['RouteTables'], 'route table')
+if not route:
+    route = ec2.create_route_table(VpcId=state['vpc_id'], TagSpecifications=[{'ResourceType': 'route-table', 'Tags': tags('network')}])['RouteTable']
+state['route_table_id'] = route['RouteTableId']; save()
+if not any(r.get('DestinationCidrBlock') == '0.0.0.0/0' for r in route['Routes']):
+    ec2.create_route(RouteTableId=state['route_table_id'], DestinationCidrBlock='0.0.0.0/0', GatewayId=state['igw_id'])
+if not any(a.get('SubnetId') == state['subnet_id'] for a in route.get('Associations', [])):
+    ec2.associate_route_table(RouteTableId=state['route_table_id'], SubnetId=state['subnet_id'])
+
+group = one(ec2.describe_security_groups(Filters=filters('webapp'))['SecurityGroups'], 'webapp security group')
+if not group:
+    result = ec2.create_security_group(GroupName='demojam-' + deployment + '-webapp', Description='Demojam monitored guest',
+        VpcId=state['vpc_id'], TagSpecifications=[{'ResourceType': 'security-group', 'Tags': tags('webapp')}])
+    group = {'GroupId': result['GroupId']}
+state['webapp_security_group_id'] = group['GroupId']; save()
+permissions = [{'IpProtocol': 'tcp', 'FromPort': port, 'ToPort': port, 'IpRanges': [{'CidrIp': cidr}]} for port, cidr in [(22, state['ssh_cidr']), (80, state['http_cidr'])]]
+try:
+    ec2.authorize_security_group_ingress(GroupId=group['GroupId'], IpPermissions=permissions)
+except ClientError as error:
+    if error.response['Error']['Code'] != 'InvalidPermission.Duplicate':
+        raise
+
+# The released provisioner keeps supplied groups intact. Bootstrap owns this
+# shared test group; normal demo resets retain it, and full teardown removes it.
+test_group = one(ec2.describe_security_groups(Filters=filters('molecule-network'))['SecurityGroups'], 'Molecule security group')
+if not test_group:
+    result = ec2.create_security_group(GroupName='demojam-' + deployment + '-molecule', Description='Demojam Molecule guest access',
+        VpcId=state['vpc_id'], TagSpecifications=[{'ResourceType': 'security-group', 'Tags': tags('molecule-network')}])
+    test_group = {'GroupId': result['GroupId']}
+state['molecule_security_group_id'] = test_group['GroupId']; save()
+try:
+    ec2.authorize_security_group_ingress(GroupId=test_group['GroupId'], IpPermissions=permissions)
+except ClientError as error:
+    if error.response['Error']['Code'] != 'InvalidPermission.Duplicate':
+        raise
+
+private_key = receipt_dir / 'webapp.pem'
+if not private_key.exists():
+    existing = existing_secret('ansible-automation-platform', 'demo-aws-runtime')
+    if existing.get('ssh_private'):
+        private_key.write_text(existing['ssh_private']); private_key.chmod(0o600)
+        private_key.with_suffix('.pem.pub').write_text(existing['ssh_public'])
+    else:
+        subprocess.run(['ssh-keygen', '-q', '-t', 'rsa', '-b', '4096', '-m', 'PEM', '-N', '', '-f', str(private_key)], check=True)
+public_key = Path(str(private_key) + '.pub').read_text().strip()
+key_name = 'demojam-' + deployment + '-webapp'
+key_pair = one(ec2.describe_key_pairs(Filters=[{'Name': 'key-name', 'Values': [key_name]}])['KeyPairs'], 'webapp SSH key')
+if key_pair:
+    owned(key_pair)
+else:
+    ec2.import_key_pair(KeyName=key_name, PublicKeyMaterial=public_key.encode(),
+        TagSpecifications=[{'ResourceType': 'key-pair', 'Tags': tags('webapp')}])
+state['webapp_key_name'] = key_name; save()
+
+runtime_keys = json.loads(key_file.read_text()) if key_file.exists() else {}
+for purpose, namespace_name, secret_name in [('aap', 'ansible-automation-platform', 'demo-aws-runtime'),
+                                           ('molecule', 'omnigent-sandboxes', 'molecule-aws-credentials')]:
+    user = 'demojam-' + deployment + '-' + purpose
+    try:
+        iam_user = iam.get_user(UserName=user)['User']
+        assert {t['Key']: t['Value'] for t in iam_user.get('Tags', [])}.get('demojam:deployment') == deployment, 'Foreign IAM user name collision'
+    except iam.exceptions.NoSuchEntityException:
+        iam.create_user(UserName=user, Tags=tags(purpose))
+    state[purpose + '_iam_user'] = user; save()
+    document = policy('webapp' if purpose == 'aap' else 'molecule')
+    policy_arn = 'arn:aws:iam::' + account + ':policy/' + user
+    try:
+        managed = iam.get_policy(PolicyArn=policy_arn)['Policy']
+        policy_tags = iam.list_policy_tags(PolicyArn=policy_arn)['Tags']
+        assert {t['Key']: t['Value'] for t in policy_tags}.get('demojam:deployment') == deployment, 'Foreign IAM policy name collision'
+        current = iam.get_policy_version(PolicyArn=policy_arn, VersionId=managed['DefaultVersionId'])['PolicyVersion']['Document']
+        if current != document:
+            for version in iam.list_policy_versions(PolicyArn=policy_arn)['Versions']:
+                if not version['IsDefaultVersion']:
+                    iam.delete_policy_version(PolicyArn=policy_arn, VersionId=version['VersionId'])
+            iam.create_policy_version(PolicyArn=policy_arn, PolicyDocument=json.dumps(document), SetAsDefault=True)
+    except iam.exceptions.NoSuchEntityException:
+        iam.create_policy(PolicyName=user, PolicyDocument=json.dumps(document), Tags=tags(purpose))
+    state[purpose + '_policy_arn'] = policy_arn; save()
+    iam.attach_user_policy(UserName=user, PolicyArn=policy_arn)
+    keys = iam.list_access_keys(UserName=user)['AccessKeyMetadata']
+    key = runtime_keys.get(purpose, {})
+    existing = existing_secret(namespace_name, secret_name)
+    if not key and existing.get('access_key_id') and existing.get('secret_access_key'):
+        key = {'AccessKeyId': existing['access_key_id'], 'SecretAccessKey': existing['secret_access_key']}
+    if keys:
+        assert key and len(keys) == 1 and keys[0]['AccessKeyId'] == key['AccessKeyId'], 'Runtime IAM key exists but its secret is missing. Restore the runtime Secret or local receipt before retrying.'
+    else:
+        key = iam.create_access_key(UserName=user)['AccessKey']
+    runtime_keys[purpose] = {'AccessKeyId': key['AccessKeyId'], 'SecretAccessKey': key['SecretAccessKey']}
+    atomic(key_file, runtime_keys)
+    state[purpose + '_access_key_id'] = key['AccessKeyId']; save()
+    values = {'access_key_id': key['AccessKeyId'], 'secret_access_key': key['SecretAccessKey'],
+              'credentials': '[default]\naws_access_key_id = ' + key['AccessKeyId'] + '\naws_secret_access_key = ' + key['SecretAccessKey'] + '\n'}
+    if purpose == 'aap':
+        values.update({'ssh_private': private_key.read_text(), 'ssh_public': public_key})
+    secret(namespace_name, secret_name, values)
+
+profile = '\n'.join(['export PROVISIONER=aws', 'export AWS_REGION=' + region, 'export AWS_DEFAULT_REGION=' + region,
+    'export AWS_SHARED_CREDENTIALS_FILE=/mnt/secrets/molecule-aws/credentials', 'export AWS_EC2_METADATA_DISABLED=true',
+    *['export ' + name + '=' + str(value) for name, value in {
+      'MOLECULE_AWS_DEPLOYMENT_ID': deployment, 'MOLECULE_AWS_ACCOUNT_ID': account,
+      'MOLECULE_AWS_VPC_ID': state['vpc_id'], 'MOLECULE_AWS_SUBNET_ID': state['subnet_id'],
+      'MOLECULE_AWS_SECURITY_GROUP_ID': state['molecule_security_group_id'],
+      'MOLECULE_AWS_INSTANCE_TYPE': state['molecule_instance_type'], 'MOLECULE_AWS_SSH_CIDR': state['ssh_cidr'],
+      'MOLECULE_AWS_HTTP_CIDR': state['http_cidr'], 'MOLECULE_AWS_RHEL9_AMI_ID': state['rhel9_ami_id'],
+      'MOLECULE_AWS_RHEL10_AMI_ID': state['rhel10_ami_id'], 'MOLECULE_AWS_ROOT_VOLUME_SIZE': state['root_volume_size']}.items()]]) + '\n'
+secret('omnigent-sandboxes', 'molecule-aws-credentials', {**existing_secret('omnigent-sandboxes', 'molecule-aws-credentials'), 'profile.sh': profile})
+print('Dedicated AWS guest network, pinned RHEL images and separate scoped runtime keys are ready.')
+PY
+)
 
 demo_die() {
   printf 'ERROR: %s\n' "$*" >&2
@@ -76,6 +525,17 @@ demo_wait_for_api() {
   done
 }
 
+demo_wait_for_identity_route() {
+  local identity_url=$1 deadline=$((SECONDS + 900))
+  # Keycloak's container has a ten-minute startup probe window. Deployment
+  # status can precede a restart, so require the public discovery endpoint.
+  until curl -fsS --connect-timeout 5 --max-time 10 \
+    "$identity_url/realms/master/.well-known/openid-configuration" >/dev/null 2>&1; do
+    (( SECONDS < deadline )) || demo_die 'Demo Keycloak Route did not become ready.'
+    sleep 5
+  done
+}
+
 demo_sandbox_image() {
   local image
   image=$(yq -er '.data."config.yaml"' \
@@ -86,33 +546,67 @@ demo_sandbox_image() {
 }
 
 demo_model_inputs() {
-  case ${MODEL_PROVIDER:-opencode-go} in
+  local consumer=${1:-omnigent} prefix setting host
+  case $consumer in
+    ao) prefix=AO ;;
+    omnigent) prefix=OMNIGENT ;;
+    *) echo 'Model consumer must be ao or omnigent.' >&2; return 2 ;;
+  esac
+  setting=${prefix}_MODEL_PROVIDER
+  model_provider=${!setting:-${MODEL_PROVIDER:-opencode-go}}
+  case $model_provider in
     opencode-go)
       model_endpoint=${OPENCODE_GO_ENDPOINT:-https://opencode.ai/zen/go/v1}
       model_name=${OPENCODE_GO_MODEL:-gpt-6-luna}
       model_key=${OPENCODE_GO_API_KEY:-}
-      model_npm=@ai-sdk/openai
+      model_protocol=${OPENCODE_GO_PROTOCOL:-responses}
       ;;
     litellm)
       model_endpoint=${LITELLM_ENDPOINT:-}
       model_name=${LITELLM_MODEL:-}
       model_key=${LITELLM_API_KEY:-}
-      model_npm=@ai-sdk/openai-compatible
+      model_protocol=chat
       ;;
-    *) echo 'MODEL_PROVIDER must be opencode-go or litellm.' >&2; return 2 ;;
+    *) echo "$prefix model provider must be opencode-go or litellm." >&2; return 2 ;;
   esac
+  # Resolve overrides against the selected provider, never the other consumer.
+  setting=${prefix}_MODEL; model_name=${!setting:-$model_name}
+  setting=${prefix}_MODEL_ENDPOINT; model_endpoint=${!setting:-$model_endpoint}
+  setting=${prefix}_MODEL_API_KEY; model_key=${!setting:-$model_key}
+  setting=${prefix}_MODEL_PROTOCOL; model_protocol=${!setting:-$model_protocol}
+  setting=${prefix}_QWEN_REASONING_EFFORT
+  model_reasoning_effort=${!setting:-${QWEN_REASONING_EFFORT:-none}}
+  case $model_protocol in
+    responses) model_npm=@ai-sdk/openai ;;
+    chat) model_npm=@ai-sdk/openai-compatible ;;
+    anthropic) model_npm=@ai-sdk/anthropic ;;
+    *) echo "$prefix model protocol must be responses, chat, or anthropic." >&2; return 2 ;;
+  esac
+  [[ $model_provider != litellm || $model_protocol == chat ]] || {
+    echo "$prefix LiteLLM protocol must be chat." >&2; return 2;
+  }
   [[ -n $model_key && -n $model_endpoint && -n $model_name ]] || {
-    echo 'Populate the selected provider key, endpoint, and model in .env.' >&2; return 2;
+    echo "Populate the selected $prefix provider key, endpoint, and model in .env." >&2; return 2;
   }
   model_endpoint=${model_endpoint%/}
   [[ $model_endpoint == https://* && $model_endpoint != *[[:space:]?#]* &&
-     $model_endpoint != */chat/completions && $model_endpoint != */responses ]] || {
+     $model_endpoint != */chat/completions && $model_endpoint != */responses &&
+     $model_endpoint != */messages ]] || {
     echo 'The provider endpoint must be an HTTPS API base URL.' >&2; return 2;
   }
-  local host=${model_endpoint#https://}
+  host=${model_endpoint#https://}
   host=${host%%/*}
   [[ $host =~ ^[a-zA-Z0-9.-]+(:[0-9]+)?$ && $model_name =~ ^[a-zA-Z0-9._:/-]+$ ]] || {
     echo 'Invalid provider host or model name.' >&2; return 2;
+  }
+  if [[ $model_provider == litellm && $model_name == qwen38-27b ]]; then
+    case $model_reasoning_effort in
+      none|low|medium|xhigh) ;;
+      *) echo "$prefix Qwen reasoning effort must be none, low, medium, or xhigh." >&2; return 2 ;;
+    esac
+  fi
+  [[ $consumer != ao || ${AO_LLM_REQUEST_TIMEOUT_SECONDS:-90} =~ ^[1-9][0-9]*$ ]] || {
+    echo 'AO_LLM_REQUEST_TIMEOUT_SECONDS must be a positive integer.' >&2; return 2;
   }
 }
 
@@ -185,7 +679,11 @@ demo_preflight() (
   fi
   demo_check 'yq/jq compatibility' 'Install jq-wrapper yq; yq must emit JSON.' \
     bash -c 'printf "check: true\n" | yq . | jq -e ".check == true" >/dev/null'
-  demo_check 'model inputs' 'Fill the selected provider inputs in .env.' demo_model_inputs
+  demo_check 'AO model inputs' 'Fill the selected AO provider inputs in .env.' demo_model_inputs ao
+  demo_check 'Omnigent model inputs' 'Fill the selected Omnigent provider inputs in .env.' demo_model_inputs omnigent
+  if [[ ${DEMO_BACKEND:-cnv} == aws ]]; then
+    demo_check 'AWS guest account' 'Populate the guest-account root/admin fields in .env.' demo_aws preflight
+  fi
   demo_check 'demo users' 'Set DEMO_USERS_FILE to valid user metadata; see bootstrap/users.example.json.' \
     demo_identity_validate_users "$(demo_identity_users_file)"
   demo_check 'manifest structure and RHEL material' 'Supply the subscription ZIP with consumer_export.zip and RHEL certificate/key.' \
@@ -243,20 +741,26 @@ demo_preflight() (
 demo_readiness() {
   case $1 in
     sandbox)
-      oc -n openshift-cnv wait --for=condition=Available hyperconverged/kubevirt-hyperconverged --timeout=15m
-      oc -n openshift-cnv wait --for=condition=Available kubevirt/kubevirt-kubevirt-hyperconverged --timeout=15m
+      if [[ ${DEMO_BACKEND:-cnv} == cnv ]]; then
+        oc -n openshift-cnv wait --for=condition=Available hyperconverged/kubevirt-hyperconverged --timeout=15m
+        oc -n openshift-cnv wait --for=condition=Available kubevirt/kubevirt-kubevirt-hyperconverged --timeout=15m
+      fi
       oc wait --for=condition=Ready tektonconfig/config --timeout=15m
       oc wait --for=condition=Established crd/sandboxes.agents.x-k8s.io --timeout=15m
       oc -n agent-sandbox-system rollout status deployment/agent-sandbox-controller --timeout=15m
       oc -n agent-sandbox-system rollout status deployment/sandbox-router-deployment --timeout=15m
-      oc -n openshift-virtualization-os-images wait --for=condition=Ready datasource/centos-stream10 --timeout=15m
+      if [[ ${DEMO_BACKEND:-cnv} == cnv ]]; then
+        oc -n openshift-virtualization-os-images wait --for=condition=Ready datasource/centos-stream10 --timeout=15m
+      fi
       ;;
     aap)
       oc -n ansible-automation-platform wait --for=condition=Successful ansibleautomationplatform/aap --timeout=15m
       for deployment in aap-gateway aap-controller-web aap-controller-task; do
         oc -n ansible-automation-platform rollout status "deployment/$deployment" --timeout=15m
       done
-      oc -n openshift-virtualization-os-images wait --for=condition=Ready datasource/rhel9 --timeout=15m
+      if [[ ${DEMO_BACKEND:-cnv} == cnv ]]; then
+        oc -n openshift-virtualization-os-images wait --for=condition=Ready datasource/rhel9 --timeout=15m
+      fi
       ;;
     *) demo_die 'Usage: readiness sandbox|aap' ;;
   esac
@@ -267,7 +771,7 @@ demo_readiness() {
 # -----------------------------------------------------------------------------
 
 demo_model_config() (
-  demo_model_inputs
+  demo_model_inputs omnigent
   demo_verify_cluster
   agent_name=automation-developer
   agent_file=${agent_name}.yaml
@@ -297,8 +801,11 @@ EOF
   unset model_key
   # Keep the existing Secret key for in-place upgrades; the selected endpoint is
   # the baseURL below, not the name of this environment variable.
+  # Preserve the fast preset unless an explicit Qwen reasoning effort is set.
+  # Qwen's native chat template needs thinking enabled as well as the effort.
   jq -cn --arg base "$model_endpoint" --arg model "$model_name" \
-    --arg npm "$model_npm" '
+    --arg npm "$model_npm" --arg provider "$model_provider" \
+    --arg effort "$model_reasoning_effort" '
     {
       "$schema": "https://opencode.ai/config.json",
       model: ("demo/" + $model),
@@ -311,9 +818,16 @@ EOF
             apiKey: "{env:OPENAI_API_KEY}"
           },
           models: {
-            ($model): {
+            ($model): ({
               name: $model
-            }
+            } + (if $provider == "litellm" and $model == "qwen38-27b" then {
+              options: (if $effort == "none" then
+                {chat_template_kwargs: {enable_thinking: false}}
+              else
+                {reasoningEffort: $effort,
+                 chat_template_kwargs: {enable_thinking: true, reasoning_effort: $effort}}
+              end)
+            } else {} end))
           }
         }
       }
@@ -333,7 +847,7 @@ EOF
   if [[ $agent_status != *' unchanged' ]] && oc -n omnigent get deployment omnigent >/dev/null 2>&1; then
     oc -n omnigent rollout restart deployment/omnigent
   fi
-  echo "Omnigent is configured for ${MODEL_PROVIDER:-opencode-go}: $model_endpoint model $model_name."
+  echo "Omnigent is configured for $model_provider: $model_endpoint model $model_name."
 )
 
 demo_omnigent_auth() (
@@ -962,37 +1476,54 @@ demo_ao_integration() {
   printf '%s\n' "$id"
 }
 
-# AO 2026.8 uses Chat Completions and cannot set provider headers. LiteLLM's
-# maintained bridge translates Responses models and adds Go's routing headers.
+# AO 2026.8 cannot set provider headers or chat-template options. LiteLLM's
+# bridge handles Go routing and forwards the selected Qwen reasoning effort.
 # Keep the runtime configuration here rather than a second bootstrap program.
-demo_ao_go_proxy() {
-  local proxy_model protocol config_status secret_status existing
-  existing=$(oc -n "$namespace" get deployment ao-opencode-go --ignore-not-found -o name)
-  protocol=${OPENCODE_GO_PROTOCOL:-responses}
-  case $protocol in
-    responses) proxy_model="openai/responses/$model_name" ;;
-    chat) proxy_model="openai/$model_name" ;;
-    *) demo_die 'OPENCODE_GO_PROTOCOL must be responses or chat.' ;;
-  esac
+demo_ao_llm_proxy() {
+  local proxy_name=ao-opencode-go proxy_model proxy_base=$model_endpoint protocol config_status secret_status existing qwen=false
+  if [[ $model_provider == litellm && $model_name == qwen38-27b ]]; then
+    proxy_name='ao-litellm-qwen'
+    proxy_model="openai/$model_name"
+    qwen=true
+  else
+    protocol=$model_protocol
+    case $protocol in
+      responses) proxy_model="openai/responses/$model_name" ;;
+      chat) proxy_model="openai/$model_name" ;;
+      # LiteLLM accepts the full Messages URL; the SDK uses the API base above.
+      anthropic) proxy_model="anthropic/$model_name"; proxy_base="$model_endpoint/messages" ;;
+      *) demo_die 'AO model protocol must be responses, chat, or anthropic.' ;;
+    esac
+  fi
+  existing=$(oc -n "$namespace" get deployment "$proxy_name" --ignore-not-found -o name)
   printf '%s' "$model_key" >"$omnigent_scratch/go-api-key"
-  if [[ -n $(oc -n "$namespace" get secret ao-opencode-go --ignore-not-found -o name) ]]; then
-    oc -n "$namespace" get secret ao-opencode-go \
+  if [[ -n $(oc -n "$namespace" get secret "$proxy_name" --ignore-not-found -o name) ]]; then
+    oc -n "$namespace" get secret "$proxy_name" \
       -o go-template='{{index .data "LITELLM_MASTER_KEY" | base64decode}}' >"$omnigent_scratch/go-proxy-key"
-    [[ -s $omnigent_scratch/go-proxy-key ]] || demo_die 'The Go proxy master key is empty.'
+    [[ -s $omnigent_scratch/go-proxy-key ]] || demo_die 'The LLM proxy master key is empty.'
   else
     printf 'sk-%s' "$(openssl rand -hex 32)" >"$omnigent_scratch/go-proxy-key"
   fi
-  secret_status=$(oc -n "$namespace" create secret generic ao-opencode-go \
-    --from-file=OPENCODE_GO_API_KEY="$omnigent_scratch/go-api-key" \
+  secret_status=$(oc -n "$namespace" create secret generic "$proxy_name" \
+    --from-file=PROVIDER_API_KEY="$omnigent_scratch/go-api-key" \
     --from-file=LITELLM_MASTER_KEY="$omnigent_scratch/go-proxy-key" --dry-run=client -o yaml |
     oc -n "$namespace" apply -f -)
-  jq -n --arg model "$model_name" --arg backend "$proxy_model" --arg url "$model_endpoint" '
-    {model_list:[{model_name:$model,litellm_params:{model:$backend,api_base:$url,
-      api_key:"os.environ/OPENCODE_GO_API_KEY"}}],
+  jq -n --arg model "$model_name" --arg backend "$proxy_model" --arg url "$proxy_base" \
+    --argjson qwen "$qwen" --arg effort "$model_reasoning_effort" '
+    {model_list:[{model_name:$model,litellm_params:({model:$backend,api_base:$url,
+      api_key:"os.environ/PROVIDER_API_KEY"} +
+      (if $qwen then
+        (if $effort == "none" then
+          {extra_body:{chat_template_kwargs:{enable_thinking:false}}}
+        else
+          {reasoning_effort:$effort,
+           extra_body:{chat_template_kwargs:{enable_thinking:true,reasoning_effort:$effort}}}
+        end)
+      else {} end))}],
       general_settings:{master_key:"os.environ/LITELLM_MASTER_KEY"},
-      litellm_settings:{callbacks:["go_headers.callback"],num_retries:0}}' |
+      litellm_settings:{num_retries:0,callbacks:[if $qwen then "provider_options.qwen" else "provider_options.go" end]}}' |
     yq -y . >"$omnigent_scratch/go-config.yaml"
-  cat >"$omnigent_scratch/go_headers.py" <<'PY'
+  cat >"$omnigent_scratch/provider_options.py" <<'PY'
 from uuid import uuid4
 from litellm.integrations.custom_logger import CustomLogger
 
@@ -1005,26 +1536,37 @@ class GoHeaders(CustomLogger):
         headers["User-Agent"] = "automation-orchestrator-demojam/1.0"
         return data
 
-callback = GoHeaders()
+class QwenOptions(CustomLogger):
+    async def async_pre_call_hook(self, user_api_key_dict, cache, data, call_type):
+        # AO binds an empty list for questions without tools. The upstream
+        # endpoint requires that optional field to be omitted instead.
+        if data.get("tools") == []:
+            data.pop("tools")
+            data.pop("tool_choice", None)
+            data.pop("parallel_tool_calls", None)
+        return data
+
+go = GoHeaders()
+qwen = QwenOptions()
 PY
-  config_status=$(oc -n "$namespace" create configmap ao-opencode-go \
+  config_status=$(oc -n "$namespace" create configmap "$proxy_name" \
     --from-file=config.yaml="$omnigent_scratch/go-config.yaml" \
-    --from-file=go_headers.py="$omnigent_scratch/go_headers.py" --dry-run=client -o yaml |
+    --from-file=provider_options.py="$omnigent_scratch/provider_options.py" --dry-run=client -o yaml |
     oc -n "$namespace" apply -f -)
-  cat <<'YAML' | oc -n "$namespace" apply -f - >/dev/null
+  cat <<YAML | oc -n "$namespace" apply -f - >/dev/null
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ao-opencode-go
+  name: $proxy_name
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ao-opencode-go
+      app: $proxy_name
   template:
     metadata:
       labels:
-        app: ao-opencode-go
+        app: $proxy_name
     spec:
       automountServiceAccountToken: false
       containers:
@@ -1037,7 +1579,7 @@ spec:
             - "4000"
           envFrom:
             - secretRef:
-                name: ao-opencode-go
+                name: $proxy_name
           env:
             - name: PYTHONPATH
               value: /etc/litellm
@@ -1062,60 +1604,68 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: ao-opencode-go
+            name: $proxy_name
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: ao-opencode-go
+  name: $proxy_name
 spec:
   selector:
-    app: ao-opencode-go
+    app: $proxy_name
   ports:
     - port: 4000
       targetPort: 4000
 YAML
   if [[ -n $existing && ( $config_status != *' unchanged' || $secret_status != *' unchanged' ) ]]; then
-    oc -n "$namespace" rollout restart deployment/ao-opencode-go >/dev/null
+    oc -n "$namespace" rollout restart "deployment/$proxy_name" >/dev/null
   fi
-  oc -n "$namespace" rollout status deployment/ao-opencode-go --timeout=10m
-  model_endpoint=http://ao-opencode-go.automation-orchestrator.svc:4000/v1
+  oc -n "$namespace" rollout status "deployment/$proxy_name" --timeout=10m
+  model_endpoint="http://$proxy_name.automation-orchestrator.svc:4000/v1"
   model_key=$(<"$omnigent_scratch/go-proxy-key")
 }
 
 demo_ao_integrations() {
-  local configuration inputs allowed_hosts deploy current expected code disabled_models
-  demo_model_inputs
-  if [[ ${MODEL_PROVIDER:-opencode-go} == opencode-go ]]; then
-    demo_ao_go_proxy
+  local configuration inputs allowed_hosts deploy current current_timeout expected code disabled_models
+  local request_timeout=${AO_LLM_REQUEST_TIMEOUT_SECONDS:-90}
+  demo_model_inputs ao
+  if [[ $model_provider == opencode-go ||
+        ( $model_provider == litellm && $model_name == qwen38-27b ) ]]; then
+    demo_ao_llm_proxy
   fi
   # The integration policy is checked in backend, worker and background worker.
   # The operator loads this supported ConfigMap in all three processes. Argo
-  # ignores this one bootstrap-owned key while retaining the OIDC setting.
+  # ignores the bootstrap-owned host list and request timeout while retaining OIDC.
   aap_scratch=$omnigent_scratch
   aap_connect
   allowed_hosts=$(jq -cn --arg llm "${model_endpoint#*://}" --arg aap "${aap_host#https://}" \
     '[$llm,$aap] | map(split("/")[0] | split(":")[0]) | unique')
   expected=$(jq -c . <<<"$allowed_hosts")
   oc -n "$namespace" patch configmap automation-orchestrator-admin-settings --type=merge \
-    --patch "$(jq -cn --arg hosts "$expected" '{data:{APP_INTEGRATION_URL_ALLOWED_HOSTS:$hosts}}')" >/dev/null
+    --patch "$(jq -cn --arg hosts "$expected" --arg timeout "$request_timeout" \
+      '{data:{APP_INTEGRATION_URL_ALLOWED_HOSTS:$hosts,APP_ADAPTER_REQUEST_TIMEOUT_SECONDS:$timeout}}')" >/dev/null
   for deploy in backend worker background-worker; do
     current=$(oc -n "$namespace" exec "deployment/automation-orchestrator-$deploy" -- \
       printenv APP_INTEGRATION_URL_ALLOWED_HOSTS 2>/dev/null || true)
-    if [[ $current != "$expected" ]]; then
+    current_timeout=$(oc -n "$namespace" exec "deployment/automation-orchestrator-$deploy" -- \
+      printenv APP_ADAPTER_REQUEST_TIMEOUT_SECONDS 2>/dev/null || true)
+    if [[ $current != "$expected" || $current_timeout != "$request_timeout" ]]; then
       oc -n "$namespace" rollout restart "deployment/automation-orchestrator-$deploy" >/dev/null
       oc -n "$namespace" rollout status "deployment/automation-orchestrator-$deploy" --timeout=10m
       [[ $(oc -n "$namespace" exec "deployment/automation-orchestrator-$deploy" -- \
         printenv APP_INTEGRATION_URL_ALLOWED_HOSTS) == "$expected" ]] ||
         demo_die "AO $deploy did not load its integration settings."
+      [[ $(oc -n "$namespace" exec "deployment/automation-orchestrator-$deploy" -- \
+        printenv APP_ADAPTER_REQUEST_TIMEOUT_SECONDS) == "$request_timeout" ]] ||
+        demo_die "AO $deploy did not load its LLM request timeout."
     fi
   done
   inputs=$(jq -n --arg key "$model_key" '{api_key:$key}')
-  llm_credential_id=$(demo_ao_credential "demo-llm-${MODEL_PROVIDER:-opencode-go}" 'LLM Provider' "$inputs")
+  llm_credential_id=$(demo_ao_credential "demo-llm-$model_provider" 'LLM Provider' "$inputs")
   unset model_key inputs
   configuration=$(jq -n --arg url "$model_endpoint" \
     '{integration_type:"llm_provider",base_url:$url,provider_hint:"custom",allow_http:($url|startswith("http://"))}')
-  llm_integration_id=$(demo_ao_integration "Demo LLM (${MODEL_PROVIDER:-opencode-go})" llm_provider "$llm_credential_id" "$configuration")
+  llm_integration_id=$(demo_ao_integration "Demo LLM ($model_provider)" llm_provider "$llm_credential_id" "$configuration")
   code=$(ao_curl POST "$base_url/integrations/$llm_integration_id/refresh" -H "$auth_header" \
     -H 'Content-Type: application/json' --data-binary '{}')
   ao_require_json 'discover selected LLM models' "$code"
@@ -1138,7 +1688,7 @@ demo_ao_integrations() {
   unset inputs
   configuration=$(jq -n --arg url "$aap_host" '{integration_type:"ansible_automation_platform",base_url:$url}')
   aap_integration_id=$(demo_ao_integration 'Demo AAP' ansible_automation_platform "$aap_credential_id" "$configuration")
-  printf 'AO integrations are configured; selected model: %s\n' "$model_name"
+  printf 'AO integrations are configured; provider: %s, selected model: %s\n' "$model_provider" "$model_name"
 }
 
 demo_ao_run() {
@@ -1510,19 +2060,16 @@ demo_ao_reconcile() (
   fi
 
   # Inject runtime integration and credential references into portable definitions;
-  # only omnigent-dispatch needs its dynamic agent and user-sharing nodes.
+  # Both agent workflows need the machine credential and user-sharing nodes.
   for workflow_file in "$script_dir"/workflows/*.yaml; do
     workflow_name=$(yq -er '.name' "$workflow_file")
-    if [[ $workflow_name == omnigent-dispatch ]]; then
+    if [[ $workflow_name == omnigent-dispatch || $workflow_name == omnigent-remediation ]]; then
       workflow_definition=$(demo_ao_workflow_definition "$workflow_file" "$credential_id" "$agent_id")
     else
       workflow_definition=$(yq -c . "$workflow_file" | jq -c \
         --arg llm_credential "$llm_credential_id" --arg llm_integration "$llm_integration_id" \
         --arg llm_model "$llm_model_id" --arg aap_credential "$aap_credential_id" \
-        --arg aap_integration "$aap_integration_id" --arg eda_account "$eda_service_account_id" '
-        .triggers |= map(if .type == "eda_trigger" then
-          .parameters.authorized_service_account_ids=[$eda_account]
-        else . end) |
+        --arg aap_integration "$aap_integration_id" '
         .nodes |= map(if .type == "agentic" then
           .parameters.credential_id=$llm_credential | .parameters.integration_id=$llm_integration |
           .parameters.llm_model_id=$llm_model
@@ -1530,6 +2077,10 @@ demo_ao_reconcile() (
           .parameters.credential_id=$aap_credential | .parameters.integration_id=$aap_integration
         else . end)')
     fi
+    workflow_definition=$(jq -c --arg eda_account "$eda_service_account_id" '
+      .triggers |= map(if .type == "eda_trigger" then
+        .parameters.authorized_service_account_ids=[$eda_account]
+      else . end)' <<<"$workflow_definition")
     validation_payload=$(jq -n --argjson definition "$workflow_definition" \
       '{workflow_definition: $definition}')
     http_code=$(ao_curl POST "$base_url/workflows/validate" -H "$auth_header" \
@@ -1729,6 +2280,98 @@ demo_alerting_prepare() (
     oc apply --server-side --field-manager=demo-bootstrap -f -
 )
 
+# Mute setup outages until monitoring has observed baseline recovery.
+demo_alerting_maintenance() {
+  local action=$1 id previous alerts deadline=$((SECONDS + 600))
+  local -a client=(oc -n openshift-user-workload-monitoring exec alertmanager-user-workload-0
+    -c alertmanager -- /bin/amtool --alertmanager.url=http://localhost:9093)
+  until [[ -n $(oc -n openshift-user-workload-monitoring get statefulset alertmanager-user-workload \
+    --ignore-not-found -o name) ]]; do
+    (( SECONDS < deadline )) || demo_die 'Timed out waiting for demo Alertmanager.'
+    sleep 5
+  done
+  oc -n openshift-user-workload-monitoring rollout status statefulset/alertmanager-user-workload --timeout=10m
+  if [[ $action == pause ]]; then
+    # Create coverage before removing earlier bootstrap silences on a rerun.
+    id=$("${client[@]}" silence add --author=demo-bootstrap --duration=2h \
+      --comment='Demojam setup and reset' alertname=WebappDown namespace=blackbox-exporter)
+    [[ $id =~ ^[0-9a-f-]{36}$ ]] || demo_die 'Alertmanager did not return a silence ID.'
+  elif [[ $action == resume ]]; then
+    # HTTP may recover before the next scrape and alert evaluation. Keep setup
+    # muted until Alertmanager has observed that real recovery.
+    deadline=$((SECONDS + 300))
+    while :; do
+      alerts=$("${client[@]}" -o json alert query --active --silenced --inhibited --unprocessed \
+        alertname=WebappDown namespace=blackbox-exporter)
+      if jq -e 'all(.[]; (.endsAt | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601) <= now)' <<<"$alerts" >/dev/null; then break; fi
+      (( SECONDS < deadline )) || demo_die 'WebappDown is still active; leaving setup maintenance in place.'
+      sleep 10
+    done
+    id=
+  else
+    demo_die 'Unknown alerting maintenance action.'
+  fi
+  while read -r previous; do
+    [[ $previous == "$id" ]] || "${client[@]}" silence expire "$previous" >/dev/null
+  done < <("${client[@]}" -o json silence query --created-by=demo-bootstrap \
+    alertname=WebappDown namespace=blackbox-exporter |
+    jq -r '.[] | select(.comment == "Demojam setup and reset") | .id')
+  printf 'Demo alerting maintenance: %s.\n' "$action"
+}
+
+# A separate token and stable listener URL keep Forgejo deliveries independent
+# of Alertmanager. Register the hook only after EDA and AO are ready.
+demo_forgejo_webhook_prepare() (
+  umask 077
+  local scratch host uuid
+  scratch=$(mktemp -d)
+  trap 'rm -rf -- "$scratch"' EXIT
+  host=${AAP_HOST:-https://$(oc -n ansible-automation-platform get route aap -o jsonpath='{.status.ingress[0].host}')}
+  uuid=$(yq -er '.demo_forgejo_event_stream.uuid' \
+    "$(demo_source_checkout demojam-ansible)/group_vars/aap/eda.yml")
+  if [[ -n $(oc -n forgejo get secret forgejo-eda-webhook --ignore-not-found -o name) ]]; then
+    oc -n forgejo get secret forgejo-eda-webhook \
+      -o go-template='{{index .data "token" | base64decode}}' >"$scratch/token"
+    [[ -s $scratch/token ]] || demo_die 'The existing Forgejo EDA webhook Secret has no token.'
+  else
+    openssl rand -hex 32 | tr -d '\n' >"$scratch/token"
+  fi
+  printf '%s/eda-event-streams/api/eda/v1/external_event_stream/%s/post/' \
+    "${host%/}" "$uuid" >"$scratch/url"
+  oc -n forgejo create secret generic forgejo-eda-webhook \
+    --from-file=token="$scratch/token" --from-file=url="$scratch/url" --dry-run=client -o yaml |
+    oc apply --server-side --field-manager=demo-bootstrap -f -
+)
+
+demo_forgejo_webhook_configure() (
+  umask 077
+  local scratch repository hook_id payload state_dir domain
+  scratch=$(mktemp -d)
+  trap 'rm -rf -- "$scratch"' EXIT
+  domain=$(oc -n openshift-ingress-operator get ingresscontroller default -o jsonpath='{.status.domain}')
+  state_dir=${FORGEJO_STATE_DIR:-$demo_repo_root/cluster/forgejo/.state/$domain}
+  FORGEJO_URL="https://$(oc -n forgejo get route forgejo -o jsonpath='{.status.ingress[0].host}')"
+  FORGEJO_TOKEN=$(<"$state_dir/admin-token")
+  repository=demo-owner/ansible-collection-demo.webapp
+  oc -n forgejo get secret forgejo-eda-webhook -o json |
+    jq '.data | map_values(@base64d)' >"$scratch/webhook.json"
+  # Forgejo encrypts authorization_header in its database. Never print API hook
+  # responses: they can contain the Authorization credential.
+  payload=$(jq '{type:"forgejo",active:true,events:["issues"],
+    config:{url:.url,content_type:"json",http_method:"POST"},
+    authorization_header:("Bearer " + .token)}' "$scratch/webhook.json")
+  forgejo_api GET "/repos/$repository/hooks?limit=100" >"$scratch/hooks.json"
+  hook_id=$(jq -r --slurpfile desired "$scratch/webhook.json" \
+    '.[] | select(.type == "forgejo" and .config.url == $desired[0].url) | .id' "$scratch/hooks.json")
+  [[ $(wc -w <<<"$hook_id") -le 1 ]] || demo_die 'Multiple Forgejo incident hooks exist; inspect them before setup.'
+  if [[ -n $hook_id ]]; then
+    forgejo_api PATCH "/repos/$repository/hooks/$hook_id" "$(jq 'del(.type)' <<<"$payload")" >/dev/null
+  else
+    forgejo_api POST "/repos/$repository/hooks" "$payload" >/dev/null
+  fi
+  echo 'Forgejo issue webhook is connected to the EDA remediation listener.'
+)
+
 aap_credentials() {
   local namespace=ansible-automation-platform org config galaxy community oidc_issuer
   demo_manifest "$aap_scratch" || demo_die 'The subscription ZIP must contain valid RHEL entitlement material.'
@@ -1753,20 +2396,37 @@ YAML
   oc -n "$namespace" get secret aap-vm-admin-token \
     -o go-template='{{index .data "ca.crt" | base64decode}}' >"$aap_scratch/ca.crt"
 
-  if [[ -z $(oc -n "$namespace" get secret aap-webapp-ssh --ignore-not-found -o name) ]]; then
-    ssh-keygen -q -t ed25519 -N '' -C aap-webapp -f "$aap_scratch/id_ed25519"
-    oc -n "$namespace" create secret generic aap-webapp-ssh \
-      --from-file=private-key="$aap_scratch/id_ed25519" --from-file=public-key="$aap_scratch/id_ed25519.pub"
+  if [[ ${DEMO_BACKEND:-cnv} == cnv ]]; then
+    if [[ -z $(oc -n "$namespace" get secret aap-webapp-ssh --ignore-not-found -o name) ]]; then
+      ssh-keygen -q -t ed25519 -N '' -C aap-webapp -f "$aap_scratch/id_ed25519"
+      oc -n "$namespace" create secret generic aap-webapp-ssh \
+        --from-file=private-key="$aap_scratch/id_ed25519" --from-file=public-key="$aap_scratch/id_ed25519.pub"
+    fi
+    oc -n "$namespace" get secret aap-webapp-ssh \
+      -o go-template='{{index .data "private-key" | base64decode}}' >"$aap_scratch/ssh-private"
+    oc -n "$namespace" get secret aap-webapp-ssh \
+      -o go-template='{{index .data "public-key" | base64decode}}' >"$aap_scratch/ssh-public"
   fi
-  oc -n "$namespace" get secret aap-webapp-ssh \
-    -o go-template='{{index .data "private-key" | base64decode}}' >"$aap_scratch/ssh-private"
-  oc -n "$namespace" get secret aap-webapp-ssh \
-    -o go-template='{{index .data "public-key" | base64decode}}' >"$aap_scratch/ssh-public"
+
+  printf '{}' >"$aap_scratch/aws-config"
+  : >"$aap_scratch/aws-access-key"
+  : >"$aap_scratch/aws-secret-key"
+  if [[ ${DEMO_BACKEND:-cnv} == aws ]]; then
+    oc -n openshift-config get configmap demojam-backend -o jsonpath='{.data.aws\.json}' >"$aap_scratch/aws-config"
+    oc -n "$namespace" get secret demo-aws-runtime \
+      -o go-template='{{index .data "access_key_id" | base64decode}}' >"$aap_scratch/aws-access-key"
+    oc -n "$namespace" get secret demo-aws-runtime \
+      -o go-template='{{index .data "secret_access_key" | base64decode}}' >"$aap_scratch/aws-secret-key"
+    oc -n "$namespace" get secret demo-aws-runtime \
+      -o go-template='{{index .data "ssh_private" | base64decode}}' >"$aap_scratch/ssh-private"
+    oc -n "$namespace" get secret demo-aws-runtime \
+      -o go-template='{{index .data "ssh_public" | base64decode}}' >"$aap_scratch/ssh-public"
+  fi
 
   org=$(aap_upsert organizations/ demo '{"description":"Disposable automation demo"}' | jq -er .id)
   # AAP forbids changing the schema of a credential type that is already in use.
   # Version it so aap_upsert migrates the dispatch credential and reattaches it.
-  config=$(aap_upsert credential_types/ 'Demo AAP configuration v3' \
+  config=$(aap_upsert credential_types/ 'Demo AAP configuration v5' \
     "$(yq . "$demo_repo_root/bootstrap/aap-dispatch-credential-type.yaml")" | jq -er .id)
   oc -n demojam-keycloak get secret identity-credentials \
     -o go-template='{{index .data "aap-client-secret" | base64decode}}' >"$aap_scratch/oidc-secret"
@@ -1775,11 +2435,13 @@ YAML
     -o go-template='{{index .data "token" | base64decode}}' >"$aap_scratch/eda-token"
   oc -n omnigent-sandboxes get secret omnigent-model \
     -o go-template='{{index .data "FORGEJO_TOKEN" | base64decode}}' >"$aap_scratch/forgejo-token"
+  oc -n forgejo get secret forgejo-eda-webhook \
+    -o go-template='{{index .data "token" | base64decode}}' >"$aap_scratch/forgejo-eda-token"
   oc -n automation-orchestrator get secret demojam-eda-webhook-client \
     -o go-template='{{index .data "client-id" | base64decode}}' >"$aap_scratch/ao-client-id"
   oc -n automation-orchestrator get secret demojam-eda-webhook-client \
     -o go-template='{{index .data "client-secret" | base64decode}}' >"$aap_scratch/ao-client-secret"
-  [[ -s $aap_scratch/eda-token && -s $aap_scratch/forgejo-token &&
+  [[ -s $aap_scratch/eda-token && -s $aap_scratch/forgejo-token && -s $aap_scratch/forgejo-eda-token &&
      -s $aap_scratch/ao-client-id && -s $aap_scratch/ao-client-secret ]] ||
     demo_die 'Hydrate Forgejo and prepare the EDA and AO webhook clients before configuring AAP.'
   aap_upsert credentials/ demo-aap-dispatch "$(jq -n --argjson org "$org" --argjson kind "$config" \
@@ -1789,11 +2451,18 @@ YAML
     --rawfile vm_ca "$aap_scratch/ca.crt" --rawfile ssh_private "$aap_scratch/ssh-private" \
     --rawfile ssh_public "$aap_scratch/ssh-public" --rawfile entitlement "$aap_scratch/entitlement.pem" \
     --rawfile eda_token "$aap_scratch/eda-token" --rawfile forgejo_token "$aap_scratch/forgejo-token" \
+    --rawfile forgejo_eda_token "$aap_scratch/forgejo-eda-token" \
     --rawfile ao_client_id "$aap_scratch/ao-client-id" --rawfile ao_client_secret "$aap_scratch/ao-client-secret" \
+    --arg backend "${DEMO_BACKEND:-cnv}" --rawfile aws_config "$aap_scratch/aws-config" \
+    --rawfile aws_access_key "$aap_scratch/aws-access-key" --rawfile aws_secret_key "$aap_scratch/aws-secret-key" \
+    --arg aws_region "${AWS_DEMO_REGION:-us-east-2}" \
     '{organization:$org,credential_type:$kind,inputs:{host:$host,username:$username,password:$password,
       oidc_issuer:$issuer,oidc_secret:$oidc_secret,ee_image:$ee_image,vm_host:$vm_host,vm_token:($vm_token|rtrimstr("\n")),
       vm_ca:$vm_ca,ssh_private:$ssh_private,ssh_public:($ssh_public|rtrimstr("\n")),entitlement:$entitlement,
-      eda_token:$eda_token,forgejo_token:$forgejo_token,ao_client_id:$ao_client_id,ao_client_secret:$ao_client_secret}}')" >/dev/null
+      eda_token:$eda_token,forgejo_token:$forgejo_token,forgejo_eda_token:$forgejo_eda_token,
+      ao_client_id:$ao_client_id,ao_client_secret:$ao_client_secret,
+      backend:$backend,aws_config:$aws_config,aws_access_key:$aws_access_key,
+      aws_secret_key:$aws_secret_key,aws_region:$aws_region}}')" >/dev/null
   galaxy=$(aap_find credential_types/ 'Ansible Galaxy/Automation Hub API Token' | jq -er .id)
   community=$(aap_upsert credentials/ demo-galaxy "$(jq -n --argjson org "$org" --argjson kind "$galaxy" \
     '{organization:$org,credential_type:$kind,inputs:{url:"https://galaxy.ansible.com/"}}')" | jq -er .id)
@@ -1805,14 +2474,34 @@ YAML
 }
 
 aap_launch() {
-  local name=$1 extra=${2:-'{}'} reset=${3:-false} org template result
+  local name=$1 extra=${2:-'{}'} reset=${3:-false} org template record result project inventory sources source update
   case $name in
-    webapp_vm|webapp_nginx|aap_configure_all) ;;
+    webapp_vm|webapp_nginx|webapp_selinux_permissive|webapp_selinux_enable|aap_configure_all) ;;
     openshift_virtualization_machine) [[ $reset == true ]] || demo_die 'Only seeded demo templates may be launched.' ;;
     *) demo_die 'Only seeded demo templates may be launched.' ;;
   esac
+  # Controller dependencies use short-lived execution pods. Wait out node
+  # storage pressure before launch instead of submitting pods for eviction.
+  oc wait node --all --for=condition=DiskPressure=False --timeout=10m
   org=$(aap_find organizations/ demo | jq -er .id)
-  template=$(aap_find job_templates/ "$name" "$(jq -n --argjson org "$org" '{organization:$org}')" | jq -er .id)
+  record=$(aap_find job_templates/ "$name" "$(jq -n --argjson org "$org" '{organization:$org}')")
+  template=$(jq -er .id <<<"$record")
+  project=$(jq -er .project <<<"$record")
+  inventory=$(jq -er .inventory <<<"$record")
+  # Always refresh before script launches (including after VM creation), but
+  # serialize the execution pods and let ensuing EDA/AO jobs reuse the results.
+  # Zero inventory cache starts several project/inventory pods per job on SNO.
+  aap_request PATCH "projects/$project/" '{"scm_update_cache_timeout":600}' >/dev/null
+  sources=$(aap_request GET "inventory_sources/?inventory=$inventory&page_size=200")
+  while read -r source; do
+    aap_request PATCH "inventory_sources/$source/" '{"update_cache_timeout":600}' >/dev/null
+  done < <(jq -r '.results[] | select(.source == "scm" and .update_on_launch) | .id' <<<"$sources")
+  update=$(aap_request POST "projects/$project/update/" '{}')
+  aap_wait "project_updates/$(jq -er .id <<<"$update")/"
+  while read -r source; do
+    update=$(aap_request POST "inventory_sources/$source/update/" '{}')
+    aap_wait "inventory_updates/$(jq -er .id <<<"$update")/"
+  done < <(jq -r '.results[] | select(.source == "scm" and .update_on_launch) | .id' <<<"$sources")
   result=$(aap_request POST "job_templates/$template/launch/" "$(jq -n --argjson extra "$extra" '{extra_vars:$extra}')")
   local job
   job=$(jq -er .job <<<"$result")
@@ -1820,13 +2509,62 @@ aap_launch() {
   aap_wait "jobs/$job/"
 }
 
+aap_verify_enforcing() {
+  local org scope inventory credential environment result job events deadline
+  org=$(aap_find organizations/ demo | jq -er .id)
+  scope=$(jq -n --argjson org "$org" '{organization:$org}')
+  inventory=$(aap_find inventories/ demo-inventory "$scope" | jq -er .id)
+  credential=$(aap_find credentials/ demo-webapp-ssh "$scope" | jq -er .id)
+  environment=$(aap_find execution_environments/ demo-aap-ee | jq -er .id)
+  result=$(aap_request POST ad_hoc_commands/ "$(jq -n --argjson inventory "$inventory" \
+    --argjson credential "$credential" --argjson environment "$environment" \
+    '{inventory:$inventory,credential:$credential,execution_environment:$environment,
+      limit:"webapps",module_name:"command",module_args:"getenforce",become_enabled:true}')")
+  job=$(jq -er .id <<<"$result")
+  aap_wait "ad_hoc_commands/$job/"
+  # Terminal status can become visible before the result event is indexed.
+  # Poll only for that event; never rerun the command or retry a wrong mode.
+  deadline=$((SECONDS + 30))
+  while :; do
+    events=$(aap_request GET "ad_hoc_commands/$job/events/?event=runner_on_ok&page_size=200")
+    [[ $(jq -r '.count' <<<"$events") == 0 ]] || break
+    (( SECONDS < deadline )) || demo_die 'The webapp SELinux result event is not available.'
+    sleep 1
+  done
+  jq -e '.count > 0 and (.results | length) > 0 and all(.results[]; .event_data.res.rc == 0 and
+    (.event_data.res.stdout | rtrimstr("\n")) == "Enforcing")' <<<"$events" >/dev/null ||
+    demo_die 'The webapp SELinux check did not return Enforcing.'
+  printf 'Webapp SELinux is Enforcing (AAP ad hoc command %s).\n' "$job"
+}
+
+# Config-as-code enables these again during the next bootstrap.
+aap_stop_demo_listeners() {
+  local activations id activation deadline
+  activations=$(aap_request GET 'activations/?page_size=200' '' /api/eda/v1/)
+  while read -r id; do
+    aap_request POST "activations/$id/disable/" '{}' /api/eda/v1/ >/dev/null
+    deadline=$((SECONDS + 300))
+    while :; do
+      activation=$(aap_request GET "activations/$id/" '' /api/eda/v1/)
+      if jq -e '.is_enabled == false and .status == "stopped"' <<<"$activation" >/dev/null; then break; fi
+      (( SECONDS < deadline )) || demo_die "Timed out stopping demo EDA activation $id."
+      sleep 5
+    done
+    printf 'Stopped demo EDA activation %s.\n' "$id"
+  done < <(jq -r '.results[] | select(.is_enabled and
+    (.name == "demojam-webapp-issues" or .name == "demojam-forgejo-remediation")) | .id' <<<"$activations")
+}
+
 aap_reset_vms() {
   local org scope name template project inventory jobs job
   org=$(aap_find organizations/ demo | jq -er .id)
   scope=$(jq -n --argjson org "$org" '{organization:$org}')
-  for name in webapp_vm openshift_virtualization_machine; do
+  local -a reset_templates=(webapp_vm)
+  [[ ${DEMO_BACKEND:-cnv} == aws ]] || reset_templates+=(openshift_virtualization_machine)
+  for name in "${reset_templates[@]}"; do
     template=$(aap_find job_templates/ "$name" "$scope")
     local playbook=playbooks/openshift_virtualization/webapp-launch.yml
+    [[ ${DEMO_BACKEND:-cnv} != aws ]] || playbook=playbooks/aws/webapp-launch.yml
     [[ $name != openshift_virtualization_machine ]] || playbook=playbooks/openshift_virtualization/virtualmachine-manage.yml
     jq -e --arg playbook "$playbook" '.id != null and .playbook == $playbook' <<<"$template" >/dev/null ||
       demo_die "Reset requires the seeded $name template."
@@ -1840,7 +2578,9 @@ aap_reset_vms() {
   done
   # Both templates are validated before either destructive operation.
   aap_launch webapp_vm '{"host":"demo_cluster","vm_state":"absent"}' true
-  aap_launch openshift_virtualization_machine '{"host":"demo_cluster","vm_state":"absent","vm_name":"automation-demo"}' true
+  if [[ ${DEMO_BACKEND:-cnv} == cnv ]]; then
+    aap_launch openshift_virtualization_machine '{"host":"demo_cluster","vm_state":"absent","vm_name":"automation-demo"}' true
+  fi
 }
 
 aap_dispatch() {
@@ -1853,7 +2593,7 @@ aap_dispatch() {
     '{organization:$org,image:$image,pull:"always"}')" | jq -er .id)
   project_record=$(aap_upsert projects/ demojam-ansible "$(jq -n --argjson org "$org" '{
     organization:$org,scm_type:"git",scm_url:"http://forgejo.forgejo.svc.cluster.local:3000/demo-owner/demojam-ansible.git",
-    scm_branch:"main",credential:null,scm_update_on_launch:true,scm_update_cache_timeout:30}')")
+    scm_branch:"main",credential:null,scm_update_on_launch:true,scm_update_cache_timeout:600}')")
   project=$(jq -er .id <<<"$project_record")
   if jq -e '.current_update != null' <<<"$project_record" >/dev/null; then
     aap_wait "project_updates/$(jq -er .current_update <<<"$project_record")/"
@@ -1878,19 +2618,22 @@ aap_dispatch() {
 
 # An enabled activation record does not prove that its rulebook is running.
 aap_wait_eda() {
-  local name query status previous='' deadline=$((SECONDS + 600))
-  name=$(yq -er '.demo_eda_activation.name' \
-    "$(demo_source_checkout demojam-ansible)/group_vars/aap/eda.yml")
-  query=$(jq -rn --arg name "$name" '$name | @uri')
-  while (( SECONDS < deadline )); do
-    status=$(aap_request GET "activations/?name=$query" '' /api/eda/v1/ |
-      jq -er '.results[0].status // "absent"')
-    [[ $status != running ]] || { printf 'EDA activation %s is running.\n' "$name"; return; }
-    [[ $status == "$previous" ]] || printf 'Waiting for EDA activation %s: %s\n' "$name" "$status"
-    previous=$status
-    sleep 10
-  done
-  demo_die "Timed out waiting for EDA activation $name ($status); inspect its logs in AAP."
+  local name query status previous deadline source
+  source=$(demo_source_checkout demojam-ansible)
+  while read -r name; do
+    previous=''
+    deadline=$((SECONDS + 600))
+    query=$(jq -rn --arg name "$name" '$name | @uri')
+    while (( SECONDS < deadline )); do
+      status=$(aap_request GET "activations/?name=$query" '' /api/eda/v1/ |
+        jq -er '.results[0].status // "absent"')
+      [[ $status != running ]] || { printf 'EDA activation %s is running.\n' "$name"; break; }
+      [[ $status == "$previous" ]] || printf 'Waiting for EDA activation %s: %s\n' "$name" "$status"
+      previous=$status
+      sleep 10
+    done
+    [[ $status == running ]] || demo_die "Timed out waiting for EDA activation $name ($status); inspect its logs in AAP."
+  done < <(yq -er '.demo_eda_activation.name, .demo_forgejo_activation.name' "$source/group_vars/aap/eda.yml")
 }
 
 # Retire only the three legacy bootstrap CRs. No finalizer means deleting the
@@ -1918,6 +2661,8 @@ demo_aap() (
     credentials) aap_credentials ;;
     dispatch) aap_dispatch ;;
     reset-vms) aap_reset_vms ;;
+    verify-enforcing) aap_verify_enforcing ;;
+    stop-listeners) aap_stop_demo_listeners ;;
     launch) shift; aap_launch "$@" ;;
     *) demo_die 'Unknown AAP action.' ;;
   esac
@@ -1929,6 +2674,7 @@ demo_aap_configure() {
   demo_readiness aap
   aap_retire_resource_crs
   demo_alerting_prepare
+  demo_forgejo_webhook_prepare
   demo_ao_reconcile webhook-client
   demo_aap credentials
 
@@ -1945,9 +2691,15 @@ demo_webapp() {
     nginx) demo_aap launch webapp_nginx ;;
     delete) demo_aap launch webapp_vm '{"vm_state":"absent"}' ;;
     sync) demo_aap launch aap_configure_all ;;
+    verify-enforcing) demo_aap verify-enforcing; demo_webapp verify ;;
     verify)
       local host pod metrics login_redirect ingress_domain
-      oc -n webapp-vms wait --for=condition=Ready vm/webapp --timeout=15m
+      if [[ ${DEMO_BACKEND:-cnv} == cnv ]]; then
+        oc -n webapp-vms wait --for=condition=Ready vm/webapp --timeout=15m
+      else
+        oc -n webapp-vms get endpointslice webapp-aws -o json |
+          jq -e '.endpoints | length == 1 and .[0].conditions.ready == true' >/dev/null
+      fi
       host=$(oc -n webapp-vms get route webapp -o jsonpath='{.status.ingress[0].host}')
       ingress_domain=$(oc -n openshift-ingress-operator get ingresscontroller default -o jsonpath='{.status.domain}')
       login_redirect=$(curl --fail --silent --show-error --connect-timeout 10 --max-time 30 \
@@ -1960,13 +2712,59 @@ demo_webapp() {
       [[ $metrics == *'probe_success 1'* ]] || demo_die 'Webapp blackbox probe failed.'
       printf 'RHEL webapp and blackbox probe are healthy: https://%s/\n' "$host"
       ;;
-    *) demo_die 'Usage: webapp create|nginx|delete|sync|verify' ;;
+    *) demo_die 'Usage: webapp create|nginx|delete|sync|verify|verify-enforcing' ;;
   esac
 }
 
 # -----------------------------------------------------------------------------
 # GitOps rollout: overrides belong to Argo, so self-heal retains operator inputs
 # -----------------------------------------------------------------------------
+
+demo_backend_root_override() {
+  if [[ ${DEMO_BACKEND:-cnv} == cnv ]]; then cat; return; fi
+  local sandbox_config
+  sandbox_config=$(yq -r '.data."config.yaml"' \
+    "$demo_repo_root/cluster/omnigent/omnigent-sandbox-config-configmap.yaml" |
+    yq -y '.sandbox.kubernetes.secret_mounts = [{secret_name:"molecule-aws-credentials",mount_path:"/mnt/secrets/molecule-aws"}]')
+  jq --arg config "$sandbox_config" '
+    def patch($target; $operations): {target:$target,patch:($operations|tojson)};
+    def drop($api;$kind;$name;$namespace):
+      {target:{kind:$kind,name:$name,namespace:$namespace},patch:({apiVersion:$api,kind:$kind,
+        metadata:{name:$name,namespace:$namespace},"$patch":"delete"}|tojson)};
+    .spec.source.kustomize.patches += [
+      drop("argoproj.io/v1alpha1";"Application";"openshift-virtualization";""),
+      patch({kind:"Application",name:"ansible-automation-platform"}; [
+        {op:"add",path:"/spec/source/kustomize/patches/-",value:drop("v1";"Namespace";"automation-vms";"")},
+        {op:"add",path:"/spec/source/kustomize/patches/-",value:drop("rbac.authorization.k8s.io/v1";"Role";"aap-vm-admin";"automation-vms")},
+        {op:"add",path:"/spec/source/kustomize/patches/-",value:drop("rbac.authorization.k8s.io/v1";"RoleBinding";"aap-vm-admin";"automation-vms")},
+        {op:"add",path:"/spec/source/kustomize/patches/-",value:drop("rbac.authorization.k8s.io/v1";"Role";"aap-vm-cloner";"openshift-virtualization-os-images")},
+        {op:"add",path:"/spec/source/kustomize/patches/-",value:drop("rbac.authorization.k8s.io/v1";"RoleBinding";"aap-vm-admin-clone";"openshift-virtualization-os-images")}
+      ]),
+      patch({kind:"Application",name:"webapp-vms"}; [
+        {op:"add",path:"/spec/source/kustomize",value:{patches:[
+          patch({kind:"Service",name:"^webapp(-ssh)?$"}; [{op:"remove",path:"/spec/selector"}]),
+          patch({kind:"Role",name:"aap-vm-admin"}; [{op:"replace",path:"/rules",value:[
+            {apiGroups:["discovery.k8s.io"],resources:["endpointslices"],verbs:["get","list","watch","create","patch","update","delete"]},
+            {apiGroups:[""],resources:["services"],verbs:["get","list"]}
+          ]}])
+        ]}},
+        {op:"add",path:"/spec/ignoreDifferences",value:[{group:"discovery.k8s.io",kind:"EndpointSlice",jsonPointers:["/endpoints"]}]}
+      ]),
+      patch({kind:"Application",name:"omnigent"}; [
+        {op:"add",path:"/spec/source/kustomize",value:{patches:[
+          patch({kind:"ConfigMap",name:"omnigent-sandbox-config"}; [{op:"replace",path:"/data/config.yaml",value:$config}]),
+          drop("v1";"Namespace";"molecule-tests";""),
+          drop("v1";"ResourceQuota";"molecule-tests";"molecule-tests"),
+          drop("v1";"ServiceAccount";"molecule-provisioner";"omnigent-sandboxes"),
+          drop("v1";"Secret";"molecule-provisioner-token";"omnigent-sandboxes"),
+          drop("rbac.authorization.k8s.io/v1";"Role";"molecule-provisioner";"molecule-tests"),
+          drop("rbac.authorization.k8s.io/v1";"RoleBinding";"molecule-provisioner";"molecule-tests"),
+          drop("rbac.authorization.k8s.io/v1";"Role";"molecule-image-cloner";"openshift-virtualization-os-images"),
+          drop("rbac.authorization.k8s.io/v1";"RoleBinding";"molecule-image-cloner";"openshift-virtualization-os-images")
+        ]}}
+      ])
+    ]'
+}
 
 demo_root_application() {
   local monitoring storage=$1
@@ -1999,7 +2797,7 @@ demo_root_application() {
             ])
           ]}}
         ])
-      ]'
+      ]' | demo_backend_root_override
 }
 
 demo_bootstrap() (
@@ -2007,6 +2805,13 @@ demo_bootstrap() (
   local operator_namespace=openshift-gitops-operator gitops_namespace=openshift-gitops
   demo_step 'Check operator inputs and cluster prerequisites'
   demo_preflight
+  if [[ $DEMO_BACKEND == aws ]]; then
+    demo_step 'Prepare the dedicated AWS guest account resources'
+    demo_aws setup
+  else
+    oc -n openshift-config create configmap demojam-backend --from-literal=backend=cnv \
+      --dry-run=client -o yaml | oc apply -f -
+  fi
   local sandbox_image
   sandbox_image=$(demo_sandbox_image)
   demo_verify_cluster
@@ -2105,6 +2910,12 @@ demo_bootstrap() (
   # Identity preparation created the consumer namespaces. The sandbox runner
   # also needs its namespace before the first child sync can mount its Secrets.
   oc apply --server-side --field-manager=demo-bootstrap -f "$repo_root/cluster/omnigent/omnigent-sandboxes-namespace.yaml"
+  # HCO and the later AAP/sandbox image-reader bindings require this namespace
+  # while the virtualization operands are still installing on a fresh cluster.
+  if [[ $DEMO_BACKEND == cnv ]]; then
+    oc create namespace openshift-virtualization-os-images --dry-run=client -o yaml |
+      oc apply --server-side --field-manager=demo-bootstrap -f -
+  fi
   if ! oc -n rhdh get secret rhdh-pg-credentials >/dev/null 2>&1; then
     umask 077
     db_password_file=$(mktemp)
@@ -2210,7 +3021,9 @@ demo_bootstrap() (
   oc -n "$gitops_namespace" get applications \
     -o custom-columns=NAME:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status
 
-  for app in openshift-pipelines agent-sandbox-operator openshift-virtualization omnigent automation-orchestrator ansible-automation-platform webapp-vms user-workload-monitoring homepage; do
+  local -a rollout_apps=(openshift-pipelines agent-sandbox-operator omnigent automation-orchestrator ansible-automation-platform webapp-vms user-workload-monitoring homepage)
+  [[ $DEMO_BACKEND != cnv ]] || rollout_apps+=(openshift-virtualization)
+  for app in "${rollout_apps[@]}"; do
     oc -n "$gitops_namespace" annotate application "$app" \
       argocd.argoproj.io/refresh=hard --overwrite
     deadline=$((SECONDS + 1800))
@@ -2233,6 +3046,7 @@ demo_bootstrap() (
   demo_identity_configure
   demo_readiness sandbox
   demo_readiness aap
+  demo_alerting_maintenance pause
 
   # Build only after the operator rollout, keeping image storage on a PVC.
   demo_step 'Build or reuse the OpenCode sandbox image'
@@ -2287,17 +3101,21 @@ demo_bootstrap() (
   if [[ ${BOOTSTRAP_RECONCILE_WORKFLOW:-true} == true ]]; then
     demo_step 'Validate and publish the AO workflow'
     demo_ao_reconcile
+    demo_forgejo_webhook_configure
   else
     demo_ao_reconcile identity-only
   fi
   demo_step 'Provision the RHEL webapp through AAP'
   demo_webapp create
+  demo_step 'Prepare the permissive demo baseline through AAP'
+  demo_aap launch webapp_selinux_permissive
   demo_step 'Install nginx through AAP'
   demo_webapp nginx
   demo_step 'Verify the webapp and monitoring probe'
   demo_webapp verify
+  demo_alerting_maintenance resume
   demo_step 'Populate and verify Homepage navigation and dashboard'
-  demo_homepage_configure bootstrap
+  demo_homepage_reconcile bootstrap
 
   printf '\nBootstrap completed on %s at %s.\n' "$gitops_branch" "$target_revision"
   for ref in homepage/homepage demojam-keycloak/keycloak forgejo/forgejo rhdh/backstage-rhdh-developer-hub \
@@ -2314,14 +3132,17 @@ demo_reset() (
   [[ $# == 1 && $1 == --confirm-demo-reset ]] ||
     demo_die 'Usage: demo-reset --confirm-demo-reset (deletes demo repos, sessions, VMs and disks).'
   demo_verify_cluster
+  demo_model_inputs ao
+  demo_model_inputs omnigent
+  unset model_key
+  demo_alerting_maintenance pause
+  demo_aap stop-listeners
   local ingress_domain omnigent_host scratch agent_id cursor page session_id namespace remaining
   local -a session_ids=() page_ids=()
   ingress_domain=$(oc -n openshift-ingress-operator get ingresscontroller default -o jsonpath='{.status.domain}')
   omnigent_host=$(oc -n omnigent get route omnigent -o jsonpath='{.status.ingress[0].host}')
   [[ -n $ingress_domain && $omnigent_host == "omnigent.$ingress_domain" ]] ||
     demo_die 'Omnigent Route does not match this cluster ingress domain.'
-  demo_model_inputs
-  unset model_key
 
   umask 077
   scratch=$(mktemp -d)
@@ -2349,12 +3170,16 @@ demo_reset() (
   # Remove VMs through managed playbooks while their Forgejo project exists.
   demo_wait_for_api
   demo_aap reset-vms
-  oc -n molecule-tests delete virtualmachines -l app.kubernetes.io/part-of=molecule-tests \
-    --ignore-not-found --cascade=foreground --wait=true --timeout=5m
-  for namespace in automation-vms webapp-vms molecule-tests; do
-    remaining=$(oc -n "$namespace" get virtualmachines,virtualmachineinstances,datavolumes,persistentvolumeclaims -o name)
-    [[ -z $remaining ]] || demo_die "Demo resources remain in $namespace; inspect them before retrying reset."
-  done
+  if [[ $DEMO_BACKEND == aws ]]; then
+    demo_aws cleanup
+  else
+    oc -n molecule-tests delete virtualmachines -l app.kubernetes.io/part-of=molecule-tests \
+      --ignore-not-found --cascade=foreground --wait=true --timeout=5m
+    for namespace in automation-vms webapp-vms molecule-tests; do
+      remaining=$(oc -n "$namespace" get virtualmachines,virtualmachineinstances,datavolumes,persistentvolumeclaims -o name)
+      [[ -z $remaining ]] || demo_die "Demo resources remain in $namespace; inspect them before retrying reset."
+    done
+  fi
 
   oc -n omnigent-sandboxes delete secret omnigent-model --ignore-not-found
   oc -n omnigent delete secret omnigent-agent --ignore-not-found
@@ -2364,14 +3189,22 @@ demo_reset() (
   demo_hydrate reset --confirm-forgejo
   demo_aap_configure
   demo_ao_reconcile
+  demo_forgejo_webhook_configure
   echo 'Demo reset complete: VMs and test disks removed, Forgejo reseeded, AAP configured, and Omnigent ready.'
 )
 
 # Full removal keeps controllers running until their operands have finalized.
 # The durable, secret-free inventory also supports resuming interrupted removal.
 demo_teardown() (
-  [[ $# == 1 && $1 == --confirm-demo-teardown ]] ||
-    demo_die 'Usage: teardown --confirm-demo-teardown (deletes demo data and operators).'
+  local keep_aap=false confirmed=false argument
+  for argument in "$@"; do
+    case $argument in
+      --confirm-demo-teardown) confirmed=true ;;
+      --keep-aap) keep_aap=true ;;
+      *) demo_die 'Usage: teardown --confirm-demo-teardown [--keep-aap]' ;;
+    esac
+  done
+  [[ $confirmed == true ]] || demo_die 'Usage: teardown --confirm-demo-teardown [--keep-aap]'
   demo_verify_cluster
   local state="$demo_repo_root/.rendered/demo-teardown.json" scratch app namespace kind group name resource csv crd
   local -a namespaces=(homepage blackbox-exporter webapp-vms automation-vms molecule-tests
@@ -2382,6 +3215,22 @@ demo_teardown() (
   scratch=$(mktemp -d)
   trap 'find "$scratch" -type f -delete; rmdir "$scratch"' EXIT
   mkdir -p "$demo_repo_root/.rendered"
+  if [[ $keep_aap == true ]]; then
+    state="$demo_repo_root/.rendered/demo-teardown-keep-aap.json"
+    local -a removed_namespaces=()
+    for namespace in "${namespaces[@]}"; do
+      [[ $namespace == ansible-automation-platform ]] || removed_namespaces+=("$namespace")
+    done
+    namespaces=("${removed_namespaces[@]}")
+    oc -n ansible-automation-platform get ansibleautomationplatform aap -o json |
+      jq '{uid:.metadata.uid}' >"$scratch/aap.json"
+    oc -n ansible-automation-platform get pvc -o json |
+      jq '[.items[] | {name:.metadata.name,uid:.metadata.uid,volume:.spec.volumeName}] | sort_by(.name)' >"$scratch/aap-pvcs.json"
+    demo_aap stop-listeners
+  else
+    printf 'null' >"$scratch/aap.json"
+    printf '[]' >"$scratch/aap-pvcs.json"
+  fi
   if [[ -n $(oc get crd applications.argoproj.io --ignore-not-found -o name) ]]; then
     oc -n openshift-gitops get applications -o json >"$scratch/apps.json"
   else
@@ -2402,14 +3251,28 @@ demo_teardown() (
           crds:[$csv.spec.customresourcedefinitions.owned[]?.name]}]' >"$scratch/csvs.json"
     oc get crd -o json | jq '[.items[] | select(.spec.group | test("(^|\\.)(kubevirt\\.io|tekton\\.dev)$")) | .metadata.name]' >"$scratch/operand-crds.json"
     jq -n --arg server "$DEMO_CLUSTER_SERVER" --arg repo "$BOOTSTRAP_REPO_URL" \
+      --argjson keep_aap "$keep_aap" --slurpfile aap "$scratch/aap.json" --slurpfile pvcs "$scratch/aap-pvcs.json" \
       --slurpfile apps "$scratch/apps.json" --slurpfile subscriptions "$scratch/subscriptions.json" \
       --slurpfile csvs "$scratch/csvs.json" --slurpfile operands "$scratch/operand-crds.json" \
-      '{server:$server,repo:$repo,apps:[$apps[0].items[].metadata.name],
+      '([$csvs[0][] | select(.namespace == "ansible-automation-platform") | .crds[]] | unique) as $aap_crds |
+       {server:$server,repo:$repo,keep_aap:$keep_aap,aap:$aap[0],aap_pvcs:$pvcs[0],apps:[$apps[0].items[].metadata.name],
         resources:([$apps[0].items[].status.resources[]?] | unique_by([.group,.kind,.namespace,.name])),
-        subscriptions:$subscriptions[0],csvs:$csvs[0],crds:([$csvs[0][].crds[]]+$operands[0]|unique)}' >"$state"
+        subscriptions:$subscriptions[0],csvs:$csvs[0],crds:([$csvs[0][].crds[]]+$operands[0]|unique)} |
+       if $keep_aap then
+         .resources |= map(select(.namespace != "ansible-automation-platform")) |
+         .subscriptions |= map(select(.namespace != "ansible-automation-platform")) |
+         .csvs |= map(select(.namespace != "ansible-automation-platform")) |
+         .crds -= $aap_crds
+       else . end' >"$state"
   fi
-  jq -e --arg server "$DEMO_CLUSTER_SERVER" --arg repo "$BOOTSTRAP_REPO_URL" \
-    '.server == $server and .repo == $repo' "$state" >/dev/null || demo_die 'Teardown inventory belongs to a different cluster or repository.'
+  jq -e --arg server "$DEMO_CLUSTER_SERVER" --arg repo "$BOOTSTRAP_REPO_URL" --argjson keep_aap "$keep_aap" \
+    '.server == $server and .repo == $repo and (.keep_aap // false) == $keep_aap' "$state" >/dev/null ||
+    demo_die 'Teardown inventory belongs to a different cluster, repository or preservation mode.'
+  if [[ $keep_aap == true ]]; then
+    jq -e --slurpfile aap "$scratch/aap.json" --slurpfile pvcs "$scratch/aap-pvcs.json" \
+      '.aap == $aap[0] and .aap_pvcs == $pvcs[0]' "$state" >/dev/null ||
+      demo_die 'AAP or its persistent volumes changed since this teardown began.'
+  fi
 
   demo_step 'Stop demo GitOps reconciliation'
   # Root first: it must not recreate children while they are being detached.
@@ -2433,6 +3296,12 @@ demo_teardown() (
   fi
   if [[ -n $(oc get crd sandboxes.agents.x-k8s.io --ignore-not-found -o name) ]]; then
     oc -n omnigent-sandboxes delete sandboxes --all --ignore-not-found --wait=true --timeout=10m
+  fi
+  if [[ $DEMO_BACKEND == aws ]]; then
+    demo_step 'Remove the owned AWS guests, runtime credentials and network'
+    demo_aws teardown
+  else
+    oc -n openshift-config delete configmap demojam-backend --ignore-not-found
   fi
   if [[ -n $(oc get crd virtualmachines.kubevirt.io --ignore-not-found -o name) ]]; then
     for namespace in webapp-vms automation-vms molecule-tests; do
@@ -2508,7 +3377,9 @@ demo_teardown() (
   while IFS= read -r name; do
     oc delete operators.operators.coreos.com "$name" --ignore-not-found
   done < <(yq -s . "$demo_repo_root"/cluster/*/*subscription.yaml "$demo_repo_root"/bootstrap/*subscription.yaml |
-    jq -r '.[] | (.spec.name + "." + .metadata.namespace)[0:63]')
+    jq -r --argjson keep_aap "$keep_aap" '.[] |
+      select($keep_aap == false or .metadata.namespace != "ansible-automation-platform") |
+      (.spec.name + "." + .metadata.namespace)[0:63]')
   oc delete -f "$demo_repo_root/bootstrap/config/openshift-gitops-cluster-permissions.yaml" --ignore-not-found
 
   demo_step 'Remove demo namespaces and persistent data'
@@ -2526,37 +3397,95 @@ demo_teardown() (
   remaining=$(oc get pv -o json | jq -r --argjson namespaces "$(printf '%s\n' "${namespaces[@]}" | jq -R . | jq -s .)" \
     '.items[] | .spec.claimRef.namespace as $ns | select($namespaces | index($ns)) | .metadata.name')
   [[ -z $remaining ]] || demo_die "Demo PVs are still being reclaimed: $remaining. Inspect storage before reinstalling."
-  echo 'Demo teardown completed: applications, operators, APIs, identity integration and persistent data removed.'
+  if [[ $keep_aap == true ]]; then
+    oc -n ansible-automation-platform get ansibleautomationplatform aap -o json |
+      jq '{uid:.metadata.uid}' >"$scratch/aap-after.json"
+    oc -n ansible-automation-platform get pvc -o json |
+      jq '[.items[] | {name:.metadata.name,uid:.metadata.uid,volume:.spec.volumeName}] | sort_by(.name)' >"$scratch/aap-pvcs-after.json"
+    cmp "$scratch/aap.json" "$scratch/aap-after.json"
+    cmp "$scratch/aap-pvcs.json" "$scratch/aap-pvcs-after.json"
+    oc -n ansible-automation-platform wait --for=condition=Successful ansibleautomationplatform/aap --timeout=15m
+    for name in aap-gateway aap-controller-web aap-controller-task; do
+      oc -n ansible-automation-platform rollout status "deployment/$name" --timeout=15m
+    done
+    echo 'Demo teardown completed; AAP, its operator and persistent volumes are preserved.'
+  else
+    echo 'Demo teardown completed: applications, operators, APIs, identity integration and persistent data removed.'
+  fi
 )
 
 # Command entry point. Help is local and does not load .env.
 # -----------------------------------------------------------------------------
 
+# Homepage is disposable while --keep-aap preserves its gateway reader account.
+# Reconcile the newly generated password before the existing dashboard checks.
+demo_homepage_backend() {
+  local payload
+  payload=$(oc -n homepage get configmap homepage-environment -o json |
+    jq --arg backend "${DEMO_BACKEND:-cnv}" '
+      {data:{"environment.json":(.data."environment.json" | fromjson | .backend=($backend|ascii_upcase) | tojson)}}')
+  oc -n homepage patch configmap homepage-environment --type=merge --patch "$payload" >/dev/null
+}
+
+demo_homepage_reconcile() (
+  set +x
+  umask 077
+  local ingress_domain aap_scratch reader payload
+  ingress_domain=$(oc -n openshift-ingress-operator get ingresscontroller default -o jsonpath='{.status.domain}')
+  demo_homepage_prepare
+  aap_scratch=$(mktemp -d)
+  trap 'find "$aap_scratch" -type f -delete; rmdir "$aap_scratch"' EXIT
+  aap_connect
+  reader=$(aap_request GET 'users/?username=homepage-reader' '' /api/gateway/v1/ | jq -r '.results[0].id // empty')
+  if [[ -n $reader ]]; then
+    oc -n homepage get secret homepage-dashboard-credentials -o json |
+      jq -er '.data."aap-password" | @base64d' >"$aap_scratch/reader-password"
+    payload=$(jq -n --rawfile password "$aap_scratch/reader-password" '{password:($password|rtrimstr("\n"))}')
+    aap_request PATCH "users/$reader/" "$payload" /api/gateway/v1/ >/dev/null
+  fi
+  demo_homepage_configure "${1:-refresh}"
+  demo_homepage_backend
+)
+
 demo_main() {
+  local -a arguments=()
+  while (( $# > 0 )); do
+    case $1 in
+      --backend)
+        (( $# > 1 )) || demo_die '--backend requires cnv or aws.'
+        export DEMO_BACKEND=$2
+        shift 2 ;;
+      --backend=*) export DEMO_BACKEND=${1#--backend=}; shift ;;
+      *) arguments+=("$1"); shift ;;
+    esac
+  done
+  set -- "${arguments[@]}"
   local command=${1:-bootstrap}
   if [[ $command == help || $command == --help || $command == -h ]]; then
     cat <<'HELP'
-Usage: bash bootstrap/bootstrap.sh [COMMAND]
+Usage: bash bootstrap/bootstrap.sh [COMMAND] [--backend cnv|aws]
 
   bootstrap          Install/configure the platform, create the RHEL VM, install nginx, verify
-  teardown --confirm-demo-teardown Remove the entire demo stack, operators and persistent data
+  teardown --confirm-demo-teardown [--keep-aap] Remove demo data/operators; optionally preserve AAP
   demo-reset --confirm-demo-reset Reset disposable demo repos, sessions, VMs and disks
   preflight          Read-only input and pre-install cluster checks (also --check)
   sandbox-build      Build the configured :latest sandbox image
-  model-config       Apply the selected model/agent configuration
+  model-config       Apply independent Omnigent and AO model configuration
   identity           Reconcile demo users, clients and application login
   homepage-refresh   Refresh Homepage links, repositories and environment details
   hydrate            Seed Forgejo and refresh Backstage/agent credentials
   ao-configure      Reconcile AO LLM/AAP integrations and publish all demo workflows
   ao-run NAME [JSON] Execute a published workflow and print its result
   reconcile-workflow Alias for ao-configure
-  aap-configure      Prepare AAP credentials/license and run config-as-code
-  webapp ACTION      create | nginx | verify | delete | sync
+  aap-configure      Configure AAP/EDA, publish AO workflows, connect the Forgejo webhook
+  webapp ACTION      create | nginx | verify | verify-enforcing | delete | sync
   aap ACTION         credentials | wait-project | dispatch | reset-vms | launch TEMPLATE [JSON]
   readiness TARGET   sandbox | aap
 
 Populate .env first. An inherited KUBECONFIG takes precedence over .env.
-Default bootstrap includes the complete webapp; issue-to-PR dispatch is separate.
+Default bootstrap connects the incident-to-PR flow, provisions the VM,
+prepares the permissive demo baseline, and installs nginx.
+Run aap launch webapp_selinux_enable to trigger the SELinux outage demo.
 HELP
     return
   fi
@@ -2567,11 +3496,12 @@ HELP
   demo_current_step=$command
   trap 'printf "ERROR: %s failed at line %s. Inspect the resource before retrying a launch.\n" "${demo_current_step:-command}" "$LINENO" >&2' ERR
   demo_load_env
+  demo_backend_config
   case $command in
     bootstrap) [[ $# == 0 ]] || demo_die 'bootstrap takes no arguments'; demo_bootstrap ;;
     teardown) demo_teardown "$@" ;;
     demo-reset) demo_reset "$@" ;;
-    homepage-refresh) [[ $# == 0 ]] || demo_die 'homepage-refresh takes no arguments'; demo_verify_cluster; demo_homepage_configure ;;
+    homepage-refresh) [[ $# == 0 ]] || demo_die 'homepage-refresh takes no arguments'; demo_verify_cluster; demo_homepage_reconcile ;;
     identity)
       [[ $# == 0 ]] || demo_die 'identity takes no arguments'
       demo_verify_cluster
@@ -2587,6 +3517,9 @@ HELP
     preflight|--check) [[ $# == 0 ]] || demo_die 'preflight takes no arguments'; demo_preflight ;;
     sandbox-build) demo_sandbox_build ;;
     model-config)
+      demo_model_inputs ao
+      demo_model_inputs omnigent
+      unset model_key
       demo_model_config
       if [[ -n $(oc -n automation-orchestrator get automationorchestrator automation-orchestrator --ignore-not-found -o name 2>/dev/null) ]]; then
         demo_ao_reconcile
@@ -2599,7 +3532,7 @@ HELP
     reconcile-workflow|ao-configure) demo_verify_cluster; demo_ao_reconcile ;;
     dispatch-issue) demo_dispatch_issue "$@" ;;
     ao-run) [[ $# -ge 1 && $# -le 2 ]] || demo_die 'ao-run requires WORKFLOW [INPUT_JSON]'; demo_verify_cluster; demo_ao_reconcile run "$@" ;;
-    aap-configure) demo_aap_configure ;;
+    aap-configure) demo_aap_configure; demo_ao_reconcile; demo_forgejo_webhook_configure ;;
     webapp) [[ $# == 1 ]] || demo_die 'webapp requires one action'; demo_webapp "$@" ;;
     aap) [[ $# -gt 0 ]] || demo_die 'aap requires an action'; demo_verify_cluster; demo_aap "$@" ;;
     readiness) [[ $# == 1 ]] || demo_die 'readiness requires sandbox or aap'; demo_verify_cluster; demo_readiness "$@" ;;

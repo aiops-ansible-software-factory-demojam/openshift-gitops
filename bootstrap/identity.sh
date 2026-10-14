@@ -235,11 +235,7 @@ demo_identity_configure() (
   oc -n demojam-keycloak rollout status deployment/keycloak --timeout=15m
   # Deployment readiness does not prove the public Route is accepting requests.
   identity_base="https://$(oc -n demojam-keycloak get route keycloak -o jsonpath='{.status.ingress[0].host}')"
-  deadline=$((SECONDS + 300))
-  until curl -fsS --connect-timeout 5 --max-time 10 "$identity_base/realms/master/.well-known/openid-configuration" >/dev/null 2>&1; do
-    (( SECONDS < deadline )) || demo_die 'Demo Keycloak Route did not become ready.'
-    sleep 5
-  done
+  demo_wait_for_identity_route "$identity_base"
   demo_identity_connect
   if ! demo_identity_request GET /realms | jq -e 'any(.[]; .realm == "demo")' >/dev/null; then
     demo_identity_request POST /realms '{"realm":"demo","enabled":true,"registrationAllowed":false}' >/dev/null
