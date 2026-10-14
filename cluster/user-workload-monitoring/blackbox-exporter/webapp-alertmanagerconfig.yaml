@@ -10,7 +10,7 @@ spec:
       - alertname
       - instance
     groupWait: 10s
-    groupInterval: 5m
+    groupInterval: 30s
     repeatInterval: 1h
     matchers:
       - name: alertname
@@ -22,7 +22,7 @@ spec:
         - urlSecret:
             name: webapp-eda-webhook
             key: url
-          sendResolved: false
+          sendResolved: true
           httpConfig:
             authorization:
               type: Bearer

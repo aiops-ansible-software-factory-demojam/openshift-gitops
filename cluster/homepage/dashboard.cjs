@@ -130,8 +130,8 @@ async function aoGet(path, retry = true) {
   }
 }
 async function orchestrator() {
-  const workflows = await aoGet('/workflows?name=omnigent-dispatch&limit=100');
-  const workflow = workflows.resources.find((item) => item.name === 'omnigent-dispatch');
+  const workflows = await aoGet('/workflows?name=omnigent-remediation&limit=100');
+  const workflow = workflows.resources.find((item) => item.name === 'omnigent-remediation');
   const executions = workflow ? await aoGet(`/executions?workflow_id=${workflow.id}&sort=-created_at&limit=5`) : { resources: [] };
   return { workflow: workflow?.published_version_number ? `Published v${workflow.published_version_number}` : 'Not published',
     latest: executions.resources[0]?.status || 'No executions yet',

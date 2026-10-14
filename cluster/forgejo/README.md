@@ -36,7 +36,11 @@ hydration, and reset; `BOOTSTRAP_BRANCH` separately selects the GitOps source.
 Backstage creates the issue branch before AO launches the agent. The agent
 implements and checks the change, then opens a PR against `main`. AO finishes
 at handoff; follow the [Omnigent session](../omnigent/README.md) for the outcome.
-There is no webhook trigger or CI runner in this stage.
+Bootstrap registers a repository webhook for issue events in the example
+collection. It sends authenticated JSON to the separate Forgejo EDA event
+stream. Newly opened webapp incidents containing the outage marker and RCA
+start AO's `omnigent-remediation` workflow; other issue actions and PRs do not
+dispatch agents. There is no CI runner.
 
 ## Login and reset
 
