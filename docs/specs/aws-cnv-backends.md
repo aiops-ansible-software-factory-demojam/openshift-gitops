@@ -413,5 +413,7 @@ shared provisioner repository as a separate dependency change.
    root/runtime credentials before publishing evidence.
 
 No AWS root credentials or new-account resources are needed to review this
-specification. The design is accepted, AWS inputs are supplied, and live validation is in
-progress. The shared provisioner is owned by its separate implementation thread.
+specification. The AWS incident run and reset are documented in
+[the Haiku run report](../reports/2026-10-13-aws-haiku.md). That report distinguishes
+completed checks from the remaining acceptance tests. The shared provisioner is
+owned by its separate implementation thread.

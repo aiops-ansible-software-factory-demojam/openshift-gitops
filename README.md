@@ -176,6 +176,9 @@ without changing the cluster, and `make render` renders manifests locally.
 
 Use the
 [run-demojam skill](.agents/skills/run-demojam/SKILL.md) for the operator sequence.
+The [AWS and Haiku run report](docs/reports/2026-10-13-aws-haiku.md) records the
+tested merge, one-job Enforcing recovery, reset and dashboard checks, with stage
+timings, prompts and the bootstrap fixes found during live testing.
 The [October 12 Qwen run report](docs/reports/2026-10-12-qwen38.md) records
 the fresh bootstrap, medium retry and two low-thinking/90-second attempts, with timings,
 prompts and failures.
