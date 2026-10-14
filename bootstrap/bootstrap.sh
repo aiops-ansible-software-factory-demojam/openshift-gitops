@@ -219,8 +219,9 @@ def policy(purpose):
          'arn:aws:ec2:' + region + '::image/' + state['rhel9_ami_id'],
          *(['arn:aws:ec2:' + region + '::image/' + state['rhel10_ami_id']] if purpose == 'molecule' else []),
          arn + 'subnet/' + state['subnet_id']], 'Condition': {'StringEquals': {'aws:RequestedRegion': region}}},
-      {'Effect': 'Allow', 'Action': 'ec2:RunInstances', 'Resource': [arn + 'security-group/*', arn + 'key-pair/*'],
-       'Condition': {'StringEquals': owner}},
+      {'Effect': 'Allow', 'Action': 'ec2:RunInstances',
+       'Resource': [arn + 'security-group/' + state['molecule_security_group_id']] if purpose == 'molecule' else [arn + 'security-group/*', arn + 'key-pair/*'],
+       'Condition': {'StringEquals': {'aws:RequestedRegion': region} if purpose == 'molecule' else owner}},
       {'Effect': 'Allow', 'Action': 'ec2:RunInstances', 'Resource': arn + 'network-interface/*',
        'Condition': {'ArnEquals': {'ec2:Subnet': arn + 'subnet/' + state['subnet_id']}}},
       {'Effect': 'Allow', 'Action': 'ec2:RunInstances', 'Resource': [arn + 'instance/*', arn + 'volume/*'],
@@ -228,13 +229,13 @@ def policy(purpose):
       {'Effect': 'Allow', 'Action': ['ec2:CreateSecurityGroup'], 'Resource': arn + 'vpc/' + state['vpc_id']},
       {'Effect': 'Allow', 'Action': ['ec2:CreateSecurityGroup', 'ec2:ImportKeyPair'],
        'Resource': [arn + 'security-group/*', arn + 'key-pair/*'], 'Condition': {'StringEquals': requested}},
-      {'Effect': 'Allow', 'Action': 'ec2:CreateTags', 'Resource': [arn + 'instance/*', arn + 'volume/*', arn + 'security-group/*', arn + 'key-pair/*'],
+      {'Effect': 'Allow', 'Action': 'ec2:CreateTags', 'Resource': [arn + 'instance/*', arn + 'volume/*', arn + 'network-interface/*', arn + 'security-group/*', arn + 'key-pair/*'],
        'Condition': {'StringEquals': {**requested, 'ec2:CreateAction': ['RunInstances', 'CreateSecurityGroup', 'ImportKeyPair']}}},
       {'Effect': 'Allow', 'Action': ['ec2:StartInstances', 'ec2:StopInstances', 'ec2:TerminateInstances',
-         'ec2:ModifyInstanceAttribute', 'ec2:ModifyInstanceMetadataOptions', 'ec2:DeleteVolume',
+         'ec2:ModifyInstanceAttribute', 'ec2:ModifyInstanceMetadataOptions', 'ec2:DeleteVolume', 'ec2:DeleteNetworkInterface',
          'ec2:DeleteKeyPair', 'ec2:DeleteSecurityGroup', 'ec2:AuthorizeSecurityGroupIngress',
          'ec2:AuthorizeSecurityGroupEgress', 'ec2:RevokeSecurityGroupIngress', 'ec2:RevokeSecurityGroupEgress', 'ec2:CreateTags', 'ec2:DeleteTags'],
-       'Resource': [arn + 'instance/*', arn + 'volume/*', arn + 'security-group/*', arn + 'key-pair/*'],
+       'Resource': [arn + 'instance/*', arn + 'volume/*', arn + 'network-interface/*', arn + 'security-group/*', arn + 'key-pair/*'],
        'Condition': {'StringEquals': owner}},
       {'Effect': 'Deny', 'Action': ['ec2:CreateTags', 'ec2:DeleteTags'], 'Resource': '*',
        'Condition': {'Null': {'ec2:CreateAction': 'true'}, 'ForAnyValue:StringEquals': {'aws:TagKeys': ['demojam:deployment', 'demojam:purpose']}}}
@@ -293,6 +294,7 @@ if action in ('cleanup', 'teardown'):
     assert state_file.exists() or record, 'No deployment ownership receipt; refusing AWS cleanup'
     cleanup(['webapp', 'molecule'])
     if action == 'teardown':
+        cleanup(['molecule-network'])
         for purpose in ['aap', 'molecule']:
             user = state.get(purpose + '_iam_user')
             if user:
@@ -401,6 +403,20 @@ except ClientError as error:
     if error.response['Error']['Code'] != 'InvalidPermission.Duplicate':
         raise
 
+# The released provisioner keeps supplied groups intact. Bootstrap owns this
+# shared test group; normal demo resets retain it, and full teardown removes it.
+test_group = one(ec2.describe_security_groups(Filters=filters('molecule-network'))['SecurityGroups'], 'Molecule security group')
+if not test_group:
+    result = ec2.create_security_group(GroupName='demojam-' + deployment + '-molecule', Description='Demojam Molecule guest access',
+        VpcId=state['vpc_id'], TagSpecifications=[{'ResourceType': 'security-group', 'Tags': tags('molecule-network')}])
+    test_group = {'GroupId': result['GroupId']}
+state['molecule_security_group_id'] = test_group['GroupId']; save()
+try:
+    ec2.authorize_security_group_ingress(GroupId=test_group['GroupId'], IpPermissions=permissions)
+except ClientError as error:
+    if error.response['Error']['Code'] != 'InvalidPermission.Duplicate':
+        raise
+
 private_key = receipt_dir / 'webapp.pem'
 if not private_key.exists():
     existing = existing_secret('ansible-automation-platform', 'demo-aws-runtime')
@@ -466,7 +482,9 @@ for purpose, namespace_name, secret_name in [('aap', 'ansible-automation-platfor
 profile = '\n'.join(['export PROVISIONER=aws', 'export AWS_REGION=' + region, 'export AWS_DEFAULT_REGION=' + region,
     'export AWS_SHARED_CREDENTIALS_FILE=/mnt/secrets/molecule-aws/credentials', 'export AWS_EC2_METADATA_DISABLED=true',
     *['export ' + name + '=' + str(value) for name, value in {
-      'MOLECULE_AWS_DEPLOYMENT_ID': deployment, 'MOLECULE_AWS_VPC_ID': state['vpc_id'], 'MOLECULE_AWS_SUBNET_ID': state['subnet_id'],
+      'MOLECULE_AWS_DEPLOYMENT_ID': deployment, 'MOLECULE_AWS_ACCOUNT_ID': account,
+      'MOLECULE_AWS_VPC_ID': state['vpc_id'], 'MOLECULE_AWS_SUBNET_ID': state['subnet_id'],
+      'MOLECULE_AWS_SECURITY_GROUP_ID': state['molecule_security_group_id'],
       'MOLECULE_AWS_INSTANCE_TYPE': state['molecule_instance_type'], 'MOLECULE_AWS_SSH_CIDR': state['ssh_cidr'],
       'MOLECULE_AWS_HTTP_CIDR': state['http_cidr'], 'MOLECULE_AWS_RHEL9_AMI_ID': state['rhel9_ami_id'],
       'MOLECULE_AWS_RHEL10_AMI_ID': state['rhel10_ami_id'], 'MOLECULE_AWS_ROOT_VOLUME_SIZE': state['root_volume_size']}.items()]]) + '\n'

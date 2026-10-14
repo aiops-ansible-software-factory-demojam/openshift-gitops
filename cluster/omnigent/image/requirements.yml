@@ -6,6 +6,10 @@ collections:
     version: 0.0.7-alpha
   - name: amazon.aws
     version: 11.5.0
+  - name: community.aws
+    version: 11.0.0
+  - name: ansible.windows
+    version: 3.5.0
   - name: ansible.netcommon
     version: 8.7.1
   - name: ansible.utils

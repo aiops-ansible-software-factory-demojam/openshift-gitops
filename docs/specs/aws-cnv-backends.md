@@ -297,12 +297,10 @@ must not block readiness.
 
 The shared provisioner adds the `aws` backend alongside Podman, Docker, QEMU
 and KubeVirt. The template, webapp collection and sandbox require `0.0.7-alpha`.
-Until that version is released on Galaxy, the sandbox builds the collection
-from the exact Git commit in its Containerfile and installs it before resolving
-the pinned requirements. Consumer dependency setup then uses that preload.
-The shared provisioner has its own PR and implementation thread. Keep its
-source pin aligned when adopting a newer build. AWS lifecycle tasks stay in
-that dependency; scenarios retain the public create/prepare/destroy imports.
+The sandbox downloads that published Galaxy artifact, checks its SHA-256 in
+the Containerfile and preloads it before resolving the other pinned requirements.
+Consumer dependency setup uses that release. AWS lifecycle tasks stay in the
+shared provisioner; scenarios retain the public create/prepare/destroy imports.
 
 Keep Ansible-native Molecule configuration, the public shared create/prepare/
 destroy dispatchers, and `make molecule` → `molecule test --all`. Each scenario
@@ -319,6 +317,16 @@ AMI ID/name/owner, expected distribution/version, instance type, network and
 SSH inputs. The reference's `MOLECULE_AWS_VPC_ID` and
 `MOLECULE_AWS_SUBNET_ID` are supplied by bootstrap, so the tests reuse the shared
 network and never destroy it.
+
+Bootstrap also creates a test security group and exports its ID and the expected
+AWS account in the sandbox profile. Shared inventory maps them to
+`security_groups` and `expected_account_id`, with `network.mode: existing`.
+Both guests use encrypted gp3 `root_disk` settings and explicit deployment/purpose
+tags. The provisioner injects its generated local SSH key through cloud-init.
+The test identity can launch into the exact shared group, but cannot change or
+delete it. Normal resets retain the group; full teardown removes it after guests.
+Generated instances, disks and interfaces carry both deployment tags and the
+provisioner's own run tags, so scoped cleanup retains both ownership checks.
 
 Use a per-invocation run ID alongside `molecule_scenario`, deployment ID and
 purpose tags. Persist resource IDs and backend in Molecule's ephemeral state.

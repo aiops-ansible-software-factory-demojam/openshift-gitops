@@ -14,15 +14,13 @@ ENV MOLECULE_GLOB="extensions/molecule/*/molecule.yml"
 ENV ANSIBLE_COLLECTIONS_PATH="~/.ansible/collections:/usr/share/ansible/collections"
 
 COPY requirements.yml /opt/omnigent/requirements.yml
-# The AWS provisioner is an unreleased dependency. Install its exact source
-# commit first so consumers' version pin resolves entirely from the preload.
-RUN git clone --no-checkout https://github.com/david-igou/ansible-collection-molecule_provisioners.git /tmp/molecule-provisioners \
-    && git -C /tmp/molecule-provisioners checkout 85fe445ff1cfa54c830603a4aa45156911426b85 \
-    && cd /tmp/molecule-provisioners \
-    && ansible-galaxy collection build --output-path /tmp \
+# Verify the published Galaxy artifact before preloading the exact test pin.
+RUN ansible-galaxy collection download david_igou.molecule_provisioners:0.0.7-alpha \
+        --no-deps --download-path /tmp/molecule-provisioners \
+    && echo 'efe5f587332ef7f744537c9ab7779856470725d0b85463778a633aa28d8b7440  /tmp/molecule-provisioners/david_igou-molecule_provisioners-0.0.7-alpha.tar.gz' | sha256sum --check \
     && ansible-galaxy collection install --no-deps \
-        /tmp/david_igou-molecule_provisioners-0.0.7-alpha.tar.gz -p /usr/share/ansible/collections \
-    && rm -rf /tmp/molecule-provisioners /tmp/david_igou-molecule_provisioners-0.0.7-alpha.tar.gz
+        /tmp/molecule-provisioners/david_igou-molecule_provisioners-0.0.7-alpha.tar.gz -p /usr/share/ansible/collections \
+    && rm -rf /tmp/molecule-provisioners
 RUN ansible-galaxy collection install \
         -r /opt/omnigent/requirements.yml \
         -p /usr/share/ansible/collections
