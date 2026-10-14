@@ -301,6 +301,8 @@ The sandbox downloads that published Galaxy artifact, checks its SHA-256 in
 the Containerfile and preloads it before resolving the other pinned requirements.
 Consumer dependency setup uses that release. AWS lifecycle tasks stay in the
 shared provisioner; scenarios retain the public create/prepare/destroy imports.
+The [release test report](../reports/2026-10-14-published-aws-provisioner.md)
+records the passing template lifecycle and the failed nginx candidate gate.
 
 Keep Ansible-native Molecule configuration, the public shared create/prepare/
 destroy dispatchers, and `make molecule` → `molecule test --all`. Each scenario
