@@ -16,6 +16,7 @@ source "$demo_repo_root/bootstrap/homepage.sh"
 demo_load_env() {
   set +x
   local inherited_backend=${DEMO_BACKEND:-}
+  local inherited_mcp=${WEBAPP_MCP_ENABLED:-}
   local input_name
   local -A inherited_aws=()
   for input_name in AWS_BOOTSTRAP_ACCESS_KEY_ID AWS_BOOTSTRAP_SECRET_ACCESS_KEY AWS_DEMO_ACCOUNT_ID \
@@ -47,6 +48,7 @@ demo_load_env() {
   done
   export KUBECONFIG=${KUBECONFIG:-$HOME/.kube/config}
   export DEMO_BACKEND=${inherited_backend:-${DEMO_BACKEND:-}}
+  export WEBAPP_MCP_ENABLED=${inherited_mcp:-${WEBAPP_MCP_ENABLED:-}}
   export AWS_DEMO_REGION=${AWS_DEMO_REGION:-us-east-2}
   export AWS_DEMO_VPC_CIDR=${AWS_DEMO_VPC_CIDR:-10.77.0.0/24}
   export AWS_DEMO_SSH_CIDR=${AWS_DEMO_SSH_CIDR:-0.0.0.0/0}
@@ -769,6 +771,174 @@ demo_readiness() {
 # -----------------------------------------------------------------------------
 # Model and machine authentication
 # -----------------------------------------------------------------------------
+
+demo_mcp_enabled() {
+  local enabled=${WEBAPP_MCP_ENABLED:-}
+  [[ -n $enabled ]] || { [[ ${DEMO_BACKEND:-cnv} == cnv ]] && enabled=true || enabled=false; }
+  case $enabled in true|false) ;; *) demo_die 'WEBAPP_MCP_ENABLED must be true or false.' ;; esac
+  [[ $enabled != true || ${DEMO_BACKEND:-cnv} == cnv ]] ||
+    demo_die 'Webapp MCP currently supports the CNV backend only.'
+  [[ $enabled == true ]]
+}
+
+# AO 2026.8 supports HTTP Bearer Token credentials, not automatic OAuth refresh.
+# Keep a 90-day machine credential; ship only its digest to the non-root guest.
+# Reconcile/rotate through AAP before updating AO. All source material is private.
+demo_mcp_material() {
+  local scratch=$1 rotate=${2:-false} secret=webapp-mcp-material namespace=ansible-automation-platform
+  local now expiry digest existing
+  printf '{}' >"$scratch/mcp-material.json"
+  if ! demo_mcp_enabled; then return 0; fi
+  now=$(date +%s)
+  existing=$(oc -n "$namespace" get secret "$secret" --ignore-not-found -o name)
+  if [[ -n $existing ]]; then
+    oc -n "$namespace" get secret "$secret" -o json >"$scratch/mcp-source.json"
+    for key in token ca.key ca.crt material.json; do
+      jq -ej --arg key "$key" '.data[$key] | select(length > 0) | @base64d' \
+        "$scratch/mcp-source.json" >"$scratch/mcp-$key" || demo_die 'Incomplete MCP source Secret.'
+    done
+    # Preserve exact Secret bytes with jq -j before comparing the digest.
+    digest=$(openssl dgst -sha256 "$scratch/mcp-token" | awk '{print $NF}')
+    jq -e --arg digest "$digest" '.token_sha256 == $digest and (.expires_at | type == "number")' \
+      "$scratch/mcp-material.json" >/dev/null || demo_die 'MCP credential digest does not match its source token.'
+    expiry=$(jq -r .expires_at "$scratch/mcp-material.json")
+  else
+    openssl req -x509 -newkey rsa:3072 -nodes -days 3650 -subj /CN=demojam-webapp-mcp-ca \
+      -addext basicConstraints=critical,CA:TRUE -addext keyUsage=critical,keyCertSign,cRLSign \
+      -keyout "$scratch/mcp-ca.key" -out "$scratch/mcp-ca.crt" 2>/dev/null
+    expiry=0
+  fi
+  if [[ $rotate == true ]] || (( expiry < now + 86400 )); then
+    openssl rand -hex 32 | tr -d '\n' >"$scratch/mcp-token"
+    expiry=$((now + 90 * 86400))
+  fi
+  jq -j '.tls_cert // ""' "$scratch/mcp-material.json" >"$scratch/mcp-tls.crt"
+  jq -j '.tls_key // ""' "$scratch/mcp-material.json" >"$scratch/mcp-tls.key"
+  openssl x509 -checkend 604800 -noout -in "$scratch/mcp-ca.crt" >/dev/null ||
+    demo_die 'The MCP CA is expired or expiring; replace its source Secret through a planned CA rotation.'
+  if ! openssl x509 -checkend 604800 -noout -in "$scratch/mcp-tls.crt" >/dev/null 2>&1; then
+    openssl req -new -newkey rsa:3072 -nodes -subj /CN=webapp-mcp.webapp-vms.svc \
+      -keyout "$scratch/mcp-tls.key" -out "$scratch/mcp.csr" 2>/dev/null
+    cat >"$scratch/mcp.ext" <<'EOF'
+subjectAltName=DNS:webapp-mcp.webapp-vms.svc,DNS:webapp-mcp.webapp-vms.svc.cluster.local,DNS:localhost
+basicConstraints=critical,CA:FALSE
+keyUsage=critical,digitalSignature,keyEncipherment
+extendedKeyUsage=serverAuth
+EOF
+    openssl x509 -req -in "$scratch/mcp.csr" -CA "$scratch/mcp-ca.crt" -CAkey "$scratch/mcp-ca.key" \
+      -set_serial "0x$(openssl rand -hex 16)" -days 90 -extfile "$scratch/mcp.ext" \
+      -out "$scratch/mcp-tls.crt" 2>/dev/null
+  fi
+  digest=$(openssl dgst -sha256 "$scratch/mcp-token" | awk '{print $NF}')
+  jq -n --arg digest "$digest" --argjson expiry "$expiry" --rawfile cert "$scratch/mcp-tls.crt" \
+    --rawfile key "$scratch/mcp-tls.key" --rawfile ca "$scratch/mcp-ca.crt" \
+    '{token_sha256:$digest,expires_at:$expiry,tls_cert:$cert,tls_key:$key,ca_cert:$ca}' >"$scratch/mcp-material.json"
+  oc -n "$namespace" create secret generic "$secret" --from-file=token="$scratch/mcp-token" \
+    --from-file=ca.key="$scratch/mcp-ca.key" --from-file=ca.crt="$scratch/mcp-ca.crt" \
+    --from-file=material.json="$scratch/mcp-material.json" --dry-run=client -o yaml |
+    oc apply --server-side --field-manager=demo-bootstrap -f - >/dev/null
+}
+
+demo_mcp_setup() {
+  if demo_mcp_enabled; then
+    demo_aap launch webapp_mcp
+    DEMO_MCP_RECONCILE=true demo_ao_reconcile
+    oc -n automation-orchestrator create configmap webapp-mcp-ready --from-literal=ready=true \
+      --dry-run=client -o yaml | oc apply -f - >/dev/null
+  else
+    demo_ao_reconcile
+    oc -n automation-orchestrator delete configmap webapp-mcp-ready --ignore-not-found >/dev/null
+    if [[ ${DEMO_BACKEND:-cnv} == cnv ]] &&
+       [[ -n $(oc -n webapp-vms get vm webapp --ignore-not-found -o name) ]]; then
+      demo_aap launch webapp_mcp '{"webapp_mcp_state":"absent"}'
+    fi
+  fi
+}
+
+demo_ao_mcp_integration() {
+  local code id inputs configuration active=false names disabled enabled state
+  mcp_integration_id=
+  mcp_credential_id=
+  mcp_tool_ids='[]'
+  if demo_mcp_enabled; then
+    if [[ ${DEMO_MCP_RECONCILE:-} == true ]]; then active=true
+    elif [[ ${DEMO_MCP_RECONCILE:-} != false ]] &&
+      [[ -n $(oc -n automation-orchestrator get configmap webapp-mcp-ready --ignore-not-found -o name) ]]; then active=true
+    fi
+  fi
+  if [[ $active == false ]]; then
+    code=$(ao_curl GET "$base_url/integrations?limit=100" -H "$auth_header")
+    ao_require_json 'list integrations for MCP disable' "$code"
+    id=$(jq -r '.resources[] | select(.name == "Demo Webapp Diagnostics") | .id' "$ao_response")
+    if [[ -n $id ]]; then
+      code=$(ao_curl PATCH "$base_url/integrations/$id" -H "$auth_header" \
+        -H 'Content-Type: application/json' --data-binary '{"enabled":false}')
+      ao_require_json 'disable webapp diagnostics integration' "$code"
+    fi
+    return 0
+  fi
+  oc -n ansible-automation-platform get secret webapp-mcp-material -o json >"$omnigent_scratch/mcp-source.json"
+  jq -j '.data.token | @base64d' "$omnigent_scratch/mcp-source.json" >"$omnigent_scratch/mcp-token"
+  jq -j '.data["ca.crt"] | @base64d' "$omnigent_scratch/mcp-source.json" >"$omnigent_scratch/mcp-ca.crt"
+  inputs=$(jq -n --rawfile token "$omnigent_scratch/mcp-token" '{token:$token}')
+  mcp_credential_id=$(demo_ao_credential demo-webapp-diagnostics 'HTTP Bearer Token' "$inputs")
+  unset inputs
+  configuration=$(jq -n --rawfile ca "$omnigent_scratch/mcp-ca.crt" \
+    '{integration_type:"mcp_server",base_url:"https://webapp-mcp.webapp-vms.svc:8443/mcp",ca_certificate:$ca}')
+  mcp_integration_id=$(demo_ao_integration 'Demo Webapp Diagnostics' mcp_server "$mcp_credential_id" "$configuration")
+  code=$(ao_curl POST "$base_url/integrations/$mcp_integration_id/refresh" -H "$auth_header" \
+    -H 'Content-Type: application/json' --data-binary '{}')
+  ao_require_json 'discover webapp diagnostic tools' "$code"
+  code=$(ao_curl GET "$base_url/integrations/$mcp_integration_id/tools?limit=100" -H "$auth_header")
+  ao_require_json 'list webapp diagnostic tools' "$code"
+  cp "$ao_response" "$omnigent_scratch/mcp-tools.json"
+  names=$(yq -c '.webapp_mcp_tools' "$(demo_source_checkout demojam-ansible)/group_vars/webapps.yml")
+  jq -e --argjson names "$names" '.resources as $tools |
+    all($names[]; . as $name | any($tools[]; .name == $name and .status == "available"))' \
+    "$omnigent_scratch/mcp-tools.json" >/dev/null || demo_die 'Required webapp diagnostic tools are missing.'
+  mcp_tool_ids=$(jq -c --argjson names "$names" '[.resources[] |
+    select(.name as $name | $names | index($name))] | sort_by(.name) | map(.id)' "$omnigent_scratch/mcp-tools.json")
+  # shellcheck disable=SC2034 # Read through the state-named indirect expansion below.
+  disabled=$(jq -c --argjson ids "$mcp_tool_ids" '[.resources[] | select(.enabled and (.id as $id | $ids | index($id) | not)) | .id]' "$omnigent_scratch/mcp-tools.json")
+  enabled=$(jq -c --argjson ids "$mcp_tool_ids" '[.resources[] | select((.enabled | not) and (.id as $id | $ids | index($id))) | .id]' "$omnigent_scratch/mcp-tools.json")
+  for state in disabled enabled; do
+    local ids=${!state} value=false
+    [[ $state != enabled ]] || value=true
+    if [[ $ids != '[]' ]]; then
+      code=$(ao_curl PATCH "$base_url/integrations/$mcp_integration_id/tools/bulk_update" -H "$auth_header" \
+        -H 'Content-Type: application/json' --data-binary "$(jq -cn --argjson ids "$ids" --argjson value "$value" '{tool_ids:$ids,enabled:$value}')")
+      ao_require_json 'select webapp diagnostic tools' "$code"
+    fi
+  done
+  printf 'AO webapp diagnostics: authenticated TLS, %s selected tools.\n' "$(jq length <<<"$mcp_tool_ids")"
+}
+
+demo_ao_rca_definition() {
+  jq -c --arg integration "${mcp_integration_id:-}" --arg credential "${mcp_credential_id:-}" \
+    --argjson tools "${mcp_tool_ids:-[]}" '
+    if ($tools | length) > 0 then
+      .nodes |= map(if .id == "mcpdiag" then
+        .parameters.tool_selection_strategy="SELECTED" | .parameters.tool_selections=$tools |
+        .parameters.integration_connections=[{integration_id:$integration,credential_id:$credential}]
+      else . end)
+    else
+      .nodes |= map(select(.id != "mcpdiag") | if .id == "airca" then
+        .parameters.prompt |= gsub("MCP diagnostics: \\$\\{mcpdiag\\}"; "MCP diagnostics: unavailable (audit-only mode)")
+      else . end) |
+      .edges |= map(select(.from != "mcpdiag") | if .to == "mcpdiag" then .to="airca" else . end)
+    end'
+}
+
+demo_mcp_rotate() (
+  umask 077
+  demo_mcp_enabled || demo_die 'Enable CNV MCP before rotating its credential.'
+  local scratch
+  scratch=$(mktemp -d)
+  trap 'rm -rf -- "$scratch"' EXIT
+  demo_mcp_material "$scratch" true
+  demo_aap_configure
+  demo_mcp_setup
+)
 
 demo_model_config() (
   demo_model_inputs omnigent
@@ -1640,6 +1810,9 @@ demo_ao_integrations() {
   aap_connect
   allowed_hosts=$(jq -cn --arg llm "${model_endpoint#*://}" --arg aap "${aap_host#https://}" \
     '[$llm,$aap] | map(split("/")[0] | split(":")[0]) | unique')
+  if demo_mcp_enabled; then
+    allowed_hosts=$(jq -c '. + ["webapp-mcp.webapp-vms.svc"] | unique' <<<"$allowed_hosts")
+  fi
   expected=$(jq -c . <<<"$allowed_hosts")
   oc -n "$namespace" patch configmap automation-orchestrator-admin-settings --type=merge \
     --patch "$(jq -cn --arg hosts "$expected" --arg timeout "$request_timeout" \
@@ -1688,6 +1861,7 @@ demo_ao_integrations() {
   unset inputs
   configuration=$(jq -n --arg url "$aap_host" '{integration_type:"ansible_automation_platform",base_url:$url}')
   aap_integration_id=$(demo_ao_integration 'Demo AAP' ansible_automation_platform "$aap_credential_id" "$configuration")
+  demo_ao_mcp_integration
   printf 'AO integrations are configured; provider: %s, selected model: %s\n' "$model_provider" "$model_name"
 }
 
@@ -1966,6 +2140,27 @@ demo_ao_reconcile() (
     demo_ao_run "$2" "$run_input"
     exit 0
   fi
+  if [[ ${1:-} == mcp-verify ]]; then
+    demo_mcp_enabled || demo_die 'Webapp MCP is disabled.'
+    http_code=$(ao_curl GET "$base_url/integrations?limit=100" -H "$auth_header")
+    ao_require_json 'find webapp diagnostics integration' "$http_code"
+    local diagnostics_id
+    diagnostics_id=$(jq -er '.resources[] | select(.name == "Demo Webapp Diagnostics" and .enabled) | .id' "$ao_response")
+    http_code=$(ao_curl POST "$base_url/integrations/$diagnostics_id/validate" -H "$auth_header" \
+      -H 'Content-Type: application/json' --data-binary '{}')
+    ao_require_json 'check authenticated MCP session' "$http_code"
+    jq -e '.success == true' "$ao_response" >/dev/null || demo_die 'AO could not establish an authenticated TLS MCP session.'
+    http_code=$(ao_curl GET "$base_url/integrations/$diagnostics_id/tools?limit=100" -H "$auth_header")
+    ao_require_json 'check MCP tools' "$http_code"
+    local expected_tools
+    expected_tools=$(yq -c '.webapp_mcp_tools' "$(demo_source_checkout demojam-ansible)/group_vars/webapps.yml")
+    jq -e --argjson names "$expected_tools" '.resources as $tools |
+      all($names[]; . as $name | any($tools[]; .name == $name and .enabled and .status == "available")) and
+      all($tools[]; (.enabled | not) or (.name as $name | $names | index($name)))' "$ao_response" >/dev/null ||
+      demo_die 'AO diagnostic tool selection does not match the guest policy.'
+    printf 'AO MCP TLS session and %s diagnostic tools verified.\n' "$(jq length <<<"$expected_tools")"
+    exit 0
+  fi
 
   http_code=$(ao_curl GET "$base_url/groups?limit=100" -H "$auth_header")
   ao_require_json 'list OIDC target groups' "$http_code"
@@ -2081,6 +2276,9 @@ demo_ao_reconcile() (
       .triggers |= map(if .type == "eda_trigger" then
         .parameters.authorized_service_account_ids=[$eda_account]
       else . end)' <<<"$workflow_definition")
+    if [[ $workflow_name == 'Check Audit logs, Determine RCA, Create Issue' ]]; then
+      workflow_definition=$(demo_ao_rca_definition <<<"$workflow_definition")
+    fi
     validation_payload=$(jq -n --argjson definition "$workflow_definition" \
       '{workflow_definition: $definition}')
     http_code=$(ao_curl POST "$base_url/workflows/validate" -H "$auth_header" \
@@ -2426,7 +2624,7 @@ YAML
   org=$(aap_upsert organizations/ demo '{"description":"Disposable automation demo"}' | jq -er .id)
   # AAP forbids changing the schema of a credential type that is already in use.
   # Version it so aap_upsert migrates the dispatch credential and reattaches it.
-  config=$(aap_upsert credential_types/ 'Demo AAP configuration v5' \
+  config=$(aap_upsert credential_types/ 'Demo AAP configuration v6' \
     "$(yq . "$demo_repo_root/bootstrap/aap-dispatch-credential-type.yaml")" | jq -er .id)
   oc -n demojam-keycloak get secret identity-credentials \
     -o go-template='{{index .data "aap-client-secret" | base64decode}}' >"$aap_scratch/oidc-secret"
@@ -2444,6 +2642,7 @@ YAML
   [[ -s $aap_scratch/eda-token && -s $aap_scratch/forgejo-token && -s $aap_scratch/forgejo-eda-token &&
      -s $aap_scratch/ao-client-id && -s $aap_scratch/ao-client-secret ]] ||
     demo_die 'Hydrate Forgejo and prepare the EDA and AO webhook clients before configuring AAP.'
+  demo_mcp_material "$aap_scratch"
   aap_upsert credentials/ demo-aap-dispatch "$(jq -n --argjson org "$org" --argjson kind "$config" \
     --arg host "$aap_host" --arg username "$aap_username" --rawfile password "$aap_scratch/password" \
     --arg issuer "$oidc_issuer" --rawfile oidc_secret "$aap_scratch/oidc-secret" \
@@ -2456,12 +2655,13 @@ YAML
     --arg backend "${DEMO_BACKEND:-cnv}" --rawfile aws_config "$aap_scratch/aws-config" \
     --rawfile aws_access_key "$aap_scratch/aws-access-key" --rawfile aws_secret_key "$aap_scratch/aws-secret-key" \
     --arg aws_region "${AWS_DEMO_REGION:-us-east-2}" \
+    --rawfile mcp_material "$aap_scratch/mcp-material.json" \
     '{organization:$org,credential_type:$kind,inputs:{host:$host,username:$username,password:$password,
       oidc_issuer:$issuer,oidc_secret:$oidc_secret,ee_image:$ee_image,vm_host:$vm_host,vm_token:($vm_token|rtrimstr("\n")),
       vm_ca:$vm_ca,ssh_private:$ssh_private,ssh_public:($ssh_public|rtrimstr("\n")),entitlement:$entitlement,
       eda_token:$eda_token,forgejo_token:$forgejo_token,forgejo_eda_token:$forgejo_eda_token,
       ao_client_id:$ao_client_id,ao_client_secret:$ao_client_secret,
-      backend:$backend,aws_config:$aws_config,aws_access_key:$aws_access_key,
+      backend:$backend,mcp_material:$mcp_material,aws_config:$aws_config,aws_access_key:$aws_access_key,
       aws_secret_key:$aws_secret_key,aws_region:$aws_region}}')" >/dev/null
   galaxy=$(aap_find credential_types/ 'Ansible Galaxy/Automation Hub API Token' | jq -er .id)
   community=$(aap_upsert credentials/ demo-galaxy "$(jq -n --argjson org "$org" --argjson kind "$galaxy" \
@@ -2476,7 +2676,7 @@ YAML
 aap_launch() {
   local name=$1 extra=${2:-'{}'} reset=${3:-false} org template record result project inventory sources source update
   case $name in
-    webapp_vm|webapp_nginx|webapp_selinux_permissive|webapp_selinux_enable|aap_configure_all) ;;
+    webapp_vm|webapp_nginx|webapp_mcp|webapp_selinux_permissive|webapp_selinux_enable|aap_configure_all) ;;
     openshift_virtualization_machine) [[ $reset == true ]] || demo_die 'Only seeded demo templates may be launched.' ;;
     *) demo_die 'Only seeded demo templates may be launched.' ;;
   esac
@@ -2577,6 +2777,7 @@ aap_reset_vms() {
       select(.status == "new" or .status == "pending" or .status == "waiting" or .status == "running") | .id' <<<"$jobs")
   done
   # Both templates are validated before either destructive operation.
+  oc -n automation-orchestrator delete configmap webapp-mcp-ready --ignore-not-found >/dev/null
   aap_launch webapp_vm '{"host":"demo_cluster","vm_state":"absent"}' true
   if [[ ${DEMO_BACKEND:-cnv} == cnv ]]; then
     aap_launch openshift_virtualization_machine '{"host":"demo_cluster","vm_state":"absent","vm_name":"automation-demo"}' true
@@ -2689,7 +2890,14 @@ demo_webapp() {
   case $1 in
     create) demo_readiness aap; demo_aap launch webapp_vm ;;
     nginx) demo_aap launch webapp_nginx ;;
-    delete) demo_aap launch webapp_vm '{"vm_state":"absent"}' ;;
+    delete)
+      DEMO_MCP_RECONCILE=false demo_ao_reconcile
+      oc -n automation-orchestrator delete configmap webapp-mcp-ready --ignore-not-found >/dev/null
+      demo_aap launch webapp_vm '{"vm_state":"absent"}'
+      ;;
+    mcp) demo_aap_configure; demo_mcp_setup ;;
+    mcp-verify) demo_ao_reconcile mcp-verify ;;
+    mcp-rotate) demo_mcp_rotate ;;
     sync) demo_aap launch aap_configure_all ;;
     verify-enforcing) demo_aap verify-enforcing; demo_webapp verify ;;
     verify)
@@ -2712,7 +2920,7 @@ demo_webapp() {
       [[ $metrics == *'probe_success 1'* ]] || demo_die 'Webapp blackbox probe failed.'
       printf 'RHEL webapp and blackbox probe are healthy: https://%s/\n' "$host"
       ;;
-    *) demo_die 'Usage: webapp create|nginx|delete|sync|verify|verify-enforcing' ;;
+    *) demo_die 'Usage: webapp create|nginx|delete|sync|verify|verify-enforcing|mcp|mcp-verify|mcp-rotate' ;;
   esac
 }
 
@@ -3100,7 +3308,7 @@ demo_bootstrap() (
   demo_aap_configure
   if [[ ${BOOTSTRAP_RECONCILE_WORKFLOW:-true} == true ]]; then
     demo_step 'Validate and publish the AO workflow'
-    demo_ao_reconcile
+    DEMO_MCP_RECONCILE=false demo_ao_reconcile
     demo_forgejo_webhook_configure
   else
     demo_ao_reconcile identity-only
@@ -3111,6 +3319,10 @@ demo_bootstrap() (
   demo_aap launch webapp_selinux_permissive
   demo_step 'Install nginx through AAP'
   demo_webapp nginx
+  if [[ ${BOOTSTRAP_RECONCILE_WORKFLOW:-true} == true ]]; then
+    demo_step 'Configure webapp MCP and publish the selected RCA workflow'
+    demo_mcp_setup
+  fi
   demo_step 'Verify the webapp and monitoring probe'
   demo_webapp verify
   demo_alerting_maintenance resume
@@ -3532,7 +3744,15 @@ HELP
     reconcile-workflow|ao-configure) demo_verify_cluster; demo_ao_reconcile ;;
     dispatch-issue) demo_dispatch_issue "$@" ;;
     ao-run) [[ $# -ge 1 && $# -le 2 ]] || demo_die 'ao-run requires WORKFLOW [INPUT_JSON]'; demo_verify_cluster; demo_ao_reconcile run "$@" ;;
-    aap-configure) demo_aap_configure; demo_ao_reconcile; demo_forgejo_webhook_configure ;;
+    aap-configure)
+      demo_aap_configure
+      if [[ -n $(oc -n automation-orchestrator get configmap webapp-mcp-ready --ignore-not-found -o name) ]]; then
+        demo_mcp_setup
+      else
+        demo_ao_reconcile
+      fi
+      demo_forgejo_webhook_configure
+      ;;
     webapp) [[ $# == 1 ]] || demo_die 'webapp requires one action'; demo_webapp "$@" ;;
     aap) [[ $# -gt 0 ]] || demo_die 'aap requires an action'; demo_verify_cluster; demo_aap "$@" ;;
     readiness) [[ $# == 1 ]] || demo_die 'readiness requires sandbox or aap'; demo_verify_cluster; demo_readiness "$@" ;;

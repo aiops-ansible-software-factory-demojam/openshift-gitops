@@ -23,7 +23,7 @@ dispatch credential to the inventory-defined webhook credential. Expired,
 disabled, or stale clients are replaced; a disabled service account stops setup.
 Workflow reconciliation binds the EDA trigger to that local account. Bootstrap
 and maintenance commands need no continuation scripts or manual credential edits.
-Existing clusters migrate to dispatch credential type `Demo AAP configuration v4`;
+Existing clusters migrate to dispatch credential type `Demo AAP configuration v6`;
 the earlier type stays intact because AAP forbids editing schemas already in use.
 
 ## Blackbox alert to issue
@@ -35,6 +35,28 @@ network policy lets AAP reach AO's internal UI/API service. The workflow reads
 `pull_audit_logs`'s `affected_host_log_output` artifact and passes the
 model's diagnosis to `webapp_alert_issue` alongside the original alert payload.
 The issue job reuses an existing open incident when Alertmanager sends repeats.
+
+For CNV, bootstrap adds a read-only MCP investigation between audit collection
+and final RCA. `mcpdiag` receives the alert and audit evidence, queries only the
+selected `Demo Webapp Diagnostics` tools, and returns bounded observations and
+limitations. Its 120-second timeout and `continue_on_failure` let the final
+text-only `airca` step use available audit/alert evidence when diagnostics fail.
+The final prompt reports unavailable evidence and excludes raw logs and
+connection error details. The `rootCause`, `escalateTo`, `remediationSteps`
+response and `airca.result.content` issue handoff remain unchanged.
+
+Initial bootstrap publishes an audit-only workflow before the guest exists.
+After AAP installs the guest service, authenticated discovery resolves tool
+UUIDs and binds an explicit runtime credential through
+`integration_connections`. The integration's management credential is also
+configured for health checks. All other discovered tools are disabled. An
+unchanged tool selection preserves IDs and therefore does not create an
+unnecessary workflow version. Disabled mode removes the diagnostic step and
+its references and restores `auditlogs → airca → createissue`.
+
+See the top-level README for `WEBAPP_MCP_ENABLED`, credential/certificate
+lifecycle, maintenance commands and validation limits. MCP never applies
+remediation; review/merge and AAP recovery remain the normal demo boundary.
 
 To exercise the flow on the demo VM, run AAP's `webapp_selinux_enable` template.
 Enforcing SELinux blocks nginx's demo document root and the blackbox probe

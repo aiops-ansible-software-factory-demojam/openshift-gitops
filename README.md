@@ -7,11 +7,65 @@ The cluster also runs Ansible Automation Platform (AAP), a RHEL 9 nginx VM,
 and monitoring.
 
 A SELinux outage follows the complete automatic path: blackbox alert → EDA →
-AO audit-log RCA → Forgejo incident → Forgejo webhook → EDA → AO → Omnigent
+AO audit/MCP RCA → Forgejo incident → Forgejo webhook → EDA → AO → Omnigent
 fix PR. Bootstrap installs and connects every stage; PR review and merge remain
 manual. LiteLLM's `qwen38-27b` is the default model in the configuration template.
 Bootstrap disables thinking for this model in the coding harness because the
 demo endpoint can otherwise time out before returning a streamed tool call.
+
+## RHEL MCP diagnostics for AO RCA
+
+On the CNV backend, bootstrap installs native Linux MCP 1.7.0 on the webapp VM
+after configuring nginx, then publishes an RCA workflow with a read-only
+diagnostic agent. AAP still supplies privileged SELinux audit evidence. AO
+correlates it with nginx status/logs, journal, listener and resource checks
+before opening the incident. A failed or timed-out diagnostic step falls back
+to the available audit/alert evidence and reports the limitation. MCP applies
+no fixes; the incident-to-PR, human review and AAP recovery flow remain in place.
+
+`WEBAPP_MCP_ENABLED` defaults to true for CNV and false for AWS. AWS MCP
+transport is not implemented; explicitly enabling it on AWS fails clearly.
+Set it to false and run `make webapp-mcp` to restore audit-only RCA before
+stopping the daemon and removing its guest authentication/TLS material.
+
+```bash
+make webapp-mcp         # Configure AAP, apply guest setup and reconcile AO
+make webapp-mcp-verify  # Validate an authenticated TLS MCP session and tool selection
+make webapp-mcp-rotate  # Rotate the machine credential through AAP and AO
+```
+
+The internal endpoint is `https://webapp-mcp.webapp-vms.svc:8443/mcp`, without
+a public Route. Guest ingress restricts 8443 to AO backend/worker/background
+worker pods while retaining HTTP/SSH. The AO operator permits outbound
+integration traffic for those components; verify actual pod labels and CNV
+policy enforcement during the live acceptance run. The integration hostname
+is added to the integration allowlist without changing workflow HTTP-node rules.
+
+AO 2026.8's shipped adapter supports an `HTTP Bearer Token` credential, without
+OAuth token renewal. The compatibility adapter validates a 90-day machine
+credential against a SHA-256 digest. Bootstrap preserves its source Secret
+and CA across reruns/reset, renews credentials within one day of expiry and
+TLS leaf certificates within seven days, and deploys only the digest/expiry
+and leaf TLS material to the guest. AO stores the plaintext token encrypted
+and binds it separately for discovery and workflow execution. A changed digest
+restarts the guest service and rejects the previous credential. Run maintenance
+before expiry; an expired credential produces unavailable diagnostics and
+requires `make webapp-mcp-rotate` to restore access. CA replacement is a planned
+trust rotation rather than an automatic replacement of the signing identity.
+
+Bootstrap first publishes audit-only RCA before the VM exists; it enables MCP
+only after the guest service and authenticated discovery pass, before resuming
+alerting. `webapp-mcp-ready` records that installation milestone. Reset clears
+the marker, and explicit VM deletion restores audit-only RCA first. Select the
+matching published `demojam-ansible` implementation branch when testing these
+changes, using `DEMOJAM_ANSIBLE_BRANCH` and `BOOTSTRAP_BRANCH`.
+
+Local checks include `bash tests/webapp-mcp-bootstrap.sh`, Kustomize rendering,
+the companion repository's HTTPS/credential tests, and the shipped AO adapter
+and workflow models. The complete CNV outage-to-PR/recovery run, guest reboot
+and namespace isolation checks require the installed demo; do not substitute
+local schema or adapter success for those live acceptance checks. RHEL MCP
+remains Developer Preview.
 
 ## Before you start
 
