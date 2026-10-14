@@ -178,7 +178,8 @@ Use the
 [run-demojam skill](.agents/skills/run-demojam/SKILL.md) for the operator sequence.
 The [published AWS provisioner test](docs/reports/2026-10-14-published-aws-provisioner.md)
 records release adoption, a passing RHEL 9/10 template lifecycle, and a Haiku PR
-rejected by its independent verification gate.
+rejected by its independent verification gate, followed by a user-requested
+merge and successful one-job Enforcing recovery.
 The [AWS and Haiku run report](docs/reports/2026-10-13-aws-haiku.md) records the
 tested merge, one-job Enforcing recovery, reset and dashboard checks, with stage
 timings, prompts and the bootstrap fixes found during live testing.

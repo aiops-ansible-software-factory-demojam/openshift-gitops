@@ -5,9 +5,15 @@ release. Bootstrap rebuilt the sandbox, and the generated collection template
 passed its complete AWS Molecule lifecycle on RHEL 9 and RHEL 10.
 
 The subsequent Go Haiku incident run reached a PR automatically, but its exact
-published commit failed independent nginx verification on both guests. The PR
-remains open. No merge or recovery job ran; the monitored app remains Enforcing
-and returns HTTP 403. This was a failed remediation run with a working test gate.
+published commit failed independent nginx verification on both guests. The
+original test gate stopped the run before merge, with the app Enforcing and
+returning HTTP 403.
+
+At the user's subsequent request, the same PR was merged and one `webapp_nginx`
+job deployed it. The app now returns HTTP 200 with the expected page content,
+SELinux Enforcing and persistent web-content labels. The alert cleared. The
+earlier Molecule failure remains recorded; this follow-up establishes live
+recovery, not a passing test-gated demo.
 
 ## Release and implementation
 
@@ -99,7 +105,7 @@ ShellCheck, Kustomize rendering, changed-inventory lint, collection builds,
 released-backend normalization of both inventories, and AWS/CNV scenario matrices.
 The CNV matrices are configuration checks, not a live CNV lifecycle result.
 
-## Incident run and merge gate
+## Original incident run and merge gate
 
 | Stage | Timestamp or interval | Elapsed / observation |
 | --- | --- | --- |
@@ -157,8 +163,54 @@ Molecule's failure cleanup completed destruction. Independent cloud reads then
 found zero disposable test instances, disks, interfaces, key pairs and groups.
 The shared network/group and monitored guest remained. The monitored guest
 still returned HTTP 403 at 01:22:46.688. PR 3 and issue 2 remained open; no merge
-or application recovery job ran. No successful fault-to-resolution time exists
-for this run.
+or application recovery job ran. The original test-gated run ended without
+resolution.
+
+## User-requested merge and recovery
+
+The follow-up instruction was: `test merging the fix and fixing the webapp`.
+The PR head and base still matched the independently tested candidate. The
+app still returned HTTP 403 before merge. No candidate edits, code review,
+agent feedback, test changes or validation reruns occurred. The merge proceeded
+at the user's explicit request despite the recorded failed Molecule result.
+
+Forgejo PR 3 was squash-merged at 01:53:10 UTC. Its candidate remained
+`e6a49cce4fdbd8bb3e104b52f8acc1e418ba3d5f`; the resulting `main` commit was
+`c661f7a941f268090c91059180e073c38cccc604`. Issue 2 closed, and the source branch
+was deleted. One `bash bootstrap/bootstrap.sh webapp nginx` command refreshed
+the AAP project and inventory, then launched recovery job 205.
+
+| Stage | Start → finish | Elapsed / result |
+| --- | --- | --- |
+| Merge request and confirmation | 01:53:09.560 → 01:53:10.665 | 1.106s; merged |
+| Recovery command | 01:53:51.636 → 01:55:28.092 | 1m36.455s; exit 0 |
+| Recovery job 205, `webapp_nginx` | 01:55:01.445 → 01:55:26.281 | 24.836s; successful |
+| Alert resolution observed | 01:55:30.283 | 2m20.283s after merge |
+| HTTP and blackbox check | 01:56:49.854 → 01:56:50.158 | HTTP 200; `probe_success=1` |
+| Enforcing verification command | 01:56:49.857 → 01:56:59.776 | 9.919s; exit 0 |
+| Additional read-only guest check 207 | 01:57:33.279 → 01:57:38.164 | 4.885s; successful |
+
+The merge-to-alert interval includes 41.636s before the recovery command began.
+Within the recovery command, 69.809s elapsed before job execution, the job took
+24.836s, and the final polling took 1.811s. Alert resolution was observed
+1m38.647s after the recovery command began. These are follow-up recovery times;
+the earlier wait at the failed gate is not an autonomous demo benchmark.
+
+Read-only checks confirmed:
+
+- The HTTP response contained `demojam demo`.
+- SELinux remained Enforcing; `httpd_t` was not a permissive domain.
+- `/web` and `/web/index.html` both had `httpd_sys_content_t` labels.
+- The persistent fcontext rule was `/web(/.*)? → httpd_sys_content_t`.
+- The dashboard showed Webapp Up, zero alerts, successful recovery job 205,
+  completed issue handoff, and all 14 Argo applications Synced/Healthy.
+
+Job 205 was the only application deployment after merge. Commands 206 and 207
+were read-only verification. No SELinux-enable or permissive job ran during
+recovery, and no manual guest repair was needed. The original independent
+Molecule result remains exit 2 with the missing `nginx_http.content` field;
+live success does not resolve that verifier failure. The environment was left
+healthy and Enforcing, with the PR merged.
 
 ## Prompts, model activity and operator actions
 
@@ -186,9 +238,11 @@ Molecule exit code 2.
 After the failed run, the dashboard widget was corrected from
 `omnigent-dispatch` to `omnigent-remediation`. Its focused routing check and live
 browser verification passed. The widget now reports completed handoff executions;
-webapp Down and one alert correctly represent the unresolved incident. All 14
-Argo applications were Synced/Healthy. The failed PR and coding session were
-retained for inspection. The read-only alert observer was stopped.
+at that point Webapp Down and one alert represented the unresolved incident.
+All 14 Argo applications were Synced/Healthy. The failed PR and coding session
+were retained for inspection, and the read-only alert observer was stopped.
+The later follow-up merge and deployment changed the app and alert status as
+recorded above; the coding session and original test evidence remain available.
 
 The RCA prompt template and delivered coding task follow. Service addresses and
 cloud identifiers are redacted; credentials and native reasoning are omitted.
