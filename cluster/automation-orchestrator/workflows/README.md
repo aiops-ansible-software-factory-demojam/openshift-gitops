@@ -36,7 +36,7 @@ network policy lets AAP reach AO's internal UI/API service. The workflow reads
 model's diagnosis to `webapp_alert_issue` alongside the original alert payload.
 The issue job reuses an existing open incident when Alertmanager sends repeats.
 
-For CNV, bootstrap adds a read-only MCP investigation between audit collection
+When MCP is enabled, bootstrap adds a read-only investigation between audit collection
 and final RCA. `mcpdiag` receives the alert and audit evidence, queries only the
 selected `Demo Webapp Diagnostics` tools, and returns bounded observations and
 limitations. Its 120-second timeout and `continue_on_failure` let the final

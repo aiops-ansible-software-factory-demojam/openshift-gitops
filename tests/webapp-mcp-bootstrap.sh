@@ -67,5 +67,7 @@ jq -e '.nodes[] | select(.id == "mcpdiag") |
 export DEMO_BACKEND=aws WEBAPP_MCP_ENABLED=
 ! demo_mcp_enabled
 export WEBAPP_MCP_ENABLED=true
-if (demo_mcp_enabled) 2>/dev/null; then echo 'AWS MCP must fail explicitly' >&2; exit 1; fi
+demo_mcp_enabled
+export WEBAPP_MCP_ENABLED=invalid
+if (demo_mcp_enabled) 2>/dev/null; then echo 'Invalid feature setting must fail explicitly' >&2; exit 1; fi
 printf 'MCP bootstrap: Secret reuse, TLS, rotation, expiry renewal, workflow modes and backend gating passed\n'

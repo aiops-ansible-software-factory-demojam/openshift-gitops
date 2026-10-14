@@ -15,7 +15,7 @@ demo endpoint can otherwise time out before returning a streamed tool call.
 
 ## RHEL MCP diagnostics for AO RCA
 
-On the CNV backend, bootstrap installs native Linux MCP 1.7.0 on the webapp VM
+Bootstrap installs native Linux MCP 1.7.0 on the webapp guest
 after configuring nginx, then publishes an RCA workflow with a read-only
 diagnostic agent. AAP still supplies privileged SELinux audit evidence. AO
 correlates it with nginx status/logs, journal, listener and resource checks
@@ -23,8 +23,8 @@ before opening the incident. A failed or timed-out diagnostic step falls back
 to the available audit/alert evidence and reports the limitation. MCP applies
 no fixes; the incident-to-PR, human review and AAP recovery flow remain in place.
 
-`WEBAPP_MCP_ENABLED` defaults to true for CNV and false for AWS. AWS MCP
-transport is not implemented; explicitly enabling it on AWS fails clearly.
+`WEBAPP_MCP_ENABLED` defaults to true for CNV and false for AWS. Set it to
+true to opt an AWS deployment into MCP diagnostics.
 Set it to false and run `make webapp-mcp` to restore audit-only RCA before
 stopping the daemon and removing its guest authentication/TLS material.
 
@@ -60,7 +60,19 @@ the marker, and explicit VM deletion restores audit-only RCA first. Select the
 matching published `demojam-ansible` implementation branch when testing these
 changes, using `DEMOJAM_ANSIBLE_BRANCH` and `BOOTSTRAP_BRANCH`.
 
-Local checks include `bash tests/webapp-mcp-bootstrap.sh`, Kustomize rendering,
+For AWS, bootstrap removes the Service selector and publishes an EndpointSlice
+using the EC2 webapp's current public address. The same Service hostname and TLS
+certificate remain valid. It discovers public IPv4 egress from the running AO
+caller pods using `https://checkip.amazonaws.com`, then opens the owned EC2
+security group's TCP 8443 only to those `/32` addresses. Rerunning setup removes
+stale owned rules; disable/reset removes the endpoint and closes the port.
+Reconcile MCP after cluster egress changes. The AWS firewall identifies cluster
+egress, so other workloads sharing that address can reach the listener; the
+MCP bearer credential and tool policy enforce AO's identity. CNV's pod-level
+ingress policy does not apply to external EC2 endpoints.
+
+Local checks include `bash tests/webapp-mcp-bootstrap.sh`,
+`python tests/mcp-aws-network.py`, Kustomize rendering,
 the companion repository's HTTPS/credential tests, and the shipped AO adapter
 and workflow models. The complete CNV outage-to-PR/recovery run, guest reboot
 and namespace isolation checks require the installed demo; do not substitute

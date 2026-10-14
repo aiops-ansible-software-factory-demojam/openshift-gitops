@@ -292,6 +292,38 @@ if action == 'preflight':
     print('AWS account, region, image selection and IAM discovery verified.')
     sys.exit(0)
 
+if action in ('mcp-open', 'mcp-close'):
+    assert state.get('webapp_security_group_id'), 'Provision the owned AWS webapp network first'
+    group_id = state['webapp_security_group_id']
+    group = ec2.describe_security_groups(GroupIds=[group_id])['SecurityGroups'][0]
+    owned(group)
+    desired = set()
+    if action == 'mcp-open':
+        for value in env['DEMO_MCP_EGRESS_IPS'].split(','):
+            address = ipaddress.ip_address(value)
+            assert address.version == 4 and address.is_global, 'MCP requires public IPv4 egress addresses'
+            desired.add(str(address) + '/32')
+        assert desired, 'No AO egress addresses discovered'
+    rules = ec2.describe_security_group_rules(Filters=[{'Name': 'group-id', 'Values': [group_id]}])['SecurityGroupRules']
+    current = {r['CidrIpv4']: r['SecurityGroupRuleId'] for r in rules
+               if not r['IsEgress'] and r.get('IpProtocol') == 'tcp'
+               and r.get('FromPort') == 8443 and r.get('ToPort') == 8443
+               and r.get('Description') == 'demojam-ao-mcp' and r.get('CidrIpv4')}
+    # Do not replace or broaden unowned rules. Fail if another rule exposes MCP.
+    assert all(r.get('Description') == 'demojam-ao-mcp' for r in rules
+               if not r['IsEgress'] and r.get('IpProtocol') in ('tcp', '-1')
+               and (r.get('IpProtocol') == '-1' or r.get('FromPort', 65536) <= 8443 <= r.get('ToPort', -1))), 'Unowned rule exposes MCP'
+    stale = [identifier for cidr, identifier in current.items() if cidr not in desired]
+    if stale:
+        ec2.revoke_security_group_ingress(GroupId=group_id, SecurityGroupRuleIds=stale)
+    missing = sorted(desired - current.keys())
+    if missing:
+        ec2.authorize_security_group_ingress(GroupId=group_id, IpPermissions=[{
+            'IpProtocol': 'tcp', 'FromPort': 8443, 'ToPort': 8443,
+            'IpRanges': [{'CidrIp': cidr, 'Description': 'demojam-ao-mcp'} for cidr in missing]}])
+    print('AWS MCP ingress reconciled for ' + str(len(desired)) + ' cluster egress address(es).')
+    sys.exit(0)
+
 if action in ('cleanup', 'teardown'):
     assert state_file.exists() or record, 'No deployment ownership receipt; refusing AWS cleanup'
     cleanup(['webapp', 'molecule'])
@@ -776,9 +808,35 @@ demo_mcp_enabled() {
   local enabled=${WEBAPP_MCP_ENABLED:-}
   [[ -n $enabled ]] || { [[ ${DEMO_BACKEND:-cnv} == cnv ]] && enabled=true || enabled=false; }
   case $enabled in true|false) ;; *) demo_die 'WEBAPP_MCP_ENABLED must be true or false.' ;; esac
-  [[ $enabled != true || ${DEMO_BACKEND:-cnv} == cnv ]] ||
-    demo_die 'Webapp MCP currently supports the CNV backend only.'
   [[ $enabled == true ]]
+}
+
+# AWS retains the same internal TLS hostname. Only its managed EndpointSlice
+# and the owned guest security group differ from the CNV transport.
+demo_mcp_aws_network() {
+  [[ ${DEMO_BACKEND:-cnv} == aws ]] || return 0
+  local action=$1 pods pod address addresses='' guest
+  if [[ $action == open ]]; then
+    pods=$(oc -n automation-orchestrator get pods -l 'app.kubernetes.io/name=automation-orchestrator,app.kubernetes.io/component in (backend,worker,background-worker)' \
+      -o json | jq -r '.items[] | select(.status.phase == "Running") | .metadata.name')
+    [[ -n $pods ]] || demo_die 'No running AO callers for AWS MCP egress discovery.'
+    while IFS= read -r pod; do
+      address=$(oc -n automation-orchestrator exec "$pod" -- python -c \
+        'import ipaddress,urllib.request; value=urllib.request.urlopen("https://checkip.amazonaws.com", timeout=20).read().decode().strip(); address=ipaddress.ip_address(value); assert address.version==4 and address.is_global; print(address)')
+      addresses+="${addresses:+,}$address"
+    done <<<"$pods"
+    DEMO_MCP_EGRESS_IPS="$addresses" demo_aws mcp-open
+    guest=$(oc -n webapp-vms get endpointslice webapp-aws -o json |
+      jq -er '.endpoints[0] | select(.conditions.ready == true) | .addresses[0]')
+    jq -n --arg guest "$guest" '{apiVersion:"discovery.k8s.io/v1",kind:"EndpointSlice",
+      metadata:{name:"webapp-mcp-aws",namespace:"webapp-vms",labels:{"kubernetes.io/service-name":"webapp-mcp",
+        "endpointslice.kubernetes.io/managed-by":"demojam-bootstrap"}},addressType:"IPv4",
+      ports:[{name:"mcp-https",protocol:"TCP",port:8443}],endpoints:[{addresses:[$guest],conditions:{ready:true}}]}' |
+      oc apply --server-side --field-manager=demo-bootstrap -f - >/dev/null
+  else
+    oc -n webapp-vms delete endpointslice webapp-mcp-aws --ignore-not-found >/dev/null
+    demo_aws mcp-close
+  fi
 }
 
 # AO 2026.8 supports HTTP Bearer Token credentials, not automatic OAuth refresh.
@@ -842,14 +900,16 @@ EOF
 demo_mcp_setup() {
   if demo_mcp_enabled; then
     demo_aap launch webapp_mcp
+    demo_mcp_aws_network open
     DEMO_MCP_RECONCILE=true demo_ao_reconcile
     oc -n automation-orchestrator create configmap webapp-mcp-ready --from-literal=ready=true \
       --dry-run=client -o yaml | oc apply -f - >/dev/null
   else
     demo_ao_reconcile
     oc -n automation-orchestrator delete configmap webapp-mcp-ready --ignore-not-found >/dev/null
-    if [[ ${DEMO_BACKEND:-cnv} == cnv ]] &&
-       [[ -n $(oc -n webapp-vms get vm webapp --ignore-not-found -o name) ]]; then
+    if [[ ${DEMO_BACKEND:-cnv} == aws ]]; then demo_mcp_aws_network close; fi
+    if { [[ ${DEMO_BACKEND:-cnv} == cnv ]] && [[ -n $(oc -n webapp-vms get vm webapp --ignore-not-found -o name) ]]; } ||
+       { [[ ${DEMO_BACKEND:-cnv} == aws ]] && [[ -n $(oc -n webapp-vms get endpointslice webapp-aws --ignore-not-found -o name) ]]; }; then
       demo_aap launch webapp_mcp '{"webapp_mcp_state":"absent"}'
     fi
   fi
@@ -931,7 +991,7 @@ demo_ao_rca_definition() {
 
 demo_mcp_rotate() (
   umask 077
-  demo_mcp_enabled || demo_die 'Enable CNV MCP before rotating its credential.'
+  demo_mcp_enabled || demo_die 'Enable MCP before rotating its credential.'
   local scratch
   scratch=$(mktemp -d)
   trap 'rm -rf -- "$scratch"' EXIT
@@ -2778,6 +2838,7 @@ aap_reset_vms() {
   done
   # Both templates are validated before either destructive operation.
   oc -n automation-orchestrator delete configmap webapp-mcp-ready --ignore-not-found >/dev/null
+  demo_mcp_aws_network close
   aap_launch webapp_vm '{"host":"demo_cluster","vm_state":"absent"}' true
   if [[ ${DEMO_BACKEND:-cnv} == cnv ]]; then
     aap_launch openshift_virtualization_machine '{"host":"demo_cluster","vm_state":"absent","vm_name":"automation-demo"}' true
@@ -2893,6 +2954,7 @@ demo_webapp() {
     delete)
       DEMO_MCP_RECONCILE=false demo_ao_reconcile
       oc -n automation-orchestrator delete configmap webapp-mcp-ready --ignore-not-found >/dev/null
+      demo_mcp_aws_network close
       demo_aap launch webapp_vm '{"vm_state":"absent"}'
       ;;
     mcp) demo_aap_configure; demo_mcp_setup ;;
@@ -2950,7 +3012,8 @@ demo_backend_root_override() {
       ]),
       patch({kind:"Application",name:"webapp-vms"}; [
         {op:"add",path:"/spec/source/kustomize",value:{patches:[
-          patch({kind:"Service",name:"^webapp(-ssh)?$"}; [{op:"remove",path:"/spec/selector"}]),
+          patch({kind:"Service",name:"^webapp(-ssh|-mcp)?$"}; [{op:"remove",path:"/spec/selector"}]),
+          drop("networking.k8s.io/v1";"NetworkPolicy";"webapp-diagnostics-ingress";"webapp-vms"),
           patch({kind:"Role",name:"aap-vm-admin"}; [{op:"replace",path:"/rules",value:[
             {apiGroups:["discovery.k8s.io"],resources:["endpointslices"],verbs:["get","list","watch","create","patch","update","delete"]},
             {apiGroups:[""],resources:["services"],verbs:["get","list"]}
@@ -3690,7 +3753,7 @@ Usage: bash bootstrap/bootstrap.sh [COMMAND] [--backend cnv|aws]
   ao-run NAME [JSON] Execute a published workflow and print its result
   reconcile-workflow Alias for ao-configure
   aap-configure      Configure AAP/EDA, publish AO workflows, connect the Forgejo webhook
-  webapp ACTION      create | nginx | verify | verify-enforcing | delete | sync
+  webapp ACTION      create | nginx | verify | verify-enforcing | delete | sync | mcp | mcp-verify | mcp-rotate
   aap ACTION         credentials | wait-project | dispatch | reset-vms | launch TEMPLATE [JSON]
   readiness TARGET   sandbox | aap
 
