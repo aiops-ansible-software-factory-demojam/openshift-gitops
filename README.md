@@ -176,19 +176,6 @@ without changing the cluster, and `make render` renders manifests locally.
 
 Use the
 [run-demojam skill](.agents/skills/run-demojam/SKILL.md) for the operator sequence.
-The [published AWS provisioner test](docs/reports/2026-10-14-published-aws-provisioner.md)
-records release adoption, a passing RHEL 9/10 template lifecycle, and a Haiku PR
-rejected by its independent verification gate, followed by a user-requested
-merge and successful one-job Enforcing recovery.
-The [AWS and Haiku run report](docs/reports/2026-10-13-aws-haiku.md) records the
-tested merge, one-job Enforcing recovery, reset and dashboard checks, with stage
-timings, prompts and the bootstrap fixes found during live testing.
-The [October 12 Qwen run report](docs/reports/2026-10-12-qwen38.md) records
-the fresh bootstrap, medium retry and two low-thinking/90-second attempts, with timings,
-prompts and failures.
-The [October 12 Haiku 5.5 report](docs/reports/2026-10-12-haiku55.md) records
-a tested merge and recovery through OpenCode Go, plus the observer and AAP
-verification issues found during the run.
 
 - [Login and users](cluster/demojam-keycloak/README.md) · [Homepage](cluster/homepage/README.md)
 - [Forgejo](cluster/forgejo/README.md) · [Developer Hub](cluster/rhdh/README.md) · [Agent sessions and tests](cluster/omnigent/README.md)

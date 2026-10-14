@@ -301,8 +301,6 @@ The sandbox downloads that published Galaxy artifact, checks its SHA-256 in
 the Containerfile and preloads it before resolving the other pinned requirements.
 Consumer dependency setup uses that release. AWS lifecycle tasks stay in the
 shared provisioner; scenarios retain the public create/prepare/destroy imports.
-The [release test report](../reports/2026-10-14-published-aws-provisioner.md)
-records the passing template lifecycle and the failed nginx candidate gate.
 
 Keep Ansible-native Molecule configuration, the public shared create/prepare/
 destroy dispatchers, and `make molecule` → `molecule test --all`. Each scenario
@@ -423,7 +421,5 @@ shared provisioner repository as a separate dependency change.
    root/runtime credentials before publishing evidence.
 
 No AWS root credentials or new-account resources are needed to review this
-specification. The AWS incident run and reset are documented in
-[the Haiku run report](../reports/2026-10-13-aws-haiku.md). That report distinguishes
-completed checks from the remaining acceptance tests. The shared provisioner is
-owned by its separate implementation thread.
+specification. The shared provisioner is owned by its separate implementation
+thread.
