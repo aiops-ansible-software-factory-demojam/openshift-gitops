@@ -1944,11 +1944,11 @@ demo_ao_run() {
     ao_require_json 'poll workflow execution' "$code"
     status=$(jq -er '.status' "$ao_response")
     case $status in
-      completed)
+      completed|completed_with_errors)
         code=$(ao_curl GET "$base_url/executions/$execution/activities?limit=100" -H "$auth_header")
         ao_require_json 'read workflow results' "$code"
         # Do not print authentication activity outputs (including bearer tokens).
-        jq '{status:"completed",results:[.resources[]? |
+        jq --arg status "$status" '{status:$status,results:[.resources[]? |
           select(.activity_name == "ask_model" or .activity_name == "configure_nginx" or .activity_name == "create_session") |
           {node:.activity_name,status,output:(if .activity_name == "ask_model" then
             .output_data.result.content // .output_data else .output_data end)}]}' "$ao_response"

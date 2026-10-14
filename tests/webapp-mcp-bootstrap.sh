@@ -70,4 +70,29 @@ export WEBAPP_MCP_ENABLED=true
 demo_mcp_enabled
 export WEBAPP_MCP_ENABLED=invalid
 if (demo_mcp_enabled) 2>/dev/null; then echo 'Invalid feature setting must fail explicitly' >&2; exit 1; fi
+
+# Optional diagnostic failures finish successfully with an explicit error status.
+# A terminal result must not be polled again or launch another execution.
+base_url=https://ao.test/api/v1
+auth_header='Authorization: Bearer test-only'
+ao_response="$scratch/run-response.json"
+ao_require_json() { [[ $2 == 200 ]]; jq -e . "$ao_response" >/dev/null; }
+ao_curl() {
+  case "$1 $2" in
+    'GET https://ao.test/api/v1/workflows?limit=100')
+      printf '%s' '{"resources":[{"name":"probe","is_builtin":false,"id":"workflow"}]}' >"$ao_response" ;;
+    'POST https://ao.test/api/v1/executions')
+      printf '%s' '{"id":"execution"}' >"$ao_response" ;;
+    'GET https://ao.test/api/v1/executions/execution')
+      printf '%s' '{"status":"completed_with_errors"}' >"$ao_response" ;;
+    'GET https://ao.test/api/v1/executions/execution/activities?limit=100')
+      printf '%s' '{"resources":[{"activity_name":"ask_model","status":"completed","output_data":{"result":{"content":"audit only"}}}]}' >"$ao_response" ;;
+    *) echo 'Unexpected workflow API operation' >&2; return 1 ;;
+  esac
+  printf '200'
+}
+sleep() { echo 'A terminal execution must not be polled again' >&2; return 1; }
+demo_ao_run probe '{}' >"$scratch/run-output"
+unset -f sleep
+tail -n +2 "$scratch/run-output" | jq -e '.status=="completed_with_errors" and .results[0].output=="audit only"' >/dev/null
 printf 'MCP bootstrap: Secret reuse, TLS, rotation, expiry renewal, workflow modes and backend gating passed\n'
