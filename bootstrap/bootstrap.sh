@@ -977,15 +977,17 @@ demo_ao_rca_definition() {
   jq -c --arg integration "${mcp_integration_id:-}" --arg credential "${mcp_credential_id:-}" \
     --argjson tools "${mcp_tool_ids:-[]}" '
     if ($tools | length) > 0 then
-      .nodes |= map(if .id == "mcpdiag" then
+      .nodes |= map(if .id == "airca" then
         .parameters.tool_selection_strategy="SELECTED" | .parameters.tool_selections=$tools |
         .parameters.integration_connections=[{integration_id:$integration,credential_id:$credential}]
       else . end)
     else
-      .nodes |= map(select(.id != "mcpdiag" and .id != "mcpsummary") | if .id == "airca" then
-        .parameters.prompt |= gsub("MCP diagnostics: \\$\\{mcpsummary.stdout\\}"; "MCP diagnostics: unavailable (audit-only mode)")
+      .nodes |= map(select(.id != "rca_success" and .id != "airca_fallback" and .id != "createissue_fallback") | if .id == "airca" then
+        .parameters.prompt |= sub("Live diagnostics: MCP enabled\\."; "Live diagnostics: unavailable (MCP disabled).") |
+        .settings.continue_on_failure=false
       else . end) |
-      .edges |= map(select(.from != "mcpdiag" and .from != "mcpsummary") | if .to == "mcpdiag" then .to="airca" else . end)
+      .edges |= map(select(.from != "rca_success" and .from != "airca_fallback") |
+        if .to == "rca_success" then .to="createissue" else . end)
     end'
 }
 
@@ -1876,7 +1878,7 @@ demo_ao_integrations() {
   expected=$(jq -c . <<<"$allowed_hosts")
   oc -n "$namespace" patch configmap automation-orchestrator-admin-settings --type=merge \
     --patch "$(jq -cn --arg hosts "$expected" --arg timeout "$request_timeout" \
-      '{data:{APP_INTEGRATION_URL_ALLOWED_HOSTS:$hosts,APP_ADAPTER_REQUEST_TIMEOUT_SECONDS:$timeout}}')" >/dev/null
+      '{data:{APP_INTEGRATION_URL_ALLOWED_HOSTS:$hosts,APP_ADAPTER_REQUEST_TIMEOUT_SECONDS:$timeout,APP_SCRIPT_NODES_ENABLED:"false"}}')" >/dev/null
   for deploy in backend worker background-worker; do
     current=$(oc -n "$namespace" exec "deployment/automation-orchestrator-$deploy" -- \
       printenv APP_INTEGRATION_URL_ALLOWED_HOSTS 2>/dev/null || true)
@@ -1884,7 +1886,7 @@ demo_ao_integrations() {
       printenv APP_ADAPTER_REQUEST_TIMEOUT_SECONDS 2>/dev/null || true)
     current_scripts=$(oc -n "$namespace" exec "deployment/automation-orchestrator-$deploy" -- \
       printenv APP_SCRIPT_NODES_ENABLED 2>/dev/null || true)
-    if [[ $current != "$expected" || $current_timeout != "$request_timeout" || $current_scripts != true ]]; then
+    if [[ $current != "$expected" || $current_timeout != "$request_timeout" || $current_scripts != false ]]; then
       oc -n "$namespace" rollout restart "deployment/automation-orchestrator-$deploy" >/dev/null
       oc -n "$namespace" rollout status "deployment/automation-orchestrator-$deploy" --timeout=10m
       [[ $(oc -n "$namespace" exec "deployment/automation-orchestrator-$deploy" -- \
@@ -1894,8 +1896,8 @@ demo_ao_integrations() {
         printenv APP_ADAPTER_REQUEST_TIMEOUT_SECONDS) == "$request_timeout" ]] ||
         demo_die "AO $deploy did not load its LLM request timeout."
       [[ $(oc -n "$namespace" exec "deployment/automation-orchestrator-$deploy" -- \
-        printenv APP_SCRIPT_NODES_ENABLED) == true ]] ||
-        demo_die "AO $deploy did not enable trusted prompt-formatting steps."
+        printenv APP_SCRIPT_NODES_ENABLED) == false ]] ||
+        demo_die "AO $deploy did not disable workflow script execution."
     fi
   done
   inputs=$(jq -n --arg key "$model_key" '{api_key:$key}')

@@ -8,5 +8,5 @@ metadata:
 data:
   # The cluster's ingress DNS resolves the in-cluster Keycloak Route to a private IP.
   APP_OIDC_ALLOW_PRIVATE_NETWORKS: "true"
-  # Trusted workflow steps prepare bounded JSON for the diagnostic/RCA prompts.
-  APP_SCRIPT_NODES_ENABLED: "true"
+  # Evidence is prepared by AAP; workflows do not need worker script execution.
+  APP_SCRIPT_NODES_ENABLED: "false"

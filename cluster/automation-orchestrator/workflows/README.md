@@ -36,20 +36,28 @@ network policy lets AAP reach AO's internal UI/API service. The workflow reads
 model's diagnosis to `webapp_alert_issue` alongside the original alert payload.
 The issue job reuses an existing open incident when Alertmanager sends repeats.
 
-When MCP is enabled, bootstrap adds a read-only investigation between audit collection
-and final RCA. `mcpdiag` receives the alert and audit evidence, queries only the
-selected `Demo Webapp Diagnostics` tools, and returns bounded observations and
-limitations. `evidence` bounds the alert/audit excerpts to 5,000 characters;
-`mcpsummary` bounds structured diagnostic content to 2,400 characters. These
-trusted data-formatting steps run on the AO worker. Tool traces remain in AO
-and are excluded from the final prompt, which must fit AO's 10,000-character
-invocation limit. The admin-settings ConfigMap enables AO's Developer Preview script nodes via
-`APP_SCRIPT_NODES_ENABLED=true`; reconciliation reloads the caller processes.
-Its 120-second timeout and `continue_on_failure` let the final
-text-only `airca` step use available audit/alert evidence when diagnostics fail.
-The final prompt reports unavailable evidence and excludes raw logs and
-connection error details. The `rootCause`, `escalateTo`, `remediationSteps`
-response and `airca.result.content` issue handoff remain unchanged.
+When MCP is enabled, the `airca` RCA agent directly queries the selected
+`Demo Webapp Diagnostics` tools and returns `rootCause`, `escalateTo` and
+`remediationSteps`. AAP supplies at most 3,000 characters of structured audit
+facts: current enforcement mode, collection time, recent AVC operations and
+contexts, and explicit truncation/collection limitations. Raw stdout and the
+full alert payload are excluded from prompts. Diagnostic tool responses enter
+the agent's conversation during execution, and traces stay in AO for inspection.
+
+The primary agent has a 180-second timeout and continues on failure. A condition
+routes successful RCA to `createissue`, preserving `airca.result.content`.
+A failed or timed-out primary invocation instead runs `airca_fallback` without
+tools; its result goes to `createissue_fallback`. These branches are exclusive:
+only a completed diagnosis reaches one issue job. The fallback explicitly
+reports unavailable live diagnostics and consumes no failed invocation fields.
+Unavailable SELECTED tools can fail AO before reasoning starts, so a prompt
+instruction alone is not a reliable fallback.
+
+There are no script nodes. `APP_SCRIPT_NODES_ENABLED=false` is reconciled across
+the caller processes. The deployed invocation API hardcodes a 10,000-character
+prompt limit, even though `workflow_engine.max_prompt_length` is configurable
+and defaults to 100,000. Bounding facts at the AAP producer keeps both agent
+prompts below the effective limit without enabling worker code execution.
 
 Initial bootstrap publishes an audit-only workflow before the guest exists.
 After AAP installs the guest service, authenticated discovery resolves tool
@@ -57,8 +65,9 @@ UUIDs and binds an explicit runtime credential through
 `integration_connections`. The integration's management credential is also
 configured for health checks. All other discovered tools are disabled. An
 unchanged tool selection preserves IDs and therefore does not create an
-unnecessary workflow version. Disabled mode removes the diagnostic and summary
-steps and their references, leaving `auditlogs → evidence → airca → createissue`.
+unnecessary workflow version. Disabled mode binds no tools and removes the
+failure branch, leaving `auditlogs → airca → createissue`; audit evidence remains
+compact and script execution remains disabled.
 
 See the top-level README for `WEBAPP_MCP_ENABLED`, credential/certificate
 lifecycle, maintenance commands and validation limits. MCP never applies

@@ -54,16 +54,22 @@ demo_mcp_material "$scratch/renewed"
 
 yq -c . "$root/cluster/automation-orchestrator/workflows/rootcause.yaml" >"$scratch/workflow.json"
 demo_ao_rca_definition <"$scratch/workflow.json" >"$scratch/disabled.json"
-jq -e 'all(.nodes[]; .id != "mcpdiag") and
-  any(.edges[]; .from == "evidence" and .to == "airca") and
-  ([.nodes[].parameters.prompt // ""] | join("") | contains("${mcpsummary.stdout}") | not)' "$scratch/disabled.json" >/dev/null
+jq -e 'all(.nodes[]; .type != "script" and .id != "airca_fallback" and .id != "rca_success") and
+  any(.edges[]; .from == "auditlogs" and .to == "airca") and
+  any(.edges[]; .from == "airca" and .to == "createissue") and
+  any(.nodes[]; .id == "airca" and .parameters.tool_selection_strategy == "NONE" and
+    (.parameters.prompt | contains("MCP disabled")))' "$scratch/disabled.json" >/dev/null
 export mcp_integration_id=11111111-1111-4111-8111-111111111111
 export mcp_credential_id=22222222-2222-4222-8222-222222222222
 export mcp_tool_ids='["33333333-3333-4333-8333-333333333333"]'
 demo_ao_rca_definition <"$scratch/workflow.json" >"$scratch/enabled.json"
-jq -e '.nodes[] | select(.id == "mcpdiag") |
+jq -e '.nodes[] | select(.id == "airca") |
   .parameters.tool_selection_strategy == "SELECTED" and (.parameters.tool_selections|length)==1 and
   (.parameters.integration_connections|length)==1 and .settings.continue_on_failure' "$scratch/enabled.json" >/dev/null
+jq -e 'all(.nodes[]; .type != "script") and
+  any(.nodes[]; .id == "airca_fallback" and .parameters.tool_selection_strategy == "NONE") and
+  any(.edges[]; .from == "rca_success" and .from_port == "true" and .to == "createissue") and
+  any(.edges[]; .from == "rca_success" and .from_port == "false" and .to == "airca_fallback")' "$scratch/enabled.json" >/dev/null
 export DEMO_BACKEND=aws WEBAPP_MCP_ENABLED=
 ! demo_mcp_enabled
 export WEBAPP_MCP_ENABLED=true

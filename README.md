@@ -16,16 +16,20 @@ demo endpoint can otherwise time out before returning a streamed tool call.
 ## RHEL MCP diagnostics for AO RCA
 
 Bootstrap installs native Linux MCP 1.7.0 on the webapp guest
-after configuring nginx, then publishes an RCA workflow with a read-only
-diagnostic agent. AAP still supplies privileged SELinux audit evidence. AO
+after configuring nginx, then publishes an RCA agent with read-only
+diagnostic tools. AAP still supplies privileged SELinux audit evidence. AO
 correlates it with nginx status/logs, journal, listener and resource checks
-before opening the incident. A failed or timed-out diagnostic step falls back
+before opening the incident. A failed or timed-out RCA invocation falls back
 to the available audit/alert evidence and reports the limitation. MCP applies
 no fixes; the incident-to-PR, human review and AAP recovery flow remain in place.
 
-AO worker steps bound the alert/audit excerpts and structured diagnostic summary
-before the model calls. The final prompt fits AO's 10,000-character invocation
-limit; diagnostic tool traces remain in AO for inspection.
+AAP publishes at most 3,000 characters of structured SELinux facts rather than
+raw audit stdout. One RCA agent calls the approved MCP tools as needed and
+returns the diagnosis directly; a failed invocation routes to text-only RCA.
+Tool traces remain in AO and never enter another agent's prompt. AO workflow
+script execution is disabled. Prompts fit the deployed invocation API's hard
+10,000-character limit; its separate configurable workflow limit defaults to
+100,000 characters and cannot bypass that lower validation limit.
 
 `WEBAPP_MCP_ENABLED` defaults to true for CNV and false for AWS. Set it to
 true to opt an AWS deployment into MCP diagnostics.
