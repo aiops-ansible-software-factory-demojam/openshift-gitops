@@ -58,13 +58,15 @@ async def main():
     assert nodes["airca"]["settings"]["continue_on_failure"]
     assert nodes["airca_fallback"]["parameters"]["tool_selection_strategy"] == "NONE"
     schema = nodes["airca"]["parameters"]["response_schema"]
-    assert schema == nodes["airca_fallback"]["parameters"]["response_schema"]
+    assert schema["properties"]["rca"] == nodes["airca_fallback"]["parameters"]["response_schema"]
+    assert not any(e["from"]==definition["triggers"][0]["id"] and e["to"]=="auditlogs" for e in definition["edges"])
+    assert "${auditlogs" not in nodes["airca"]["parameters"]["prompt"]
     rca = {"rootCause": "Observed audit denial", "escalateTo": "Server Engineer", "remediationSteps": []}
-    for status in ("completed", "failed", "cancelled"):
+    for status, audit_available in (("completed", True), ("completed", False), ("failed", False), ("cancelled", False)):
         primary = AgenticOutput().dump()
         primary.update(status=status)
         if status == "completed":
-            primary["result"] = {"content": rca, "agent_trace": "TRACE_NOT_FOR_PROMPT" * 10000}
+            primary["result"] = {"content": {"auditEvidenceAvailable":audit_available, "rca":rca}, "agent_trace": "TRACE_NOT_FOR_PROMPT" * 10000}
         resolver = resolver_for(primary)
         check_prompt(resolver, "airca")
         check_prompt(resolver, "airca_fallback")
@@ -75,11 +77,12 @@ async def main():
         port = result["control"]["next_port"]
         successors = graph.get_next_activities_by_port("rca_success", port)
         assert len(successors) == 1
-        if status == "completed":
+        if status == "completed" and audit_available:
             assert successors[0].id == "createissue"
             issue = resolver.resolve_dict(nodes["createissue"]["parameters"]["extra_vars"])
         else:
-            assert successors[0].id == "airca_fallback"
+            assert successors[0].id == "auditlogs"
+            assert [n.id for n in graph.get_next_activities_by_port("auditlogs")] == ["airca_fallback"]
             assert "unavailable" in check_prompt(resolver, "airca_fallback")
             resolver.set_namespace("airca_fallback", {"status": "completed", "result": {"content": rca}})
             issue_nodes = graph.get_next_activities_by_port("airca_fallback")

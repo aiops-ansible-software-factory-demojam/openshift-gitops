@@ -15,21 +15,28 @@ demo endpoint can otherwise time out before returning a streamed tool call.
 
 ## RHEL MCP diagnostics for AO RCA
 
-Bootstrap installs native Linux MCP 1.7.0 on the webapp guest
-after configuring nginx, then publishes an RCA agent with read-only
-diagnostic tools. AAP still supplies privileged SELinux audit evidence. AO
-correlates it with nginx status/logs, journal, listener and resource checks
-before opening the incident. A failed or timed-out RCA invocation falls back
-to the available audit/alert evidence and reports the limitation. MCP applies
-no fixes; the incident-to-PR, human review and AAP recovery flow remain in place.
+Bootstrap installs native Linux MCP 1.7.0 on the webapp guest after nginx,
+then publishes an RCA agent with ten read-only diagnostic tools. Its first
+call, `get_selinux_denials`, fetches fresh audit facts through MCP. A root-owned
+local collector reads a bounded tail of the audit file every five seconds and
+atomically publishes only recent nginx AVC fields and the current SELinux mode.
+The snapshot is capped at 3,000 characters and four events from the last 15
+minutes. The unprivileged MCP daemon cannot read the raw audit file, run scripts,
+or select another path. Missing snapshots and snapshots older than 30 seconds
+are explicitly unavailable.
 
-AAP publishes at most 3,000 characters of structured SELinux facts rather than
-raw audit stdout. One RCA agent calls the approved MCP tools as needed and
-returns the diagnosis directly; a failed invocation routes to text-only RCA.
-Tool traces remain in AO and never enter another agent's prompt. AO workflow
-script execution is disabled. Prompts fit the deployed invocation API's hard
-10,000-character limit; its separate configurable workflow limit defaults to
-100,000 characters and cannot bypass that lower validation limit.
+The primary RCA receives no AAP stdout or audit artifact in its starting prompt.
+It queries audit facts and nginx/service/resource diagnostics as needed. A
+condition requires both completed RCA and available MCP audit evidence before
+publishing the diagnosis. Otherwise the workflow runs AAP's `pull_audit_logs`
+and then a text-only fallback using its compact facts. Disabled mode uses AAP
+from the start. Exactly one completed diagnosis reaches the issue job.
+
+Tool traces stay in AO. There are no workflow script nodes, and worker script
+execution remains disabled. Both prompts fit the shipped invocation API's hard
+10,000-character limit; the separate configurable workflow limit defaults to
+100,000 and cannot bypass that lower validation limit. MCP applies no fixes;
+the incident-to-PR, human review and AAP recovery flow remain in place.
 
 `WEBAPP_MCP_ENABLED` defaults to true for CNV and false for AWS. Set it to
 true to opt an AWS deployment into MCP diagnostics.

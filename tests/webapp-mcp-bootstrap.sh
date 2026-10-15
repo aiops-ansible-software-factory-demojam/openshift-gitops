@@ -66,10 +66,12 @@ demo_ao_rca_definition <"$scratch/workflow.json" >"$scratch/enabled.json"
 jq -e '.nodes[] | select(.id == "airca") |
   .parameters.tool_selection_strategy == "SELECTED" and (.parameters.tool_selections|length)==1 and
   (.parameters.integration_connections|length)==1 and .settings.continue_on_failure' "$scratch/enabled.json" >/dev/null
-jq -e 'all(.nodes[]; .type != "script") and
+jq -e 'any(.edges[]; .from == "alertmanagereda" and .to == "airca") and
+  any(.edges[]; .from == "auditlogs" and .to == "airca_fallback") and
+  all(.nodes[]; .type != "script") and
   any(.nodes[]; .id == "airca_fallback" and .parameters.tool_selection_strategy == "NONE") and
   any(.edges[]; .from == "rca_success" and .from_port == "true" and .to == "createissue") and
-  any(.edges[]; .from == "rca_success" and .from_port == "false" and .to == "airca_fallback")' "$scratch/enabled.json" >/dev/null
+  any(.edges[]; .from == "rca_success" and .from_port == "false" and .to == "auditlogs")' "$scratch/enabled.json" >/dev/null
 export DEMO_BACKEND=aws WEBAPP_MCP_ENABLED=
 ! demo_mcp_enabled
 export WEBAPP_MCP_ENABLED=true

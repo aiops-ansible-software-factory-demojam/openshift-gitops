@@ -982,12 +982,18 @@ demo_ao_rca_definition() {
         .parameters.integration_connections=[{integration_id:$integration,credential_id:$credential}]
       else . end)
     else
-      .nodes |= map(select(.id != "rca_success" and .id != "airca_fallback" and .id != "createissue_fallback") | if .id == "airca" then
-        .parameters.prompt |= sub("Live diagnostics: MCP enabled\\."; "Live diagnostics: unavailable (MCP disabled).") |
-        .settings.continue_on_failure=false
-      else . end) |
-      .edges |= map(select(.from != "rca_success" and .from != "airca_fallback") |
-        if .to == "rca_success" then .to="createissue" else . end)
+      (.nodes[] | select(.id == "airca_fallback") | .parameters) as $fallback |
+      .triggers[0].id as $trigger |
+      .nodes |= map(select(.id != "rca_success" and .id != "airca_fallback" and .id != "createissue_fallback") |
+        if .id == "airca" then
+          .parameters.prompt=($fallback.prompt | sub("The primary RCA or its audit evidence was unavailable\\."; "MCP disabled.")) |
+          .parameters.response_schema=$fallback.response_schema |
+          .parameters.tool_selection_strategy="NONE" |
+          del(.parameters.tool_selections,.parameters.integration_connections) |
+          .settings.continue_on_failure=false
+        elif .id == "createissue" then .parameters.extra_vars.affected_host_log_output="${airca.result.content}"
+        else . end) |
+      .edges=[{from:$trigger,to:"auditlogs"},{from:"auditlogs",to:"airca"},{from:"airca",to:"createissue"}]
     end'
 }
 

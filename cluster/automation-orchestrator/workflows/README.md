@@ -13,7 +13,7 @@ Run the commands below from the repository root after
 | [omnigent-dispatch.yaml](omnigent-dispatch.yaml) | Prepares an issue branch in Backstage, starts the agent, and requests a PR | `make demo ISSUE=N` |
 | [llm-question.yaml](llm-question.yaml) | Asks the configured model a question using a Task Agent node | `make ao-llm-test` |
 | [aap-webapp-nginx.yaml](aap-webapp-nginx.yaml) | Runs AAP's existing `webapp_nginx` job in the `demo` organization | `make ao-aap-run` |
-| [rootcause.yaml](rootcause.yaml) | Gathers audit logs through AAP, asks the model for a root cause, and creates a Forgejo issue | AAP's `call_ao_webhook` job with `ao_webhook_path: alertmanagealert` |
+| [rootcause.yaml](rootcause.yaml) | Investigates with MCP audit evidence, falls back to AAP facts when unavailable, and creates one Forgejo issue | AAP's `call_ao_webhook` job with `ao_webhook_path: alertmanagealert` |
 | [omnigent-remediation.yaml](omnigent-remediation.yaml) | Prepares the incident branch and sends the issue/RCA to Omnigent for a tested fix PR | Forgejo issue webhook through EDA and `call_ao_webhook` with `ao_webhook_path: forgejo-issue-remediation` |
 
 `bootstrap/bootstrap.sh` creates or reuses the `demojam-eda-webhook` AO service
@@ -31,33 +31,34 @@ the earlier type stays intact because AAP forbids editing schemas already in use
 A firing `WebappDown` alert reaches EDA through Alertmanager's authenticated
 event stream. The `webapp-alert-issue.yml` rulebook in `demojam-ansible` launches
 `call_ao_webhook`, which calls the `alertmanagealert` AO trigger. An ingress
-network policy lets AAP reach AO's internal UI/API service. The workflow reads
-`pull_audit_logs`'s `affected_host_log_output` artifact and passes the
-model's diagnosis to `webapp_alert_issue` alongside the original alert payload.
+network policy lets AAP reach AO's internal UI/API service. The workflow passes
+the completed diagnosis to `webapp_alert_issue` alongside the original alert.
 The issue job reuses an existing open incident when Alertmanager sends repeats.
 
-When MCP is enabled, the `airca` RCA agent directly queries the selected
-`Demo Webapp Diagnostics` tools and returns `rootCause`, `escalateTo` and
-`remediationSteps`. AAP supplies at most 3,000 characters of structured audit
-facts: current enforcement mode, collection time, recent AVC operations and
-contexts, and explicit truncation/collection limitations. Raw stdout and the
-full alert payload are excluded from prompts. Diagnostic tool responses enter
-the agent's conversation during execution, and traces stay in AO for inspection.
+When MCP is enabled, `airca` runs first with ten selected diagnostic tools.
+It must call `get_selinux_denials`, which returns a fresh, bounded snapshot of
+nginx AVC facts from the host's root-owned collector. The MCP daemon remains
+unprivileged and cannot access raw audit files. The snapshot includes current
+SELinux mode, collection time, a 15-minute scope, up to four events and explicit
+truncation/limitations; its serialized facts are capped at 3,000 characters.
 
-The primary agent has a 180-second timeout and continues on failure. A condition
-routes successful RCA to `createissue`, preserving `airca.result.content`.
-A failed or timed-out primary invocation instead runs `airca_fallback` without
-tools; its result goes to `createissue_fallback`. These branches are exclusive:
-only a completed diagnosis reaches one issue job. The fallback explicitly
-reports unavailable live diagnostics and consumes no failed invocation fields.
-Unavailable SELECTED tools can fail AO before reasoning starts, so a prompt
-instruction alone is not a reliable fallback.
+The primary prompt contains no AAP audit data or full alert payload. The agent
+returns `auditEvidenceAvailable` and an `rca` object containing the existing
+`rootCause`, `escalateTo`, `remediationSteps` contract. A native condition uses
+short-circuit evaluation: it requires completed status before reading the audit
+availability flag. A completed, available result publishes only
+`airca.result.content.rca`.
 
-There are no script nodes. `APP_SCRIPT_NODES_ENABLED=false` is reconciled across
-the caller processes. The deployed invocation API hardcodes a 10,000-character
-prompt limit, even though `workflow_engine.max_prompt_length` is configurable
-and defaults to 100,000. Bounding facts at the AAP producer keeps both agent
-prompts below the effective limit without enabling worker code execution.
+A failed/timed-out primary or unavailable MCP audit evidence routes through
+`auditlogs` and then `airca_fallback` with no tools. Only this branch runs the
+privileged AAP collector. Its compact facts enter the fallback prompt and its
+completed diagnosis reaches `createissue_fallback`. Both publication paths are
+exclusive, including when the primary completes but reports unavailable audit
+evidence. Raw stdout and failed invocation traces never enter a prompt.
+
+There are no script nodes. `APP_SCRIPT_NODES_ENABLED=false` remains reconciled
+across caller processes. The shipped invocation API hardcodes 10,000 prompt
+characters, below the separate workflow setting's 100,000-character default.
 
 Initial bootstrap publishes an audit-only workflow before the guest exists.
 After AAP installs the guest service, authenticated discovery resolves tool
