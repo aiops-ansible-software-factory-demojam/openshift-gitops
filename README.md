@@ -10,8 +10,8 @@ A SELinux outage follows the complete automatic path: blackbox alert → EDA →
 AO audit/MCP RCA → Forgejo incident → Forgejo webhook → EDA → AO → Omnigent
 fix PR. Bootstrap installs and connects every stage; PR review and merge remain
 manual. LiteLLM's `qwen38-27b` is the default model in the configuration template.
-Bootstrap disables thinking for this model in the coding harness because the
-demo endpoint can otherwise time out before returning a streamed tool call.
+Bootstrap disables thinking by default for Qwen consumers because the demo
+endpoint can otherwise time out before returning a tool response.
 
 ## RHEL MCP diagnostics for AO RCA
 
@@ -151,7 +151,7 @@ defaults. AO and Omnigent can select providers and models independently:
 ```bash
 AO_MODEL_PROVIDER='litellm'
 AO_MODEL='qwen38-27b'
-AO_QWEN_REASONING_EFFORT='low'
+AO_QWEN_REASONING_EFFORT='none'
 OMNIGENT_MODEL_PROVIDER='opencode-go'
 OMNIGENT_MODEL='claude-haiku-5-5'
 OMNIGENT_MODEL_PROTOCOL='anthropic'
@@ -234,6 +234,10 @@ AO's RCA requests. Set `AO_QWEN_REASONING_EFFORT` or
 `OMNIGENT_QWEN_REASONING_EFFORT` to `medium`, `low`, or `xhigh` to enable
 thinking for the corresponding Qwen consumer. Each falls back to
 `QWEN_REASONING_EFFORT`; the default `none` keeps Qwen thinking disabled.
+Use `AO_QWEN_REASONING_EFFORT='none'` for MCP RCA on the demo endpoint.
+The `low` preset has produced upstream disconnects and exceeded the RCA node's
+180-second limit. The non-thinking preset has completed the same audit-first
+MCP investigation within that limit, without using the AAP audit fallback.
 Bootstrap sets AO's per-attempt LLM timeout to 90 seconds in backend, worker,
 and background worker. Override it with `AO_LLM_REQUEST_TIMEOUT_SECONDS` in `.env`.
 Setup and reset silence only `WebappDown` while the baseline is unavailable.
