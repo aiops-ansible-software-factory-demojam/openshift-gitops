@@ -137,6 +137,10 @@ oc whoami
 make bootstrap
 ```
 
+For the AWS/native MCP run with Qwen on both consumers, use the focused
+[demo environment example](.env.demo.example) and the
+[history-verified command record](docs/native-mcp-demo-2026-10-16.md).
+
 To put the Linux guests in AWS, fill `AWS_BOOTSTRAP_ACCESS_KEY_ID` and
 `AWS_BOOTSTRAP_SECRET_ACCESS_KEY` in `.env`, then run `make bootstrap BACKEND=aws`.
 Bootstrap uses those credentials locally to create a dedicated public VPC/subnet
