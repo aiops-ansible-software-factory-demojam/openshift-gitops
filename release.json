@@ -1,0 +1,32 @@
+{
+  "version": "v0.1.0-alpha.2",
+  "gitops": {
+    "repository": "https://github.com/aiops-ansible-software-factory-demojam/openshift-gitops.git",
+    "ref": "v0.1.0-alpha.2"
+  },
+  "sources": [
+    {
+      "name": "demojam-ansible",
+      "repository": "https://github.com/aiops-ansible-software-factory-demojam/demojam-ansible.git",
+      "ref": "v0.1.0-alpha.2",
+      "commit": "91f866c024401f0b5e907e7985d5471c7aad3e59"
+    },
+    {
+      "name": "ansible-collection-template",
+      "repository": "https://github.com/aiops-ansible-software-factory-demojam/ansible-collection-template.git",
+      "ref": "v0.1.0-alpha.2",
+      "commit": "e75dab381fd2e8edd74d905939ed6cca81322066"
+    },
+    {
+      "name": "ansible-collection-demo.webapp",
+      "repository": "https://github.com/aiops-ansible-software-factory-demojam/ansible-collection-demo.webapp.git",
+      "ref": "v0.1.0-alpha.2",
+      "commit": "93dc37aafa79e6c48d95427a29cee7f43ac6d6b2"
+    }
+  ],
+  "aws": {
+    "region": "us-east-2",
+    "rhel9_ami_id": "ami-0ccbdc5e4125d2321",
+    "rhel10_ami_id": "ami-090acaea6b806f924"
+  }
+}

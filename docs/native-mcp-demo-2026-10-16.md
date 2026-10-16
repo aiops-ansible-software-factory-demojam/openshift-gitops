@@ -4,7 +4,9 @@ The 2026-10-16 run used AWS in `us-east-2`, native guest MCP enabled, and
 `qwen38-27b` through the Red Hat MaaS endpoint for both AO and Omnigent.
 Both consumers used Chat Completions with thinking disabled. The focused
 [environment example](../.env.demo.example) contains the effective settings
-used for that run, with private credential values left blank. Optional
+used for that run, with private credential values left blank. It now pins
+repository refs and the discovered AMIs for the coordinated
+[v0.1.0-alpha.2 release](releases/v0.1.0-alpha.2.md). Optional
 `AO_MODEL_API_KEY` and `OMNIGENT_MODEL_API_KEY` fields allow separate model
 keys; leaving them blank inherits `LITELLM_API_KEY`, as the recorded run did.
 
@@ -22,7 +24,8 @@ Populate `LITELLM_API_KEY`, `AWS_BOOTSTRAP_ACCESS_KEY_ID` and
 the copy/edit commands above are preparation instructions for a new checkout.
 No generated application credentials, route URLs or guest SSH keys belong in
 this example. Account, availability zone, RHEL AMIs, storage class and routes
-were discovered by bootstrap rather than supplied as overrides.
+were discovered by bootstrap rather than supplied as overrides. The release
+example now supplies those recorded AMI IDs explicitly.
 
 ## Commands verified against execution history
 
@@ -109,10 +112,12 @@ or post-recovery Permissive setup was run.
 | Tested agent fix | `8d4fd82db0792af567ce728de301575d12278df7` |
 | Verified Forgejo merge | `50742b2242f29b1cd5739c8c8b2448492c5f7b50` |
 
-The implementation GitHub PRs remained open. Only the demo Forgejo fix was
-merged. Branch names in the example are the selections used in this run;
-their heads can advance, so the table identifies the implementation actually
-validated. This documentation addition does not change that implementation.
+At the time of this run, the implementation GitHub PRs remained open; only
+the demo Forgejo fix was merged. The GitHub PRs were subsequently merged for
+`v0.1.0-alpha.2`. The commands above retain the original branch selections,
+and the table identifies the commits actually validated. Release preparation
+adds tag fetching, source pins and documentation; it does not represent
+another full bootstrap or fault/recovery run.
 
 The run had two findings: real Keycloak issuance capped the requested 90-day
 MCP token at the realm's 10-hour session limit, and a repeat alert during
