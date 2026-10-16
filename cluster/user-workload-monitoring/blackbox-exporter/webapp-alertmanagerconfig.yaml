@@ -11,7 +11,7 @@ spec:
       - instance
     groupWait: 10s
     groupInterval: 30s
-    repeatInterval: 1h
+    repeatInterval: 23h
     matchers:
       - name: alertname
         value: WebappDown
