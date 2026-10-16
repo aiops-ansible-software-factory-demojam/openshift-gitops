@@ -27,7 +27,8 @@
         "demo-reviewer"
       ],
       "private": false,
-      "source_branch": "main"
+      "source_branch": "v0.1.0-alpha.2",
+      "source_commit": "93dc37aafa79e6c48d95427a29cee7f43ac6d6b2"
     },
     {
       "owner": "demo-agent",
@@ -36,7 +37,8 @@
       "source": "https://github.com/aiops-ansible-software-factory-demojam/ansible-collection-template.git",
       "collaborators": [],
       "private": true,
-      "source_branch": "main"
+      "source_branch": "v0.1.0-alpha.2",
+      "source_commit": "e75dab381fd2e8edd74d905939ed6cca81322066"
     },
     {
       "owner": "demo-owner",
@@ -48,7 +50,8 @@
         "demo-reviewer"
       ],
       "private": false,
-      "source_branch": "main"
+      "source_branch": "v0.1.0-alpha.2",
+      "source_commit": "91f866c024401f0b5e907e7985d5471c7aad3e59"
     }
   ]
 }

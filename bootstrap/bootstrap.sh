@@ -1200,7 +1200,42 @@ forgejo_api() {
   rm -f "$response"
 }
 
-# Select each GitHub source independently of the GitOps deployment branch.
+# Resolve branches and lightweight/annotated tags to an exact commit. Refuse
+# ambiguous short names; callers can select refs/heads/... or refs/tags/....
+demo_remote_revision() {
+  local source=$1 selected=$2 heads='' tags='' refs sha ref
+  local branch_sha='' tag_sha='' peeled_sha=''
+  case $selected in
+    refs/heads/*) heads=$selected ;;
+    refs/tags/*) tags=$selected ;;
+    refs/*) demo_die "Unsupported Git ref: $selected" ;;
+    *)
+      git check-ref-format --branch "$selected" >/dev/null 2>&1 || demo_die "Invalid Git ref: $selected"
+      heads="refs/heads/$selected"; tags="refs/tags/$selected"
+      ;;
+  esac
+  git check-ref-format "${heads:-$tags}" >/dev/null 2>&1 || demo_die "Invalid Git ref: $selected"
+  local -a patterns=()
+  [[ -z $heads ]] || patterns+=("$heads")
+  [[ -z $tags ]] || patterns+=("$tags" "$tags^{}")
+  refs=$(GIT_ASKPASS='' git ls-remote "$source" "${patterns[@]}") || return
+  while IFS=$'\t' read -r sha ref; do
+    [[ -n $ref ]] || continue
+    if [[ -n $heads && $ref == "$heads" ]]; then branch_sha=$sha
+    elif [[ -n $tags && $ref == "$tags" ]]; then tag_sha=$sha
+    elif [[ -n $tags && $ref == "$tags^{}" ]]; then peeled_sha=$sha
+    fi
+  done <<<"$refs"
+  [[ -z $branch_sha || -z $tag_sha ]] ||
+    demo_die "Ambiguous Git ref $selected; use refs/heads/... or refs/tags/...."
+  if [[ -n $branch_sha ]]; then printf '%s\t%s\n' "$heads" "$branch_sha"
+  elif [[ -n $tag_sha ]]; then printf '%s\t%s\n' "$tags" "${peeled_sha:-$tag_sha}"
+  else demo_die "Git ref not found: $selected"
+  fi
+}
+
+# Select each GitHub source independently of the GitOps deployment ref. The
+# existing *_BRANCH setting names also accept release tags.
 demo_source_branch() {
   local name=$1 branch=${2:-main}
   case $name in
@@ -1219,7 +1254,7 @@ demo_source_branch() {
 # explicit scratch checkout for hydration. Bootstrap also reads AAP metadata
 # before Forgejo exists on a fresh cluster, using the same source selection.
 demo_source_checkout() (
-  local name=$1 source branch work repo config
+  local name=$1 source branch work repo config resolved source_ref revision expected
   config=${SEED_CONFIG:-$demo_repo_root/cluster/forgejo/seed.json}
   [[ $name =~ ^[a-zA-Z0-9_.-]+$ ]] || demo_die "Invalid seed repository name: $name"
   repo=$(jq -ec --arg name "$name" '.repositories[] | select(.name == $name)' "$config") || return
@@ -1227,6 +1262,11 @@ demo_source_checkout() (
   branch=$(demo_source_branch "$name" "$(jq -er '.source_branch // "main"' <<< "$repo")") || return
   [[ $source =~ ^https://github.com/aiops-ansible-software-factory-demojam/[a-zA-Z0-9_.-]+\.git$ ]] ||
     demo_die 'Seed sources must be credential-free HTTPS demo GitHub repositories.'
+  resolved=$(demo_remote_revision "$source" "$branch") || return
+  read -r source_ref revision <<<"$resolved"
+  # An explicit development override can select a different ref. The release
+  # default must still match its recorded commit if someone moves the tag.
+  expected=$(jq -r --arg ref "$branch" 'if .source_branch == $ref then .source_commit // "" else "" end' <<<"$repo")
   work=${2:-$demo_repo_root/.rendered/sources/$name}
   mkdir -p -- "$(dirname -- "$work")" || return
   if [[ ! -d $work/.git ]]; then
@@ -1235,11 +1275,14 @@ demo_source_checkout() (
   else
     git -C "$work" remote set-url origin "$source" || return
   fi
-  # Fetch a heads ref explicitly: a tag with the same name is not a branch.
   # GitHub uses ghapp; disable Forgejo's askpass helper for this host.
-  GIT_ASKPASS='' git -C "$work" fetch -q --depth 1 origin "refs/heads/$branch" ||
-    demo_die "Could not fetch GitHub source $name branch $branch."
+  GIT_ASKPASS='' git -C "$work" fetch -q --depth 1 origin "$source_ref" ||
+    demo_die "Could not fetch GitHub source $name ref $branch."
   git -C "$work" checkout -q --detach --force FETCH_HEAD || return
+  [[ $(git -C "$work" rev-parse HEAD) == "$revision" ]] ||
+    demo_die "GitHub source $name changed while fetching $branch."
+  [[ -z $expected || $revision == "$expected" ]] ||
+    demo_die "GitHub source $name does not match its release commit pin."
   printf '%s\n' "$work"
 )
 
@@ -3145,6 +3188,18 @@ demo_bootstrap() (
   local operator_namespace=openshift-gitops-operator gitops_namespace=openshift-gitops
   demo_step 'Check operator inputs and cluster prerequisites'
   demo_preflight
+  # Verify the published branch or release tag before any cluster/AWS writes.
+  gitops_branch=${BOOTSTRAP_BRANCH:-main}
+  gitops_repo=$BOOTSTRAP_REPO_URL
+  target_revision=$(git -C "$repo_root" rev-parse HEAD)
+  git -C "$repo_root" diff --quiet HEAD -- bootstrap cluster .helm ||
+    demo_die 'Commit and publish the bootstrap/manifests before rollout; local inputs must match GitOps.'
+  local resolved_gitops gitops_ref
+  resolved_gitops=$(demo_remote_revision "$gitops_repo" "$gitops_branch")
+  read -r gitops_ref published_revision <<<"$resolved_gitops"
+  [[ $published_revision == "$target_revision" ]] ||
+    demo_die "Publish the checked-out revision as $gitops_ref before bootstrap."
+  echo "Tracking GitOps ref $gitops_branch."
   if [[ $DEMO_BACKEND == aws ]]; then
     demo_step 'Prepare the dedicated AWS guest account resources'
     demo_aws setup
@@ -3156,19 +3211,6 @@ demo_bootstrap() (
   sandbox_image=$(demo_sandbox_image)
   demo_verify_cluster
 
-  # A demo branch can be tracked without committing branch-specific defaults.
-  # The branch must already contain the checked-out commit on origin.
-  gitops_branch=${BOOTSTRAP_BRANCH:-main}
-  gitops_repo=$BOOTSTRAP_REPO_URL
-  git check-ref-format --branch "$gitops_branch" >/dev/null
-  target_revision=$(git -C "$repo_root" rev-parse HEAD)
-  git -C "$repo_root" diff --quiet HEAD -- bootstrap cluster .helm ||
-    demo_die 'Commit and publish the bootstrap/manifests before rollout; local inputs must match GitOps.'
-  published_revision=$(git -C "$repo_root" ls-remote "$gitops_repo" "refs/heads/$gitops_branch" | cut -f1)
-  [[ $published_revision == "$target_revision" ]] || {
-    echo "Publish the checked-out revision to origin/$gitops_branch before bootstrap." >&2; exit 1;
-  }
-  echo "Tracking GitOps branch $gitops_branch."
   storage_class=${BOOTSTRAP_STORAGE_CLASS:-$(oc get storageclasses -o json | jq -er '
     [.items[] | select(.metadata.annotations["storageclass.kubernetes.io/is-default-class"] == "true" or
       .metadata.annotations["storageclass.beta.kubernetes.io/is-default-class"] == "true")] |
