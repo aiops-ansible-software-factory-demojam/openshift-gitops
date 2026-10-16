@@ -26,12 +26,20 @@ source to change the baseline. [seed.json](seed.json) declares sources; the
 [starter issue](fixtures/readme-test-issue.md) requests one README line.
 GitHub fetches use repository-scoped ghapp credentials.
 
-Override the source branches in the root `.env` with
+Override the source refs in the root `.env` with
 `ANSIBLE_COLLECTION_TEMPLATE_BRANCH`, `ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH`,
 and `DEMOJAM_ANSIBLE_BRANCH`. Nonempty shell values override `.env`, then
-`seed.json`'s `source_branch`, then `main`. All three branches must fetch before
-any baseline changes. Tags are not accepted. These settings apply to bootstrap,
+`seed.json`'s `source_branch`, then `main`. Despite their historical names,
+these settings accept branches and lightweight or annotated tags. All three
+sources must fetch before any baseline changes. An ambiguous branch/tag name
+requires `refs/heads/...` or `refs/tags/...`. These settings apply to bootstrap,
 hydration, and reset; `BOOTSTRAP_BRANCH` separately selects the GitOps source.
+
+The release defaults in `seed.json` also record each source's exact
+`source_commit`; bootstrap rejects a moved release tag. [release.json](../../release.json)
+records the same pins. An explicit override to a different development ref
+bypasses that release pin. Forgejo destinations stay on writable `main` so
+the agent can open and merge a remediation PR.
 
 Backstage creates the issue branch before AO launches the agent. The agent
 implements and checks the change, then opens a PR against `main`. AO finishes

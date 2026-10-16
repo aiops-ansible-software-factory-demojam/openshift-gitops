@@ -99,7 +99,8 @@ egress, so other workloads sharing that address can reach the listener; the
 MCP bearer credential and tool policy enforce AO's identity. CNV's pod-level
 ingress policy does not apply to external EC2 endpoints.
 
-Local checks include `bash tests/webapp-mcp-bootstrap.sh`,
+Local checks include `bash tests/git-source-refs.sh`,
+`bash tests/webapp-mcp-bootstrap.sh`,
 `python tests/mcp-aws-network.py`, Kustomize rendering,
 the companion repository's HTTPS/credential tests, and the shipped AO adapter
 and workflow models. The complete CNV outage-to-PR/recovery run, guest reboot
@@ -137,9 +138,11 @@ oc whoami
 make bootstrap
 ```
 
-For the AWS/native MCP run with Qwen on both consumers, use the focused
-[demo environment example](.env.demo.example) and the
-[history-verified command record](docs/native-mcp-demo-2026-10-16.md).
+For the released AWS/native MCP demo with Qwen on both consumers, follow the
+[v0.1.0-alpha.2 reproduction instructions](docs/releases/v0.1.0-alpha.2.md).
+The focused [demo environment example](.env.demo.example) selects that tag in
+all four repositories. The [command record](docs/native-mcp-demo-2026-10-16.md)
+preserves the original live run and its tested revisions.
 
 To put the Linux guests in AWS, fill `AWS_BOOTSTRAP_ACCESS_KEY_ID` and
 `AWS_BOOTSTRAP_SECRET_ACCESS_KEY` in `.env`, then run `make bootstrap BACKEND=aws`.
@@ -184,7 +187,7 @@ including RHEL CDN entitlement, at `aap_manifest.zip`, or set `AAP_LICENSE_FILE`
 The ZIP and `.env` are ignored by Git; quote values as trusted Bash configuration.
 
 Argo CD reads published Git commits. Publish changes before setup and set
-`BOOTSTRAP_BRANCH` if using a branch other than `main`. Source branches for the
+`BOOTSTRAP_BRANCH` to the published branch or release tag. Source refs for the
 three Ansible repos are configured separately; see [Forgejo](cluster/forgejo/README.md).
 
 Bootstrap installs the stack, seeds Forgejo, builds the agent image, configures
