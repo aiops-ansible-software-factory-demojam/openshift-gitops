@@ -4,7 +4,9 @@ The 2026-10-16 run used AWS in `us-east-2`, native guest MCP enabled, and
 `qwen38-27b` through the Red Hat MaaS endpoint for both AO and Omnigent.
 Both consumers used Chat Completions with thinking disabled. The focused
 [environment example](../.env.demo.example) contains the effective settings
-used for that run, with the three credential values left blank.
+used for that run, with private credential values left blank. Optional
+`AO_MODEL_API_KEY` and `OMNIGENT_MODEL_API_KEY` fields allow separate model
+keys; leaving them blank inherits `LITELLM_API_KEY`, as the recorded run did.
 
 From the `openshift-gitops` checkout, prepare that configuration with:
 
