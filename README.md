@@ -7,11 +7,105 @@ The cluster also runs Ansible Automation Platform (AAP), a RHEL 9 nginx VM,
 and monitoring.
 
 A SELinux outage follows the complete automatic path: blackbox alert → EDA →
-AO audit-log RCA → Forgejo incident → Forgejo webhook → EDA → AO → Omnigent
+AO audit/MCP RCA → Forgejo incident → Forgejo webhook → EDA → AO → Omnigent
 fix PR. Bootstrap installs and connects every stage; PR review and merge remain
 manual. LiteLLM's `qwen38-27b` is the default model in the configuration template.
-Bootstrap disables thinking for this model in the coding harness because the
-demo endpoint can otherwise time out before returning a streamed tool call.
+Bootstrap disables thinking by default for Qwen consumers because the demo
+endpoint can otherwise time out before returning a tool response.
+
+## RHEL MCP diagnostics for AO RCA
+
+Bootstrap installs the stock Linux MCP 1.7.0 executable on the webapp guest
+after nginx, then publishes an RCA agent with nine native diagnostic tools.
+Its first `read_log_file` call reads 20 lines from `/var/log/audit/audit.log`.
+The non-root account has audit-log read access through auditd's `log_group`
+configuration, which preserves access after rotation. It has no sudo,
+capabilities, script execution or audit-log write access. No custom server,
+collector, timer, audit snapshot or SELinux tool is deployed.
+
+The native policy allows the selected tools on localhost; native journal and
+service scope applies. The prompt requests at most 20 lines, rather than
+custom middleware enforcing that limit. Raw audit entries can include other
+host events, and absence of nginx denials in the current tail is inconclusive.
+
+The primary RCA receives no AAP stdout or audit artifact in its starting prompt.
+It queries audit facts and nginx/service/resource diagnostics as needed. A
+condition requires both completed RCA and available MCP audit evidence before
+publishing the diagnosis. Otherwise the workflow runs AAP's `pull_audit_logs`
+and then a text-only fallback using its compact facts. Disabled mode uses AAP
+from the start. Exactly one completed diagnosis reaches the issue job.
+
+Tool traces stay in AO. There are no workflow script nodes, and worker script
+execution remains disabled. Both prompts fit the shipped invocation API's hard
+10,000-character limit; the separate configurable workflow limit defaults to
+100,000 and cannot bypass that lower validation limit. MCP applies no fixes;
+the incident-to-PR, human review and AAP recovery flow remain in place.
+
+`WEBAPP_MCP_ENABLED` defaults to true for CNV and false for AWS. Set it to
+true to opt an AWS deployment into MCP diagnostics.
+Set it to false and run `make webapp-mcp` to restore audit-only RCA before
+stopping the daemon and removing its guest authentication/TLS material.
+
+```bash
+make webapp-mcp         # Configure AAP, apply guest setup and reconcile AO
+make webapp-mcp-verify  # Validate an authenticated TLS MCP session and tool selection
+make webapp-mcp-rotate  # Rotate the machine credential through AAP and AO
+```
+
+The internal endpoint is `https://webapp-mcp.webapp-vms.svc:8443/mcp`, without
+a public Route. Guest ingress restricts 8443 to AO backend/worker/background
+worker pods while retaining HTTP/SSH. The AO operator permits outbound
+integration traffic for those components; verify actual pod labels and CNV
+policy enforcement during the live acceptance run. The integration hostname
+is added to the integration allowlist without changing workflow HTTP-node rules.
+
+AO 2026.8's shipped adapter supports an `HTTP Bearer Token` credential, without
+OAuth token renewal. Bootstrap configures a dedicated `demojam-ao-rca` Keycloak
+service client with no administrative roles or interactive login and issues a
+90-day client-credentials JWT. The stock server's JWT verifier checks issuer,
+audience, signature and expiry using Keycloak's HTTPS signing-key endpoint.
+The native tool policy also matches the current `jti`; rotating the credential
+changes the policy so the previous JWT loses tool access even before expiry.
+
+Bootstrap preserves the source Secret, client secret and TLS CA across reruns
+and reset, renews tokens within one day of expiry and TLS leaf certificates
+within seven days. The guest receives public JWT metadata/trust and leaf TLS
+material; the bearer token, client secret and CA signing key stay outside it.
+Its trust bundle combines the system roots with the cluster ingress CA, and
+it must reach the public Keycloak Route to fetch signing keys. AO binds its
+credential separately for health/discovery and workflow execution. Run
+`make webapp-mcp-rotate` to force renewal; AO cannot renew tokens itself.
+
+Bootstrap first publishes audit-only RCA before the VM exists; it enables MCP
+only after the guest service and authenticated discovery pass, before resuming
+alerting. `webapp-mcp-ready` records that installation milestone. Reset clears
+the marker, and explicit VM deletion restores audit-only RCA first. Select the
+matching published `demojam-ansible` implementation branch when testing these
+changes, using `DEMOJAM_ANSIBLE_BRANCH` and `BOOTSTRAP_BRANCH`.
+For an existing demo, refresh only the seeded `demojam-ansible` repository and
+force its AAP project sync before publishing a workflow that consumes new
+artifacts. The seeding helper accepts an optional repository name and preserves
+the other repositories and account passwords during that selective refresh.
+Refreshing every baseline would overwrite a previously merged collection fix.
+
+For AWS, bootstrap removes the Service selector and publishes an EndpointSlice
+using the EC2 webapp's current public address. The same Service hostname and TLS
+certificate remain valid. It discovers public IPv4 egress from the running AO
+caller pods using `https://checkip.amazonaws.com`, then opens the owned EC2
+security group's TCP 8443 only to those `/32` addresses. Rerunning setup removes
+stale owned rules; disable/reset removes the endpoint and closes the port.
+Reconcile MCP after cluster egress changes. The AWS firewall identifies cluster
+egress, so other workloads sharing that address can reach the listener; the
+MCP bearer credential and tool policy enforce AO's identity. CNV's pod-level
+ingress policy does not apply to external EC2 endpoints.
+
+Local checks include `bash tests/webapp-mcp-bootstrap.sh`,
+`python tests/mcp-aws-network.py`, Kustomize rendering,
+the companion repository's HTTPS/credential tests, and the shipped AO adapter
+and workflow models. The complete CNV outage-to-PR/recovery run, guest reboot
+and namespace isolation checks require the installed demo; do not substitute
+local schema or adapter success for those live acceptance checks. RHEL MCP
+remains Developer Preview.
 
 ## Before you start
 
@@ -43,6 +137,10 @@ oc whoami
 make bootstrap
 ```
 
+For the AWS/native MCP run with Qwen on both consumers, use the focused
+[demo environment example](.env.demo.example) and the
+[history-verified command record](docs/native-mcp-demo-2026-10-16.md).
+
 To put the Linux guests in AWS, fill `AWS_BOOTSTRAP_ACCESS_KEY_ID` and
 `AWS_BOOTSTRAP_SECRET_ACCESS_KEY` in `.env`, then run `make bootstrap BACKEND=aws`.
 Bootstrap uses those credentials locally to create a dedicated public VPC/subnet
@@ -65,7 +163,7 @@ defaults. AO and Omnigent can select providers and models independently:
 ```bash
 AO_MODEL_PROVIDER='litellm'
 AO_MODEL='qwen38-27b'
-AO_QWEN_REASONING_EFFORT='low'
+AO_QWEN_REASONING_EFFORT='none'
 OMNIGENT_MODEL_PROVIDER='opencode-go'
 OMNIGENT_MODEL='claude-haiku-5-5'
 OMNIGENT_MODEL_PROTOCOL='anthropic'
@@ -148,6 +246,10 @@ AO's RCA requests. Set `AO_QWEN_REASONING_EFFORT` or
 `OMNIGENT_QWEN_REASONING_EFFORT` to `medium`, `low`, or `xhigh` to enable
 thinking for the corresponding Qwen consumer. Each falls back to
 `QWEN_REASONING_EFFORT`; the default `none` keeps Qwen thinking disabled.
+Use `AO_QWEN_REASONING_EFFORT='none'` for MCP RCA on the demo endpoint.
+The `low` preset has produced upstream disconnects and exceeded the RCA node's
+180-second limit. The non-thinking preset has completed the same audit-first
+MCP investigation within that limit, without using the AAP audit fallback.
 Bootstrap sets AO's per-attempt LLM timeout to 90 seconds in backend, worker,
 and background worker. Override it with `AO_LLM_REQUEST_TIMEOUT_SECONDS` in `.env`.
 Setup and reset silence only `WebappDown` while the baseline is unavailable.

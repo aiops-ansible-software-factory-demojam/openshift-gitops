@@ -13,7 +13,7 @@ Run the commands below from the repository root after
 | [omnigent-dispatch.yaml](omnigent-dispatch.yaml) | Prepares an issue branch in Backstage, starts the agent, and requests a PR | `make demo ISSUE=N` |
 | [llm-question.yaml](llm-question.yaml) | Asks the configured model a question using a Task Agent node | `make ao-llm-test` |
 | [aap-webapp-nginx.yaml](aap-webapp-nginx.yaml) | Runs AAP's existing `webapp_nginx` job in the `demo` organization | `make ao-aap-run` |
-| [rootcause.yaml](rootcause.yaml) | Gathers audit logs through AAP, asks the model for a root cause, and creates a Forgejo issue | AAP's `call_ao_webhook` job with `ao_webhook_path: alertmanagealert` |
+| [rootcause.yaml](rootcause.yaml) | Investigates with MCP audit evidence, falls back to AAP facts when unavailable, and creates one Forgejo issue | AAP's `call_ao_webhook` job with `ao_webhook_path: alertmanagealert` |
 | [omnigent-remediation.yaml](omnigent-remediation.yaml) | Prepares the incident branch and sends the issue/RCA to Omnigent for a tested fix PR | Forgejo issue webhook through EDA and `call_ao_webhook` with `ao_webhook_path: forgejo-issue-remediation` |
 
 `bootstrap/bootstrap.sh` creates or reuses the `demojam-eda-webhook` AO service
@@ -23,7 +23,7 @@ dispatch credential to the inventory-defined webhook credential. Expired,
 disabled, or stale clients are replaced; a disabled service account stops setup.
 Workflow reconciliation binds the EDA trigger to that local account. Bootstrap
 and maintenance commands need no continuation scripts or manual credential edits.
-Existing clusters migrate to dispatch credential type `Demo AAP configuration v4`;
+Existing clusters migrate to dispatch credential type `Demo AAP configuration v6`;
 the earlier type stays intact because AAP forbids editing schemas already in use.
 
 ## Blackbox alert to issue
@@ -31,10 +31,48 @@ the earlier type stays intact because AAP forbids editing schemas already in use
 A firing `WebappDown` alert reaches EDA through Alertmanager's authenticated
 event stream. The `webapp-alert-issue.yml` rulebook in `demojam-ansible` launches
 `call_ao_webhook`, which calls the `alertmanagealert` AO trigger. An ingress
-network policy lets AAP reach AO's internal UI/API service. The workflow reads
-`pull_audit_logs`'s `affected_host_log_output` artifact and passes the
-model's diagnosis to `webapp_alert_issue` alongside the original alert payload.
+network policy lets AAP reach AO's internal UI/API service. The workflow passes
+the completed diagnosis to `webapp_alert_issue` alongside the original alert.
 The issue job reuses an existing open incident when Alertmanager sends repeats.
+
+When MCP is enabled, `airca` runs first with nine selected native diagnostic
+tools. It reads `/var/log/audit/audit.log` through `read_log_file`, requesting
+20 lines, then correlates actual AVC entries with nginx/service/resource
+diagnostics. Audit reads use the non-root account's read permissions, preserved
+by auditd rotation. There is no custom collector, snapshot or SELinux MCP tool.
+A successful read sets `auditEvidenceAvailable=true`; a denied, empty or
+unavailable read sets it false. Missing AVC entries in a bounded tail do not
+rule out SELinux, and the diagnosis must identify that limitation.
+
+The stock server supplies HTTPS, JWT authentication and tool authorization.
+The policy selects tools and localhost; service/journal filters and log sizes
+retain upstream behavior. The 20-line request is a workflow instruction, not
+a custom enforced response cap. Raw audit reads can include unrelated events.
+
+A failed/timed-out primary or unavailable MCP audit evidence routes through
+`auditlogs` and then `airca_fallback` with no tools. Only this branch runs the
+privileged AAP collector. Its compact facts enter the fallback prompt and its
+completed diagnosis reaches `createissue_fallback`. Both publication paths are
+exclusive, including when the primary completes but reports unavailable audit
+evidence. Raw stdout and failed invocation traces never enter a prompt.
+
+There are no script nodes. `APP_SCRIPT_NODES_ENABLED=false` remains reconciled
+across caller processes. The shipped invocation API hardcodes 10,000 prompt
+characters, below the separate workflow setting's 100,000-character default.
+
+Initial bootstrap publishes an audit-only workflow before the guest exists.
+After AAP installs the guest service, authenticated discovery resolves tool
+UUIDs and binds an explicit runtime credential through
+`integration_connections`. The integration's management credential is also
+configured for health checks. All other discovered tools are disabled. An
+unchanged tool selection preserves IDs and therefore does not create an
+unnecessary workflow version. Disabled mode binds no tools and removes the
+failure branch, leaving `auditlogs → airca → createissue`; audit evidence remains
+compact and script execution remains disabled.
+
+See the top-level README for `WEBAPP_MCP_ENABLED`, credential/certificate
+lifecycle, maintenance commands and validation limits. MCP never applies
+remediation; review/merge and AAP recovery remain the normal demo boundary.
 
 To exercise the flow on the demo VM, run AAP's `webapp_selinux_enable` template.
 Enforcing SELinux blocks nginx's demo document root and the blackbox probe
