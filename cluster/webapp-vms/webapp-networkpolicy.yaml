@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: webapp-diagnostics-ingress
+  namespace: webapp-vms
+spec:
+  podSelector:
+    matchLabels:
+      kubevirt.io/domain: webapp
+  policyTypes:
+    - Ingress
+  ingress:
+    # Preserve the existing application and AAP SSH endpoints.
+    - ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 22
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: automation-orchestrator
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: automation-orchestrator
+            matchExpressions:
+              - key: app.kubernetes.io/component
+                operator: In
+                values: [backend, worker, background-worker]
+      ports:
+        - protocol: TCP
+          port: 8443
