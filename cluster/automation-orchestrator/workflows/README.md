@@ -35,19 +35,19 @@ network policy lets AAP reach AO's internal UI/API service. The workflow passes
 the completed diagnosis to `webapp_alert_issue` alongside the original alert.
 The issue job reuses an existing open incident when Alertmanager sends repeats.
 
-When MCP is enabled, `airca` runs first with ten selected diagnostic tools.
-It must call `get_selinux_denials`, which returns a fresh, bounded snapshot of
-nginx AVC facts from the host's root-owned collector. The MCP daemon remains
-unprivileged and cannot access raw audit files. The snapshot includes current
-SELinux mode, collection time, a 15-minute scope, up to four events and explicit
-truncation/limitations; its serialized facts are capped at 3,000 characters.
+When MCP is enabled, `airca` runs first with nine selected native diagnostic
+tools. It reads `/var/log/audit/audit.log` through `read_log_file`, requesting
+20 lines, then correlates actual AVC entries with nginx/service/resource
+diagnostics. Audit reads use the non-root account's read permissions, preserved
+by auditd rotation. There is no custom collector, snapshot or SELinux MCP tool.
+A successful read sets `auditEvidenceAvailable=true`; a denied, empty or
+unavailable read sets it false. Missing AVC entries in a bounded tail do not
+rule out SELinux, and the diagnosis must identify that limitation.
 
-The primary prompt contains no AAP audit data or full alert payload. The agent
-returns `auditEvidenceAvailable` and an `rca` object containing the existing
-`rootCause`, `escalateTo`, `remediationSteps` contract. A native condition uses
-short-circuit evaluation: it requires completed status before reading the audit
-availability flag. A completed, available result publishes only
-`airca.result.content.rca`.
+The stock server supplies HTTPS, JWT authentication and tool authorization.
+The policy selects tools and localhost; service/journal filters and log sizes
+retain upstream behavior. The 20-line request is a workflow instruction, not
+a custom enforced response cap. Raw audit reads can include unrelated events.
 
 A failed/timed-out primary or unavailable MCP audit evidence routes through
 `auditlogs` and then `airca_fallback` with no tools. Only this branch runs the

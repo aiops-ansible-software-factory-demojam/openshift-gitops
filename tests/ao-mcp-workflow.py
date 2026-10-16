@@ -54,6 +54,9 @@ async def main():
         print("AO audit-only schema and bounded prompt passed without script nodes")
         return
 
+    prompt = nodes["airca"]["parameters"]["prompt"]
+    assert "log_path=/var/log/audit/audit.log" in prompt and "last_lines=20" in prompt
+    assert "get_selinux_denials" not in prompt
     assert nodes["airca"]["parameters"]["tool_selection_strategy"] == "SELECTED"
     assert nodes["airca"]["settings"]["continue_on_failure"]
     assert nodes["airca_fallback"]["parameters"]["tool_selection_strategy"] == "NONE"

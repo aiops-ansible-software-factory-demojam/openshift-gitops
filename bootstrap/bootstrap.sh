@@ -840,14 +840,49 @@ demo_mcp_aws_network() {
 }
 
 # AO 2026.8 supports HTTP Bearer Token credentials, not automatic OAuth refresh.
-# Keep a 90-day machine credential; ship only its digest to the non-root guest.
+# Keep a 90-day JWT; ship public verification metadata to the non-root guest.
 # Reconcile/rotate through AAP before updating AO. All source material is private.
+# Issue a standard Keycloak client-credentials JWT. AO stores the token and does
+# not renew OAuth credentials, so this dedicated demo client uses a 90-day TTL.
+# No administrative realm roles or interactive login flows are granted.
+demo_mcp_issue_token() {
+  local scratch=$1 issuer=$2 body
+  # Used by demo_identity_connect/request in the sourced identity helper.
+  # shellcheck disable=SC2034
+  local identity_scratch="$scratch/identity" identity_base
+  mkdir -p "$identity_scratch"
+  demo_identity_connect
+  body=$(jq -n --rawfile secret "$scratch/mcp-client-secret" '{
+    clientId:"demojam-ao-rca",protocol:"openid-connect",enabled:true,
+    publicClient:false,clientAuthenticatorType:"client-secret",secret:$secret,
+    serviceAccountsEnabled:true,standardFlowEnabled:false,directAccessGrantsEnabled:false,
+    fullScopeAllowed:false,attributes:{"access.token.lifespan":"7776000"},
+    protocolMappers:[{name:"webapp-mcp-audience",protocol:"openid-connect",
+      protocolMapper:"oidc-audience-mapper",config:{"included.custom.audience":"webapp-mcp",
+        "access.token.claim":"true","id.token.claim":"false"}}]}')
+  demo_identity_upsert_client "$body"
+  curl -fsS --connect-timeout 10 --max-time 30 \
+    --data-urlencode grant_type=client_credentials --data-urlencode client_id=demojam-ao-rca \
+    --data-urlencode "client_secret@$scratch/mcp-client-secret" \
+    "$issuer/protocol/openid-connect/token" >"$scratch/token-response.json" ||
+    demo_die 'Could not issue the Keycloak MCP credential.'
+  jq -ej '.access_token | select(type == "string" and length > 0)' \
+    "$scratch/token-response.json" >"$scratch/mcp-token" || demo_die 'Keycloak returned no MCP access token.'
+}
+
+demo_mcp_token_claims() {
+  # Decode claims only for lifecycle metadata; the stock daemon verifies signatures.
+  jq -R 'split(".")[1] | gsub("-";"+") | gsub("_";"/") |
+    . + ("=" * ((4 - length % 4) % 4)) | @base64d | fromjson' "$1"
+}
+
 demo_mcp_material() {
   local scratch=$1 rotate=${2:-false} secret=webapp-mcp-material namespace=ansible-automation-platform
-  local now expiry digest existing
+  local now expiry existing issuer
   printf '{}' >"$scratch/mcp-material.json"
   if ! demo_mcp_enabled; then return 0; fi
   now=$(date +%s)
+  issuer="https://$(oc -n demojam-keycloak get route keycloak -o jsonpath='{.status.ingress[0].host}')/realms/demo"
   existing=$(oc -n "$namespace" get secret "$secret" --ignore-not-found -o name)
   if [[ -n $existing ]]; then
     oc -n "$namespace" get secret "$secret" -o json >"$scratch/mcp-source.json"
@@ -855,11 +890,11 @@ demo_mcp_material() {
       jq -ej --arg key "$key" '.data[$key] | select(length > 0) | @base64d' \
         "$scratch/mcp-source.json" >"$scratch/mcp-$key" || demo_die 'Incomplete MCP source Secret.'
     done
-    # Preserve exact Secret bytes with jq -j before comparing the digest.
-    digest=$(openssl dgst -sha256 "$scratch/mcp-token" | awk '{print $NF}')
-    jq -e --arg digest "$digest" '.token_sha256 == $digest and (.expires_at | type == "number")' \
-      "$scratch/mcp-material.json" >/dev/null || demo_die 'MCP credential digest does not match its source token.'
-    expiry=$(jq -r .expires_at "$scratch/mcp-material.json")
+    expiry=$(jq -r '.expires_at // 0' "$scratch/mcp-material.json")
+    # Migrate the former opaque bearer credential on the next setup.
+    if ! jq -e --arg issuer "$issuer" '.jwt_issuer == $issuer and (.jwt_id | type == "string")' \
+      "$scratch/mcp-material.json" >/dev/null; then expiry=0; fi
+    jq -j '.data["client-secret"] // "" | @base64d' "$scratch/mcp-source.json" >"$scratch/mcp-client-secret"
   else
     openssl req -x509 -newkey rsa:3072 -nodes -days 3650 -subj /CN=demojam-webapp-mcp-ca \
       -addext basicConstraints=critical,CA:TRUE -addext keyUsage=critical,keyCertSign,cRLSign \
@@ -867,8 +902,12 @@ demo_mcp_material() {
     expiry=0
   fi
   if [[ $rotate == true ]] || (( expiry < now + 86400 )); then
-    openssl rand -hex 32 | tr -d '\n' >"$scratch/mcp-token"
-    expiry=$((now + 90 * 86400))
+    if [[ ! -s $scratch/mcp-client-secret ]]; then
+      openssl rand -hex 32 | tr -d '\n' >"$scratch/mcp-client-secret"
+    fi
+    demo_mcp_issue_token "$scratch" "$issuer"
+    demo_mcp_token_claims "$scratch/mcp-token" >"$scratch/mcp-claims.json"
+    expiry=$(jq -er '.exp' "$scratch/mcp-claims.json")
   fi
   jq -j '.tls_cert // ""' "$scratch/mcp-material.json" >"$scratch/mcp-tls.crt"
   jq -j '.tls_key // ""' "$scratch/mcp-material.json" >"$scratch/mcp-tls.key"
@@ -887,13 +926,23 @@ EOF
       -set_serial "0x$(openssl rand -hex 16)" -days 90 -extfile "$scratch/mcp.ext" \
       -out "$scratch/mcp-tls.crt" 2>/dev/null
   fi
-  digest=$(openssl dgst -sha256 "$scratch/mcp-token" | awk '{print $NF}')
-  jq -n --arg digest "$digest" --argjson expiry "$expiry" --rawfile cert "$scratch/mcp-tls.crt" \
-    --rawfile key "$scratch/mcp-tls.key" --rawfile ca "$scratch/mcp-ca.crt" \
-    '{token_sha256:$digest,expires_at:$expiry,tls_cert:$cert,tls_key:$key,ca_cert:$ca}' >"$scratch/mcp-material.json"
+  demo_mcp_token_claims "$scratch/mcp-token" >"$scratch/mcp-claims.json"
+  jq -e --arg issuer "$issuer" --argjson now "$now" '
+    .iss == $issuer and ((.aud == "webapp-mcp") or
+      ((.aud | type) == "array" and (.aud | index("webapp-mcp")) != null)) and .azp == "demojam-ao-rca" and .exp > $now and
+    (.jti | type == "string" and test("^[a-zA-Z0-9:_-]+$"))' "$scratch/mcp-claims.json" >/dev/null ||
+    demo_die 'MCP token claims do not match the dedicated Keycloak client.'
+  oc -n openshift-ingress-operator get secret router-ca \
+    -o go-template='{{index .data "tls.crt" | base64decode}}' >"$scratch/mcp-jwt-ca.crt"
+  jq -n --arg issuer "$issuer" --slurpfile claims "$scratch/mcp-claims.json" \
+    --rawfile jwt_ca "$scratch/mcp-jwt-ca.crt" --rawfile cert "$scratch/mcp-tls.crt" \
+    --rawfile key "$scratch/mcp-tls.key" --rawfile ca "$scratch/mcp-ca.crt" '
+    {jwt_issuer:$issuer,jwt_jwks_uri:($issuer + "/protocol/openid-connect/certs"),
+     jwt_id:$claims[0].jti,jwt_ca:$jwt_ca,expires_at:$claims[0].exp,
+     tls_cert:$cert,tls_key:$key,ca_cert:$ca}' >"$scratch/mcp-material.json"
   oc -n "$namespace" create secret generic "$secret" --from-file=token="$scratch/mcp-token" \
     --from-file=ca.key="$scratch/mcp-ca.key" --from-file=ca.crt="$scratch/mcp-ca.crt" \
-    --from-file=material.json="$scratch/mcp-material.json" --dry-run=client -o yaml |
+    --from-file=client-secret="$scratch/mcp-client-secret" --from-file=material.json="$scratch/mcp-material.json" --dry-run=client -o yaml |
     oc apply --server-side --field-manager=demo-bootstrap -f - >/dev/null
 }
 

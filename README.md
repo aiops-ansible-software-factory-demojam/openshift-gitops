@@ -15,15 +15,18 @@ endpoint can otherwise time out before returning a tool response.
 
 ## RHEL MCP diagnostics for AO RCA
 
-Bootstrap installs native Linux MCP 1.7.0 on the webapp guest after nginx,
-then publishes an RCA agent with ten read-only diagnostic tools. Its first
-call, `get_selinux_denials`, fetches fresh audit facts through MCP. A root-owned
-local collector reads a bounded tail of the audit file every five seconds and
-atomically publishes only recent nginx AVC fields and the current SELinux mode.
-The snapshot is capped at 3,000 characters and four events from the last 15
-minutes. The unprivileged MCP daemon cannot read the raw audit file, run scripts,
-or select another path. Missing snapshots and snapshots older than 30 seconds
-are explicitly unavailable.
+Bootstrap installs the stock Linux MCP 1.7.0 executable on the webapp guest
+after nginx, then publishes an RCA agent with nine native diagnostic tools.
+Its first `read_log_file` call reads 20 lines from `/var/log/audit/audit.log`.
+The non-root account has audit-log read access through auditd's `log_group`
+configuration, which preserves access after rotation. It has no sudo,
+capabilities, script execution or audit-log write access. No custom server,
+collector, timer, audit snapshot or SELinux tool is deployed.
+
+The native policy allows the selected tools on localhost; native journal and
+service scope applies. The prompt requests at most 20 lines, rather than
+custom middleware enforcing that limit. Raw audit entries can include other
+host events, and absence of nginx denials in the current tail is inconclusive.
 
 The primary RCA receives no AAP stdout or audit artifact in its starting prompt.
 It queries audit facts and nginx/service/resource diagnostics as needed. A
@@ -57,16 +60,21 @@ policy enforcement during the live acceptance run. The integration hostname
 is added to the integration allowlist without changing workflow HTTP-node rules.
 
 AO 2026.8's shipped adapter supports an `HTTP Bearer Token` credential, without
-OAuth token renewal. The compatibility adapter validates a 90-day machine
-credential against a SHA-256 digest. Bootstrap preserves its source Secret
-and CA across reruns/reset, renews credentials within one day of expiry and
-TLS leaf certificates within seven days, and deploys only the digest/expiry
-and leaf TLS material to the guest. AO stores the plaintext token encrypted
-and binds it separately for discovery and workflow execution. A changed digest
-restarts the guest service and rejects the previous credential. Run maintenance
-before expiry; an expired credential produces unavailable diagnostics and
-requires `make webapp-mcp-rotate` to restore access. CA replacement is a planned
-trust rotation rather than an automatic replacement of the signing identity.
+OAuth token renewal. Bootstrap configures a dedicated `demojam-ao-rca` Keycloak
+service client with no administrative roles or interactive login and issues a
+90-day client-credentials JWT. The stock server's JWT verifier checks issuer,
+audience, signature and expiry using Keycloak's HTTPS signing-key endpoint.
+The native tool policy also matches the current `jti`; rotating the credential
+changes the policy so the previous JWT loses tool access even before expiry.
+
+Bootstrap preserves the source Secret, client secret and TLS CA across reruns
+and reset, renews tokens within one day of expiry and TLS leaf certificates
+within seven days. The guest receives public JWT metadata/trust and leaf TLS
+material; the bearer token, client secret and CA signing key stay outside it.
+Its trust bundle combines the system roots with the cluster ingress CA, and
+it must reach the public Keycloak Route to fetch signing keys. AO binds its
+credential separately for health/discovery and workflow execution. Run
+`make webapp-mcp-rotate` to force renewal; AO cannot renew tokens itself.
 
 Bootstrap first publishes audit-only RCA before the VM exists; it enables MCP
 only after the guest service and authenticated discovery pass, before resuming
