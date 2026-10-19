@@ -1,5 +1,11 @@
 # Demo OpenShift GitOps
 
+For the AAP and AO invoice-processing security demo using a Lightwell PyPDF2
+backport and RHEL EC2 guests, see the detailed
+[invoice setup and recording walkthrough](docs/invoice-lightwell-demo.md).
+Select `DEMO_SCENARIO=invoice` and `DEMO_BACKEND=aws`; the existing SELinux
+scenario remains the default.
+
 Set up a disposable OpenShift cluster for an Ansible software factory demo.
 The main flow takes a Forgejo issue through Automation Orchestrator (AO),
 Red Hat Developer Hub (Backstage), and an Omnigent agent to a pull request.
