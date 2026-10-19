@@ -144,6 +144,12 @@ oc whoami
 make bootstrap
 ```
 
+The environment examples put required inputs first and optional overrides
+below. Fill the subscription and selected model provider, plus the AWS and
+Lightwell sections when those scenarios apply. For the AWS invoice demo, use
+[.env.invoice.example](.env.invoice.example) and the
+[invoice runbook](docs/invoice-lightwell-demo.md).
+
 For the released AWS/native MCP demo with Qwen on both consumers, follow the
 [v0.1.0-alpha.2 reproduction instructions](docs/releases/v0.1.0-alpha.2.md).
 The focused [demo environment example](.env.demo.example) selects that tag in
@@ -165,7 +171,7 @@ an accidental switch on a live installation. See the
 overrides and resource ownership.
 
 In `.env`, use the [configuration template](.env.example) to select
-the provider (`opencode-go` or `litellm`) and fill in its key, endpoint,
+the provider (`opencode-go`, `litellm`, or `openshift-ai`) and fill in its key, endpoint,
 and model. `MODEL_PROVIDER` and the provider-specific fields remain shared
 defaults. AO and Omnigent can select providers and models independently:
 
