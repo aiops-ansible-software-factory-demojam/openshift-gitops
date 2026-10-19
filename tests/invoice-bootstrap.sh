@@ -22,6 +22,11 @@ if DEMO_BACKEND=cnv demo_manifest "$scratch/cnv"; then
   exit 1
 fi
 
+yq . "$root/bootstrap/aap-dispatch-credential-type.yaml" |
+  jq -e '(.inputs.required | index("entitlement")) == null and
+    any(.inputs.fields[]; .id == "entitlement") and
+    (.injectors.file.template | contains("default("))' >/dev/null
+
 export MODEL_PROVIDER=openshift-ai OPENSHIFT_AI_ENDPOINT=https://inference.example.test/v1
 export OPENSHIFT_AI_MODEL=example-coding-model OPENSHIFT_AI_API_KEY=fixture-not-a-secret
 demo_model_inputs ao
@@ -35,4 +40,4 @@ demo_ao_workflow_definition "$root/cluster/automation-orchestrator/workflows/inv
   jq -e 'any(.nodes[]; .id == "authenticate_omnigent" and .parameters.credential_id == "fixture-credential") and
     any(.nodes[]; .id == "create_session" and .parameters.body.agent_id == "fixture-agent") and
     any(.edges[]; .from == "create_session" and (.to | startswith("share_session_")))' >/dev/null
-echo 'Invoice bootstrap checks passed: AWS manifest boundary, OpenShift AI inputs, and workflow credential injection.'
+echo 'Invoice bootstrap checks passed: AWS manifest/credential boundaries, OpenShift AI inputs, and workflow credential injection.'
