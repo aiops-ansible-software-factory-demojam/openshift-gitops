@@ -171,6 +171,47 @@ baseline. It cannot produce a successful remediation or independent validation.
 Never substitute a locally edited wheel or a migrated pypdf package and label
 it a Lightwell remediation.
 
+## Test the unmerged implementation
+
+The three GitHub implementation PRs can remain open while the demo runs.
+Check out their published `feature/lightwell-invoice-demo` branches. In the
+private `.env`, select the GitOps branch and both companion source branches:
+
+```bash
+BOOTSTRAP_REPO_URL='https://github.com/aiops-ansible-software-factory-demojam/openshift-gitops.git'
+BOOTSTRAP_BRANCH='feature/lightwell-invoice-demo'
+ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH='feature/lightwell-invoice-demo'
+DEMOJAM_ANSIBLE_BRANCH='feature/lightwell-invoice-demo'
+DEMO_LOCAL_SOURCES=''
+```
+
+Bootstrap checks that the local GitOps HEAD matches its published revision.
+It fetches the companion branches and seeds their committed contents into the
+demo's Forgejo repositories. The later Forgejo remediation PR belongs to the
+recorded software-factory workflow; its human merge does not merge any of the
+GitHub implementation PRs.
+
+For an initial rehearsal using OpenCode Go, select these model settings and
+supply `OPENCODE_GO_API_KEY` privately:
+
+```bash
+MODEL_PROVIDER='opencode-go'
+OPENCODE_GO_ENDPOINT='https://opencode.ai/zen/go/v1'
+OPENCODE_GO_MODEL='deepseek-v4.1-flash'
+OPENCODE_GO_PROTOCOL='chat'
+```
+
+Empty AO and Omnigent consumer overrides inherit those settings. OpenCode Go
+is the inference provider for that rehearsal. Switch to a verified OpenShift AI
+endpoint before recording the abstract's OpenShift AI claim, or identify the
+actual provider in the recording.
+
+AAP execution copies do not contain `.git`. The baseline checks AAP's
+system-provided `awx_project_revision`, which identifies the job's source
+revision. Direct runs check Git HEAD. Both paths reject a mismatch with the
+requested commit. Independent validation still uses its fresh Git checkout
+and checks that the tested source remains clean and unchanged.
+
 ## Prepare the environment
 
 The first command checks inputs without printing their values:
@@ -362,4 +403,6 @@ cleanup is complete.
 - [Lightwell Python repository configuration](https://docs.redhat.com/en/documentation/lightwell_network/current/configure-configure_python_build_tool)
 - [Lightwell Python wheel provenance verification](https://docs.redhat.com/en/documentation/lightwell_network/current/configure-verify_provenance_for_python_wheel_artifacts)
 - [Lightwell patched artifact versions](https://docs.redhat.com/en/documentation/lightwell_network/current/get_started-patched_artifact_versions)
+- [OpenCode Go models and endpoints](https://opencode.ai/docs/go/)
+- [AAP job context and source revision](https://docs.ansible.com/projects/awx/en/24.6.1/userguide/job_templates.html)
 - [Existing AWS and virtualization backend specification](specs/aws-cnv-backends.md)
