@@ -14,6 +14,7 @@ help:
 	  '  make demo ISSUE=N    Start the issue-to-PR demo' \
 	  '  make demo-reset      Reset disposable demo state' \
 	  '  make webapp-verify   Check webapp health' \
+	  '  make invoice-inputs Check inputs for the Lightwell invoice scenario' \
 	  '' \
 	  '  make help-all        Show all maintenance commands' \
 	  '' \
@@ -132,3 +133,29 @@ render:
 		echo "Rendering $$app"; \
 		kustomize build --enable-helm --helm-kube-version v1.31.0 "$$app" > ".rendered/$$(basename "$$app").yaml" || exit 1; \
 	done
+
+.PHONY: invoice-foundation invoice-publish invoice-inputs invoice-material invoice-configure invoice-baseline invoice-trigger invoice-protect invoice-validate invoice-promote invoice-verify
+invoice-foundation:
+	bash bootstrap/bootstrap.sh invoice foundation --backend aws
+invoice-publish:
+	bash bootstrap/bootstrap.sh invoice publish
+invoice-inputs:
+	bash bootstrap/bootstrap.sh invoice inputs
+invoice-material:
+	bash bootstrap/bootstrap.sh invoice material
+invoice-configure:
+	bash bootstrap/bootstrap.sh invoice configure
+invoice-baseline:
+	bash bootstrap/bootstrap.sh invoice baseline
+invoice-trigger:
+	bash bootstrap/bootstrap.sh invoice trigger
+invoice-protect:
+	bash bootstrap/bootstrap.sh invoice protect
+invoice-validate:
+	@test -n "$(SHA)" || { echo 'Usage: make invoice-validate SHA=<published-head-sha>'; exit 2; }
+	bash bootstrap/bootstrap.sh invoice validate "$(SHA)"
+invoice-promote:
+	@test -n "$(PR)" -a -n "$(JOB)" || { echo 'Usage: make invoice-promote PR=<merged-pr> JOB=<validation-job>'; exit 2; }
+	bash bootstrap/bootstrap.sh invoice promote "$(PR)" "$(JOB)"
+invoice-verify:
+	bash bootstrap/bootstrap.sh invoice verify

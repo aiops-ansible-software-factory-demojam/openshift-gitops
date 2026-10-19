@@ -1,0 +1,356 @@
+# Invoice remediation with the Ansible software factory
+
+This demonstration turns a security incident in a RHEL invoice-processing
+application into reviewed Ansible content and an approved AAP deployment.
+Automation Orchestrator coordinates the work. Lightwell supplies a patched
+PyPDF2 dependency; the agent authors the Ansible remediation workflow and its
+regression coverage. Most of the five-minute recording follows AO, the
+Ansible changes, machine tests, review, and AAP execution.
+
+## Original abstract and the AWS deployment
+
+The submitted abstract remains the organizing description:
+
+> The AIOps Ansible Software Factory transforms automation intent (alerts,
+> chats, or tickets) into tested, reviewed, and deployed Ansible content.
+> Orchestrated via Red Hat Ansible Automation Orchestrator, AI agents perform
+> the bulk of the automation authoring inside highly secure environments
+> leveraging the Red Hat build of Agent Sandbox, while human developers hold
+> the merge and production gates. Red Hat Developer Hub serves golden paths
+> for AI Agents powered by Openshift AI, and generated content is rigorously
+> tested against ephemeral, real-machine guests using OpenShift Virtualization
+> to ensure production readiness.
+
+For this AWS environment, the application and ephemeral test guests are EC2
+instances. OpenShift hosts the management plane and agent sandboxes. The
+recording must identify the real-machine tests as RHEL on EC2. OpenShift
+Virtualization is the existing alternative backend; it is not used or
+demonstrated by this AWS invoice scenario.
+
+The OpenShift AI claim requires an actual OpenShift AI model endpoint. Set
+`MODEL_PROVIDER=openshift-ai` and the endpoint, model, and API key. An external
+endpoint is sufficient; the inference cluster need not be the management
+cluster. Record the actual inference service used by both consumers.
+
+## Business scenario
+
+An accounts-payable portal extracts text from uploaded PDF invoices. Its
+approved application release depends on PyPDF2 3.0.1. Ordinary invoices work,
+but a PDF content stream containing an EOF-terminated comment stalls text
+extraction because of CVE-2023-36464.
+
+The service runs each extraction in a separate process with the same two-second
+deadline in every release. A stalled worker is terminated and reported as
+`timed_out`; health requests remain available. The bounded demonstration
+therefore shows failed invoice processing, not an unlimited server outage.
+Two concurrent extraction slots and systemd resource limits further bound the
+demonstration. These controls do not constitute remediation of the library.
+
+The durable result must process the identical regression document correctly,
+preserve normal invoice extraction, and run the actual Lightwell-patched
+artifact. Restarting the service, extending a timeout, replacing the document,
+or changing the parser package does not meet the acceptance criteria.
+
+The upstream advisory lists no patched PyPDF2 release and recommends migration
+to pypdf. The Lightwell build lets this scenario demonstrate a security
+backport while retaining the application's PyPDF2 baseline. Stock PyPDF2
+3.0.1 is the vulnerable release; its version alone is not proof of remediation.
+
+## Components and responsibilities
+
+| Component | Responsibility |
+| --- | --- |
+| AO | Run the evidence-gathering and issue workflow; coordinate the agent handoff and independent validation. |
+| AAP | Observe application behavior, create the ticket, independently validate the candidate, require production approval, and execute the reviewed content. |
+| Developer Hub | Validate the issue and prepare its contribution branch through the existing golden path. |
+| Agent Sandbox and Omnigent | Host the authoring session with source access and scoped disposable-test credentials. |
+| OpenShift AI | Serve the configured model used for authoring and AO inference. |
+| Lightwell | Provide the selected remediated wheel and its provenance. |
+| RHEL on EC2 | Host the application and the ephemeral RHEL 9 and RHEL 10 tests. |
+| Forgejo | Host the seeded collection, incident, review, required status, and protected branch. |
+| OpenShift Pipelines | Build the authoring and validation execution image containing ADT, AWS provisioners, and Cosign. |
+| OpenShift GitOps | Reconcile the management-plane configuration from published commits. |
+
+The application is installed into an immutable Python environment on RHEL and
+managed by systemd. A release directory includes the exact dependency wheel,
+application source, and release evidence. It is identified by the wheel hash
+and collection commit. AAP changes the active release symlink and restarts the
+service. This implementation does not claim a container-image application
+rollout or zero downtime.
+
+```mermaid
+flowchart TD
+    Check[AO invokes AAP invoice checks] --> Issue[AAP creates incident]
+    Issue --> EDA[Forgejo webhook through EDA]
+    EDA --> Author[AO and Developer Hub prepare sandbox authoring]
+    Model[OpenShift AI inference] --> Author
+    Author --> PR[Ansible workflow and tests submitted as a PR]
+    PR --> Validate[Independent AAP validation of the published SHA]
+    Lightwell[Lightwell wheel and provenance] --> Validate
+    Validate --> EC2[Disposable RHEL 9 and RHEL 10 EC2 tests]
+    EC2 --> Review[Human review and merge]
+    Review --> Approve[AAP production approval]
+    Approve --> Deploy[AAP deploys the tested commit and dependency]
+    Deploy --> Verify[Repeat normal and security regression checks]
+```
+
+## Repositories and the authoring boundary
+
+The implementation spans three sibling repositories:
+
+| Repository | Files and purpose |
+| --- | --- |
+| `openshift-gitops` | `bootstrap/bootstrap.sh`, invoice AO workflows, image tooling, Make targets, configuration examples, and this runbook. |
+| `demojam-ansible` | `playbooks/invoice/`, `playbooks/aap/configure-invoice.yml`, inventory configuration, and the invoice EDA rule. |
+| `ansible-collection-demo.webapp` | Invoice application, authenticated deployment primitive, baseline deployment, authoring stub, and Molecule scenario. |
+
+`roles/invoice_portal` supplies reviewed common primitives: verify the selected
+wheel, stage a release, manage systemd, test application behavior, and restore
+the previous release after a failed deployment. Infrastructure preparation
+creates these primitives before recording.
+
+The seeded `playbooks/invoice-remediate.yml` explicitly fails because the
+operational workflow has not yet been authored. The security ticket asks the
+agent to replace that stub with Ansible orchestration using the primitives,
+source and artifact checks, serial canary batches, failure handling, and
+regression tests. Molecule converges through that authored playbook. A green
+test therefore requires the missing capability to be implemented.
+
+Do not describe the prepared portal or common deployment primitive as code
+the recorded agent authored. Show the actual PR diff and its published SHA.
+The agent can read a dedicated package-repository credential and the public
+signing key. Its AWS identity can manage only disposable tests; it has no
+production SSH credential or AAP production approval authority.
+
+## Required operator inputs
+
+Copy `.env.invoice.example` into a private `.env`, preserving the AWS values
+already supplied when updating an existing file. Run `chmod 600 .env`.
+The scripts source trusted Bash configuration; secret values stay outside Git.
+
+| Input | Required value |
+| --- | --- |
+| `DEMO_BACKEND` | `aws` |
+| `DEMO_SCENARIO` | `invoice` |
+| AWS bootstrap keys | An authorized provisioning identity. Bootstrap creates separate scoped application and test identities. |
+| `AAP_LICENSE_FILE` | A real AAP subscription manifest ZIP. |
+| OpenShift AI fields | HTTPS API base URL, model name, and token. Both AO and Omnigent can override these independently. |
+| `INVOICE_LIGHTWELL_ARTIFACT_FILE` | JSON descriptor for the actual remediated PyPDF2 wheel. |
+| Lightwell username and token | A dedicated repository-read identity. |
+| `INVOICE_SIGNING_KEY_FILE` | Trusted public Red Hat signing key in PEM format. |
+| `INVOICE_SIGNING_KEY_SHA256` | Independently checked SHA256 of that public-key file. |
+| `INVOICE_TEST_EE_IMAGE` | An immutable `@sha256:` execution image, or leave empty to resolve the successfully built sandbox image. |
+
+The Lightwell descriptor uses this structure. Replace every placeholder with
+catalog metadata; obtain the distribution version from the actual wheel.
+
+```json
+{
+  "channel": "lightwell",
+  "package": "PyPDF2",
+  "base_version": "3.0.1",
+  "version": "EXACT_LIGHTWELL_DISTRIBUTION_VERSION",
+  "filename": "EXACT_LIGHTWELL_WHEEL_FILENAME.whl",
+  "url": "https://packages.redhat.com/EXACT_ARTIFACT_PATH",
+  "sha256": "EXACT_64_CHARACTER_SHA256",
+  "provenance_url": "https://packages.redhat.com/EXACT_PEP740_PROVENANCE_PATH",
+  "cves": ["CVE-2023-36464"]
+}
+```
+
+The verifier checks the bytes and wheel metadata, verifies the PEP 740 envelope
+with Cosign and the pinned public key, and checks the SLSA statement's subject
+digest. It follows Red Hat's documented key-based verification procedure,
+which disables transparency-log verification while retaining signature and
+artifact-digest verification. Downloaded credentials and provenance are staged
+privately in the execution environment; repository credentials are not copied
+to the application guest.
+
+An absent Lightwell descriptor permits preparation of the known upstream
+baseline. It cannot produce a successful remediation or independent validation.
+Never substitute a locally edited wheel or a migrated pypdf package and label
+it a Lightwell remediation.
+
+## Prepare the environment
+
+The first command checks inputs without printing their values:
+
+```bash
+make invoice-inputs BACKEND=aws
+```
+
+For development from committed sibling checkouts, set `DEMO_LOCAL_SOURCES` to
+their parent directory and select their local branch names in the two source
+override fields. Dirty sources are rejected. The Ansible template repository
+continues using its published release unless a matching local checkout exists.
+
+Install the management foundation and create the dedicated AWS network and
+scoped identities:
+
+```bash
+make invoice-foundation
+```
+
+The foundation can be prepared before the model and Lightwell inputs arrive.
+It does not constitute a completed application or authoring demonstration.
+The normal full bootstrap still requires the AAP subscription and model inputs.
+
+Commit all implementation changes. To publish the GitOps implementation into
+the demo's Forgejo instance, without requiring GitHub write access:
+
+```bash
+make invoice-publish BACKEND=aws
+```
+
+Set the printed `BOOTSTRAP_REPO_URL` and `BOOTSTRAP_BRANCH` in `.env`. Argo CD
+must read the actual published implementation. Run the full setup:
+
+```bash
+make bootstrap BACKEND=aws
+```
+
+Invoice mode provisions the EC2 application host, configures the invoice jobs,
+and installs the vulnerable baseline. It does not run the SELinux permissive
+setup or install the intentionally broken nginx demonstration. RHEL remains
+enforcing. Test guests are created and removed by Molecule through the AWS
+provisioner; no OpenShift Virtualization operators or VM guests are required.
+
+Refresh artifact material and configure AAP after supplying or changing the
+Lightwell selection:
+
+```bash
+make invoice-material BACKEND=aws
+make invoice-configure BACKEND=aws
+bash bootstrap/bootstrap.sh invoice verify vulnerable --backend aws
+make invoice-protect BACKEND=aws
+```
+
+Protection disables direct pushes to collection `main`, requires one human
+review and the `invoice/ec2-validation` status, dismisses stale approvals,
+and applies to administrators. The seeded `demo-reviewer` identity is allowed
+to merge. Keep the agent's identity separate from that human identity.
+Publish and hydrate source changes before protecting the recording baseline.
+
+## Run the complete demonstration
+
+1. Open the portal from Homepage's webapp link. Process the sample invoice.
+   Run the regression document and capture `timed_out`, its document SHA256,
+   installed dependency identity, and elapsed time.
+2. Run `make invoice-trigger BACKEND=aws`, or start `invoice-security-detect`
+   in AO. AAP gathers real observations and opens one deduplicated incident.
+   Its Forgejo opening webhook reaches EDA and starts the invoice authoring
+   workflow. A repeat detection reuses the open incident.
+3. Follow the AO execution into Developer Hub and the Omnigent session. Record
+   the actual issue, branch, model, agent session, and eventual PR. During the
+   authoring demonstration, do not privately edit the agent's branch or supply
+   corrective code and conceal that intervention.
+4. Wait for the submitted PR. Record its exact published head SHA. Agent-reported
+   tests are useful evidence, but the protected branch requires independent
+   AAP validation:
+
+   ```bash
+   make invoice-validate BACKEND=aws SHA=<published-head-sha>
+   ```
+
+   The trusted validator checks out that SHA into a fresh directory, lints and
+   builds the collection, installs it into a separate collection root, then
+   runs the invoice Molecule scenario on RHEL 9 and RHEL 10 EC2 guests. The
+   scenario must complete idempotence, verification, and destruction. The AAP
+   job publishes the source SHA and selected wheel digest. A failed run posts
+   a failure status and leaves the PR unmergeable.
+5. Review the actual diff and validation evidence as a human. Approve and merge
+   in Forgejo. If the head changes, independently validate the new SHA.
+6. Prepare production promotion using the merged PR and successful validation
+   job identifiers:
+
+   ```bash
+   make invoice-promote BACKEND=aws PR=<merged-pr-number> JOB=<validation-job-id>
+   ```
+
+   Promotion checks the PR's merge state, its tested head, ancestry in current
+   `main`, the trusted validation job, and the unchanged dependency digest.
+   It creates a project pinned to that commit, a deployment template that
+   disallows source and variable overrides, and an approval workflow.
+7. Open the printed AAP workflow. A human approves the production node. Only
+   its success path reaches deployment; rejection or timeout does not deploy.
+   The command does not approve this node automatically.
+8. Wait for deployment success. Run `make invoice-verify BACKEND=aws`. Repeat
+   the identical regression PDF in the browser and an ordinary invoice. Both
+   must extract the expected invoice data within the unchanged deadline.
+   Show the deployed source revision, actual dependency version, and wheel
+   digest alongside AAP's execution record.
+
+## Five minute recording and narration
+
+Keep a progress strip visible: **Intent → Author → Test → Review → Deploy**.
+Use one complete recorded run. Cut elapsed waits and label them with measured
+durations. The edited runtime is five minutes; real incident duration is a
+separate measurement.
+
+| Time | Screen and action | Suggested narration |
+| --- | --- | --- |
+| 0:00–0:30 | Portal processes an ordinary invoice; regression document stalls; show the ticket context. | “This invoice application works, but one vulnerable dependency can stall document processing. We need a repeatable, tested operational fix.” |
+| 0:30–1:00 | AO detection workflow and the AAP evidence job; briefly show the Lightwell selection and Developer Hub task. | “Automation Orchestrator turns the incident into an authoring task. AAP gathers the facts, and our golden path prepares the contribution.” |
+| 1:00–1:50 | Agent Sandbox session and the actual Ansible diff; briefly identify the OpenShift AI inference service. | “The agent writes the remediation workflow and regression coverage. The deliverable is Ansible content our operations team can review and reuse.” |
+| 1:50–2:50 | Independent AAP validation, two real RHEL EC2 guests, convergence and idempotence, security and functional results. | “The published commit is tested on disposable RHEL machines. The same regression document must process correctly, and ordinary invoices must still work.” |
+| 2:50–3:25 | Human PR review and merge; highlight the exact commit and required AAP status. | “The developer reviews the code and its evidence. A changed commit must pass validation again.” |
+| 3:25–4:25 | AAP production approval and execution; expand meaningful deployment and verification tasks. | “A separate human approval releases the tested automation to production. AAP executes the reviewed revision and records the outcome.” |
+| 4:25–5:00 | Same regression document now succeeds; normal invoice succeeds; finish on release evidence and AAP results. | “Processing is restored with the trusted backport. One incident produced reusable Ansible automation, machine-tested evidence, human approval, and an auditable deployment.” |
+
+Zoom into the generated deployment orchestration, the security assertion, and
+the recovery test. Let readable Ansible task names carry the explanation.
+Keep package catalog and supporting product appearances short. Do not add a
+product appearance unless it performed the action attributed to it.
+
+The default application inventory contains one production EC2 instance. A
+serial canary workflow can be authored and tested against the two disposable
+guests. Claim a production fleet rollout only when additional production hosts
+are actually present and the recording shows their results.
+
+## Acceptance criteria and evidence
+
+- The baseline uses the recorded upstream PyPDF2 3.0.1 wheel and reproduces the
+  real EOF-comment parsing loop within the bounded worker process.
+- Normal invoices extract `Invoice INV-1042` and the expected invoice text.
+- The exact same regression bytes work after the actual Lightwell artifact
+  is installed; its signature, digest, and metadata have been checked.
+- The generated Ansible workflow is present in the reviewed PR and exercised
+  by Molecule on both RHEL versions, including idempotence and test cleanup.
+- Recovery testing establishes that a previous healthy release is restored
+  after a failed candidate, and that the deployment still reports failure.
+- SELinux remains enforcing; source and artifact identity checks remain active.
+- Independent validation matches the published PR head, and production uses
+  that tested commit after human merge and a separate approval.
+- Any intervention, failed run, unavailable product integration, or deviation
+  from the abstract is recorded accurately.
+
+Store runtime identifiers, URLs, stage timings, job evidence, and recordings
+outside Git under `.rendered/invoice/`. Record actual results; do not fill in
+successful Lightwell or EC2 acceptance results before those runs complete.
+
+## Rehearsal and cleanup
+
+For another recording, first preserve the PR, job evidence, and timing record.
+Use the existing disposable demo reset only when ready to discard its demo
+repositories and guests. Reset removes EC2 guests and their disks and restores
+the authoring baseline; full bootstrap is needed afterward. It is broader than
+an application restart and should not run during an active agent session.
+
+```bash
+make demo-reset BACKEND=aws
+make bootstrap BACKEND=aws
+make invoice-protect BACKEND=aws
+```
+
+Reconcile the protection after reset. A normal application restart must not
+reintroduce the vulnerable dependency. Full teardown also removes the owned
+AWS network and scoped identities. Keep the provisioning receipts until
+cleanup is complete.
+
+## Technical references
+
+- [PyPDF2 CVE and affected extraction path](https://github.com/py-pdf/pypdf/security/advisories/GHSA-4vvm-4w3v-6mr8)
+- [Lightwell Python repository configuration](https://docs.redhat.com/en/documentation/lightwell_network/current/configure-configure_python_build_tool)
+- [Lightwell Python wheel provenance verification](https://docs.redhat.com/en/documentation/lightwell_network/current/configure-verify_provenance_for_python_wheel_artifacts)
+- [Lightwell patched artifact versions](https://docs.redhat.com/en/documentation/lightwell_network/current/get_started-patched_artifact_versions)
+- [Existing AWS and virtualization backend specification](specs/aws-cnv-backends.md)
