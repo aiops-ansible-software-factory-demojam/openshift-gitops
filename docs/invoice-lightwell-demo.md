@@ -203,7 +203,10 @@ make invoice-publish BACKEND=aws
 ```
 
 Set the printed `BOOTSTRAP_REPO_URL` and `BOOTSTRAP_BRANCH` in `.env`. Argo CD
-must read the actual published implementation. Run the full setup:
+must read the actual published implementation. Publication also registers the
+foundation applications with Argo CD. Omnigent, Homepage, and user-workload
+monitoring are deferred until full bootstrap supplies their runtime inputs.
+Run the full setup:
 
 ```bash
 make bootstrap BACKEND=aws
@@ -229,6 +232,8 @@ Protection disables direct pushes to collection `main`, requires one human
 review and the `invoice/ec2-validation` status, dismisses stale approvals,
 and applies to administrators. The seeded `demo-reviewer` identity is allowed
 to merge. Keep the agent's identity separate from that human identity.
+Protection also reduces the agent's access to `demojam-ansible` to read-only,
+so it cannot rewrite the independent validator or AAP configuration.
 Publish and hydrate source changes before protecting the recording baseline.
 
 ## Run the complete demonstration
@@ -271,6 +276,10 @@ Publish and hydrate source changes before protecting the recording baseline.
    `main`, the trusted validation job, and the unchanged dependency digest.
    It creates a project pinned to that commit, a deployment template that
    disallows source and variable overrides, and an approval workflow.
+   Its artifact credential is a release-specific snapshot. Refreshing the
+   general Lightwell selection cannot change a release awaiting approval.
+   Execution environments are registered by immutable image identity; changing
+   the validation image requires a new successful validation before promotion.
 7. Open the printed AAP workflow. A human approves the production node. Only
    its success path reaches deployment; rejection or timeout does not deploy.
    The command does not approve this node automatically.
