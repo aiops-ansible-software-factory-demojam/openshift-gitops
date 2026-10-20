@@ -76,32 +76,30 @@ nodes:
                 demo-goldenpath checkout ${trigger.issue_number}; read AGENTS.md,
                 the issue, playbooks/invoice.yml, and roles/invoice_portal.
 
-                Author playbooks/invoice-remediate.yml to replace the explicit
-                capability-gap failure. Reuse the invoice_portal deployment
-                primitive. Accept invoice_target_group (default webapps) and
-                invoice_candidate_sha. Read INVOICE_MATERIAL_FILE and the public
-                INVOICE_SIGNING_KEY_FILE from the mounted invoice credentials.
-                Select only the Lightwell artifact. Require the actual source
-                revision to equal the requested SHA. Use serial canary batches
-                and stop on failure. Keep signing-key and artifact checks,
-                SELinux enforcing, normal collection dependencies, the exact
-                PDF fixtures and the unchanged two-second processing deadline.
-                Never patch library source, migrate to pypdf, fake evidence,
-                catch verification failures as success, or change production.
+                Read the structured finding and the mounted INVOICE_MATERIAL_FILE
+                (keep repository credentials out of logs and commits). Update the
+                application's release manifest to lock the approved Lightwell package,
+                version and SHA256. Reuse the existing deployment golden path in
+                playbooks/invoice-remediate.yml and roles/python_application.
+                Only change automation when this finding requires it. The golden path
+                is reusable; do not replace it with a one-off package installation.
 
-                Add and run regression coverage for normal invoice extraction,
-                CVE remediation, idempotence and restoration after a deliberately
-                failed candidate. The failed deployment must report failure even
-                if the previous healthy release is restored. Use ansible-doc for
-                unfamiliar module interfaces. Commit before the final machine
+                Preserve artifact provenance, pinned trust, source revision checks,
+                SELinux policy, business behavior and rollout failure handling.
+                Add application regression coverage where an appropriate reproducer
+                exists. A signature is not proof of a CVE fix: use the finding's
+                advisory evidence. Never invent fixes, fake evidence, relax acceptance
+                requirements, catch verification failures as success or change production.
+                Mandatory AAP acceptance is maintained separately from your branch.
+
+                Use ansible-doc for unfamiliar modules. Commit before the final machine
                 test and export INVOICE_SOURCE_COMMIT=$(git rev-parse HEAD).
                 Source /etc/profile.d/molecule.sh and /etc/profile.d/invoice.sh.
-                Run ansible-lint roles/invoice_portal
-                playbooks/invoice-remediate.yml extensions/molecule/invoice_portal,
-                build the collection and run molecule test -s invoice_portal.
-                This AWS scenario must test both RHEL 9 and RHEL 10 and destroy
-                its test instances. Report actual exit codes; do not claim a
-                missing credential or unavailable test as a passing check.
+                Lint the changed Ansible content, build the collection and run the
+                complete profile-selected Molecule scenario. The invoice profile uses
+                molecule test -s invoice_portal. This AWS scenario must test both
+                RHEL 9 and RHEL 10 and destroy its guests. Report actual exit codes;
+                unavailable tests or missing credentials are not passing checks.
 
                 Review and commit the change. Write an accurate PR description
                 outside the checkout, then run demo-goldenpath pr

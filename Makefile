@@ -134,7 +134,7 @@ render:
 		kustomize build --enable-helm --helm-kube-version v1.31.0 "$$app" > ".rendered/$$(basename "$$app").yaml" || exit 1; \
 	done
 
-.PHONY: invoice-foundation invoice-publish invoice-inputs invoice-material invoice-configure invoice-baseline invoice-trigger invoice-protect invoice-validate invoice-promote invoice-verify
+.PHONY: invoice-foundation invoice-publish invoice-inputs invoice-material invoice-discover invoice-configure invoice-baseline invoice-trigger invoice-protect invoice-validate invoice-promote invoice-verify
 invoice-foundation:
 	bash bootstrap/bootstrap.sh invoice foundation --backend aws
 invoice-publish:
@@ -143,6 +143,8 @@ invoice-inputs:
 	bash bootstrap/bootstrap.sh invoice inputs
 invoice-material:
 	bash bootstrap/bootstrap.sh invoice material
+invoice-discover:
+	bash bootstrap/bootstrap.sh invoice discover
 invoice-configure:
 	bash bootstrap/bootstrap.sh invoice configure
 invoice-baseline:

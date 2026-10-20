@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "application": {
+    "id": "query-service",
+    "inventory_group": "query_services",
+    "repository": "demo-owner/ansible-collection-demo.webapp",
+    "release_manifest": "releases/query-service.json",
+    "python_executable": "/opt/query-service/current/venv/bin/python",
+    "status_path": "/api/status"
+  },
+  "environment": "demo-aws",
+  "package": {
+    "name": "sqlparse"
+  },
+  "runtime": {
+    "python": "3.12",
+    "wheel_tags": [
+      "py3-none-any",
+      "py2-none-any"
+    ]
+  },
+  "advisories": [
+    {
+      "id": "operator-confirmed-advisory-required",
+      "source": "operator-input-required",
+      "affected_versions": [
+        "operator-input-required"
+      ],
+      "fixed_versions": [
+        "operator-confirmed-lightwell-version-required"
+      ]
+    }
+  ],
+  "validation": {
+    "scenario": "query_service",
+    "adapter": "query_service",
+    "business_checks": [
+      {
+        "path": "/healthz",
+        "method": "GET",
+        "status": "ready"
+      }
+    ]
+  },
+  "example_only": true,
+  "catalog_observed_version": "0.5.5+rhlw.1"
+}

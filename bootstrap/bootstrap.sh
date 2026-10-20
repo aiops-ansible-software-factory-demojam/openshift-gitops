@@ -2884,7 +2884,7 @@ YAML
 aap_launch() {
   local name=$1 extra=${2:-'{}'} reset=${3:-false} org template record result project inventory sources source update
   case $name in
-    webapp_vm|webapp_nginx|webapp_mcp|webapp_selinux_permissive|webapp_selinux_enable|aap_configure_all|invoice_configure|invoice_baseline|invoice_check|invoice_open_issue|invoice_validate) ;;
+    webapp_vm|webapp_nginx|webapp_mcp|webapp_selinux_permissive|webapp_selinux_enable|aap_configure_all|invoice_configure|invoice_baseline|invoice_check|invoice_open_issue|invoice_validate|invoice_discover) ;;
     openshift_virtualization_machine) [[ $reset == true ]] || demo_die 'Only seeded demo templates may be launched.' ;;
     *) demo_die 'Only seeded demo templates may be launched.' ;;
   esac
@@ -3853,8 +3853,11 @@ demo_teardown() (
 demo_homepage_backend() {
   local payload
   payload=$(oc -n homepage get configmap homepage-environment -o json |
-    jq --arg backend "${DEMO_BACKEND:-cnv}" '
-      {data:{"environment.json":(.data."environment.json" | fromjson | .backend=($backend|ascii_upcase) | tojson)}}')
+    jq --arg backend "${DEMO_BACKEND:-cnv}" --arg scenario "${DEMO_SCENARIO:-selinux}" '
+      {data:{"environment.json":(.data."environment.json" | fromjson |
+        .backend=($backend|ascii_upcase) | .scenario=$scenario |
+        .authoringWorkflow=(if $scenario == "invoice" then "invoice-security-remediation" else "omnigent-remediation" end) |
+        .edaActivation=(if $scenario == "invoice" then "demojam-forgejo-remediation" else "demojam-webapp-issues" end) | tojson)}}')
   oc -n homepage patch configmap homepage-environment --type=merge --patch "$payload" >/dev/null
 }
 
@@ -3886,14 +3889,19 @@ demo_invoice_material() (
   local invoice_dir="$demo_repo_root/.rendered/invoice"
   mkdir -p "$invoice_dir"
   export DEMO_REPO_ROOT=$demo_repo_root
-  python3 - "$invoice_dir" <<'PY'
+  python3 - "$invoice_dir" <<'PY' || return 1
 import hashlib, json, os, re, sys
 from pathlib import Path
 from urllib.parse import urlsplit
 output = Path(sys.argv[1])
 root = Path(os.environ['DEMO_REPO_ROOT'])
-baseline = json.loads((root / 'demo/invoice/baseline.json').read_text())
-material = {'baseline': baseline, 'lightwell': {},
+profile_path = Path(os.environ.get('REMEDIATION_PROFILE_FILE') or root / 'demo/invoice/profile.json')
+profile = json.loads(profile_path.read_text())
+assert profile['schema_version'] == 1 and not profile.get('example_only'), 'Complete and approve an application profile first'
+assert profile['application']['id'] and profile['advisories'] and profile['runtime']['wheel_tags']
+baseline = json.loads(Path(os.environ.get('REMEDIATION_BASELINE_FILE') or root / 'demo/invoice/baseline.json').read_text())
+assert re.sub(r'[-_.]+', '-', baseline['package']).lower() == re.sub(r'[-_.]+', '-', profile['package']['name']).lower()
+material = {'profile': profile, 'baseline': baseline, 'lightwell': {},
             'repository_username': os.environ.get('INVOICE_LIGHTWELL_USERNAME', ''),
             'repository_token': os.environ.get('INVOICE_LIGHTWELL_TOKEN', ''),
             'signing_key_sha256': os.environ.get('INVOICE_SIGNING_KEY_SHA256', '')}
@@ -3902,8 +3910,13 @@ key_path = os.environ.get('INVOICE_SIGNING_KEY_FILE', '')
 key = b'LIGHTWELL_SIGNING_KEY_NOT_CONFIGURED\n'
 if artifact:
     selected = json.loads(Path(artifact).read_text())
-    assert selected['channel'] == 'lightwell' and selected['package'].lower() == 'pypdf2'
-    assert selected['base_version'] == '3.0.1' and 'CVE-2023-36464' in selected['cves']
+    assert selected['channel'] == 'lightwell'
+    assert re.sub(r'[-_.]+', '-', selected['package']).lower() == re.sub(r'[-_.]+', '-', profile['package']['name']).lower()
+    fixed = {a['id'] for a in profile['advisories'] if selected['version'] in a['fixed_versions']}
+    assert fixed == {a['id'] for a in profile['advisories']} and set(selected['cves']) == fixed, 'Selected version needs a complete approved advisory mapping'
+    wheel_parts = selected['filename'][:-4].split('-')
+    assert len(wheel_parts) in (5, 6) and wheel_parts[1] == selected['version']
+    assert any(f'{py}-{abi}-{platform}' in profile['runtime']['wheel_tags'] for py in wheel_parts[-3].split('.') for abi in wheel_parts[-2].split('.') for platform in wheel_parts[-1].split('.')), 'Incompatible target wheel'
     assert re.fullmatch(r'[0-9a-f]{64}', selected['sha256'])
     assert re.fullmatch(r'[A-Za-z0-9_.+-]+\.whl', selected['filename'])
     assert selected['version'] and not selected['version'].startswith('REPLACE_')
@@ -4065,10 +4078,13 @@ PY
   fi
   [[ ${DEMO_BACKEND:-cnv} == aws ]] || demo_die 'The invoice factory currently requires BACKEND=aws.'
   if [[ $action == material ]]; then demo_invoice_material; return; fi
+  if [[ $action == discover ]]; then
+    demo_invoice_material
+    demo_aap launch invoice_discover
+    return
+  fi
   if [[ $action == trigger ]]; then
     demo_invoice_material
-    jq -e '.lightwell.sha256 | test("^[0-9a-f]{64}$")' "$invoice_dir/material.json" >/dev/null ||
-      demo_die 'Configure the actual Lightwell artifact before starting an authoring incident.'
     demo_ao_reconcile run invoice-security-detect '{}'
     return
   fi
@@ -4150,10 +4166,18 @@ PY
     job=$(jq -er .job <<<"$result")
     aap_wait "jobs/$job/"
     record=$(aap_request GET "jobs/$job/")
-    jq -e --arg expected "$expected" '.artifacts.invoice_findings |
-      .normal.status == "completed" and (.normal.text | contains("Invoice INV-1042")) and
-      (if $expected == "vulnerable" then .affected == true and .regression.status == "timed_out"
-       else .affected == false and .regression.status == "completed" and (.regression.text | contains("Invoice INV-1042")) end)' <<<"$record" >/dev/null || demo_die 'Invoice behavioral verification did not match the requested state.'
+    jq -e --arg expected "$expected" --slurpfile material "$invoice_dir/material.json" '
+      .artifacts.invoice_findings.observations |
+      length > 0 and all(.[];
+        if $expected == "vulnerable" then
+          .affected == true and .release.wheel_sha256 == $material[0].baseline.sha256
+        else
+          .affected == false and .installed_version == $material[0].lightwell.version and
+          .release.wheel_sha256 == $material[0].lightwell.sha256 and
+          (if $material[0].profile.validation.regression then
+            .regression.status == $material[0].profile.validation.regression.remediated_status
+           else true end)
+        end)' <<<"$record" >/dev/null || demo_die 'Application verification did not match the approved artifact and requested state.'
     jq '.artifacts.invoice_findings' <<<"$record"
     return
   fi
@@ -4173,7 +4197,7 @@ PY
     fi
     record=$(aap_request GET "jobs/$job/")
     jq -e --arg sha "$sha" --argjson template "$template" \
-      '.status == "successful" and .job_template == $template and .artifacts.invoice_validation.passed == true and .artifacts.invoice_validation.source_revision == $sha and .artifacts.invoice_validation.backend == "aws"' <<<"$record" >/dev/null || demo_die 'AAP did not publish matching validation evidence.'
+      '.status == "successful" and .job_template == $template and .artifacts.invoice_validation.passed == true and .artifacts.invoice_validation.source_revision == $sha and .artifacts.invoice_validation.backend == "aws" and .artifacts.invoice_validation.acceptance_suite == "trusted-invoice-v1"' <<<"$record" >/dev/null || demo_die 'AAP did not publish matching validation evidence.'
     printf '%s' "$record" >"$invoice_dir/validation-$job.json"
     forgejo_api POST "/repos/demo-owner/ansible-collection-demo.webapp/statuses/$sha" \
       "$(jq -n --arg url "$aap_host/execution/jobs/playbook/$job/output" '{state:"success",context:"invoice/ec2-validation",description:"Exact commit passed independent RHEL EC2 lifecycle tests",target_url:$url}')" >/dev/null
@@ -4193,6 +4217,16 @@ PY
     wheel=$(jq -er '.artifacts.invoice_validation.wheel_sha256' <<<"$record")
     demo_invoice_material
     jq -e --arg wheel "$wheel" '.lightwell.sha256 == $wheel' "$invoice_dir/material.json" >/dev/null || demo_die 'The selected artifact changed after validation.'
+    local tested_profile current_profile
+    tested_profile=$(jq -er '.artifacts.invoice_validation.profile_sha256' <<<"$record")
+    current_profile=$(python3 - "$invoice_dir/material.json" <<'PYPROFILE'
+import hashlib, json, sys
+with open(sys.argv[1]) as stream:
+    profile = json.load(stream)['profile']
+print(hashlib.sha256(json.dumps(profile, sort_keys=True).encode()).hexdigest())
+PYPROFILE
+)
+    [[ $tested_profile == "$current_profile" ]] || demo_die 'The application or advisory policy changed after validation.'
     git init -q "$aap_scratch/ancestry"
     git -C "$aap_scratch/ancestry" fetch -q --no-tags "$FORGEJO_URL/demo-owner/ansible-collection-demo.webapp.git" refs/heads/main
     git -C "$aap_scratch/ancestry" merge-base --is-ancestor "$sha" FETCH_HEAD || demo_die 'The tested commit is no longer contained in main.'
@@ -4203,7 +4237,7 @@ PY
     printf 'Production workflow %s awaits human approval: %s/execution/jobs/workflow/%s\n' "$job" "$aap_host" "$job"
     return
   fi
-  demo_die 'Usage: invoice foundation|publish|inputs|material|configure|baseline|trigger|validate SHA|protect|promote PR JOB|verify [vulnerable|remediated]'
+  demo_die 'Usage: invoice foundation|publish|inputs|material|discover|configure|baseline|trigger|validate SHA|protect|promote PR JOB|verify [vulnerable|remediated]'
 )
 
 demo_main() {
@@ -4239,7 +4273,7 @@ Usage: bash bootstrap/bootstrap.sh [COMMAND] [--backend cnv|aws]
   aap-configure      Configure AAP/EDA, publish AO workflows, connect the Forgejo webhook
   webapp ACTION      create | nginx | verify | verify-enforcing | delete | sync | mcp | mcp-verify | mcp-rotate
   aap ACTION         credentials | wait-project | dispatch | reset-vms | launch TEMPLATE [JSON]
-  invoice ACTION     inputs | material | configure | baseline | trigger | validate SHA | protect | promote PR JOB | verify
+  invoice ACTION     inputs | material | discover | configure | baseline | trigger | validate SHA | protect | promote PR JOB | verify
   readiness TARGET   sandbox | aap
 
 Populate .env first. An inherited KUBECONFIG takes precedence over .env.
