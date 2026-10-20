@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "application": {
+    "id": "invoice-portal",
+    "inventory_group": "webapps",
+    "repository": "demo-owner/ansible-collection-demo.webapp",
+    "release_manifest": "releases/invoice.json",
+    "python_executable": "/opt/invoice-portal/current/venv/bin/python",
+    "status_path": "/api/status"
+  },
+  "environment": "demo-aws",
+  "package": {
+    "name": "PyPDF2"
+  },
+  "runtime": {
+    "python": "3.12",
+    "wheel_tags": [
+      "py3-none-any"
+    ]
+  },
+  "advisories": [
+    {
+      "id": "CVE-2023-36464",
+      "source": "https://github.com/py-pdf/pypdf/security/advisories/GHSA-4vvm-4w3v-6mr8",
+      "fix_evidence": "Operator-approved Lightwell selection; confirm against the selected Red Hat artifact and advisory before changing this mapping.",
+      "affected_versions": [
+        "3.0.1"
+      ],
+      "fixed_versions": [
+        "3.0.1+rhlw.1"
+      ]
+    }
+  ],
+  "validation": {
+    "scenario": "invoice_portal",
+    "adapter": "invoice",
+    "business_checks": [
+      {
+        "path": "/api/sample",
+        "method": "POST",
+        "status": "completed",
+        "text_contains": "Invoice INV-1042"
+      }
+    ],
+    "regression": {
+      "path": "/api/regression",
+      "method": "POST",
+      "vulnerable_status": "timed_out",
+      "remediated_status": "completed",
+      "text_contains": "Invoice INV-1042"
+    },
+    "baseline_expectation": "vulnerable"
+  }
+}

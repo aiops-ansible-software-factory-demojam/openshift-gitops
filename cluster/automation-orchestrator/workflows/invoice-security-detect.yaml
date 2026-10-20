@@ -18,18 +18,30 @@ nodes:
     settings:
       timeout: 300
       retry_policy: {max_retries: 0}
+  - id: discover_lightwell
+    name: Discover compatible Lightwell artifacts through AAP
+    type: aap_job_template
+    position: {x: 600, y: 300}
+    parameters:
+      organization_name: demo
+      job_template_name: invoice_discover
+    settings:
+      timeout: 300
+      retry_policy: {max_retries: 0}
   - id: create_issue
     name: Open the deduplicated security automation ticket
     type: aap_job_template
-    position: {x: 600, y: 300}
+    position: {x: 900, y: 300}
     parameters:
       organization_name: demo
       job_template_name: invoice_open_issue
       extra_vars:
         invoice_findings: '${check_invoice.artifacts.invoice_findings}'
+        remediation_candidates: '${discover_lightwell.artifacts.remediation_candidates}'
     settings:
       timeout: 300
       retry_policy: {max_retries: 0}
 edges:
   - {from: start, to: check_invoice}
-  - {from: check_invoice, to: create_issue}
+  - {from: check_invoice, to: discover_lightwell}
+  - {from: discover_lightwell, to: create_issue}

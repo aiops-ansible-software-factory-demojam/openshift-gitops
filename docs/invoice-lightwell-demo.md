@@ -3,8 +3,8 @@
 This demonstration turns a security incident in a RHEL invoice-processing
 application into reviewed Ansible content and an approved AAP deployment.
 Automation Orchestrator coordinates the work. Lightwell supplies a patched
-PyPDF2 dependency; the agent authors the Ansible remediation workflow and its
-regression coverage. Most of the five-minute recording follows AO, the
+PyPDF2 dependency; the agent updates a locked application release and authors the regression
+coverage or Ansible changes needed for that finding. Most of the five-minute recording follows AO, the
 Ansible changes, machine tests, review, and AAP execution.
 
 ## Original abstract and the AWS deployment
@@ -102,25 +102,95 @@ The implementation spans three sibling repositories:
 | --- | --- |
 | `openshift-gitops` | `bootstrap/bootstrap.sh`, invoice AO workflows, image tooling, Make targets, configuration examples, and this runbook. |
 | `demojam-ansible` | `playbooks/invoice/`, `playbooks/aap/configure-invoice.yml`, inventory configuration, and the invoice EDA rule. |
-| `ansible-collection-demo.webapp` | Invoice application, authenticated deployment primitive, baseline deployment, authoring stub, and Molecule scenario. |
+| `ansible-collection-demo.webapp` | Invoice application, reusable Python deployment role, dependency release lock, remediation golden path, and candidate Molecule scenario. |
 
-`roles/invoice_portal` supplies reviewed common primitives: verify the selected
-wheel, stage a release, manage systemd, test application behavior, and restore
-the previous release after a failed deployment. Infrastructure preparation
-creates these primitives before recording.
+The reusable `python_application` role handles artifact identity, pinned signing
+trust, provenance, isolated release installation, activation and rollback. It
+contains no PyPDF2 identity, CVE ID or baseline digest. The `invoice_portal`
+wrapper supplies its actual application source and business probe.
 
-The seeded `playbooks/invoice-remediate.yml` explicitly fails because the
-operational workflow has not yet been authored. The security ticket asks the
-agent to replace that stub with Ansible orchestration using the primitives,
-source and artifact checks, serial canary batches, failure handling, and
-regression tests. Molecule converges through that authored playbook. A green
-test therefore requires the missing capability to be implemented.
+The seeded `releases/invoice.json` locks the baseline. Each incident asks the
+agent to update that release manifest to the exact operator-approved Lightwell
+package/version/digest and add appropriate tests. `invoice-remediate.yml` is
+already a working golden path, not a one-time missing-playbook exercise. It
+rejects the baseline lock, an incompatible artifact or an unapproved digest.
+Automation changes belong in the PR only when the incident needs them.
 
-Do not describe the prepared portal or common deployment primitive as code
-the recorded agent authored. Show the actual PR diff and its published SHA.
-The agent can read a dedicated package-repository credential and the public
-signing key. Its AWS identity can manage only disposable tests; it has no
-production SSH credential or AAP production approval authority.
+Independent AAP validation runs both the candidate's tests and a separate trusted
+acceptance scenario from `demojam-ansible`. The agent has read-only access to
+that repository. The mandatory suite provisions its own RHEL 9/10 EC2 guests,
+checks wheel bytes and actual installed package metadata, supplies independent
+normal/regression PDFs, enforces SELinux, and exercises a real first-host
+activation failure using a disposable systemd override. It requires rollback
+and an untouched follower, removes the fault, redeploys and verifies the fix.
+No production fault-injection switch is added to the role.
+
+The human merge and AAP production approval gates remain. Do not describe the
+prebuilt deployment/provenance machinery as agent-authored. Record the actual
+release/test/Ansible diff and exact published commit.
+
+## Application profiles and repeat incidents
+
+`demo/invoice/profile.json` is operator-controlled policy, mounted with runtime
+material outside the agent checkout. It defines application/environment identity,
+package, target wheel tags, explicit affected/fixed advisory versions and sources,
+business checks, optional regression, baseline behavior and acceptance adapter.
+Override it with `REMEDIATION_PROFILE_FILE`; override the initial baseline with
+`REMEDIATION_BASELINE_FILE`. Keep credentials outside profiles and release locks.
+
+The observation job reads package metadata directly from the configured application
+Python executable (`application.python_executable`) and collects business
+results for every target host. Advisory attribution comes from the profile,
+not from a timeout. An unknown version is unclassified, not proven fixed.
+Verification additionally requires the exact approved version and artifact.
+
+The AO detection workflow runs AAP catalog discovery before ticket reconciliation.
+Run `make invoice-discover BACKEND=aws` after configuration to separately query the package's
+Lightwell simple index using read credentials. The job returns compatible wheel
+candidates and whether each has an approved advisory mapping. It never silently
+selects "latest". An operator chooses a candidate, confirms its advisory mapping
+and supplies the existing artifact/provenance descriptor before material refresh
+and testing. Production uses the pinned selection, not a new catalog resolution.
+A signature proves artifact provenance; it does not establish CVE coverage.
+
+Incident identity combines application, environment, normalized package and advisory
+set. Ticket reconciliation paginates through history, refreshes an existing open
+incident, creates a new occurrence after a closed incident when the problem returns,
+and can close an open incident only after observing a configured fixed version.
+A finding without a supported fix is reported but does not start an authoring task.
+One AO detection execution handles one application profile; fleet observations are
+included in its ticket. EDA dispatches only newly opened remediation tickets.
+
+To add another application, supply its profile, package/version advisory mapping,
+artifact and release lock; register its trusted application acceptance adapter and
+candidate scenario. Package trust and AO orchestration stay the same. Business
+validation remains application-specific: a SQL parser needs SQL checks, not PDFs.
+Profiles using a new adapter fail closed until that adapter is reviewed.
+
+The initial deployment adapter handles one self-contained wheel. It rejects required
+transitive dependencies instead of using an unpinned network resolution. Native
+wheels require explicit compatible target tags; arbitrary dependency closures and
+native-runtime qualification need a corresponding reviewed adapter.
+
+`demo/invoice/sqlparse-profile.example.json` is an incomplete second application
+example and cannot be used for material hydration until approved/completed.
+On 2026-10-20 the shared discovery parser found the real compatible catalog wheel
+`sqlparse-0.5.5+rhlw.1-1-py3-none-any.whl`. This establishes catalog discovery only;
+its advisory mapping, application integration and EC2 remediation have not been
+validated. Policy and wheel-metadata tests exercise both package names using
+explicitly synthetic test fixtures, without fabricating a second successful demo.
+
+## Upgrade an existing rehearsal
+
+These changes replace the previous one-time authoring stub. The old Forgejo agent
+PR is historical evidence and is not a passing candidate for the revised workflow.
+Do not silently edit that branch or reuse its validation claims. Finish/stop any
+active authoring run before reseeding the new committed collection and trusted AAP
+content using the normal preparation commands. Refresh material, reconfigure AAP
+and its projects, reinstall the baseline if a clean recording is needed, then
+trigger a fresh incident. Preserve or archive the previous incident/PR transparently;
+do not merge it as the new release. Keep GitHub implementation PRs unmerged while
+rehearsing their feature branches.
 
 ## Required operator inputs
 
@@ -135,7 +205,7 @@ The scripts source trusted Bash configuration; secret values stay outside Git.
 | AWS bootstrap keys | An authorized provisioning identity. Bootstrap creates separate scoped application and test identities. |
 | `AAP_LICENSE_FILE` | A real AAP subscription manifest ZIP. |
 | OpenShift AI fields | HTTPS API base URL, model name, and token. Both AO and Omnigent can override these independently. |
-| `INVOICE_LIGHTWELL_ARTIFACT_FILE` | JSON descriptor for the actual remediated PyPDF2 wheel. |
+| `INVOICE_LIGHTWELL_ARTIFACT_FILE` | JSON descriptor for the actual approved Lightwell wheel matching the application profile. |
 | Lightwell username and token | A dedicated repository-read identity. |
 | `INVOICE_SIGNING_KEY_FILE` | Trusted public Red Hat signing key in PEM format. |
 | `INVOICE_SIGNING_KEY_SHA256` | Independently checked SHA256 of that public-key file. |
@@ -332,6 +402,8 @@ Publish and hydrate source changes before protecting the recording baseline.
 
 ## Five minute recording and narration
 
+Homepage provides the scenario-specific walkthrough and a remediation evidence card with installed version, advisory assessment, observed hosts, business checks, and matching AAP validation/deployment results. Refresh it with `make homepage-refresh` after preparing this revision.
+
 Keep a progress strip visible: **Intent → Author → Test → Review → Deploy**.
 Use one complete recorded run. Cut elapsed waits and label them with measured
 durations. The edited runtime is five minutes; real incident duration is a
@@ -340,20 +412,20 @@ separate measurement.
 | Time | Screen and action | Suggested narration |
 | --- | --- | --- |
 | 0:00–0:30 | Portal processes an ordinary invoice; regression document stalls; show the ticket context. | “This invoice application works, but one vulnerable dependency can stall document processing. We need a repeatable, tested operational fix.” |
-| 0:30–1:00 | AO detection workflow and the AAP evidence job; briefly show the Lightwell selection and Developer Hub task. | “Automation Orchestrator turns the incident into an authoring task. AAP gathers the facts, and our golden path prepares the contribution.” |
-| 1:00–1:50 | Agent Sandbox session and the actual Ansible diff; briefly identify the OpenShift AI inference service. | “The agent writes the remediation workflow and regression coverage. The deliverable is Ansible content our operations team can review and reuse.” |
+| 0:30–1:00 | AO detection workflow and the AAP evidence job; briefly show the Lightwell selection and Developer Hub task. | “AAP identifies the affected dependency and compatible Lightwell fix. Automation Orchestrator prepares a reviewed release change through our golden path.” |
+| 1:00–1:50 | Agent Sandbox session and the actual release/test diff; briefly identify the OpenShift AI inference service. | “The agent prepares the dependency release and regression coverage using our Ansible golden path. Operations reviews the actual change and its evidence.” |
 | 1:50–2:50 | Independent AAP validation, two real RHEL EC2 guests, convergence and idempotence, security and functional results. | “The published commit is tested on disposable RHEL machines. The same regression document must process correctly, and ordinary invoices must still work.” |
 | 2:50–3:25 | Human PR review and merge; highlight the exact commit and required AAP status. | “The developer reviews the code and its evidence. A changed commit must pass validation again.” |
 | 3:25–4:25 | AAP production approval and execution; expand meaningful deployment and verification tasks. | “A separate human approval releases the tested automation to production. AAP executes the reviewed revision and records the outcome.” |
 | 4:25–5:00 | Same regression document now succeeds; normal invoice succeeds; finish on release evidence and AAP results. | “Processing is restored with the trusted backport. One incident produced reusable Ansible automation, machine-tested evidence, human approval, and an auditable deployment.” |
 
-Zoom into the generated deployment orchestration, the security assertion, and
+Zoom into the locked dependency change, the Ansible deployment checks, and
 the recovery test. Let readable Ansible task names carry the explanation.
 Keep package catalog and supporting product appearances short. Do not add a
 product appearance unless it performed the action attributed to it.
 
 The default application inventory contains one production EC2 instance. A
-serial canary workflow can be authored and tested against the two disposable
+serial canary workflow must be tested against the two disposable
 guests. Claim a production fleet rollout only when additional production hosts
 are actually present and the recording shows their results.
 
