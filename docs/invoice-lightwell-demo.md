@@ -96,13 +96,14 @@ flowchart TD
 
 ## Repositories and the authoring boundary
 
-The implementation spans three sibling repositories:
+The implementation spans four sibling repositories:
 
 | Repository | Files and purpose |
 | --- | --- |
 | `openshift-gitops` | `bootstrap/bootstrap.sh`, invoice AO workflows, image tooling, Make targets, configuration examples, and this runbook. |
 | `demojam-ansible` | `playbooks/invoice/`, `playbooks/aap/configure-invoice.yml`, inventory configuration, and the invoice EDA rule. |
-| `ansible-collection-demo.webapp` | Invoice application, reusable Python deployment role, dependency release lock, remediation golden path, and candidate Molecule scenario. |
+| `ansible-collection-demo.webapp` | Independent nginx/SELinux collection for the `webapps` RHEL host. |
+| `ansible-collection-demo.pythonapp` | Invoice application, reusable Python deployment role, dependency release lock, remediation golden path, and candidate Molecule scenario for the `pythonapps` RHEL host. |
 
 The reusable `python_application` role handles artifact identity, pinned signing
 trust, provenance, isolated release installation, activation and rollback. It
@@ -180,7 +181,20 @@ its advisory mapping, application integration and EC2 remediation have not been
 validated. Policy and wheel-metadata tests exercise both package names using
 explicitly synthetic test fixtures, without fabricating a second successful demo.
 
+## Separate nginx and Python applications
+
+Use `DEMO_BACKEND=aws` and `DEMO_SCENARIO=both` to deploy both applications. The legacy `invoice` selection also enables the separate Python host alongside nginx. `selinux` retains the nginx-only setup. The same management plane serves both workflows; their application repositories, purpose tags, inventory groups and browser endpoints are distinct.
+
+| Scenario | Collection/repository | Production group | Browser endpoint | Trigger |
+| --- | --- | --- | --- | --- |
+| nginx SELinux outage | `demo.webapp` / `ansible-collection-demo.webapp` | `webapps` | `https://webapp.<ingress-domain>` | `aap launch webapp_selinux_enable` |
+| Python dependency vulnerability | `demo.pythonapp` / `ansible-collection-demo.pythonapp` | `pythonapps` | `https://pythonapp.<ingress-domain>` | `make invoice-trigger BACKEND=aws` |
+
+Developer Hub receives an allowlisted repository and issue number. For Python tasks, the native helper uses `demo-goldenpath --repository demo-owner/ansible-collection-demo.pythonapp checkout N` and the same option for `pr`. Nginx keeps its default repository. EDA routes new security incidents using the Python repository plus structured remediation marker; it does not require the nginx RCA text `Root Cause:`.
+
 ## Upgrade an existing rehearsal
+
+When upgrading the old shared-host invoice rehearsal, preserve `.rendered/invoice/` and select all four split feature branches. Run `make applications-upgrade BACKEND=aws` rather than resetting the environment. Its preparation command archives/removes only the former invoice-specific protection on the nginx repository, and refuses while that repository has open PRs. Bootstrap then seeds the split contents, provisions/verifies the Python baseline first, stops the legacy invoice unit on the nginx host while retaining its release files, and prepares nginx there. Run `make invoice-protect BACKEND=aws` afterward to protect the Python collection. Existing incidents and job evidence remain historical; trigger a new incident in the Python repository.
 
 These changes replace the previous one-time authoring stub. The old Forgejo agent
 PR is historical evidence and is not a passing candidate for the revised workflow.
@@ -201,7 +215,7 @@ The scripts source trusted Bash configuration; secret values stay outside Git.
 | Input | Required value |
 | --- | --- |
 | `DEMO_BACKEND` | `aws` |
-| `DEMO_SCENARIO` | `invoice` |
+| `DEMO_SCENARIO` | `both` (legacy `invoice` also enables Python) |
 | AWS bootstrap keys | An authorized provisioning identity. Bootstrap creates separate scoped application and test identities. |
 | `AAP_LICENSE_FILE` | A real AAP subscription manifest ZIP. |
 | OpenShift AI fields | HTTPS API base URL, model name, and token. Both AO and Omnigent can override these independently. |
@@ -243,15 +257,16 @@ it a Lightwell remediation.
 
 ## Test the unmerged implementation
 
-The three GitHub implementation PRs can remain open while the demo runs.
-Check out their published `feature/lightwell-invoice-demo` branches. In the
-private `.env`, select the GitOps branch and both companion source branches:
+The implementation feature branches can remain open while the demo runs.
+Check out their published `feature/separate-demo-applications` branches. In the
+private `.env`, select the GitOps branch and all companion source branches:
 
 ```bash
 BOOTSTRAP_REPO_URL='https://github.com/aiops-ansible-software-factory-demojam/openshift-gitops.git'
-BOOTSTRAP_BRANCH='feature/lightwell-invoice-demo'
-ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH='feature/lightwell-invoice-demo'
-DEMOJAM_ANSIBLE_BRANCH='feature/lightwell-invoice-demo'
+BOOTSTRAP_BRANCH='feature/separate-demo-applications'
+ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH='feature/separate-demo-applications'
+ANSIBLE_COLLECTION_DEMO_PYTHONAPP_BRANCH='feature/separate-demo-applications'
+DEMOJAM_ANSIBLE_BRANCH='feature/separate-demo-applications'
 DEMO_LOCAL_SOURCES=''
 ```
 
@@ -291,7 +306,7 @@ make invoice-inputs BACKEND=aws
 ```
 
 For development from committed sibling checkouts, set `DEMO_LOCAL_SOURCES` to
-their parent directory and select their local branch names in the two source
+their parent directory and select their local branch names in the three source
 override fields. Dirty sources are rejected. The Ansible template repository
 continues using its published release unless a matching local checkout exists.
 
@@ -323,10 +338,7 @@ Run the full setup:
 make bootstrap BACKEND=aws
 ```
 
-Invoice mode provisions the EC2 application host, configures the invoice jobs,
-and installs the vulnerable baseline. It does not run the SELinux permissive
-setup or install the intentionally broken nginx demonstration. RHEL remains
-enforcing. Test guests are created and removed by Molecule through the AWS
+Both-application mode provisions two EC2 RHEL hosts. The `webapp` host runs only nginx and uses the explicit permissive setup required by its SELinux demonstration. The separate `pythonapp` host runs the invoice baseline in enforcing mode; invoice deployment, observation and promotion target only `pythonapps`. Changing SELinux on `webapps` cannot alter the Python host. Each host has a distinct purpose tag, security group, EC2 key name, inventory source and endpoint. Test guests are created and removed by Molecule through the AWS
 provisioner; no OpenShift Virtualization operators or VM guests are required.
 
 Refresh artifact material and configure AAP after supplying or changing the
@@ -349,7 +361,7 @@ Publish and hydrate source changes before protecting the recording baseline.
 
 ## Run the complete demonstration
 
-1. Open the portal from Homepage's webapp link. Process the sample invoice.
+1. Open the portal from Homepage's Python invoice app link. Process the sample invoice.
    Run the regression document and capture `timed_out`, its document SHA256,
    installed dependency identity, and elapsed time.
 2. Run `make invoice-trigger BACKEND=aws`, or start `invoice-security-detect`
@@ -424,7 +436,7 @@ the recovery test. Let readable Ansible task names carry the explanation.
 Keep package catalog and supporting product appearances short. Do not add a
 product appearance unless it performed the action attributed to it.
 
-The default application inventory contains one production EC2 instance. A
+The default inventory contains one nginx EC2 instance in `webapps` and one separate Python EC2 instance in `pythonapps`. The invoice production inventory therefore contains one host. A
 serial canary workflow must be tested against the two disposable
 guests. Claim a production fleet rollout only when additional production hosts
 are actually present and the recording shows their results.

@@ -13,6 +13,10 @@ When the user asks for a reset and demo, that authorizes the disposable demo
 reset, the test-gated Forgejo merge and the recovery launch below. Preserve AAP.
 Do not merge the GitHub implementation PRs as part of this demo.
 
+## Separate application scenarios
+
+For the Python vulnerability scenario (`invoice` or `both`), follow `docs/invoice-lightwell-demo.md` instead of the nginx fault sequence below. The invoice collection is `demo.pythonapp` in `ansible-collection-demo.pythonapp`, deployed only to `pythonapps`; nginx remains in `demo.webapp` on `webapps`. With both deployed, the nginx host may be permissive during setup while the Python host must remain enforcing. Preserve independent validation and the human merge and production approval gates. Do not change or restart an agent's run to hide a failure.
+
 ## Walk through
 
 1. Select the requested models independently in the ignored `.env`. Keep

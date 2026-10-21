@@ -54,14 +54,14 @@ demo_identity_prepare() (
   users_file=$(demo_identity_users_file)
   demo_identity_validate_users "$users_file" || demo_die 'Invalid DEMO_USERS_FILE; use bootstrap/users.example.json (unique names/emails, demo-users/demo-admins groups, no passwords).'
 
-  for namespace in demojam-keycloak forgejo rhdh automation-orchestrator omnigent webapp-vms homepage; do
+  for namespace in demojam-keycloak forgejo rhdh automation-orchestrator omnigent webapp-vms pythonapp-vms homepage; do
     namespace_file="$demo_repo_root/cluster/$namespace/$namespace-namespace.yaml"
     [[ $namespace != demojam-keycloak ]] || namespace_file="$demo_repo_root/cluster/demojam-keycloak/demojam-keycloak-namespace.yaml"
     oc apply --server-side --field-manager=demo-bootstrap -f "$namespace_file" >/dev/null
   done
   if ! oc -n demojam-keycloak get secret identity-credentials >/dev/null 2>&1; then
     for key in admin-password backstage-token argocd-client-secret rhdh-client-secret rhdh-session-secret \
-      forgejo-client-secret aap-client-secret orchestrator-client-secret omnigent-client-secret openshift-client-secret webapp-client-secret homepage-client-secret omnigent-cookie-secret; do
+      forgejo-client-secret aap-client-secret orchestrator-client-secret omnigent-client-secret openshift-client-secret webapp-client-secret pythonapp-client-secret homepage-client-secret omnigent-cookie-secret; do
       openssl rand -hex 32 | tr -d '\n' >"$scratch/$key"
     done
     openssl rand -base64 32 | tr '+/' '-_' | tr -d '\n' >"$scratch/webapp-cookie-secret"
@@ -71,9 +71,9 @@ demo_identity_prepare() (
   # New consumers can be added to an installed stack without rotating keys
   # already in use. Only keys introduced by these additions are filled here.
   oc -n demojam-keycloak get secret identity-credentials -o json >"$scratch/root.json"
-  for key in rhdh-session-secret homepage-client-secret homepage-cookie-secret; do
+  for key in rhdh-session-secret homepage-client-secret homepage-cookie-secret pythonapp-client-secret pythonapp-cookie-secret; do
     if ! jq -e --arg key "$key" '.data[$key] | type == "string" and length > 0' "$scratch/root.json" >/dev/null; then
-      if [[ $key == homepage-cookie-secret ]]; then
+      if [[ $key == *-cookie-secret ]]; then
         openssl rand -base64 32 | tr '+/' '-_' | tr -d '\n' >"$scratch/new-key"
       else
         openssl rand -hex 32 | tr -d '\n' >"$scratch/new-key"
@@ -85,28 +85,29 @@ demo_identity_prepare() (
   # OAuth2 Proxy decodes URL-safe base64. Canonicalize older standard-base64
   # values without changing their underlying random bytes or client secrets.
   oc -n demojam-keycloak get secret identity-credentials -o json |
-    jq '{data:(.data | with_entries(select(.key == "webapp-cookie-secret" or .key == "homepage-cookie-secret") |
+    jq '{data:(.data | with_entries(select(.key == "webapp-cookie-secret" or .key == "pythonapp-cookie-secret" or .key == "homepage-cookie-secret") |
       .value |= (@base64d | gsub("\\+";"-") | gsub("/";"_") | @base64)))}' >"$scratch/cookie-patch.json"
   oc -n demojam-keycloak patch secret identity-credentials --type=merge --patch-file="$scratch/cookie-patch.json" >/dev/null
   oc -n demojam-keycloak get secret identity-credentials -o json |
     jq '.data | with_entries(.value |= @base64d)' >"$scratch/credentials.json"
   jq -e '. as $credentials | all(["admin-password","backstage-token","argocd-client-secret","rhdh-client-secret","rhdh-session-secret",
-    "forgejo-client-secret","aap-client-secret","orchestrator-client-secret","omnigent-client-secret","openshift-client-secret","webapp-client-secret","homepage-client-secret","homepage-cookie-secret","omnigent-cookie-secret","webapp-cookie-secret"][];
+    "forgejo-client-secret","aap-client-secret","orchestrator-client-secret","omnigent-client-secret","openshift-client-secret","webapp-client-secret","pythonapp-client-secret","pythonapp-cookie-secret","homepage-client-secret","homepage-cookie-secret","omnigent-cookie-secret","webapp-cookie-secret"][];
     $credentials[.] | type == "string" and length > 0)' "$scratch/credentials.json" >/dev/null ||
     demo_die 'The demojam-keycloak identity-credentials Secret is incomplete; restore its original keys before retrying.'
   # RHDH needs named environment keys below; AAP receives its secret through CaC.
-  for client in argocd forgejo orchestrator omnigent webapp homepage; do
+  for client in argocd forgejo orchestrator omnigent webapp pythonapp homepage; do
     namespace=$client
     case $client in
       argocd) namespace=openshift-gitops ;;
       orchestrator) namespace=automation-orchestrator ;;
       webapp) namespace=webapp-vms ;;
+      pythonapp) namespace=pythonapp-vms ;;
     esac
     jq -rj --arg key "$client-client-secret" '.[$key]' "$scratch/credentials.json" >"$scratch/client-secret"
     printf '%s' "$client" >"$scratch/client-id"
     printf 'https://demojam-keycloak.%s/realms/demo' "$ingress_domain" >"$scratch/issuer"
     args=(--from-file=client-id="$scratch/client-id" --from-file=client-secret="$scratch/client-secret" --from-file=issuer="$scratch/issuer")
-    if [[ $client == omnigent || $client == webapp || $client == homepage ]]; then
+    if [[ $client == omnigent || $client == webapp || $client == pythonapp || $client == homepage ]]; then
       jq -rj --arg key "$client-cookie-secret" '.[$key]' "$scratch/credentials.json" >"$scratch/cookie-secret"
       printf 'https://%s.%s/%s' "$client" "$ingress_domain" "$([[ $client == omnigent ]] && printf auth/callback || printf oauth2/callback)" >"$scratch/redirect-url"
       args+=(--from-file=cookie-secret="$scratch/cookie-secret" --from-file=redirect-url="$scratch/redirect-url")
@@ -295,6 +296,7 @@ demo_identity_configure() (
     forgejo:[("https://forgejo." + $domain + "/user/oauth2/demojam-keycloak/callback")],
     omnigent:[("https://omnigent." + $domain + "/auth/callback")],
     webapp:[("https://webapp." + $domain + "/oauth2/callback")],
+    pythonapp:[("https://pythonapp." + $domain + "/oauth2/callback")],
     homepage:[("https://homepage." + $domain + "/oauth2/callback")],
     openshift:[("https://" + $oauth + "/oauth2callback/demojam-keycloak")]
   } + (if $ao == "" then {} else {orchestrator:[("https://" + $ao + "/api/v1/auth/oidc/callback")]} end)')

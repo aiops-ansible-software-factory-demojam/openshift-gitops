@@ -64,6 +64,19 @@ applications:
     source:
       path: cluster/openshift-pipelines
 
+  pythonapp-vms:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '20'
+    destination:
+      namespace: pythonapp-vms
+    source:
+      path: cluster/pythonapp-vms
+    ignoreDifferences:
+      - group: discovery.k8s.io
+        kind: EndpointSlice
+        jsonPointers: [/endpoints]
+
   webapp-vms:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous

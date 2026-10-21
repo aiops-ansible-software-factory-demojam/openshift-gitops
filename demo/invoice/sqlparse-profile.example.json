@@ -3,7 +3,7 @@
   "application": {
     "id": "query-service",
     "inventory_group": "query_services",
-    "repository": "demo-owner/ansible-collection-demo.webapp",
+    "repository": "demo-owner/ansible-collection-demo.pythonapp",
     "release_manifest": "releases/query-service.json",
     "python_executable": "/opt/query-service/current/venv/bin/python",
     "status_path": "/api/status"

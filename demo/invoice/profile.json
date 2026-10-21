@@ -2,8 +2,8 @@
   "schema_version": 1,
   "application": {
     "id": "invoice-portal",
-    "inventory_group": "webapps",
-    "repository": "demo-owner/ansible-collection-demo.webapp",
+    "inventory_group": "pythonapps",
+    "repository": "demo-owner/ansible-collection-demo.pythonapp",
     "release_manifest": "releases/invoice.json",
     "python_executable": "/opt/invoice-portal/current/venv/bin/python",
     "status_path": "/api/status"

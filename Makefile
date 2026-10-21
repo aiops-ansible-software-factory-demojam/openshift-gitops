@@ -161,3 +161,14 @@ invoice-promote:
 	bash bootstrap/bootstrap.sh invoice promote "$(PR)" "$(JOB)"
 invoice-verify:
 	bash bootstrap/bootstrap.sh invoice verify
+
+.PHONY: pythonapp-create pythonapp-delete pythonapp-verify applications-upgrade
+pythonapp-create:
+	bash bootstrap/bootstrap.sh pythonapp create
+pythonapp-delete:
+	bash bootstrap/bootstrap.sh pythonapp delete
+pythonapp-verify:
+	bash bootstrap/bootstrap.sh pythonapp verify
+applications-upgrade:
+	bash bootstrap/bootstrap.sh invoice split-prepare
+	bash bootstrap/bootstrap.sh

@@ -18,21 +18,20 @@ def listwidget($name;$url;$icon;$description;$items;$namefield;$label;$target):
     widget("Bootstrap and deployment";($source + "/tree/" + $branch);"github";"Last successful bootstrap and reconciled Git revision";
       [["environment.bootstrapCompleted","Bootstrap completed"],["environment.revision","Git revision"],["environment.refreshed","Status refreshed"]])
   ]},
-  {"Demo walkthrough":(if env.DEMO_SCENARIO == "invoice" then [
-    link("1. Observe the finding";($aap + "/execution/templates");"ansible";"AAP collects installed versions, advisory evidence and business results"),
-    link("2. Follow the incident";($forgejo + "/demo-owner/ansible-collection-demo.webapp/issues");"forgejo";"Application, environment, package and advisory identify the incident"),
-    link("3. Follow AO";($ao + "/executions");"mdi-sitemap";"AO coordinates Developer Hub and the sandbox contribution"),
-    link("4. Review the release";($forgejo + "/demo-owner/ansible-collection-demo.webapp/pulls");"mdi-source-pull";"Agent locks the approved dependency and adds meaningful tests"),
-    link("5. Validate with AAP";($aap + "/execution/jobs");"ansible";"Independent RHEL 9/10 EC2 acceptance, recovery and canary tests"),
-    link("6. Approve production";($aap + "/execution/jobs");"ansible";"Human merge and separate AAP production approval; verify business recovery")
-  ] else [
-    link("1. Trigger the outage";($aap + "/execution/templates");"ansible";"Run webapp_selinux_enable once"),
-    link("2. Follow the issue";($forgejo + "/demo-owner/ansible-collection-demo.webapp/issues");"forgejo";"The alert and RCA open the issue automatically"),
-    link("3. Follow the workflow";($ao + "/executions");"mdi-sitemap";"Forgejo webhook → EDA → Omnigent handoff"),
-    link("4. Follow the agent";$omnigent;"mdi-robot";"Watch the coding session and its progress"),
-    link("5. Merge after tests";($forgejo + "/demo-owner/ansible-collection-demo.webapp/pulls");"mdi-source-pull";"Merge when lint, build and every Molecule scenario pass"),
-    link("6. Deploy the fix";($aap + "/execution/templates");"ansible";"Run webapp_nginx once after merge; SELinux stays Enforcing")
-  ] end)},
+  {"Nginx SELinux walkthrough":[
+    link("1. Open nginx";("https://webapp." + ($omnigent | sub("^https://omnigent\\."; "")));"nginx";"Independent RHEL webapp host"),
+    link("2. Trigger the SELinux fault";($aap + "/execution/templates");"ansible";"Run webapp_selinux_enable once"),
+    link("3. Follow the nginx issue";($forgejo + "/demo-owner/ansible-collection-demo.webapp/issues");"forgejo";"Alert → RCA → webapp contribution"),
+    link("4. Review and deploy";($forgejo + "/demo-owner/ansible-collection-demo.webapp/pulls");"mdi-source-pull";"Machine tests, human merge, then webapp_nginx")
+  ]},
+  {"Python vulnerability walkthrough":(if (env.DEMO_SCENARIO == "invoice" or env.DEMO_SCENARIO == "both") then [
+    link("1. Observe the invoice app";("https://pythonapp." + ($omnigent | sub("^https://omnigent\\."; "")));"python";"Separate RHEL host; SELinux stays enforcing"),
+    link("2. Detect the dependency finding";($ao + "/workflows");"mdi-sitemap";"Run invoice-security-detect"),
+    link("3. Follow the Python incident";($forgejo + "/demo-owner/ansible-collection-demo.pythonapp/issues");"forgejo";"Structured finding and approved Lightwell artifact"),
+    link("4. Review the Python release";($forgejo + "/demo-owner/ansible-collection-demo.pythonapp/pulls");"mdi-source-pull";"Agent locks the approved dependency and tests the regression"),
+    link("5. Validate with AAP";($aap + "/execution/jobs");"ansible";"Independent RHEL 9/10 EC2 acceptance and rollback"),
+    link("6. Approve production";($aap + "/execution/jobs");"ansible";"Human merge and separate AAP production approval")
+  ] else [] end)},
   {"Automation":([
     $routes[0][] | .Automation // empty | .[]
   ] + [
@@ -53,7 +52,7 @@ def listwidget($name;$url;$icon;$description;$items;$namefield;$label;$target):
     end),
     link("Monitoring alerts";($console + "/monitoring/alerts");"prometheus";"Inspect WebappDown and other alerts")
   ]},
-  {"Live status":((if env.DEMO_SCENARIO == "invoice" then [
+  {"Live status":((if (env.DEMO_SCENARIO == "invoice" or env.DEMO_SCENARIO == "both") then [
     widget("Remediation evidence";($aap + "/execution/jobs");"ansible";"Observed application, matched validation and deployment evidence";
       [["remediation.application","Application"],["remediation.dependency","Installed"],["remediation.assessment","Assessment"],
        ["remediation.advisories","Advisories"],["remediation.hosts","Observed hosts"],["remediation.business","Business checks"],

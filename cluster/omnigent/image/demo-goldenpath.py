@@ -88,15 +88,15 @@ def prepare_feature(number):
     try:
         request(
             forgejo,
-            f"/api/v1/repos/demo-owner/ansible-collection-demo.webapp/branches/{branch_path}",
+            f"/api/v1/repos/{repository}/branches/{branch_path}",
             token=os.environ["FORGEJO_TOKEN"],
         )
     except RuntimeError as error:
         if "returned HTTP 404" in str(error):
             raise RuntimeError(f"{branch} does not exist; launch through AO first") from error
         raise
-    directory = Path.cwd() / f"issue-{number}"
-    remote = f"{forgejo}/demo-owner/ansible-collection-demo.webapp.git"
+    directory = Path.cwd() / f"{repository.split('/')[1]}-issue-{number}"
+    remote = f"{forgejo}/{repository}.git"
     if not directory.exists():
         git(Path.cwd(), "clone", remote, str(directory))
     if git(directory, "remote", "get-url", "origin", capture=True) != remote:
@@ -114,10 +114,9 @@ def prepare_feature(number):
 
 def open_pr(issue, body_file):
     token = os.environ["FORGEJO_TOKEN"]
-    owner = "demo-owner"
-    repo = "ansible-collection-demo.webapp"
+    owner, repo = repository.split("/")
     branch = f"feature/issue-{issue}"
-    directory = Path.cwd() / f"issue-{issue}"
+    directory = Path.cwd() / f"{repo}-issue-{issue}"
     if not directory.exists():
         directory = Path.cwd()
     if git(directory, "remote", "get-url", "origin", capture=True) != f"{forgejo}/{owner}/{repo}.git":
@@ -166,7 +165,7 @@ def open_pr(issue, body_file):
 def show_issue(issue):
     result = request(
         forgejo,
-        f"/api/v1/repos/demo-owner/ansible-collection-demo.webapp/issues/{issue}",
+        f"/api/v1/repos/{repository}/issues/{issue}",
         token=os.environ["FORGEJO_TOKEN"],
     )
     if result.get("pull_request") or result.get("state") != "open":
@@ -176,6 +175,7 @@ def show_issue(issue):
 
 
 parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("--repository", choices=["demo-owner/ansible-collection-demo.webapp", "demo-owner/ansible-collection-demo.pythonapp"], default="demo-owner/ansible-collection-demo.webapp", help="Application repository prepared by AO")
 subparsers = parser.add_subparsers(dest="command", required=True)
 new = subparsers.add_parser("new", help="Create and register a collection")
 new.add_argument("name")
@@ -188,6 +188,7 @@ pr = subparsers.add_parser("pr", help="Open a pull request for an issue branch")
 pr.add_argument("issue", type=int)
 pr.add_argument("--body-file", type=Path, required=True)
 args = parser.parse_args()
+repository = args.repository
 for name in ("FORGEJO_URL", "FORGEJO_TOKEN", "FORGEJO_USERNAME"):
     if not os.environ.get(name):
         parser.error(f"{name} is missing; hydrate the demo first")

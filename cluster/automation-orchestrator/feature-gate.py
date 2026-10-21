@@ -11,7 +11,8 @@ from urllib.request import Request, urlopen
 
 
 BACKSTAGE = os.environ["BACKSTAGE_URL"].rstrip("/")
-REPOSITORY = "demo-owner/ansible-collection-demo.webapp"
+REPOSITORIES = {"demo-owner/ansible-collection-demo.webapp", "demo-owner/ansible-collection-demo.pythonapp"}
+DEFAULT_REPOSITORY = "demo-owner/ansible-collection-demo.webapp"
 
 
 def backstage(path, method="GET", body=None, token=None, missing_ok=False):
@@ -32,10 +33,12 @@ def backstage(path, method="GET", body=None, token=None, missing_ok=False):
         raise RuntimeError(f"Backstage {method} {path} returned HTTP {error.code}") from None
 
 
-def prepare(number):
+def prepare(number, repository=DEFAULT_REPOSITORY):
+    if repository not in REPOSITORIES:
+        raise ValueError("Unsupported application repository")
     token = os.environ["BACKSTAGE_TOKEN"]
     issue = backstage(
-        f"/api/proxy/forgejo/repos/{REPOSITORY}/issues/{number}",
+        f"/api/proxy/forgejo/repos/{repository}/issues/{number}",
         token=token,
         missing_ok=True,
     )
@@ -43,7 +46,7 @@ def prepare(number):
         raise ValueError(f"Issue #{number} is not an open collection issue")
     branch = f"feature/issue-{number}"
     branch_path = quote(branch, safe="")
-    path = f"/api/proxy/forgejo/repos/{REPOSITORY}/branches/{branch_path}"
+    path = f"/api/proxy/forgejo/repos/{repository}/branches/{branch_path}"
     existing = backstage(path, token=token, missing_ok=True)
     task_id = None
     if not existing:
@@ -52,7 +55,7 @@ def prepare(number):
             "POST",
             {
                 "templateRef": "template:default/ansible-collection-feature",
-                "values": {"issue_number": number},
+                "values": {"issue_number": number, "repository": repository},
             },
             token,
         )
@@ -70,6 +73,7 @@ def prepare(number):
         raise RuntimeError(f"Backstage did not create {branch}")
     return {
         "issue_number": number,
+        "repository": repository,
         "branch": branch,
         "task_id": task_id,
         "issue": {key: issue.get(key) or "" for key in ("title", "body", "html_url")},
@@ -97,6 +101,9 @@ class Handler(BaseHTTPRequestHandler):
                 raise ValueError("Expected a small JSON request")
             body = json.loads(self.rfile.read(size))
             number = body["issue_number"]
+            repository = body.get("repository", DEFAULT_REPOSITORY)
+            if not isinstance(repository, str) or repository not in REPOSITORIES:
+                raise ValueError("Unsupported application repository")
             if isinstance(number, str) and number.isdecimal():
                 number = int(number)
             if type(number) is not int or number < 1:
@@ -105,7 +112,7 @@ class Handler(BaseHTTPRequestHandler):
             self.respond(400, {"error": str(error)})
             return
         try:
-            self.respond(200, prepare(number))
+            self.respond(200, prepare(number, repository))
         except ValueError as error:
             self.respond(400, {"error": str(error)})
         except (RuntimeError, URLError, KeyError, TypeError, OSError) as error:

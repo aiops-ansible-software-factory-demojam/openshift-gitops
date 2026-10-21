@@ -162,7 +162,7 @@ function summarizeRemediation(finding, validation, deployment) {
     validationDuration: validationMatches ? `${validation.elapsed} seconds` : 'Not measured' };
 }
 async function remediation() {
-  if (settings().scenario !== 'invoice') return { assessment: 'Not selected' };
+  if (!['invoice', 'both'].includes(settings().scenario)) return { assessment: 'Not selected' };
   const latest = async (filter) => {
     const list = await aapGet(`/api/controller/v2/jobs/?${filter}&order_by=-id&page_size=1`);
     return list.results[0] ? aapGet(`/api/controller/v2/jobs/${list.results[0].id}/`) : null;

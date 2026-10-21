@@ -1,3 +1,12 @@
+# Two independent RHEL demo applications
+
+The AWS deployment can run both demonstrations with `DEMO_SCENARIO=both`:
+
+- `demo.webapp` owns nginx and its SELinux outage on the `webapps` host.
+- `demo.pythonapp` owns the Python invoice vulnerability on a separate enforcing `pythonapps` host.
+
+Each application has its own Forgejo/GitHub collection, inventory, EC2 purpose tag, security group, endpoint and issue routing. The management plane is shared. See [the invoice and two-application runbook](docs/invoice-lightwell-demo.md) for branch selection, setup, migration, testing and approval gates.
+
 # Demo OpenShift GitOps
 
 For the AAP and AO invoice-processing security demo using a Lightwell PyPDF2
