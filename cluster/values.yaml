@@ -123,6 +123,7 @@ applications:
       path: cluster/ansible-automation-platform
 
   automation-orchestrator:
+    autoSyncPrune: true
     # The selected provider and discovered AAP URL are bootstrap inputs.
     ignoreDifferences:
       - group: ""
