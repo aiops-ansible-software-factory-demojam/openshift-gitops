@@ -190,6 +190,12 @@ Use `DEMO_BACKEND=aws` and `DEMO_SCENARIO=both` to deploy both applications. The
 | nginx SELinux outage | `demo.webapp` / `ansible-collection-demo.webapp` | `webapps` | `https://webapp.<ingress-domain>` | `aap launch webapp_selinux_enable` |
 | Python dependency vulnerability | `demo.pythonapp` / `ansible-collection-demo.pythonapp` | `pythonapps` | `https://pythonapp.<ingress-domain>` | `make invoice-trigger BACKEND=aws` |
 
+Bootstrap installs the baselines without triggering either incident. For a requested
+`both` rehearsal, reset/bootstrap once, run invoice detection, and also launch
+`bash bootstrap/bootstrap.sh aap launch webapp_selinux_enable`. Follow the invoice
+workflow here and the nginx workflow in `.agents/skills/run-demojam/SKILL.md`.
+Record separate outcomes; a failure in one scenario does not skip the other.
+
 Developer Hub receives an allowlisted repository and issue number. For Python tasks, the native helper uses `demo-goldenpath --repository demo-owner/ansible-collection-demo.pythonapp checkout N` and the same option for `pr`. Nginx keeps its default repository. EDA routes new security incidents using the Python repository plus structured remediation marker; it does not require the nginx RCA text `Root Cause:`.
 
 ## Upgrade an existing rehearsal
