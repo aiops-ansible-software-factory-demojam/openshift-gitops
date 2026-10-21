@@ -1,0 +1,15 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: pythonapp
+  namespace: pythonapp-vms
+spec:
+  subdomain: pythonapp
+  to:
+    kind: Service
+    name: pythonapp-login
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

@@ -20,6 +20,7 @@ nodes:
       headers: {Content-Type: application/json}
       body:
         issue_number: '${trigger.issue_number}'
+        repository: demo-owner/ansible-collection-demo.pythonapp
     settings:
       timeout: 360
       retry_policy: {max_retries: 0}
@@ -71,9 +72,9 @@ nodes:
             - type: input_text
               text: |
                 Implement Forgejo security issue #${trigger.issue_number} in
-                demo-owner/ansible-collection-demo.webapp. Developer Hub has
+                demo-owner/ansible-collection-demo.pythonapp. Developer Hub has
                 prepared feature/issue-${trigger.issue_number}. Run
-                demo-goldenpath checkout ${trigger.issue_number}; read AGENTS.md,
+                demo-goldenpath --repository demo-owner/ansible-collection-demo.pythonapp checkout ${trigger.issue_number}; read AGENTS.md,
                 the issue, playbooks/invoice.yml, and roles/invoice_portal.
 
                 Read the structured finding and the mounted INVOICE_MATERIAL_FILE
@@ -102,7 +103,7 @@ nodes:
                 unavailable tests or missing credentials are not passing checks.
 
                 Review and commit the change. Write an accurate PR description
-                outside the checkout, then run demo-goldenpath pr
+                outside the checkout, then run demo-goldenpath --repository demo-owner/ansible-collection-demo.pythonapp pr
                 ${trigger.issue_number} --body-file <path>. Report the published
                 SHA and PR URL. Human review, independent AAP validation and
                 production approval are required after your PR; do not merge.
