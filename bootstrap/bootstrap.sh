@@ -3991,6 +3991,26 @@ PY
   done
 )
 
+demo_invoice_main_protection() {
+  local users_file
+  users_file=$(demo_identity_users_file)
+  demo_identity_validate_users "$users_file" || demo_die 'Invalid DEMO_USERS_FILE.'
+  # SSO owns these accounts. Match existing registrations by username/email;
+  # never create local passwords or grant the coding agent reviewer access.
+  jq -cn --slurpfile configured "$users_file" --argjson registered "$1" '
+    (["demo-reviewer"] + [$configured[0].users[] as $user |
+      select($user.enabled != false and (($user.groups // []) | index("demo-admins") != null)) |
+      $registered[] | select(.login == $user.username) |
+      if (.email | ascii_downcase) == ($user.email | ascii_downcase) then .login
+      else error("Forgejo account email differs from configured demo identity: " + $user.username) end
+    ] | unique) as $reviewers |
+    {branch_name:"main",rule_name:"main",enable_push:false,
+     enable_status_check:true,status_check_contexts:["invoice/ec2-validation"],
+     required_approvals:1,dismiss_stale_approvals:true,block_on_rejected_reviews:true,
+     block_on_outdated_branch:true,apply_to_admins:true,enable_merge_whitelist:true,
+     merge_whitelist_usernames:$reviewers}'
+}
+
 demo_invoice_forgejo_connect() {
   local invoice_domain
   invoice_domain=$(oc -n openshift-ingress-operator get ingresscontroller default -o jsonpath='{.status.domain}')
@@ -4158,15 +4178,27 @@ PY
     # configuration that will later evaluate and deploy its collection PR.
     forgejo_api PUT /repos/demo-owner/demojam-ansible/collaborators/demo-agent \
       '{"permission":"read"}' >/dev/null
-    local protection
-    protection='{"branch_name":"main","rule_name":"main","enable_push":false,"enable_status_check":true,"status_check_contexts":["invoice/ec2-validation"],"required_approvals":1,"dismiss_stale_approvals":true,"block_on_rejected_reviews":true,"block_on_outdated_branch":true,"apply_to_admins":true,"enable_merge_whitelist":true,"merge_whitelist_usernames":["demo-reviewer"]}'
+    local protection registered='[]' batch page=1 reviewer application
+    while :; do
+      batch=$(forgejo_api GET "/admin/users?limit=50&page=$page")
+      registered=$(jq -s 'add' <(printf '%s' "$registered") <(printf '%s' "$batch"))
+      [[ $(jq length <<<"$batch") == 50 ]] || break
+      ((page+=1))
+    done
+    protection=$(demo_invoice_main_protection "$registered")
+    for application in ansible-collection-demo.webapp ansible-collection-demo.pythonapp; do
+      while read -r reviewer; do
+        forgejo_api PUT "/repos/demo-owner/$application/collaborators/$reviewer" \
+          '{"permission":"write"}' >/dev/null
+      done < <(jq -r '.merge_whitelist_usernames[]' <<<"$protection")
+    done
     if forgejo_api GET /repos/demo-owner/ansible-collection-demo.pythonapp/branch_protections |
       jq -e 'any(.[]; .rule_name == "main" or .branch_name == "main")' >/dev/null; then
       forgejo_api PATCH /repos/demo-owner/ansible-collection-demo.pythonapp/branch_protections/main "$protection" >/dev/null
     else
       forgejo_api POST /repos/demo-owner/ansible-collection-demo.pythonapp/branch_protections "$protection" >/dev/null
     fi
-    echo 'Main requires human review and independent invoice/ec2-validation; the agent has read-only access to the trusted automation repository.'
+    echo 'Main requires human review and independent invoice/ec2-validation; registered demo-admins can merge, and the agent has read-only access to the trusted automation repository.'
     return
   fi
   local aap_scratch aap_host aap_username
