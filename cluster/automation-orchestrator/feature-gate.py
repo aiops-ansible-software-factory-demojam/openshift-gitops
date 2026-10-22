@@ -4,9 +4,11 @@
 import json
 import os
 import time
+from threading import Lock
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote
+from urllib.parse import parse_qs, quote, urlsplit
+import re
 from urllib.request import Request, urlopen
 
 
@@ -33,7 +35,22 @@ def backstage(path, method="GET", body=None, token=None, missing_ok=False):
         raise RuntimeError(f"Backstage {method} {path} returned HTTP {error.code}") from None
 
 
+_invoice_locks = {}
+_invoice_locks_guard = Lock()
+
+
 def prepare(number, repository=DEFAULT_REPOSITORY):
+    # The single-replica helper uses Recreate updates so concurrent deliveries
+    # cannot both observe an absent branch and claim the same incident.
+    if repository == "demo-owner/ansible-collection-demo.pythonapp":
+        with _invoice_locks_guard:
+            lock = _invoice_locks.setdefault(number, Lock())
+        with lock:
+            return _prepare(number, repository)
+    return _prepare(number, repository)
+
+
+def _prepare(number, repository=DEFAULT_REPOSITORY):
     if repository not in REPOSITORIES:
         raise ValueError("Unsupported application repository")
     token = os.environ["BACKSTAGE_TOKEN"]
@@ -76,8 +93,66 @@ def prepare(number, repository=DEFAULT_REPOSITORY):
         "repository": repository,
         "branch": branch,
         "task_id": task_id,
+        "author_required": not existing if repository.endswith("pythonapp") else True,
         "issue": {key: issue.get(key) or "" for key in ("title", "body", "html_url")},
     }
+
+
+INVOICE_REPOSITORY = "demo-owner/ansible-collection-demo.pythonapp"
+
+
+def invoice_pr(number, pr_number=None, head_sha=None, require_merged=False):
+    """Read one incident PR; fail closed on ambiguity, closure or source drift."""
+    if type(number) is not int or number < 1:
+        raise ValueError("issue_number must be a positive integer")
+    if head_sha is not None and not re.fullmatch(r"[0-9a-f]{40}", head_sha):
+        raise ValueError("Expected a full source commit")
+    token = os.environ["BACKSTAGE_TOKEN"]
+    root = f"/api/proxy/forgejo/repos/{INVOICE_REPOSITORY}"
+    if pr_number is not None:
+        if type(pr_number) is not int or pr_number < 1:
+            raise ValueError("pr_number must be a positive integer")
+        matches = [backstage(f"{root}/pulls/{pr_number}", token=token)]
+    else:
+        matches = []
+        for page in range(1, 101):
+            batch = backstage(f"{root}/pulls?state=all&limit=50&page={page}", token=token)
+            matches.extend(pr for pr in batch if pr.get("head", {}).get("ref") == f"feature/issue-{number}")
+            if len(batch) < 50:
+                break
+        else:
+            raise ValueError("PR history exceeds the reconciliation bound")
+    if not matches:
+        return {"ready": False, "merged": False, "number": 0, "head_sha": ""}
+    if len(matches) != 1:
+        raise ValueError("Multiple PRs match this incident; resolve ambiguity before continuing")
+    pr = matches[0]
+    if (pr["head"]["ref"] != f"feature/issue-{number}" or pr["base"]["ref"] != "main"
+            or any(pr[side].get("repo", {}).get("full_name") != INVOICE_REPOSITORY for side in ["head", "base"])):
+        raise ValueError("PR does not belong to the expected incident branch and repository")
+    sha = pr["head"]["sha"]
+    if not re.fullmatch(r"[0-9a-f]{40}", sha):
+        raise ValueError("PR has no exact source identity")
+    if head_sha is not None and sha != head_sha:
+        raise ValueError("PR head changed after validation; a new independent validation is required")
+    merged = pr.get("merged", False)
+    if pr["state"] == "closed" and not merged:
+        raise ValueError("PR was closed without merging; remediation stops")
+    if merged and not require_merged:
+        raise ValueError("PR was already merged; inspect its original remediation execution")
+    if merged:
+        # Forgejo's compare API has no merge-base/ancestry field. Walk its
+        # bounded main history rather than trusting the PR's merged flag alone.
+        for page in range(1, 101):
+            commits = backstage(f"{root}/commits?sha=main&limit=50&page={page}", token=token)
+            if any(commit.get("sha") == sha for commit in commits):
+                break
+            if len(commits) < 50:
+                raise ValueError("The tested source commit is not contained in main")
+        else:
+            raise ValueError("Main ancestry exceeds the reconciliation bound")
+    return {"ready": not pr.get("draft", False), "merged": merged,
+            "number": pr["number"], "head_sha": sha, "url": pr["html_url"]}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -90,7 +165,26 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(payload)
 
     def do_GET(self):
-        self.respond(200 if self.path == "/healthz" else 404, {"status": "ok"})
+        parsed = urlsplit(self.path)
+        if parsed.path == "/healthz":
+            return self.respond(200, {"status": "ok"})
+        if parsed.path != "/invoice/pr":
+            return self.respond(404, {"error": "Unknown path"})
+        try:
+            query = parse_qs(parsed.query, strict_parsing=True)
+            if any(len(v) != 1 for v in query.values()) or set(query) - {"issue_number", "pr_number", "head_sha", "require_merged"}:
+                raise ValueError("Unsupported PR query")
+            if query.get("require_merged", ["false"])[0] not in ["true", "false"]:
+                raise ValueError("Invalid merge requirement")
+            result = invoice_pr(int(query["issue_number"][0]),
+                                int(query["pr_number"][0]) if "pr_number" in query else None,
+                                query.get("head_sha", [None])[0],
+                                query.get("require_merged", ["false"])[0] == "true")
+            self.respond(200, result)
+        except (ValueError, KeyError):
+            self.respond(409, {"error": "Incident PR is invalid, changed, closed or ambiguous; inspect the PR before continuing."})
+        except (HTTPError, URLError, RuntimeError):
+            self.respond(502, {"error": "PR observation unavailable; no remediation action was taken."})
 
     def do_POST(self):
         if self.path != "/prepare":

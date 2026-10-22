@@ -383,45 +383,39 @@ Publish and hydrate source changes before protecting the recording baseline.
    the actual issue, branch, model, agent session, and eventual PR. During the
    authoring demonstration, do not privately edit the agent's branch or supply
    corrective code and conceal that intervention.
-4. Wait for the submitted PR. Record its exact published head SHA. Agent-reported
-   tests are useful evidence, but the protected branch requires independent
-   AAP validation:
+4. Follow the same AO execution as it discovers the submitted PR and publishes
+   a pending required check. AO runs `invoice_validate` against the exact head,
+   then publishes the independently proven result. The trusted validator lints,
+   builds and tests candidate and mandatory acceptance on RHEL 9/10, including
+   idempotence, regression, rollback and destruction. Agent-reported tests alone
+   cannot satisfy the protected branch check.
+5. Review the actual diff and independent evidence as a human, then approve and
+   merge in Forgejo. AO observes the merge. A changed head, rejected/closed PR or
+   missing main ancestry stops the flow; it never automatically merges a PR.
+6. AO calls the release configurator and launches the exported immutable AAP
+   workflow. This binds the tested source, wheel, profile and execution image,
+   with no source/variable overrides and a release-specific artifact credential.
+7. Open the AAP workflow from the AO production node and approve the production
+   gate as a human. Rejection or timeout cannot deploy. The workflow never
+   approves this gate automatically.
+8. AO checks the actual approval and deployed job evidence, then verifies the
+   exact running dependency/source and application business/regression behavior.
+   Only a successful verification reaches incident reconciliation. Repeat the
+   identical regression PDF and normal invoice in the browser and record the
+   source revision, version, wheel digest and AAP/AO execution IDs.
 
-   ```bash
-   make invoice-validate BACKEND=aws SHA=<published-head-sha>
-   ```
+The existing manual commands remain recovery tools, not extra steps to launch
+alongside a running continuous execution:
 
-   The trusted validator checks out that SHA into a fresh directory, lints and
-   builds the collection, installs it into a separate collection root, then
-   runs the invoice Molecule scenario on RHEL 9 and RHEL 10 EC2 guests. The
-   scenario must complete idempotence, verification, and destruction. The AAP
-   job publishes the source SHA and selected wheel digest. A failed run posts
-   a failure status and leaves the PR unmergeable.
-5. Review the actual diff and validation evidence as a human. Approve and merge
-   in Forgejo. If the head changes, independently validate the new SHA.
-6. Prepare production promotion using the merged PR and successful validation
-   job identifiers:
+```bash
+make invoice-validate BACKEND=aws SHA=<published-head-sha>
+make invoice-promote BACKEND=aws PR=<merged-pr-number> JOB=<validation-job-id>
+make invoice-verify BACKEND=aws
+```
 
-   ```bash
-   make invoice-promote BACKEND=aws PR=<merged-pr-number> JOB=<validation-job-id>
-   ```
-
-   Promotion checks the PR's merge state, its tested head, ancestry in current
-   `main`, the trusted validation job, and the unchanged dependency digest.
-   It creates a project pinned to that commit, a deployment template that
-   disallows source and variable overrides, and an approval workflow.
-   Its artifact credential is a release-specific snapshot. Refreshing the
-   general Lightwell selection cannot change a release awaiting approval.
-   Execution environments are registered by immutable image identity; changing
-   the validation image requires a new successful validation before promotion.
-7. Open the printed AAP workflow. A human approves the production node. Only
-   its success path reaches deployment; rejection or timeout does not deploy.
-   The command does not approve this node automatically.
-8. Wait for deployment success. Run `make invoice-verify BACKEND=aws`. Repeat
-   the identical regression PDF in the browser and an ordinary invoice. Both
-   must extract the expected invoice data within the unchanged deadline.
-   Show the deployed source revision, actual dependency version, and wheel
-   digest alongside AAP's execution record.
+Inspect the original AO/AAP execution before recovery. Existing issue branches
+suppress duplicate authoring deliveries. The wait policy and deployment order are
+documented in `cluster/automation-orchestrator/workflows/README.md`.
 
 ## Five minute recording and narration
 

@@ -1760,6 +1760,14 @@ demo_ao_workflow_definition() {
     .edges += [range(0; ($chain | length) - 1) as $i | {from:$chain[$i],to:$chain[$i+1]}]'
 }
 
+# Bind both native AAP execution node types, including authoring workflows.
+demo_ao_bind_aap() {
+  jq -c --arg credential "$1" --arg integration "$2" '
+    .nodes |= map(if (.type == "aap_job_template" or .type == "aap_workflow_job_template") then
+      .parameters.credential_id=$credential | .parameters.integration_id=$integration
+    else . end)'
+}
+
 # These helpers share the authenticated connection and private response file in
 # demo_ao_reconcile. Credentials are encrypted by AO, never written to workflows.
 demo_ao_webhook_client() {
@@ -2498,6 +2506,7 @@ demo_ao_reconcile() (
           .parameters.credential_id=$aap_credential | .parameters.integration_id=$aap_integration
         else . end)')
     fi
+    workflow_definition=$(demo_ao_bind_aap "$aap_credential_id" "$aap_integration_id" <<<"$workflow_definition")
     workflow_definition=$(jq -c --arg eda_account "$eda_service_account_id" '
       .triggers |= map(if .type == "eda_trigger" then
         .parameters.authorized_service_account_ids=[$eda_account]
@@ -4326,7 +4335,11 @@ PYPROFILE
     git init -q "$aap_scratch/ancestry"
     git -C "$aap_scratch/ancestry" fetch -q --no-tags "$FORGEJO_URL/demo-owner/ansible-collection-demo.pythonapp.git" refs/heads/main
     git -C "$aap_scratch/ancestry" merge-base --is-ancestor "$sha" FETCH_HEAD || demo_die 'The tested commit is no longer contained in main.'
-    demo_aap launch invoice_configure "$(jq -n --arg sha "$sha" --argjson job "$validation_job" '{invoice_candidate_sha:$sha,invoice_validation_job_id:$job}')"
+    local issue_number
+    issue_number=$(jq -er '.head.ref | capture("^feature/issue-(?<number>[1-9][0-9]*)$").number | tonumber' <<<"$pr")
+    demo_aap launch invoice_configure "$(jq -n --arg sha "$sha" --argjson job "$validation_job" \
+      --argjson issue "$issue_number" --argjson pr "$pr_number" \
+      '{invoice_candidate_sha:$sha,invoice_validation_job_id:$job,invoice_issue_number:$issue,invoice_pr_number:$pr}')"
     template=$(aap_find workflow_job_templates/ "invoice-promote-$sha-$wheel" "$(jq -n --argjson org "$org" '{organization:$org}')" | jq -er .id)
     result=$(aap_request POST "workflow_job_templates/$template/launch/" '{}')
     job=$(jq -er .workflow_job <<<"$result")
