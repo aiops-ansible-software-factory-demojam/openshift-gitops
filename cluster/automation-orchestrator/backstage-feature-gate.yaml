@@ -3,12 +3,14 @@ kind: Deployment
 metadata:
   name: backstage-feature-gate
   namespace: automation-orchestrator
+  annotations:
+    # Replace removes a previous RollingUpdate strategy during upgrades.
+    argocd.argoproj.io/sync-options: Replace=true
 spec:
   replicas: 1
   # Keep branch-claim serialization within one serving process during updates.
   strategy:
     type: Recreate
-    rollingUpdate: null
   selector:
     matchLabels:
       app: backstage-feature-gate
