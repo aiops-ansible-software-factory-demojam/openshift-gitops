@@ -359,8 +359,13 @@ make invoice-protect BACKEND=aws
 
 Protection disables direct pushes to collection `main`, requires one human
 review and the `invoice/ec2-validation` status, dismisses stale approvals,
-and applies to administrators. The seeded `demo-reviewer` identity is allowed
-to merge. Keep the agent's identity separate from that human identity.
+and applies to administrators. The seeded `demo-reviewer` identity and enabled
+human identities in `DEMO_USERS_FILE` with the `demo-admins` group can merge.
+For SSO users such as `demo-user`, sign into Forgejo first, then run
+`make invoice-protect BACKEND=aws` to reconcile their merge access. The username
+and email must match the configured identity; accounts and passwords are preserved.
+Both application repositories grant these reviewers write access. Keep the
+agent's identity separate from these human identities.
 Protection also reduces the agent's access to `demojam-ansible` to read-only,
 so it cannot rewrite the independent validator or AAP configuration.
 Publish and hydrate source changes before protecting the recording baseline.
