@@ -1,6 +1,6 @@
 # Automation Orchestrator workflows
 
-These YAML files define three manual AO workflows and two EDA webhook workflows.
+These YAML files define five manual AO workflows and three EDA webhook workflows.
 Bootstrap publishes them; `make ao-configure` validates and creates or updates every `*.yaml` here by
 its `name`. An unchanged definition keeps its version. Runtime IDs and
 credentials are supplied during configuration; secrets never appear in the YAML.
@@ -15,6 +15,9 @@ Run the commands below from the repository root after
 | [aap-webapp-nginx.yaml](aap-webapp-nginx.yaml) | Runs AAP's existing `webapp_nginx` job in the `demo` organization | `make ao-aap-run` |
 | [rootcause.yaml](rootcause.yaml) | Investigates with MCP audit evidence, falls back to AAP facts when unavailable, and creates one Forgejo issue | AAP's `call_ao_webhook` job with `ao_webhook_path: alertmanagealert` |
 | [omnigent-remediation.yaml](omnigent-remediation.yaml) | Prepares the incident branch and sends the issue/RCA to Omnigent for a tested fix PR | Forgejo issue webhook through EDA and `call_ao_webhook` with `ao_webhook_path: forgejo-issue-remediation` |
+| [invoice-security-detect.yaml](invoice-security-detect.yaml) | Observe the dependency, discover approved candidates and reconcile the incident | `make invoice-trigger BACKEND=aws` |
+| [invoice-security-remediation.yaml](invoice-security-remediation.yaml) | Track authoring, independent validation, human merge, approval, deployment and verification | Existing Forgejo invoice issue webhook through EDA |
+| [invoice-validate.yaml](invoice-validate.yaml) | Independently validate one published commit as an operator recovery path | Manual AO launch with `invoice_candidate_sha` |
 
 `bootstrap/bootstrap.sh` creates or reuses the `demojam-eda-webhook` AO service
 account before AAP configuration. Its client credentials are preserved in
@@ -157,3 +160,47 @@ Reconciliation publishes workflows without executing demo jobs.
 Implementation lives in [bootstrap/bootstrap.sh](../../../bootstrap/bootstrap.sh);
 `../reconcile-omnigent-workflow.sh` is an alias. Integration host allowlists
 are separate from workflow HTTP and OIDC settings, with TLS verification enabled.
+
+## Continuous invoice remediation
+
+The existing `invoice-security-detect` trigger and Forgejo → EDA webhook are
+unchanged. `invoice-security-remediation` now keeps one execution running from
+the authoring handoff through production verification:
+
+1. Developer Hub prepares the issue branch. A repeated opening delivery that
+   finds an existing Python issue branch does not start another author or rollout;
+   follow the original execution. The single-replica helper serializes preparation
+   per incident and uses Recreate updates to avoid overlapping claim owners. The
+   branch is the durable checkpoint across helper restarts. Webapp handoff behavior
+   is unchanged.
+2. Native AO do-while and wait nodes observe the non-draft incident PR through the
+   read-only feature gate. The branch, repository and base are fixed; model text
+   is never used to select a PR or source SHA.
+3. AAP publishes a pending required check, independently tests the exact head,
+   then publishes success only for trusted RHEL acceptance. Failed tests publish
+   failure and stop the flow. A launch failure with no job ID fails closed.
+4. AO waits for a human review/merge. A changed head, unmerged closure, ambiguous
+   PR or missing main ancestry stops orchestration. The workflow never merges.
+5. The existing release configurator rechecks merge, validation, source, artifact,
+   profile and execution image and exports the immutable workflow name. AO runs
+   that native AAP workflow, waiting for its existing human production approval.
+6. A trusted read-only AAP gate requires successful approval and deployment nodes
+   and the actual deployed SHA/wheel. Application checks then require the exact
+   approved release and successful business/regression behavior before the
+   existing issue reconciler closes the incident.
+
+Polling uses durable AO timers, not script nodes or sleeping AAP jobs. Each PR
+and human-merge wait is bounded to 2,880 observations spaced 30 seconds apart
+(about 24 hours plus API time). Validation allows two hours; configuration allows
+30 minutes; production execution allows two hours and retains its separate
+30-minute AAP approval deadline. Timeouts and rejection never authorize deployment.
+Mutating AAP nodes have zero automatic retries. Investigate an uncertain launch
+before starting another execution.
+
+These are linked code changes: reconcile the feature-gate ConfigMap and update the
+trusted `demojam-ansible` project, run `make invoice-configure BACKEND=aws`, then
+`make ao-configure`. Do not reseed either application collection during an active
+incident. Publishing changes does not exercise the flow or approve production.
+The legacy `invoice-validate`, `invoice-promote` and `invoice-verify` commands
+remain operator recovery paths. Inspect existing branch/session/job ownership
+before recovery; do not redeliver an incident to create a second rollout.

@@ -5,6 +5,10 @@ metadata:
   namespace: automation-orchestrator
 spec:
   replicas: 1
+  # Keep branch-claim serialization within one serving process during updates.
+  strategy:
+    type: Recreate
+    rollingUpdate: null
   selector:
     matchLabels:
       app: backstage-feature-gate
