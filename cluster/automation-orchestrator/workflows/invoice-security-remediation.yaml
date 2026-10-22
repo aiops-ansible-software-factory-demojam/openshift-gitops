@@ -75,7 +75,7 @@ nodes:
                 demo-owner/ansible-collection-demo.pythonapp. Developer Hub has
                 prepared feature/issue-${trigger.issue_number}. Run
                 demo-goldenpath --repository demo-owner/ansible-collection-demo.pythonapp checkout ${trigger.issue_number}; read AGENTS.md,
-                the issue, playbooks/invoice.yml, and roles/invoice_portal.
+                the issue, playbooks/deploy-invoice.yml, and vars/invoice.yml.
 
                 Read the structured finding and the mounted INVOICE_MATERIAL_FILE
                 (keep repository credentials out of logs and commits). Update the
