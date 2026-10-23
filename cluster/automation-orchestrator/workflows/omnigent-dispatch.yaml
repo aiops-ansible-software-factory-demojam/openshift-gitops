@@ -23,8 +23,8 @@ nodes:
     name: Run the Backstage feature golden path
     type: http_request
     position:
-      x: 300
-      y: 300
+      x: 319.0
+      y: 174.0
     parameters:
       method: POST
       url: http://backstage-feature-gate.automation-orchestrator.svc:8080/prepare
@@ -40,8 +40,8 @@ nodes:
     name: Obtain Omnigent machine access token
     type: http_request
     position:
-      x: 600
-      y: 300
+      x: 642.0
+      y: 191.0
     parameters:
       method: POST
       url: http://omnigent.omnigent.svc:8000/oauth/token
@@ -56,8 +56,8 @@ nodes:
     name: Create managed Agent Sandbox session
     type: http_request
     position:
-      x: 900
-      y: 300
+      x: 964.0
+      y: 191.0
     parameters:
       method: POST
       url: http://omnigent.omnigent.svc:8000/v1/sessions
@@ -77,8 +77,8 @@ nodes:
     name: Send task to agent
     type: http_request
     position:
-      x: 1200
-      y: 300
+      x: 1656.0
+      y: 183.0
     parameters:
       method: POST
       url: http://omnigent.omnigent.svc:8000/v1/sessions/${create_session.body.id}/events

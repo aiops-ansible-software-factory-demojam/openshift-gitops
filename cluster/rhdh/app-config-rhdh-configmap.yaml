@@ -79,3 +79,5 @@ data:
                 - Template
         - type: url
           target: ${FORGEJO_URL}/demo-owner/ansible-collection-demo.webapp/src/branch/main/catalog-info.yaml
+        - type: url
+          target: ${FORGEJO_URL}/demo-owner/ansible-collection-demo.pythonapp/src/branch/main/catalog-info.yaml

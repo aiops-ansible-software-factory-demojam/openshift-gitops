@@ -104,7 +104,8 @@ async function aap() {
     jobs: jobs.map((job) => ({ id: job.id, name: `#${job.id} ${job.name}`, status: job.status })) };
 }
 async function eda() {
-  const activations = (await aapGet('/api/eda/v1/activations/?name=demojam-webapp-issues')).results;
+  const name = settings().edaActivation || 'demojam-webapp-issues';
+  const activations = (await aapGet(`/api/eda/v1/activations/?name=${encodeURIComponent(name)}`)).results;
   const activation = activations[0];
   return { state: activation?.status || 'Not configured', enabled: activation ? (activation.is_enabled ? 'Yes' : 'No') : 'No',
     restarts: activation?.restart_count ?? 0 };
@@ -130,15 +131,54 @@ async function aoGet(path, retry = true) {
   }
 }
 async function orchestrator() {
-  const workflows = await aoGet('/workflows?name=omnigent-remediation&limit=100');
-  const workflow = workflows.resources.find((item) => item.name === 'omnigent-remediation');
+  const name = settings().authoringWorkflow || 'omnigent-remediation';
+  const workflows = await aoGet(`/workflows?name=${encodeURIComponent(name)}&limit=100`);
+  const workflow = workflows.resources.find((item) => item.name === name);
   const executions = workflow ? await aoGet(`/executions?workflow_id=${workflow.id}&sort=-created_at&limit=5`) : { resources: [] };
   return { workflow: workflow?.published_version_number ? `Published v${workflow.published_version_number}` : 'Not published',
     latest: executions.resources[0]?.status || 'No executions yet',
     executions: executions.resources.map((item) => ({ id: item.id, name: item.workflow_name || item.id.slice(0, 8), status: item.status })) };
 }
 
-const sources = { gitops, cluster, monitoring, aap, eda, orchestrator };
+function summarizeRemediation(finding, validation, deployment) {
+  if (!finding) return { assessment: 'No observations yet', business: 'Not checked',
+    validation: 'Not checked', deployment: 'Not checked' };
+  const candidate = finding.candidate || {};
+  const proof = validation?.artifacts?.invoice_validation;
+  const validationMatches = candidate.sha256 && validation?.status === 'successful' && proof?.passed === true &&
+    proof.wheel_sha256 === candidate.sha256 && proof.application === finding.application &&
+    finding.profile_sha256 && proof.profile_sha256 === finding.profile_sha256 &&
+    proof.acceptance_suite === 'trusted-invoice-v1';
+  const deployed = deployment?.artifacts?.invoice_release_evidence;
+  const deploymentMatches = validationMatches && deployment?.status === 'successful' &&
+    deployed?.release?.wheel_sha256 === candidate.sha256 && deployed?.release?.source_revision === proof.source_revision;
+  const observations = finding.observations || [finding];
+  const passed = observations.filter((item) => item.business_passed === true).length;
+  return { application: finding.application, dependency: `${finding.package} ${finding.installed_version}`,
+    assessment: finding.assessment_state || 'Unknown', advisories: (finding.advisories || []).join(', '),
+    hosts: observations.length, business: `${passed}/${observations.length} hosts passed`,
+    validation: validationMatches ? `Passed #${validation.id}` : 'No matching acceptance',
+    deployment: deploymentMatches ? `Succeeded #${deployment.id}` : 'No matching deployment',
+    validationDuration: validationMatches ? `${validation.elapsed} seconds` : 'Not measured' };
+}
+async function remediation() {
+  if (!['invoice', 'both'].includes(settings().scenario)) return { assessment: 'Not selected' };
+  const latest = async (filter) => {
+    const list = await aapGet(`/api/controller/v2/jobs/?${filter}&order_by=-id&page_size=1`);
+    return list.results[0] ? aapGet(`/api/controller/v2/jobs/${list.results[0].id}/`) : null;
+  };
+  const [observed, validation, deployment] = await Promise.all([
+    latest('name=invoice_check'), latest('name=invoice_validate'),
+    latest('name=invoice_deploy'),
+  ]);
+  if (observed && observed.status !== 'successful') {
+    return { assessment: `Observation ${observed.status}`, business: 'Not verified',
+      validation: 'Not correlated', deployment: 'Not correlated' };
+  }
+  return summarizeRemediation(observed?.artifacts?.invoice_findings, validation, deployment);
+}
+
+const sources = { gitops, cluster, monitoring, aap, eda, orchestrator, remediation };
 const snapshot = {};
 let refreshing = false;
 async function refresh() {
@@ -157,7 +197,7 @@ async function refresh() {
 const server = http.createServer((req, res) => {
   if (req.method !== 'GET') { res.writeHead(405).end(); return; }
   if (req.url === '/health') { res.writeHead(200).end('ok'); return; }
-  if (req.url !== '/status' && !/^\/status\/(gitops|cluster|monitoring|aap|eda|orchestrator|environment)$/.test(req.url)) {
+  if (req.url !== '/status' && !/^\/status\/(gitops|cluster|monitoring|aap|eda|orchestrator|remediation|environment)$/.test(req.url)) {
     res.writeHead(404).end(); return;
   }
   let environment;
@@ -169,6 +209,9 @@ const server = http.createServer((req, res) => {
   const section = req.url.split('/')[2];
   res.end(JSON.stringify(section ? (data[section] || { error: 'Collecting data' }) : data));
 });
-server.listen(3001, '127.0.0.1');
-refresh();
-setInterval(refresh, 30000);
+if (require.main === module) {
+  server.listen(3001, '127.0.0.1');
+  refresh();
+  setInterval(refresh, 30000);
+}
+module.exports = { summarizeRemediation };

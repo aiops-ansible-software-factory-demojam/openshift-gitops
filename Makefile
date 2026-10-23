@@ -1,10 +1,10 @@
 .DEFAULT_GOAL := help
-export ISSUE QUESTION
+export ISSUE
 ifneq ($(strip $(BACKEND)),)
 export DEMO_BACKEND := $(BACKEND)
 endif
 
-.PHONY: help help-all preflight bootstrap teardown teardown-keep-aap identity homepage-refresh model-config sandbox-build demo-hydrate demo render demo-reset aap-configure aap-sync ao-configure ao-llm-test ao-aap-run webapp-create webapp-nginx webapp-delete webapp-verify
+.PHONY: help help-all preflight bootstrap teardown teardown-keep-aap identity homepage-refresh model-config sandbox-build demo-hydrate demo render demo-reset aap-configure aap-sync ao-configure webapp-create webapp-nginx webapp-delete webapp-verify
 
 help:
 	@printf '%s\n' \
@@ -14,6 +14,7 @@ help:
 	  '  make demo ISSUE=N    Start the issue-to-PR demo' \
 	  '  make demo-reset      Reset disposable demo state' \
 	  '  make webapp-verify   Check webapp health' \
+	  '  make invoice-inputs Check inputs for the Lightwell invoice scenario' \
 	  '' \
 	  '  make help-all        Show all maintenance commands' \
 	  '' \
@@ -44,8 +45,6 @@ help-all:
 	  'make aap-configure Bootstrap/refresh AAP credentials, license and configuration' \
 	  'make aap-sync      Apply seeded config-as-code through AAP' \
 	  'make ao-configure  Reconcile AO integrations and publish all demo workflows' \
-	  'make ao-llm-test   Ask the selected model a question and print its answer; optional QUESTION' \
-	  'make ao-aap-run    Dispatch the existing nginx job through AO and wait for its result' \
 	  'make demo-reset    Reset disposable demo repos, sessions, VMs/disks and AAP config' \
 	  'Cluster commands load .env in their scripts; see README for inputs and setup.'
 
@@ -113,13 +112,6 @@ aap-configure:
 ao-configure:
 	bash bootstrap/bootstrap.sh ao-configure
 
-ao-llm-test:
-	@input=$$(jq -cn --arg question "$${QUESTION:-What is the capital of France? Answer in one sentence.}" '{question:$$question}'); \
-	bash bootstrap/bootstrap.sh ao-run llm-question "$$input"
-
-ao-aap-run:
-	bash bootstrap/bootstrap.sh ao-run aap-webapp-nginx
-
 demo-reset:
 	bash bootstrap/bootstrap.sh demo-reset --confirm-demo-reset
 
@@ -132,3 +124,42 @@ render:
 		echo "Rendering $$app"; \
 		kustomize build --enable-helm --helm-kube-version v1.31.0 "$$app" > ".rendered/$$(basename "$$app").yaml" || exit 1; \
 	done
+
+.PHONY: invoice-foundation invoice-publish invoice-inputs invoice-material invoice-discover invoice-configure invoice-baseline invoice-trigger invoice-protect invoice-validate invoice-promote invoice-verify
+invoice-foundation:
+	bash bootstrap/bootstrap.sh invoice foundation --backend aws
+invoice-publish:
+	bash bootstrap/bootstrap.sh invoice publish
+invoice-inputs:
+	bash bootstrap/bootstrap.sh invoice inputs
+invoice-material:
+	bash bootstrap/bootstrap.sh invoice material
+invoice-discover:
+	bash bootstrap/bootstrap.sh invoice discover
+invoice-configure:
+	bash bootstrap/bootstrap.sh invoice configure
+invoice-baseline:
+	bash bootstrap/bootstrap.sh invoice baseline
+invoice-trigger:
+	bash bootstrap/bootstrap.sh invoice trigger
+invoice-protect:
+	bash bootstrap/bootstrap.sh invoice protect
+invoice-validate:
+	@test -n "$(SHA)" || { echo 'Usage: make invoice-validate SHA=<published-head-sha>'; exit 2; }
+	bash bootstrap/bootstrap.sh invoice validate "$(SHA)"
+invoice-promote:
+	@test -n "$(PR)" -a -n "$(JOB)" || { echo 'Usage: make invoice-promote PR=<merged-pr> JOB=<validation-job>'; exit 2; }
+	bash bootstrap/bootstrap.sh invoice promote "$(PR)" "$(JOB)"
+invoice-verify:
+	bash bootstrap/bootstrap.sh invoice verify
+
+.PHONY: pythonapp-create pythonapp-delete pythonapp-verify applications-upgrade
+pythonapp-create:
+	bash bootstrap/bootstrap.sh pythonapp create
+pythonapp-delete:
+	bash bootstrap/bootstrap.sh pythonapp delete
+pythonapp-verify:
+	bash bootstrap/bootstrap.sh pythonapp verify
+applications-upgrade:
+	bash bootstrap/bootstrap.sh invoice split-prepare
+	bash bootstrap/bootstrap.sh
