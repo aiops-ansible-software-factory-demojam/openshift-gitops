@@ -3944,13 +3944,32 @@ demo_homepage_reconcile() (
 
 # Invoice lifecycle stays in this entry point; application code belongs to the
 # seeded collection and AAP configuration belongs to demojam-ansible.
+# Use the collection's standard Ansible tasks for local bootstrap and AAP discovery.
+demo_invoice_discover_material() (
+  local input=$1 output=$2 source python collection_path
+  source=$(demo_source_checkout ansible-collection-demo.pythonapp) || return
+  python="$demo_repo_root/.rendered/lightwell-discovery-venv/bin/python"
+  if [[ ! -x $python ]]; then
+    python3 -m venv "${python%/bin/python}"
+    "$python" -m pip install --disable-pip-version-check 'ansible-core==2.16.19' >/dev/null
+  fi
+  collection_path="${output%/*}/collections"
+  mkdir -p "$collection_path/ansible_collections/demo"
+  ln -s "$source" "$collection_path/ansible_collections/demo/pythonapp"
+  ANSIBLE_COLLECTIONS_PATH="$collection_path" INVOICE_MATERIAL_FILE="$input" \
+    "${python%python}ansible-playbook" -i localhost, "$source/playbooks/discover-lightwell.yml" \
+    -e "lightwell_material_output=$output"
+)
+
 demo_invoice_material() (
   set +x
   umask 077
-  local invoice_dir="$demo_repo_root/.rendered/invoice"
+  local invoice_dir="$demo_repo_root/.rendered/invoice" preparation
   mkdir -p "$invoice_dir"
+  preparation=$(mktemp -d "$invoice_dir/prepare.XXXXXX")
+  trap 'find "$preparation" -type l -delete; find "$preparation" -type f -delete; find "$preparation" -depth -type d -empty -delete' EXIT
   export DEMO_REPO_ROOT=$demo_repo_root
-  python3 - "$invoice_dir" <<'PY' || return 1
+  python3 - "$preparation" <<'PY' || return 1
 import hashlib, json, os, re, sys
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -3973,8 +3992,6 @@ if artifact:
     selected = json.loads(Path(artifact).read_text())
     assert selected['channel'] == 'lightwell'
     assert re.sub(r'[-_.]+', '-', selected['package']).lower() == re.sub(r'[-_.]+', '-', profile['package']['name']).lower()
-    fixed = {a['id'] for a in profile['advisories'] if selected['version'] in a['fixed_versions']}
-    assert fixed == {a['id'] for a in profile['advisories']} and set(selected['cves']) == fixed, 'Selected version needs a complete approved advisory mapping'
     wheel_parts = selected['filename'][:-4].split('-')
     assert len(wheel_parts) in (5, 6) and wheel_parts[1] == selected['version']
     assert any(f'{py}-{abi}-{platform}' in profile['runtime']['wheel_tags'] for py in wheel_parts[-3].split('.') for abi in wheel_parts[-2].split('.') for platform in wheel_parts[-1].split('.')), 'Incompatible target wheel'
@@ -3985,14 +4002,24 @@ if artifact:
         parsed = urlsplit(selected[name])
         assert parsed.scheme == 'https' and parsed.hostname == 'packages.redhat.com'
         assert not parsed.username and not parsed.password and not parsed.query
+    material['lightwell'] = selected
+if material['repository_username'] or material['repository_token'] or artifact:
     assert key_path and material['repository_username'] and material['repository_token']
     key = Path(key_path).read_bytes()
     assert hashlib.sha256(key).hexdigest() == material['signing_key_sha256'], 'Signing key does not match its independent pin'
-    material['lightwell'] = selected
-(output / 'material.json').write_text(json.dumps(material))
+(output / 'input.json').write_text(json.dumps(material))
 (output / 'signing-key.pem').write_bytes(key)
-print('Invoice material prepared; Lightwell configured:', bool(material['lightwell']))
+
 PY
+  if [[ -n ${INVOICE_LIGHTWELL_USERNAME:-} || -n ${INVOICE_LIGHTWELL_TOKEN:-} ]]; then
+    demo_invoice_discover_material "$preparation/input.json" "$preparation/material.json" || return
+  else
+    cp "$preparation/input.json" "$preparation/material.json"
+  fi
+  # Publish only a complete successful preparation, never partial discovery output.
+  cp "$preparation/signing-key.pem" "$invoice_dir/signing-key.pem" || return
+  mv "$preparation/material.json" "$invoice_dir/material.json" || return
+  printf 'Invoice material prepared; Lightwell configured: %s\n' "$(jq -r '.lightwell | length > 0' "$invoice_dir/material.json")"
   for namespace in ansible-automation-platform omnigent-sandboxes; do
     oc create namespace "$namespace" --dry-run=client -o yaml | oc apply -f - >/dev/null
     oc -n "$namespace" create secret generic invoice-artifacts \

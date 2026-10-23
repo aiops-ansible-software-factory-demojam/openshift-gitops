@@ -16,18 +16,18 @@
     "python": "3.12",
     "wheel_tags": [
       "py3-none-any"
+    ],
+    "requires_python": [
+      ">=3.6"
     ]
   },
   "advisories": [
     {
       "id": "CVE-2023-36464",
       "source": "https://github.com/py-pdf/pypdf/security/advisories/GHSA-4vvm-4w3v-6mr8",
-      "fix_evidence": "Operator-approved Lightwell selection; confirm against the selected Red Hat artifact and advisory before changing this mapping.",
+      "fix_evidence": "Discover remediated versions from the pinned public Lightwell OSV feed.",
       "affected_versions": [
         "3.0.1"
-      ],
-      "fixed_versions": [
-        "3.0.1+rhlw.1"
       ]
     }
   ],

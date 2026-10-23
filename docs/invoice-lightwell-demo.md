@@ -107,8 +107,7 @@ The implementation spans four sibling repositories:
 
 The reusable `python_application` role handles artifact identity, pinned signing
 trust, provenance, isolated release installation, activation and rollback. It
-contains no PyPDF2 identity, CVE ID or baseline digest. The `invoice_portal`
-wrapper supplies its actual application source and business probe.
+contains no PyPDF2 identity, CVE ID or baseline digest. The application vars file supplies its source and business probe directly.
 
 The seeded `releases/invoice.json` locks the baseline. Each incident asks the
 agent to update that release manifest to the exact operator-approved Lightwell
@@ -145,14 +144,30 @@ results for every target host. Advisory attribution comes from the profile,
 not from a timeout. An unknown version is unclassified, not proven fixed.
 Verification additionally requires the exact approved version and artifact.
 
-The AO detection workflow runs AAP catalog discovery before ticket reconciliation.
-Run `make invoice-discover BACKEND=aws` after configuration to separately query the package's
-Lightwell simple index using read credentials. The job returns compatible wheel
-candidates and whether each has an approved advisory mapping. It never silently
-selects "latest". An operator chooses a candidate, confirms its advisory mapping
-and supplies the existing artifact/provenance descriptor before material refresh
-and testing. Production uses the pinned selection, not a new catalog resolution.
-A signature proves artifact provenance; it does not establish CVE coverage.
+Bootstrap and `invoice_discover` use the collection's `lightwell` role, composed
+only of built-in Ansible modules. The role downloads an immutable revision of
+Lightwell's public OSV advisory feed and matches the package, backport base
+version and complete requested CVE set. It then requests the authenticated
+Python index with `Accept: application/vnd.pypi.simple.v1+json` and joins the
+vendor fix version to a non-yanked compatible wheel, SHA256 and provenance URL.
+The profile supplies allowed wheel tags and `requires_python` strings for the
+configured runtime; unrecognized runtime requirements are not selected.
+
+One unambiguous eligible artifact is selected. Multiple fixes stop preparation
+unless `INVOICE_LIGHTWELL_ARTIFACT_FILE` pins the exact version, filename and
+hash. No vendor-backed fix yields an empty selection and no authoring dispatch.
+New preparation resolves the current vendor feed commit before downloading it;
+the selected artifact records that immutable `advisory_revision`. AAP repeats
+discovery using the prepared snapshot. An explicit role revision can pin a
+reviewed snapshot instead. No console API credentials or production OSV
+ingestion are required.
+
+Bootstrap writes the discovered selection and vendor-backed fixed versions to
+private prepared material only after success, then distributes that same
+immutable selection to AAP and the sandbox. AAP repeats read-only discovery
+against the prepared pin; it never changes production's approved artifact by
+resolving "latest". Artifact provenance verification, separately pinned signing
+trust, release-lock assertions and mandatory RHEL acceptance remain independent.
 
 Incident identity combines application, environment, normalized package and advisory
 set. Ticket reconciliation paginates through history, refreshes an existing open
@@ -225,14 +240,14 @@ The scripts source trusted Bash configuration; secret values stay outside Git.
 | AWS bootstrap keys | An authorized provisioning identity. Bootstrap creates separate scoped application and test identities. |
 | `AAP_LICENSE_FILE` | A real AAP subscription manifest ZIP. |
 | OpenShift AI fields | HTTPS API base URL, model name, and token. Both AO and Omnigent can override these independently. |
-| `INVOICE_LIGHTWELL_ARTIFACT_FILE` | JSON descriptor for the actual approved Lightwell wheel matching the application profile. |
+| `INVOICE_LIGHTWELL_ARTIFACT_FILE` | Optional approval pin: exact discovered Lightwell wheel version, filename and SHA256. Leave empty for an unambiguous vendor-advised fix. |
 | Lightwell username and token | A dedicated repository-read identity. |
 | `INVOICE_SIGNING_KEY_FILE` | Trusted public Red Hat signing key in PEM format. |
 | `INVOICE_SIGNING_KEY_SHA256` | Independently checked SHA256 of that public-key file. |
 | `INVOICE_TEST_EE_IMAGE` | An immutable `@sha256:` execution image, or leave empty to resolve the successfully built sandbox image. |
 
-The Lightwell descriptor uses this structure. Replace every placeholder with
-catalog metadata; obtain the distribution version from the actual wheel.
+The optional approval descriptor uses this structure. Ansible discovers these
+values when no descriptor is supplied; a supplied descriptor must match discovery.
 
 ```json
 {
