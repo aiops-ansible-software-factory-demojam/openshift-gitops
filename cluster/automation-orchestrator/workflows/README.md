@@ -215,3 +215,12 @@ incident. Publishing changes does not exercise the flow or approve production.
 The legacy `invoice-validate`, `invoice-promote` and `invoice-verify` commands
 remain operator recovery paths. Inspect existing branch/session/job ownership
 before recovery; do not redeliver an incident to create a second rollout.
+
+The invoice detection workflow now routes independent CVE evidence through
+`invoice_route`: approved application fix, approved temporary service containment,
+deferred review or manual security review. Only the application-fix branch creates
+an EDA authoring ticket. Other affected findings use a distinct security response
+marker and retain an open review. Containment launches the native AAP
+`invoice_contain` workflow, with trusted checks on both sides of its human approval.
+The coding-agent session and existing remediation trigger are unchanged. See the
+[CVE response routing policy](../../../docs/invoice-lightwell-demo.md#cve-response-routing).
