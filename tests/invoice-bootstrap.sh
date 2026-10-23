@@ -58,6 +58,12 @@ echo 'Invoice bootstrap checks passed: AWS manifest/credential boundaries, OpenS
   export INVOICE_LIGHTWELL_ARTIFACT_FILE="$scratch/artifact.json"
   export REMEDIATION_PROFILE_FILE='' REMEDIATION_BASELINE_FILE=''
   oc() { return 0; }
+  # Discovery behavior is exercised with real Ansible in the collection tests.
+  # Here check staging and publication without network or cluster writes.
+  demo_invoice_discover_material() {
+    [[ ${MOCK_DISCOVERY_FAIL:-false} == false ]] || return 1
+    cp "$1" "$2"
+  }
   for package in PyPDF2 sqlparse; do
     python3 - "$demo_repo_root" "$INVOICE_LIGHTWELL_ARTIFACT_FILE" "$package" <<'PY'
 import json, sys
@@ -80,14 +86,12 @@ PY
     jq -e --arg package "$package" '.profile.package.name == $package and .lightwell.package == $package' \
       "$demo_repo_root/.rendered/invoice/material.json" >/dev/null
   done
-  python3 - "$INVOICE_LIGHTWELL_ARTIFACT_FILE" <<'PY'
-import json,sys
-from pathlib import Path
-path=Path(sys.argv[1]); value=json.loads(path.read_text()); value['version']='unapproved';path.write_text(json.dumps(value))
-PY
+  before=$(sha256sum "$demo_repo_root/.rendered/invoice/material.json")
+  export MOCK_DISCOVERY_FAIL=true
   if demo_invoice_material 2>/dev/null; then
-    echo 'Material accepted an unapproved advisory/version mapping.' >&2
+    echo 'Material was published after failed discovery.' >&2
     exit 1
   fi
+  [[ $(sha256sum "$demo_repo_root/.rendered/invoice/material.json") == "$before" ]]
 )
-echo 'Profile-driven material accepts two packages and rejects an unapproved fix.'
+echo 'Material staging accepts two application profiles and does not overwrite material on failed discovery.'
