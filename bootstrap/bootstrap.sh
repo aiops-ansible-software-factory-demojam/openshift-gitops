@@ -1744,12 +1744,15 @@ demo_verify_goldenpaths() (
 
 demo_ao_workflow_definition() {
   yq -c . "$1" | jq -c --arg credential_id "$2" --arg agent_id "$3" \
+    --slurpfile layouts "$demo_repo_root/cluster/automation-orchestrator/workflows/session-sharing-layouts.json" \
     --slurpfile users "$(demo_identity_users_file)" '
+    .name as $workflow_name |
     .nodes |= map(if .id == "authenticate_omnigent" then .parameters.credential_id=$credential_id
       elif .id == "create_session" then .parameters.body.agent_id=$agent_id else . end) |
     ([$users[0].users[] | select(.enabled != false)] | to_entries | map({
       id:("share_session_" + (.key | tostring)),name:("Share session with " + .value.username),type:"http_request",
-      position:{x:(900 + .key * 300),y:600},parameters:{method:"PUT",
+      position:($layouts[0][$workflow_name]["share_session_" + (.key | tostring)] //
+        {x:(900 + .key * 300),y:600}),parameters:{method:"PUT",
         url:"http://omnigent.omnigent.svc:8000/v1/sessions/${create_session.body.id}/permissions",
         headers:{"Content-Type":"application/json",Authorization:"Bearer ${authenticate_omnigent.body.access_token}"},
         body:{user_id:.value.email,level:1}},settings:{timeout:30,retry_policy:{max_retries:0}}

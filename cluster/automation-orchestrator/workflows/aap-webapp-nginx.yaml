@@ -14,8 +14,8 @@ nodes:
     name: Run the webapp nginx job
     type: aap_job_template
     position:
-      x: 300
-      y: 300
+      x: 318.0
+      y: 249.0
     parameters:
       organization_name: demo
       job_template_name: webapp_nginx

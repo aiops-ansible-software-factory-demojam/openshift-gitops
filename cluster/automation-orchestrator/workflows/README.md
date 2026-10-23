@@ -5,6 +5,20 @@ Bootstrap publishes them; `make ao-configure` validates and creates or updates e
 its `name`. An unchanged definition keeps its version. Runtime IDs and
 credentials are supplied during configuration; secrets never appear in the YAML.
 
+Node and trigger `position` values preserve the demo walkthrough layout from the
+AO editor. Copy layout changes back into these definitions before reconciliation.
+Bootstrap generates session-sharing steps from the enabled demo users; their
+saved positions live in `session-sharing-layouts.json`, keyed by workflow name
+and step ID. Additional sharing steps use the default layout until customized.
+Keep runtime credentials, integration IDs and user identities out of layout data.
+
+Declare referenced webhook fields in each EDA trigger's `input_schema`, just as
+for manual triggers. The AO editor checks `${trigger.field}` references against
+this schema before publication, even when backend validation accepts the same
+workflow without it. The incident workflows require `issue_number`; the audit
+workflow requires the `alert_payload` object. Keep their existing webhook paths
+and authorized service-account binding when editing the schema.
+
 Run the commands below from the repository root after
 [bootstrap](../../../README.md).
 
