@@ -1435,22 +1435,7 @@ ASKPASS
         "$(jq -n --arg permission "$collaborator_permission" '{permission:$permission}')" >/dev/null
     done < <(jq -r '.collaborators[]' <<< "$repo")
   done < <(jq -c --arg selected "$selected_repo" '.repositories[] | select($selected == "" or .name == $selected)' "$config")
-  echo 'Seed complete. Create the trigger issue after the agent integration is ready.'
-)
-
-demo_forgejo_issue() (
-  root="$demo_repo_root/cluster/forgejo"
-  repo=demo-owner/ansible-collection-demo.webapp
-  title='Add a test line to the README'
-  issues=$(forgejo_api GET "/repos/$repo/issues?state=all&limit=100")
-  existing=$(jq -r --arg title "$title" \
-    '.[] | select(.title == $title and .pull_request == null) | .html_url' \
-    <<<"$issues" | head -1)
-  if [[ -n $existing ]]; then
-    printf '%s\n' "$existing"
-  else
-    forgejo_api POST "/repos/$repo/issues" "$(jq -n --arg title "$title" --rawfile body "$root/fixtures/readme-test-issue.md" '{title:$title,body:$body}')" | jq -r .html_url
-  fi
+  echo 'Seed complete. Detection workflows create the incident issues.'
 )
 
 demo_forgejo_lifecycle() (
@@ -1601,11 +1586,6 @@ demo_hydrate() (
   fi
   demo_identity_forgejo
 
-  FORGEJO_TOKEN=$(<"$state_dir/admin-token")
-  export FORGEJO_TOKEN
-  issue_url=$(demo_forgejo_issue)
-  unset FORGEJO_TOKEN
-
   umask 077
   scratch=$(mktemp -d)
   trap 'find "$scratch" -type f -delete; rmdir "$scratch"' EXIT
@@ -1639,7 +1619,7 @@ demo_hydrate() (
     oc -n rhdh rollout status deployment/backstage-rhdh-developer-hub --timeout=15m
   fi
 
-  printf 'Forgejo demo ready: %s\n' "$issue_url"
+  printf 'Forgejo repositories refreshed: %s\n' "$FORGEJO_URL"
   echo 'New automation-developer sandboxes and Backstage receive current Forgejo credentials.'
 )
 
@@ -2127,9 +2107,6 @@ demo_ao_run() {
         jq --arg status "$status" '{status:$status,results:[.resources[]? |
           select(.activity_name == "create_session") |
           {node:.activity_name,status,output:.output_data}]}' "$ao_response"
-        if [[ $name == omnigent-dispatch ]]; then
-          echo 'The agent continues asynchronously. Inspect the session for its PR URL.'
-        fi
         return ;;
       failed|cancelled|canceled|timed_out)
         code=$(ao_curl GET "$base_url/executions/$execution/activities?limit=100" -H "$auth_header")
@@ -2143,11 +2120,31 @@ demo_ao_run() {
   demo_die "AO execution $execution is still $status; inspect it before another launch."
 }
 
-demo_dispatch_issue() {
-  local issue=${1:-}
-  [[ $# == 1 && $issue =~ ^[1-9][0-9]*$ ]] || demo_die 'Pass a positive Forgejo issue number.'
-  demo_verify_cluster
-  demo_ao_reconcile run omnigent-dispatch "$(jq -cn --argjson issue "$issue" '{issue_number:$issue}')"
+demo_ao_retire_dispatch() {
+  local code matches workflow_id has_history
+  code=$(ao_curl GET "$base_url/workflows?limit=100" -H "$auth_header")
+  ao_require_json 'find retired manual workflow' "$code"
+  jq -e '(.next // null) == null' "$ao_response" >/dev/null ||
+    demo_die 'Workflow list is paginated; inspect the retired workflow before cleanup.'
+  matches=$(jq -c '[.resources[] | select(.name == "omnigent-dispatch" and .is_builtin == false)]' "$ao_response")
+  [[ $(jq length <<<"$matches") -le 1 ]] || demo_die 'Multiple retired manual workflows require inspection.'
+  [[ $matches != '[]' ]] || return 0
+  workflow_id=$(jq -er '.[0].id' <<<"$matches")
+  if [[ $(jq -r '.[0].is_enabled' <<<"$matches") != false ]]; then
+    code=$(ao_curl PATCH "$base_url/workflows/$workflow_id" -H "$auth_header" \
+      -H 'Content-Type: application/json' --data-binary '{"is_enabled":false}')
+    ao_require_json 'disable retired manual workflow' "$code"
+  fi
+  code=$(ao_curl GET "$base_url/executions?workflow_id=$workflow_id&limit=1" -H "$auth_header")
+  ao_require_json 'inspect retired workflow history' "$code"
+  has_history=$(jq -r '.resources | length > 0' "$ao_response")
+  if [[ $has_history == true ]]; then
+    echo 'Retired manual dispatch workflow; execution history retained.'
+  else
+    code=$(ao_curl DELETE "$base_url/workflows/$workflow_id" -H "$auth_header")
+    [[ $code == 204 ]] || ao_fail_response 'remove retired manual workflow' "$code"
+    echo 'Removed unused manual dispatch workflow.'
+  fi
 }
 
 demo_ao_reconcile() (
@@ -2494,7 +2491,7 @@ demo_ao_reconcile() (
   for workflow_file in "$script_dir"/workflows/*.yaml; do
     workflow_name=$(yq -er '.name' "$workflow_file")
     [[ $workflow_name != invoice-* ]] || demo_invoice_enabled || continue
-    if [[ $workflow_name == omnigent-dispatch || $workflow_name == omnigent-remediation || $workflow_name == invoice-security-remediation ]]; then
+    if [[ $workflow_name == omnigent-remediation || $workflow_name == invoice-security-remediation ]]; then
       workflow_definition=$(demo_ao_workflow_definition "$workflow_file" "$credential_id" "$agent_id")
     else
       workflow_definition=$(yq -c . "$workflow_file" | jq -c \
@@ -2581,6 +2578,7 @@ demo_ao_reconcile() (
     fi
     printf 'Reconciled workflow %s version %s\n' "$workflow_name" "$workflow_version"
   done
+  demo_ao_retire_dispatch
 )
 
 # -----------------------------------------------------------------------------
@@ -4471,7 +4469,6 @@ HELP
     hydrate) demo_hydrate hydrate ;;
     forgejo-reset) demo_hydrate reset "$@" ;;
     reconcile-workflow|ao-configure) demo_verify_cluster; demo_ao_reconcile ;;
-    dispatch-issue) demo_dispatch_issue "$@" ;;
     ao-run) [[ $# -ge 1 && $# -le 2 ]] || demo_die 'ao-run requires WORKFLOW [INPUT_JSON]'; demo_verify_cluster; demo_ao_reconcile run "$@" ;;
     aap-configure)
       demo_aap_configure
@@ -4489,7 +4486,6 @@ HELP
     readiness) [[ $# == 1 ]] || demo_die 'readiness requires sandbox or aap'; demo_verify_cluster; demo_readiness "$@" ;;
     forgejo-seed) demo_forgejo_lifecycle seed ;;
     forgejo-repos) [[ $# -le 1 ]] || demo_die 'forgejo-repos accepts an optional repository name'; demo_forgejo_seed_repos "$@" ;;
-    forgejo-issue) demo_forgejo_issue ;;
     *) demo_die "Unknown command: $command (use --help)." ;;
   esac
 }
