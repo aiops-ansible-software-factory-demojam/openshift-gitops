@@ -407,9 +407,10 @@ Publish and hydrate source changes before protecting the recording baseline.
 5. Review the actual diff and independent evidence as a human, then approve and
    merge in Forgejo. AO observes the merge. A changed head, rejected/closed PR or
    missing main ancestry stops the flow; it never automatically merges a PR.
-6. AO calls the release configurator and launches the exported immutable AAP
-   workflow. This binds the tested source, wheel, profile and execution image,
-   with no source/variable overrides and a release-specific artifact credential.
+6. AO calls `invoice_prepare_release` and launches the reusable `invoice_promote`
+   workflow with the exact tested SCM commit and a public release contract.
+   That contract binds source, wheel, profile, material and execution image. Its reusable `invoice_deploy` job consumes the shared artifact
+   credential only after checks bind its contents to trusted acceptance.
 7. Open the AAP workflow from the AO production node and approve the production
    gate as a human. Rejection or timeout cannot deploy. The workflow never
    approves this gate automatically.
@@ -510,3 +511,23 @@ cleanup is complete.
 - [OpenCode Go models and endpoints](https://opencode.ai/docs/go/)
 - [AAP job context and source revision](https://docs.ansible.com/projects/awx/en/24.6.1/userguide/job_templates.html)
 - [Existing AWS and virtualization backend specification](specs/aws-cnv-backends.md)
+
+
+## Reusable production promotion
+
+`invoice-configure` installs the `invoice_prepare_release` and `invoice_deploy`
+job templates plus the `invoice_promote` workflow once. Each promotion launch
+uses a fresh release contract and an exact SCM commit, rather than creating
+new AAP resources. The contract binds the validation job, incident/PR, wheel,
+public artifact material, release manifest and execution image.
+
+AAP runs a trusted release check before its 30-minute human approval and again
+after approval. The latter proves the decision belongs to the same workflow
+execution. Deployment verifies the current material and canonical release lock
+against the saved contract before guest access; a credential/material change
+causes failure rather than changing what was approved. AO then verifies the
+actual guard jobs, approval, deployed source/image and business result.
+
+A new independent validation is required after upgrading from the old per-release
+path: old receipts do not contain `material_sha256`. Configuration leaves historic
+per-release AAP resources intact, and does not modify running executions.

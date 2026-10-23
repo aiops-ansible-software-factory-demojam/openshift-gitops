@@ -331,14 +331,14 @@ nodes:
     parameters:
       duration: 30
   - id: configure_release
-    name: Prepare the immutable reviewed production release
+    name: Check the reviewed release contract
     type: aap_job_template
     position:
       x: 4653.73427553304
       y: -375.3881584637728
     parameters:
       organization_name: demo
-      job_template_name: invoice_configure
+      job_template_name: invoice_prepare_release
       extra_vars:
         invoice_candidate_sha: ${read_candidate.body.head_sha}
         invoice_validation_job_id: ${validate_invoice.job_id}
@@ -356,7 +356,11 @@ nodes:
       y: -414.3546507435034
     parameters:
       organization_name: demo
-      workflow_job_template_name: ${configure_release.artifacts.invoice_promotion_workflow}
+      workflow_job_template_name: invoice_promote
+      scm_branch: ${read_candidate.body.head_sha}
+      extra_vars:
+        invoice_candidate_sha: ${read_candidate.body.head_sha}
+        invoice_release_contract: ${configure_release.artifacts.invoice_release_contract}
     settings:
       timeout: 7200
       retry_policy:
@@ -403,6 +407,7 @@ nodes:
       job_template_name: invoice_verify_deployment
       extra_vars:
         invoice_candidate_sha: ${read_candidate.body.head_sha}
+        invoice_validation_job_id: ${validate_invoice.job_id}
         invoice_approved_wheel_sha256: ${validate_invoice.artifacts.invoice_validation.wheel_sha256}
         invoice_deployment_workflow_id: ${approve_and_deploy.workflow_job_id}
     settings:
