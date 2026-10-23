@@ -1,47 +1,187 @@
 name: invoice-security-detect
-description: Collect actual invoice behavior through AAP and open a deduplicated security authoring ticket.
+description: Assess CVEs, discover Lightwell fixes and route to reviewed remediation, approved containment, deferred
+  review or manual security review.
 schema_version: 2.0.0
 triggers:
-  - id: start
-    name: Investigate invoice processing
-    type: manual_trigger
-    parameters: {}
-    position: {x: 0, y: 300}
+- id: start
+  name: Investigate invoice processing
+  type: manual_trigger
+  parameters: {}
+  position:
+    x: 0
+    y: 300
 nodes:
-  - id: check_invoice
-    name: Gather actual application and vulnerability evidence through AAP
-    type: aap_job_template
-    position: {x: 308.0, y: 238.0}
-    parameters:
-      organization_name: demo
-      job_template_name: invoice_check
-    settings:
-      timeout: 300
-      retry_policy: {max_retries: 0}
-  - id: discover_lightwell
-    name: Discover compatible Lightwell artifacts through AAP
-    type: aap_job_template
-    position: {x: 613.0, y: 238.0}
-    parameters:
-      organization_name: demo
-      job_template_name: invoice_discover
-    settings:
-      timeout: 300
-      retry_policy: {max_retries: 0}
-  - id: create_issue
-    name: Open the deduplicated security automation ticket
-    type: aap_job_template
-    position: {x: 920.0, y: 249.0}
-    parameters:
-      organization_name: demo
-      job_template_name: invoice_open_issue
-      extra_vars:
-        invoice_findings: '${check_invoice.artifacts.invoice_findings}'
-        remediation_candidates: '${discover_lightwell.artifacts.remediation_candidates}'
-    settings:
-      timeout: 300
-      retry_policy: {max_retries: 0}
+- id: check_invoice
+  name: Gather actual application and vulnerability evidence through AAP
+  type: aap_job_template
+  position:
+    x: 308.0
+    y: 238.0
+  parameters:
+    organization_name: demo
+    job_template_name: invoice_check
+  settings:
+    timeout: 300
+    retry_policy:
+      max_retries: 0
+- id: discover_lightwell
+  name: Discover compatible Lightwell artifacts through AAP
+  type: aap_job_template
+  position:
+    x: 613.0
+    y: 238.0
+  parameters:
+    organization_name: demo
+    job_template_name: invoice_discover
+  settings:
+    timeout: 300
+    retry_policy:
+      max_retries: 0
+- id: create_issue
+  name: Reconcile the release-authoring or resolved incident
+  type: aap_job_template
+  position:
+    x: 1540
+    y: 150
+  parameters:
+    organization_name: demo
+    job_template_name: invoice_open_issue
+    extra_vars:
+      invoice_findings: ${check_invoice.artifacts.invoice_findings}
+      remediation_candidates: ${discover_lightwell.artifacts.remediation_candidates}
+  settings:
+    timeout: 300
+    retry_policy:
+      max_retries: 0
+- id: route_cve
+  name: Select the evidence-backed CVE response
+  type: aap_job_template
+  position:
+    x: 920
+    y: 238
+  parameters:
+    organization_name: demo
+    job_template_name: invoice_route
+    extra_vars:
+      invoice_assessment_job_id: ${check_invoice.job_id}
+      invoice_discovery_job_id: ${discover_lightwell.job_id}
+  settings:
+    timeout: 600
+    retry_policy:
+      max_retries: 0
+- id: has_fix
+  name: Approved fix or already fixed application?
+  type: condition
+  position:
+    x: 1220
+    y: 238
+  parameters:
+    condition: ${route_cve.artifacts.invoice_response.route} == 'app_patch' or (${route_cve.artifacts.invoice_response.route}
+      == 'log_only' and ${route_cve.artifacts.invoice_response.affected} == False)
+- id: record_response
+  name: Open the unresolved containment review ticket
+  type: aap_job_template
+  position:
+    x: 2180
+    y: 440
+  parameters:
+    organization_name: demo
+    job_template_name: invoice_record_response
+    extra_vars:
+      invoice_router_job_id: ${route_cve.job_id}
+  settings:
+    timeout: 600
+    retry_policy:
+      max_retries: 0
+- id: needs_containment
+  name: High severity requires approved temporary containment?
+  type: condition
+  position:
+    x: 1860
+    y: 650
+  parameters:
+    condition: ${route_cve.artifacts.invoice_response.route} == 'contain'
+- id: contain_application
+  name: Approve temporary service shutdown and verify containment
+  type: aap_workflow_job_template
+  position:
+    x: 2500
+    y: 440
+  parameters:
+    organization_name: demo
+    workflow_job_template_name: invoice_contain
+    extra_vars:
+      invoice_router_job_id: ${route_cve.job_id}
+      invoice_response: ${route_cve.artifacts.invoice_response}
+    scm_branch: ${route_cve.artifacts.invoice_response.source_revision}
+  settings:
+    timeout: 3600
+    retry_policy:
+      max_retries: 0
+- id: manual_review
+  name: Unknown evidence or unsupported mitigation needs security review
+  type: condition
+  position:
+    x: 2180
+    y: 820
+  parameters:
+    condition: ${route_cve.artifacts.invoice_response.route} == 'manual_review'
+- id: escalate_review
+  name: Retain the manual security escalation
+  type: aap_job_template
+  position:
+    x: 2500
+    y: 740
+  parameters:
+    organization_name: demo
+    job_template_name: invoice_record_response
+    extra_vars:
+      invoice_router_job_id: ${route_cve.job_id}
+  settings:
+    timeout: 600
+    retry_policy:
+      max_retries: 0
+- id: defer_review
+  name: Retain audit evidence and the deferred review deadline
+  type: aap_job_template
+  position:
+    x: 2500
+    y: 1000
+  parameters:
+    organization_name: demo
+    job_template_name: invoice_record_response
+    extra_vars:
+      invoice_router_job_id: ${route_cve.job_id}
+  settings:
+    timeout: 600
+    retry_policy:
+      max_retries: 0
 edges:
-  - {from: start, to: check_invoice}
-  - {from: check_invoice, to: discover_lightwell}
-  - {from: discover_lightwell, to: create_issue}
+- from: start
+  to: check_invoice
+- from: check_invoice
+  to: discover_lightwell
+- from: discover_lightwell
+  to: route_cve
+- from: route_cve
+  to: has_fix
+- from: has_fix
+  to: create_issue
+  from_port: 'true'
+- from: needs_containment
+  to: manual_review
+  from_port: 'false'
+- from: manual_review
+  to: escalate_review
+  from_port: 'true'
+- from: manual_review
+  to: defer_review
+  from_port: 'false'
+- from: has_fix
+  to: needs_containment
+  from_port: 'false'
+- from: needs_containment
+  to: record_response
+  from_port: 'true'
+- from: record_response
+  to: contain_application
