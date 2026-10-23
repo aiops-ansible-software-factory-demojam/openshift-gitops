@@ -2125,9 +2125,8 @@ demo_ao_run() {
         ao_require_json 'read workflow results' "$code"
         # Do not print authentication activity outputs (including bearer tokens).
         jq --arg status "$status" '{status:$status,results:[.resources[]? |
-          select(.activity_name == "ask_model" or .activity_name == "configure_nginx" or .activity_name == "create_session") |
-          {node:.activity_name,status,output:(if .activity_name == "ask_model" then
-            .output_data.result.content // .output_data else .output_data end)}]}' "$ao_response"
+          select(.activity_name == "create_session") |
+          {node:.activity_name,status,output:.output_data}]}' "$ao_response"
         if [[ $name == omnigent-dispatch ]]; then
           echo 'The agent continues asynchronously. Inspect the session for its PR URL.'
         fi

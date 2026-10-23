@@ -1,10 +1,10 @@
 .DEFAULT_GOAL := help
-export ISSUE QUESTION
+export ISSUE
 ifneq ($(strip $(BACKEND)),)
 export DEMO_BACKEND := $(BACKEND)
 endif
 
-.PHONY: help help-all preflight bootstrap teardown teardown-keep-aap identity homepage-refresh model-config sandbox-build demo-hydrate demo render demo-reset aap-configure aap-sync ao-configure ao-llm-test ao-aap-run webapp-create webapp-nginx webapp-delete webapp-verify
+.PHONY: help help-all preflight bootstrap teardown teardown-keep-aap identity homepage-refresh model-config sandbox-build demo-hydrate demo render demo-reset aap-configure aap-sync ao-configure webapp-create webapp-nginx webapp-delete webapp-verify
 
 help:
 	@printf '%s\n' \
@@ -45,8 +45,6 @@ help-all:
 	  'make aap-configure Bootstrap/refresh AAP credentials, license and configuration' \
 	  'make aap-sync      Apply seeded config-as-code through AAP' \
 	  'make ao-configure  Reconcile AO integrations and publish all demo workflows' \
-	  'make ao-llm-test   Ask the selected model a question and print its answer; optional QUESTION' \
-	  'make ao-aap-run    Dispatch the existing nginx job through AO and wait for its result' \
 	  'make demo-reset    Reset disposable demo repos, sessions, VMs/disks and AAP config' \
 	  'Cluster commands load .env in their scripts; see README for inputs and setup.'
 
@@ -113,13 +111,6 @@ aap-configure:
 
 ao-configure:
 	bash bootstrap/bootstrap.sh ao-configure
-
-ao-llm-test:
-	@input=$$(jq -cn --arg question "$${QUESTION:-What is the capital of France? Answer in one sentence.}" '{question:$$question}'); \
-	bash bootstrap/bootstrap.sh ao-run llm-question "$$input"
-
-ao-aap-run:
-	bash bootstrap/bootstrap.sh ao-run aap-webapp-nginx
 
 demo-reset:
 	bash bootstrap/bootstrap.sh demo-reset --confirm-demo-reset
