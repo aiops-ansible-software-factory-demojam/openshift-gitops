@@ -31,6 +31,18 @@
       "source_commit": "93dc37aafa79e6c48d95427a29cee7f43ac6d6b2"
     },
     {
+      "owner": "demo-owner",
+      "name": "ansible-collection-demo.pythonapp",
+      "description": "Python dependency vulnerability remediation on a separate RHEL host",
+      "source": "https://github.com/aiops-ansible-software-factory-demojam/ansible-collection-demo.pythonapp.git",
+      "collaborators": [
+        "demo-agent",
+        "demo-reviewer"
+      ],
+      "private": false,
+      "source_branch": "main"
+    },
+    {
       "owner": "demo-agent",
       "name": "ansible-collection-template",
       "description": "Golden path source for new Ansible collections",

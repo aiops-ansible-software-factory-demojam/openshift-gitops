@@ -65,8 +65,8 @@ data:
     kind: Template
     metadata:
       name: ansible-collection-feature
-      title: Contribute to the Demo Ansible Collection
-      description: Validate an example collection issue and create its feature branch.
+      title: Contribute to a Demo Application Collection
+      description: Validate an application collection issue and create its feature branch.
       tags:
         - ansible
         - forgejo
@@ -79,6 +79,13 @@ data:
           required:
             - issue_number
           properties:
+            repository:
+              title: Application repository
+              type: string
+              default: demo-owner/ansible-collection-demo.webapp
+              enum:
+                - demo-owner/ansible-collection-demo.webapp
+                - demo-owner/ansible-collection-demo.pythonapp
             issue_number:
               title: Forgejo issue number
               type: integer
@@ -89,13 +96,13 @@ data:
           action: http:backstage:request
           input:
             method: GET
-            path: /proxy/forgejo/repos/demo-owner/ansible-collection-demo.webapp/issues/${{ parameters.issue_number }}
+            path: /proxy/forgejo/repos/${{ parameters.repository }}/issues/${{ parameters.issue_number }}
         - id: branch
           name: Create an issue branch in the collection
           action: http:backstage:request
           input:
             method: POST
-            path: /proxy/forgejo/repos/demo-owner/ansible-collection-demo.webapp/branches
+            path: /proxy/forgejo/repos/${{ parameters.repository }}/branches
             headers:
               content-type: application/json
             body:

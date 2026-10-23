@@ -72,7 +72,7 @@ release=$(jq -r .version "$root/release.json")
 jq -e '.version as $release | .gitops.ref==$release and
   (.sources|length)==3 and all(.sources[]; .ref==$release)' "$root/release.json" >/dev/null
 jq -e --slurpfile lock "$root/release.json" '
-  (.repositories|length)==3 and all(.repositories[]; . as $seed |
+  (.repositories|length)==4 and all(.repositories[] | select(.name != "ansible-collection-demo.pythonapp"); . as $seed |
     any($lock[0].sources[]; .name==$seed.name and .repository==$seed.source and
       .ref==$seed.source_branch and .commit==$seed.source_commit and (.commit|test("^[0-9a-f]{40}$"))))
   ' "$root/cluster/forgejo/seed.json" >/dev/null

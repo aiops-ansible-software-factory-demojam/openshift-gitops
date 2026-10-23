@@ -1,4 +1,19 @@
+# Two independent RHEL demo applications
+
+The AWS deployment can run both demonstrations with `DEMO_SCENARIO=both`:
+
+- `demo.webapp` owns nginx and its SELinux outage on the `webapps` host.
+- `demo.pythonapp` owns the Python invoice vulnerability on a separate enforcing `pythonapps` host.
+
+Each application has its own Forgejo/GitHub collection, inventory, EC2 purpose tag, security group, endpoint and issue routing. The management plane is shared. See [the invoice and two-application runbook](docs/invoice-lightwell-demo.md) for branch selection, setup, migration, testing and approval gates.
+
 # Demo OpenShift GitOps
+
+For the AAP and AO invoice-processing security demo using a Lightwell PyPDF2
+backport and RHEL EC2 guests, see the detailed
+[invoice setup and recording walkthrough](docs/invoice-lightwell-demo.md).
+Select `DEMO_SCENARIO=invoice` and `DEMO_BACKEND=aws`; the existing SELinux
+scenario remains the default.
 
 Set up a disposable OpenShift cluster for an Ansible software factory demo.
 The main flow takes a Forgejo issue through Automation Orchestrator (AO),
@@ -138,6 +153,12 @@ oc whoami
 make bootstrap
 ```
 
+The environment examples put required inputs first and optional overrides
+below. Fill the subscription and selected model provider, plus the AWS and
+Lightwell sections when those scenarios apply. For the AWS invoice demo, use
+[.env.invoice.example](.env.invoice.example) and the
+[invoice runbook](docs/invoice-lightwell-demo.md).
+
 For the released AWS/native MCP demo with Qwen on both consumers, follow the
 [v0.1.0-alpha.2 reproduction instructions](docs/releases/v0.1.0-alpha.2.md).
 The focused [demo environment example](.env.demo.example) selects that tag in
@@ -159,7 +180,7 @@ an accidental switch on a live installation. See the
 overrides and resource ownership.
 
 In `.env`, use the [configuration template](.env.example) to select
-the provider (`opencode-go` or `litellm`) and fill in its key, endpoint,
+the provider (`opencode-go`, `litellm`, or `openshift-ai`) and fill in its key, endpoint,
 and model. `MODEL_PROVIDER` and the provider-specific fields remain shared
 defaults. AO and Omnigent can select providers and models independently:
 

@@ -21,13 +21,14 @@ demo_load_env() {
   local -A inherited_aws=()
   for input_name in AWS_BOOTSTRAP_ACCESS_KEY_ID AWS_BOOTSTRAP_SECRET_ACCESS_KEY AWS_DEMO_ACCOUNT_ID \
     AWS_DEMO_REGION AWS_DEMO_AZ AWS_DEMO_VPC_CIDR AWS_DEMO_SSH_CIDR AWS_DEMO_HTTP_CIDR \
-    AWS_WEBAPP_INSTANCE_TYPE AWS_MOLECULE_INSTANCE_TYPE AWS_DEMO_ROOT_VOLUME_SIZE_GIB \
+    AWS_WEBAPP_INSTANCE_TYPE AWS_PYTHONAPP_INSTANCE_TYPE AWS_MOLECULE_INSTANCE_TYPE AWS_DEMO_ROOT_VOLUME_SIZE_GIB \
     AWS_RHEL9_AMI_ID AWS_RHEL10_AMI_ID; do
     [[ -z ${!input_name:-} ]] || inherited_aws[$input_name]=${!input_name}
   done
   local inherited_kubeconfig=${KUBECONFIG:-} inherited_branch=${BOOTSTRAP_BRANCH:-} original_dir=$PWD
   local inherited_template_branch=${ANSIBLE_COLLECTION_TEMPLATE_BRANCH:-}
   local inherited_collection_branch=${ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH:-}
+  local inherited_pythonapp_branch=${ANSIBLE_COLLECTION_DEMO_PYTHONAPP_BRANCH:-}
   local inherited_ansible_branch=${DEMOJAM_ANSIBLE_BRANCH:-}
   local env_file=${ENV_FILE:-$demo_repo_root/.env} had_allexport=false
   [[ $- != *a* ]] || had_allexport=true
@@ -54,11 +55,15 @@ demo_load_env() {
   export AWS_DEMO_SSH_CIDR=${AWS_DEMO_SSH_CIDR:-0.0.0.0/0}
   export AWS_DEMO_HTTP_CIDR=${AWS_DEMO_HTTP_CIDR:-0.0.0.0/0}
   export AWS_WEBAPP_INSTANCE_TYPE=${AWS_WEBAPP_INSTANCE_TYPE:-t3.medium}
+  export AWS_PYTHONAPP_INSTANCE_TYPE=${AWS_PYTHONAPP_INSTANCE_TYPE:-t3.medium}
   export AWS_MOLECULE_INSTANCE_TYPE=${AWS_MOLECULE_INSTANCE_TYPE:-t3.medium}
   export AWS_DEMO_ROOT_VOLUME_SIZE_GIB=${AWS_DEMO_ROOT_VOLUME_SIZE_GIB:-30}
   export BOOTSTRAP_BRANCH=${inherited_branch:-${BOOTSTRAP_BRANCH:-main}}
+  export DEMO_SCENARIO=${DEMO_SCENARIO:-selinux}
+  [[ $DEMO_SCENARIO == selinux || $DEMO_SCENARIO == invoice || $DEMO_SCENARIO == both ]] || demo_die 'DEMO_SCENARIO must be selinux, invoice, or both.'
   export ANSIBLE_COLLECTION_TEMPLATE_BRANCH=${inherited_template_branch:-${ANSIBLE_COLLECTION_TEMPLATE_BRANCH:-}}
   export ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH=${inherited_collection_branch:-${ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH:-}}
+  export ANSIBLE_COLLECTION_DEMO_PYTHONAPP_BRANCH=${inherited_pythonapp_branch:-${ANSIBLE_COLLECTION_DEMO_PYTHONAPP_BRANCH:-main}}
   export DEMOJAM_ANSIBLE_BRANCH=${inherited_ansible_branch:-${DEMOJAM_ANSIBLE_BRANCH:-}}
   export AAP_EE_IMAGE=${AAP_EE_IMAGE:-registry.redhat.io/ansible-automation-platform-27/ee-supported-rhel9@sha256:d97a6fc9c34132bfddf5c8f0db93a24fea67ed3db2094d15f78d7f4eba724f1f}
   export AAP_LICENSE_FILE=${AAP_LICENSE_FILE:-$demo_repo_root/aap_manifest.zip}
@@ -66,6 +71,11 @@ demo_load_env() {
   export BOOTSTRAP_REPO_URL=${BOOTSTRAP_REPO_URL:-$(git -C "$demo_repo_root" remote get-url origin)}
   [[ $BOOTSTRAP_REPO_URL =~ ^https://[a-zA-Z0-9.-]+/[a-zA-Z0-9._/-]+$ ]] ||
     demo_die 'BOOTSTRAP_REPO_URL must be a public HTTPS Git repository URL without credentials.'
+}
+
+# The Python application is optional; the nginx host remains independent.
+demo_invoice_enabled() {
+  [[ ${DEMO_SCENARIO:-selinux} == invoice || ${DEMO_SCENARIO:-selinux} == both ]]
 }
 
 # Backend selection is recorded outside disposable namespaces. A live deployment
@@ -213,8 +223,9 @@ def image(major):
 
 def policy(purpose):
     arn = 'arn:aws:ec2:' + region + ':' + account + ':'
-    owner = {'aws:ResourceTag/demojam:deployment': deployment, 'aws:ResourceTag/demojam:purpose': purpose}
-    requested = {'aws:RequestTag/demojam:deployment': deployment, 'aws:RequestTag/demojam:purpose': purpose}
+    purposes = ['webapp', 'pythonapp'] if purpose == 'application' else purpose
+    owner = {'aws:ResourceTag/demojam:deployment': deployment, 'aws:ResourceTag/demojam:purpose': purposes}
+    requested = {'aws:RequestTag/demojam:deployment': deployment, 'aws:RequestTag/demojam:purpose': purposes}
     statements = [
       {'Effect': 'Allow', 'Action': 'ec2:Describe*', 'Resource': '*', 'Condition': {'StringEquals': {'aws:RequestedRegion': region}}},
       {'Effect': 'Allow', 'Action': 'ec2:RunInstances', 'Resource': [
@@ -266,7 +277,7 @@ def cleanup(purposes):
     for purpose in purposes:
         for group in ec2.describe_security_groups(Filters=filters(purpose))['SecurityGroups']:
             owned(group)
-            if purpose == 'webapp' and action != 'teardown':
+            if purpose in ('webapp', 'pythonapp') and action != 'teardown':
                 continue
             for attempt in range(60):
                 try:
@@ -277,14 +288,14 @@ def cleanup(purposes):
                     time.sleep(5)
         for key in ec2.describe_key_pairs(Filters=filters(purpose))['KeyPairs']:
             owned(key)
-            if purpose != 'webapp' or action == 'teardown':
+            if purpose not in ('webapp', 'pythonapp') or action == 'teardown':
                 ec2.delete_key_pair(KeyPairId=key['KeyPairId'])
     print('Owned guest instances, root disks and disposable test resources cleaned up.')
 
 if action == 'preflight':
     for name in ('AWS_DEMO_VPC_CIDR', 'AWS_DEMO_SSH_CIDR', 'AWS_DEMO_HTTP_CIDR'):
         ipaddress.ip_network(env[name])
-    for name in ('AWS_WEBAPP_INSTANCE_TYPE', 'AWS_MOLECULE_INSTANCE_TYPE'):
+    for name in ('AWS_WEBAPP_INSTANCE_TYPE', 'AWS_PYTHONAPP_INSTANCE_TYPE', 'AWS_MOLECULE_INSTANCE_TYPE'):
         assert env[name] in ['t3.micro', 't3.small', 't3.medium', 't3.large', 't3.xlarge'], 'Guest type exceeds the approved allowlist'
     image('9'); image('10')
     iam.list_users(MaxItems=1)
@@ -326,7 +337,7 @@ if action in ('mcp-open', 'mcp-close'):
 
 if action in ('cleanup', 'teardown'):
     assert state_file.exists() or record, 'No deployment ownership receipt; refusing AWS cleanup'
-    cleanup(['webapp', 'molecule'])
+    cleanup(['webapp', 'pythonapp', 'molecule'])
     if action == 'teardown':
         cleanup(['molecule-network'])
         for purpose in ['aap', 'molecule']:
@@ -392,6 +403,7 @@ assert not state.get('availability_zone') or state['availability_zone'] == reque
 state['availability_zone'] = requested_az
 for field, variable in [('vpc_cidr', 'AWS_DEMO_VPC_CIDR'), ('ssh_cidr', 'AWS_DEMO_SSH_CIDR'),
                         ('http_cidr', 'AWS_DEMO_HTTP_CIDR'), ('webapp_instance_type', 'AWS_WEBAPP_INSTANCE_TYPE'),
+                        ('pythonapp_instance_type', 'AWS_PYTHONAPP_INSTANCE_TYPE'),
                         ('molecule_instance_type', 'AWS_MOLECULE_INSTANCE_TYPE'), ('root_volume_size', 'AWS_DEMO_ROOT_VOLUME_SIZE_GIB')]:
     assert not state.get(field) or str(state[field]) == env[variable], 'Saved AWS settings differ: ' + variable
     state[field] = int(env[variable]) if field == 'root_volume_size' else env[variable]
@@ -424,18 +436,21 @@ if not any(r.get('DestinationCidrBlock') == '0.0.0.0/0' for r in route['Routes']
 if not any(a.get('SubnetId') == state['subnet_id'] for a in route.get('Associations', [])):
     ec2.associate_route_table(RouteTableId=state['route_table_id'], SubnetId=state['subnet_id'])
 
-group = one(ec2.describe_security_groups(Filters=filters('webapp'))['SecurityGroups'], 'webapp security group')
-if not group:
-    result = ec2.create_security_group(GroupName='demojam-' + deployment + '-webapp', Description='Demojam monitored guest',
-        VpcId=state['vpc_id'], TagSpecifications=[{'ResourceType': 'security-group', 'Tags': tags('webapp')}])
-    group = {'GroupId': result['GroupId']}
-state['webapp_security_group_id'] = group['GroupId']; save()
 permissions = [{'IpProtocol': 'tcp', 'FromPort': port, 'ToPort': port, 'IpRanges': [{'CidrIp': cidr}]} for port, cidr in [(22, state['ssh_cidr']), (80, state['http_cidr'])]]
-try:
-    ec2.authorize_security_group_ingress(GroupId=group['GroupId'], IpPermissions=permissions)
-except ClientError as error:
-    if error.response['Error']['Code'] != 'InvalidPermission.Duplicate':
-        raise
+# Each application has its own purpose tags, security group and EC2 key name.
+for application in ['webapp', 'pythonapp']:
+    group = one(ec2.describe_security_groups(Filters=filters(application))['SecurityGroups'], application + ' security group')
+    if not group:
+        result = ec2.create_security_group(GroupName='demojam-' + deployment + '-' + application,
+            Description='Demojam ' + application + ' guest', VpcId=state['vpc_id'],
+            TagSpecifications=[{'ResourceType': 'security-group', 'Tags': tags(application)}])
+        group = {'GroupId': result['GroupId']}
+    state[application + '_security_group_id'] = group['GroupId']; save()
+    try:
+        ec2.authorize_security_group_ingress(GroupId=group['GroupId'], IpPermissions=permissions)
+    except ClientError as error:
+        if error.response['Error']['Code'] != 'InvalidPermission.Duplicate':
+            raise
 
 # The released provisioner keeps supplied groups intact. Bootstrap owns this
 # shared test group; normal demo resets retain it, and full teardown removes it.
@@ -460,14 +475,15 @@ if not private_key.exists():
     else:
         subprocess.run(['ssh-keygen', '-q', '-t', 'rsa', '-b', '4096', '-m', 'PEM', '-N', '', '-f', str(private_key)], check=True)
 public_key = Path(str(private_key) + '.pub').read_text().strip()
-key_name = 'demojam-' + deployment + '-webapp'
-key_pair = one(ec2.describe_key_pairs(Filters=[{'Name': 'key-name', 'Values': [key_name]}])['KeyPairs'], 'webapp SSH key')
-if key_pair:
-    owned(key_pair)
-else:
-    ec2.import_key_pair(KeyName=key_name, PublicKeyMaterial=public_key.encode(),
-        TagSpecifications=[{'ResourceType': 'key-pair', 'Tags': tags('webapp')}])
-state['webapp_key_name'] = key_name; save()
+for application in ['webapp', 'pythonapp']:
+    key_name = 'demojam-' + deployment + '-' + application
+    key_pair = one(ec2.describe_key_pairs(Filters=[{'Name': 'key-name', 'Values': [key_name]}])['KeyPairs'], application + ' SSH key')
+    if key_pair:
+        owned(key_pair)
+    else:
+        ec2.import_key_pair(KeyName=key_name, PublicKeyMaterial=public_key.encode(),
+            TagSpecifications=[{'ResourceType': 'key-pair', 'Tags': tags(application)}])
+    state[application + '_key_name'] = key_name; save()
 
 runtime_keys = json.loads(key_file.read_text()) if key_file.exists() else {}
 for purpose, namespace_name, secret_name in [('aap', 'ansible-automation-platform', 'demo-aws-runtime'),
@@ -479,7 +495,7 @@ for purpose, namespace_name, secret_name in [('aap', 'ansible-automation-platfor
     except iam.exceptions.NoSuchEntityException:
         iam.create_user(UserName=user, Tags=tags(purpose))
     state[purpose + '_iam_user'] = user; save()
-    document = policy('webapp' if purpose == 'aap' else 'molecule')
+    document = policy('application' if purpose == 'aap' else 'molecule')
     policy_arn = 'arn:aws:iam::' + account + ':policy/' + user
     try:
         managed = iam.get_policy(PolicyArn=policy_arn)['Policy']
@@ -601,7 +617,13 @@ demo_model_inputs() {
       model_key=${LITELLM_API_KEY:-}
       model_protocol=chat
       ;;
-    *) echo "$prefix model provider must be opencode-go or litellm." >&2; return 2 ;;
+    openshift-ai)
+      model_endpoint=${OPENSHIFT_AI_ENDPOINT:-}
+      model_name=${OPENSHIFT_AI_MODEL:-}
+      model_key=${OPENSHIFT_AI_API_KEY:-}
+      model_protocol=chat
+      ;;
+    *) echo "$prefix model provider must be opencode-go, litellm, or openshift-ai." >&2; return 2 ;;
   esac
   # Resolve overrides against the selected provider, never the other consumer.
   setting=${prefix}_MODEL; model_name=${!setting:-$model_name}
@@ -673,7 +695,13 @@ demo_manifest() {
         .cert + "\n" + .key' "$scratch/entry.json" >"$scratch/entitlement.pem" || return 2
     fi
   done <"$scratch/entries"
-  (( index > 0 )) && [[ -s $scratch/entitlement.pem ]]
+  (( index > 0 )) || return 2
+  if [[ ${DEMO_BACKEND:-cnv} == aws ]]; then
+    # EC2 RHEL guests use RHUI; AAP still needs a real subscription manifest.
+    [[ -f $scratch/entitlement.pem ]] || : >"$scratch/entitlement.pem"
+    return 0
+  fi
+  [[ -s $scratch/entitlement.pem ]]
 }
 
 demo_check() {
@@ -1068,11 +1096,13 @@ demo_model_config() (
   name: $agent_name
   prompt: |
     AO runs the Backstage feature golden path before launching you. For an
-    assigned issue, run demo-goldenpath checkout <number> to check out the
+    assigned issue, use its repository and run demo-goldenpath --repository
+    <owner/repository> checkout <number> to check out the
     existing feature/issue-<number> branch and read the issue. Read AGENTS.md.
     Make only the requested change, verify it, and review the final diff before
     committing. Write an accurate PR summary to a file outside the repository,
-    then run demo-goldenpath pr <number> --body-file <path>. Report the PR URL.
+    then run demo-goldenpath --repository <owner/repository> pr <number>
+    --body-file <path>. Report the PR URL.
     Never create the issue branch yourself or run the feature template again.
     Do not merge or push to main. Never print credentials or commit them.
   executor:
@@ -1123,9 +1153,16 @@ EOF
 
   write_agent_spec "$model_name" >"$scratch/$agent_file"
 
+  local -a invoice_environment=()
+  if demo_invoice_enabled; then
+    printf '%s' /mnt/secrets/invoice/material.json >"$scratch/invoice-material-path"
+    printf '%s' /mnt/secrets/invoice/signing-key.pem >"$scratch/invoice-key-path"
+    invoice_environment=(--from-file=INVOICE_MATERIAL_FILE="$scratch/invoice-material-path" --from-file=INVOICE_SIGNING_KEY_FILE="$scratch/invoice-key-path")
+  fi
   model_status=$(oc -n omnigent-sandboxes create secret generic omnigent-model \
     --from-file=OPENAI_API_KEY="$scratch/api-key" \
     --from-file=OPENCODE_CONFIG_CONTENT="$scratch/opencode-config.json" \
+    "${invoice_environment[@]}" \
     --dry-run=client -o yaml | oc -n omnigent-sandboxes apply -f -)
   agent_status=$(oc -n omnigent create secret generic omnigent-agent \
     --from-file="$agent_file=$scratch/$agent_file" \
@@ -1241,6 +1278,7 @@ demo_source_branch() {
   case $name in
     ansible-collection-template) branch=${ANSIBLE_COLLECTION_TEMPLATE_BRANCH:-$branch} ;;
     ansible-collection-demo.webapp) branch=${ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH:-$branch} ;;
+    ansible-collection-demo.pythonapp) branch=${ANSIBLE_COLLECTION_DEMO_PYTHONAPP_BRANCH:-$branch} ;;
     demojam-ansible) branch=${DEMOJAM_ANSIBLE_BRANCH:-$branch} ;;
   esac
   if ! git check-ref-format --branch "$branch" >/dev/null 2>&1 ||
@@ -1262,7 +1300,16 @@ demo_source_checkout() (
   branch=$(demo_source_branch "$name" "$(jq -er '.source_branch // "main"' <<< "$repo")") || return
   [[ $source =~ ^https://github.com/aiops-ansible-software-factory-demojam/[a-zA-Z0-9_.-]+\.git$ ]] ||
     demo_die 'Seed sources must be credential-free HTTPS demo GitHub repositories.'
-  resolved=$(demo_remote_revision "$source" "$branch") || return
+  local fetch_source=$source local_source=${DEMO_LOCAL_SOURCES:-}/$name
+  if [[ -n ${DEMO_LOCAL_SOURCES:-} && -d $local_source/.git ]]; then
+    [[ -z $(git -C "$local_source" status --porcelain) ]] || demo_die "Commit local source $name before publishing it."
+    [[ $(git -C "$local_source" remote get-url origin) == "$source" ]] || demo_die "Local source origin differs for $name."
+    revision=$(git -C "$local_source" rev-parse --verify "$branch^{commit}") || return
+    resolved=$(printf '%s\t%s' "$branch" "$revision")
+    fetch_source=$local_source
+  else
+    resolved=$(demo_remote_revision "$source" "$branch") || return
+  fi
   read -r source_ref revision <<<"$resolved"
   # An explicit development override can select a different ref. The release
   # default must still match its recorded commit if someone moves the tag.
@@ -1276,7 +1323,7 @@ demo_source_checkout() (
     git -C "$work" remote set-url origin "$source" || return
   fi
   # GitHub uses ghapp; disable Forgejo's askpass helper for this host.
-  GIT_ASKPASS='' git -C "$work" fetch -q --depth 1 origin "$source_ref" ||
+  GIT_ASKPASS='' git -C "$work" fetch -q --depth 1 "$fetch_source" "$source_ref" ||
     demo_die "Could not fetch GitHub source $name ref $branch."
   git -C "$work" checkout -q --detach --force FETCH_HEAD || return
   [[ $(git -C "$work" rev-parse HEAD) == "$revision" ]] ||
@@ -1380,7 +1427,12 @@ ASKPASS
       forgejo_api PATCH "/repos/$owner/$name" '{"template":true}' >/dev/null
     fi
     while IFS= read -r collaborator; do
-      forgejo_api PUT "/repos/$owner/$name/collaborators/$collaborator" '{"permission":"write"}' >/dev/null
+      local collaborator_permission=write
+      if demo_invoice_enabled && [[ $name == demojam-ansible && $collaborator == demo-agent ]]; then
+        collaborator_permission=read
+      fi
+      forgejo_api PUT "/repos/$owner/$name/collaborators/$collaborator" \
+        "$(jq -n --arg permission "$collaborator_permission" '{permission:$permission}')" >/dev/null
     done < <(jq -r '.collaborators[]' <<< "$repo")
   done < <(jq -c --arg selected "$selected_repo" '.repositories[] | select($selected == "" or .name == $selected)' "$config")
   echo 'Seed complete. Create the trigger issue after the agent integration is ready.'
@@ -1664,7 +1716,8 @@ demo_verify_goldenpaths() (
       ready=true
       for ref in template/default/ansible-collection \
         template/default/ansible-collection-feature \
-        component/default/ansible-collection-demo.webapp; do
+        component/default/ansible-collection-demo.webapp \
+        component/default/ansible-collection-demo.pythonapp; do
         if ! curl -fsS --max-time 20 -o /dev/null \
           -H "Authorization: Bearer $token" \
           "$base_url/api/catalog/entities/by-name/$ref" 2>/dev/null; then
@@ -1691,12 +1744,15 @@ demo_verify_goldenpaths() (
 
 demo_ao_workflow_definition() {
   yq -c . "$1" | jq -c --arg credential_id "$2" --arg agent_id "$3" \
+    --slurpfile layouts "$demo_repo_root/cluster/automation-orchestrator/workflows/session-sharing-layouts.json" \
     --slurpfile users "$(demo_identity_users_file)" '
+    .name as $workflow_name |
     .nodes |= map(if .id == "authenticate_omnigent" then .parameters.credential_id=$credential_id
       elif .id == "create_session" then .parameters.body.agent_id=$agent_id else . end) |
     ([$users[0].users[] | select(.enabled != false)] | to_entries | map({
       id:("share_session_" + (.key | tostring)),name:("Share session with " + .value.username),type:"http_request",
-      position:{x:(900 + .key * 300),y:600},parameters:{method:"PUT",
+      position:($layouts[0][$workflow_name]["share_session_" + (.key | tostring)] //
+        {x:(900 + .key * 300),y:600}),parameters:{method:"PUT",
         url:"http://omnigent.omnigent.svc:8000/v1/sessions/${create_session.body.id}/permissions",
         headers:{"Content-Type":"application/json",Authorization:"Bearer ${authenticate_omnigent.body.access_token}"},
         body:{user_id:.value.email,level:1}},settings:{timeout:30,retry_policy:{max_retries:0}}
@@ -1705,6 +1761,14 @@ demo_ao_workflow_definition() {
     .edges |= map(select(.from != "create_session" or .to != "send_task")) |
     (["create_session"] + ($shares | map(.id)) + ["send_task"]) as $chain |
     .edges += [range(0; ($chain | length) - 1) as $i | {from:$chain[$i],to:$chain[$i+1]}]'
+}
+
+# Bind both native AAP execution node types, including authoring workflows.
+demo_ao_bind_aap() {
+  jq -c --arg credential "$1" --arg integration "$2" '
+    .nodes |= map(if (.type == "aap_job_template" or .type == "aap_workflow_job_template") then
+      .parameters.credential_id=$credential | .parameters.integration_id=$integration
+    else . end)'
 }
 
 # These helpers share the authenticated connection and private response file in
@@ -2061,9 +2125,8 @@ demo_ao_run() {
         ao_require_json 'read workflow results' "$code"
         # Do not print authentication activity outputs (including bearer tokens).
         jq --arg status "$status" '{status:$status,results:[.resources[]? |
-          select(.activity_name == "ask_model" or .activity_name == "configure_nginx" or .activity_name == "create_session") |
-          {node:.activity_name,status,output:(if .activity_name == "ask_model" then
-            .output_data.result.content // .output_data else .output_data end)}]}' "$ao_response"
+          select(.activity_name == "create_session") |
+          {node:.activity_name,status,output:.output_data}]}' "$ao_response"
         if [[ $name == omnigent-dispatch ]]; then
           echo 'The agent continues asynchronously. Inspect the session for its PR URL.'
         fi
@@ -2430,7 +2493,8 @@ demo_ao_reconcile() (
   # Both agent workflows need the machine credential and user-sharing nodes.
   for workflow_file in "$script_dir"/workflows/*.yaml; do
     workflow_name=$(yq -er '.name' "$workflow_file")
-    if [[ $workflow_name == omnigent-dispatch || $workflow_name == omnigent-remediation ]]; then
+    [[ $workflow_name != invoice-* ]] || demo_invoice_enabled || continue
+    if [[ $workflow_name == omnigent-dispatch || $workflow_name == omnigent-remediation || $workflow_name == invoice-security-remediation ]]; then
       workflow_definition=$(demo_ao_workflow_definition "$workflow_file" "$credential_id" "$agent_id")
     else
       workflow_definition=$(yq -c . "$workflow_file" | jq -c \
@@ -2444,6 +2508,7 @@ demo_ao_reconcile() (
           .parameters.credential_id=$aap_credential | .parameters.integration_id=$aap_integration
         else . end)')
     fi
+    workflow_definition=$(demo_ao_bind_aap "$aap_credential_id" "$aap_integration_id" <<<"$workflow_definition")
     workflow_definition=$(jq -c --arg eda_account "$eda_service_account_id" '
       .triggers |= map(if .type == "eda_trigger" then
         .parameters.authorized_service_account_ids=[$eda_account]
@@ -2722,7 +2787,6 @@ demo_forgejo_webhook_configure() (
   state_dir=${FORGEJO_STATE_DIR:-$demo_repo_root/cluster/forgejo/.state/$domain}
   FORGEJO_URL="https://$(oc -n forgejo get route forgejo -o jsonpath='{.status.ingress[0].host}')"
   FORGEJO_TOKEN=$(<"$state_dir/admin-token")
-  repository=demo-owner/ansible-collection-demo.webapp
   oc -n forgejo get secret forgejo-eda-webhook -o json |
     jq '.data | map_values(@base64d)' >"$scratch/webhook.json"
   # Forgejo encrypts authorization_header in its database. Never print API hook
@@ -2730,6 +2794,7 @@ demo_forgejo_webhook_configure() (
   payload=$(jq '{type:"forgejo",active:true,events:["issues"],
     config:{url:.url,content_type:"json",http_method:"POST"},
     authorization_header:("Bearer " + .token)}' "$scratch/webhook.json")
+  for repository in demo-owner/ansible-collection-demo.webapp demo-owner/ansible-collection-demo.pythonapp; do
   forgejo_api GET "/repos/$repository/hooks?limit=100" >"$scratch/hooks.json"
   hook_id=$(jq -r --slurpfile desired "$scratch/webhook.json" \
     '.[] | select(.type == "forgejo" and .config.url == $desired[0].url) | .id' "$scratch/hooks.json")
@@ -2739,12 +2804,13 @@ demo_forgejo_webhook_configure() (
   else
     forgejo_api POST "/repos/$repository/hooks" "$payload" >/dev/null
   fi
-  echo 'Forgejo issue webhook is connected to the EDA remediation listener.'
+  done
+  echo 'Both application repositories have authenticated EDA issue webhooks.'
 )
 
 aap_credentials() {
   local namespace=ansible-automation-platform org config galaxy community oidc_issuer
-  demo_manifest "$aap_scratch" || demo_die 'The subscription ZIP must contain valid RHEL entitlement material.'
+  demo_manifest "$aap_scratch" || demo_die 'Supply a valid subscription ZIP; CNV also requires its RHEL entitlement material.'
 
   # Persistent token and SSH identity survive ordinary reruns and demo resets.
   cat <<'YAML' | oc -n "$namespace" apply -f -
@@ -2796,7 +2862,7 @@ YAML
   org=$(aap_upsert organizations/ demo '{"description":"Disposable automation demo"}' | jq -er .id)
   # AAP forbids changing the schema of a credential type that is already in use.
   # Version it so aap_upsert migrates the dispatch credential and reattaches it.
-  config=$(aap_upsert credential_types/ 'Demo AAP configuration v6' \
+  config=$(aap_upsert credential_types/ 'Demo AAP configuration v7' \
     "$(yq . "$demo_repo_root/bootstrap/aap-dispatch-credential-type.yaml")" | jq -er .id)
   oc -n demojam-keycloak get secret identity-credentials \
     -o go-template='{{index .data "aap-client-secret" | base64decode}}' >"$aap_scratch/oidc-secret"
@@ -2848,7 +2914,7 @@ YAML
 aap_launch() {
   local name=$1 extra=${2:-'{}'} reset=${3:-false} org template record result project inventory sources source update
   case $name in
-    webapp_vm|webapp_nginx|webapp_mcp|webapp_selinux_permissive|webapp_selinux_enable|aap_configure_all) ;;
+    webapp_vm|pythonapp_vm|webapp_retire_legacy_invoice|webapp_nginx|webapp_mcp|webapp_selinux_permissive|webapp_selinux_enable|aap_configure_all|invoice_configure|invoice_baseline|invoice_check|invoice_open_issue|invoice_validate|invoice_discover|invoice_prepare_release) ;;
     openshift_virtualization_machine) [[ $reset == true ]] || demo_die 'Only seeded demo templates may be launched.' ;;
     *) demo_die 'Only seeded demo templates may be launched.' ;;
   esac
@@ -3057,6 +3123,27 @@ demo_aap_configure() {
   echo 'AAP configuration from Forgejo completed.'
 }
 
+demo_pythonapp() {
+  [[ $DEMO_BACKEND == aws ]] || demo_die 'The Python application currently requires AWS.'
+  case $1 in
+    create) demo_aap launch pythonapp_vm ;;
+    delete) demo_aap launch pythonapp_vm '{"vm_state":"absent"}' ;;
+    verify)
+      local host redirect ingress_domain
+      oc -n pythonapp-vms get endpointslice pythonapp-aws -o json |
+        jq -e '.endpoints | length == 1 and .[0].conditions.ready == true' >/dev/null
+      host=$(oc -n pythonapp-vms get route pythonapp -o jsonpath='{.status.ingress[0].host}')
+      ingress_domain=$(oc -n openshift-ingress-operator get ingresscontroller default -o jsonpath='{.status.domain}')
+      redirect=$(curl --fail --silent --show-error --connect-timeout 10 --max-time 30 \
+        --write-out '%{http_code}\n%{redirect_url}' --output /dev/null "https://$host/")
+      [[ $redirect == $'302\n'"https://demojam-keycloak.$ingress_domain/realms/demo/protocol/openid-connect/auth?"* ]] ||
+        demo_die 'Python application did not redirect to its demo login.'
+      printf 'Separate Python application endpoint is ready: https://%s/\n' "$host"
+      ;;
+    *) demo_die 'Usage: pythonapp create|delete|verify' ;;
+  esac
+}
+
 demo_webapp() {
   demo_verify_cluster
   demo_wait_for_api
@@ -3103,11 +3190,18 @@ demo_webapp() {
 # -----------------------------------------------------------------------------
 
 demo_backend_root_override() {
-  if [[ ${DEMO_BACKEND:-cnv} == cnv ]]; then cat; return; fi
+  if [[ ${DEMO_BACKEND:-cnv} == cnv ]]; then
+    jq '.spec.source.kustomize.patches += [{target:{kind:"Application",name:"pythonapp-vms"},
+      patch:({apiVersion:"argoproj.io/v1alpha1",kind:"Application",metadata:{name:"pythonapp-vms"},"$patch":"delete"}|tojson)}]'
+    return
+  fi
   local sandbox_config
   sandbox_config=$(yq -r '.data."config.yaml"' \
     "$demo_repo_root/cluster/omnigent/omnigent-sandbox-config-configmap.yaml" |
     yq -y '.sandbox.kubernetes.secret_mounts = [{secret_name:"molecule-aws-credentials",mount_path:"/mnt/secrets/molecule-aws"}]')
+  if demo_invoice_enabled; then
+    sandbox_config=$(yq -y '.sandbox.kubernetes.secret_mounts += [{secret_name:"invoice-artifacts",mount_path:"/mnt/secrets/invoice"}]' <<<"$sandbox_config")
+  fi
   jq --arg config "$sandbox_config" '
     def patch($target; $operations): {target:$target,patch:($operations|tojson)};
     def drop($api;$kind;$name;$namespace):
@@ -3405,6 +3499,7 @@ demo_bootstrap() (
 
   local -a rollout_apps=(openshift-pipelines agent-sandbox-operator omnigent automation-orchestrator ansible-automation-platform webapp-vms user-workload-monitoring homepage)
   [[ $DEMO_BACKEND != cnv ]] || rollout_apps+=(openshift-virtualization)
+  [[ $DEMO_BACKEND != aws ]] || rollout_apps+=(pythonapp-vms)
   for app in "${rollout_apps[@]}"; do
     oc -n "$gitops_namespace" annotate application "$app" \
       argocd.argoproj.io/refresh=hard --overwrite
@@ -3489,7 +3584,18 @@ demo_bootstrap() (
   fi
   demo_step 'Provision the RHEL webapp through AAP'
   demo_webapp create
-  demo_step 'Prepare the permissive demo baseline through AAP'
+  if demo_invoice_enabled; then
+    demo_step 'Provision the separate RHEL Python application host'
+    demo_pythonapp create
+    demo_step 'Configure the invoice factory and install its enforcing baseline'
+    demo_invoice configure
+    demo_invoice baseline
+    demo_pythonapp verify
+  fi
+  # An upgrade may leave the old invoice unit on the nginx host. Retire it
+  # only after the separate Python baseline has been installed successfully.
+  demo_aap launch webapp_retire_legacy_invoice
+  demo_step 'Prepare only the nginx host for the SELinux scenario'
   demo_aap launch webapp_selinux_permissive
   demo_step 'Install nginx through AAP'
   demo_webapp nginx
@@ -3593,7 +3699,7 @@ demo_teardown() (
   [[ $confirmed == true ]] || demo_die 'Usage: teardown --confirm-demo-teardown [--keep-aap]'
   demo_verify_cluster
   local state="$demo_repo_root/.rendered/demo-teardown.json" scratch app namespace kind group name resource csv crd
-  local -a namespaces=(homepage blackbox-exporter webapp-vms automation-vms molecule-tests
+  local -a namespaces=(homepage blackbox-exporter webapp-vms pythonapp-vms automation-vms molecule-tests
     omnigent-sandboxes omnigent forgejo rhdh demojam-keycloak automation-orchestrator
     ansible-automation-platform agent-sandbox-system openshift-virtualization-os-images
     openshift-cnv openshift-pipelines cloudnative-pg openshift-gitops openshift-gitops-operator)
@@ -3808,8 +3914,11 @@ demo_teardown() (
 demo_homepage_backend() {
   local payload
   payload=$(oc -n homepage get configmap homepage-environment -o json |
-    jq --arg backend "${DEMO_BACKEND:-cnv}" '
-      {data:{"environment.json":(.data."environment.json" | fromjson | .backend=($backend|ascii_upcase) | tojson)}}')
+    jq --arg backend "${DEMO_BACKEND:-cnv}" --arg scenario "${DEMO_SCENARIO:-selinux}" '
+      {data:{"environment.json":(.data."environment.json" | fromjson |
+        .backend=($backend|ascii_upcase) | .scenario=$scenario |
+        .authoringWorkflow=(if $scenario == "invoice" or $scenario == "both" then "invoice-security-remediation" else "omnigent-remediation" end) |
+        .edaActivation=(if $scenario == "invoice" or $scenario == "both" then "demojam-forgejo-remediation" else "demojam-webapp-issues" end) | tojson)}}')
   oc -n homepage patch configmap homepage-environment --type=merge --patch "$payload" >/dev/null
 }
 
@@ -3831,6 +3940,450 @@ demo_homepage_reconcile() (
   fi
   demo_homepage_configure "${1:-refresh}"
   demo_homepage_backend
+)
+
+# Invoice lifecycle stays in this entry point; application code belongs to the
+# seeded collection and AAP configuration belongs to demojam-ansible.
+# Use the collection's standard Ansible tasks for local bootstrap and AAP discovery.
+demo_invoice_discover_material() (
+  local input=$1 output=$2 source python collection_path
+  source=$(demo_source_checkout ansible-collection-demo.pythonapp) || return
+  python="$demo_repo_root/.rendered/lightwell-discovery-venv/bin/python"
+  if [[ ! -x $python ]]; then
+    python3 -m venv "${python%/bin/python}"
+    "$python" -m pip install --disable-pip-version-check 'ansible-core==2.16.19' >/dev/null
+  fi
+  collection_path="${output%/*}/collections"
+  mkdir -p "$collection_path/ansible_collections/demo"
+  ln -s "$source" "$collection_path/ansible_collections/demo/pythonapp"
+  ANSIBLE_COLLECTIONS_PATH="$collection_path" INVOICE_MATERIAL_FILE="$input" \
+    "${python%python}ansible-playbook" -i localhost, "$source/playbooks/discover-lightwell.yml" \
+    -e "lightwell_material_output=$output"
+)
+
+demo_invoice_material() (
+  set +x
+  umask 077
+  local invoice_dir="$demo_repo_root/.rendered/invoice" preparation
+  mkdir -p "$invoice_dir"
+  preparation=$(mktemp -d "$invoice_dir/prepare.XXXXXX")
+  trap 'find "$preparation" -type l -delete; find "$preparation" -type f -delete; find "$preparation" -depth -type d -empty -delete' EXIT
+  export DEMO_REPO_ROOT=$demo_repo_root
+  python3 - "$preparation" <<'PY' || return 1
+import hashlib, json, os, re, sys
+from pathlib import Path
+from urllib.parse import urlsplit
+output = Path(sys.argv[1])
+root = Path(os.environ['DEMO_REPO_ROOT'])
+profile_path = Path(os.environ.get('REMEDIATION_PROFILE_FILE') or root / 'demo/invoice/profile.json')
+profile = json.loads(profile_path.read_text())
+assert profile['schema_version'] == 1 and not profile.get('example_only'), 'Complete and approve an application profile first'
+assert profile['application']['id'] and profile['advisories'] and profile['runtime']['wheel_tags']
+baseline = json.loads(Path(os.environ.get('REMEDIATION_BASELINE_FILE') or root / 'demo/invoice/baseline.json').read_text())
+assert re.sub(r'[-_.]+', '-', baseline['package']).lower() == re.sub(r'[-_.]+', '-', profile['package']['name']).lower()
+material = {'profile': profile, 'baseline': baseline, 'lightwell': {},
+            'repository_username': os.environ.get('INVOICE_LIGHTWELL_USERNAME', ''),
+            'repository_token': os.environ.get('INVOICE_LIGHTWELL_TOKEN', ''),
+            'signing_key_sha256': os.environ.get('INVOICE_SIGNING_KEY_SHA256', '')}
+artifact = os.environ.get('INVOICE_LIGHTWELL_ARTIFACT_FILE', '')
+key_path = os.environ.get('INVOICE_SIGNING_KEY_FILE', '')
+key = b'LIGHTWELL_SIGNING_KEY_NOT_CONFIGURED\n'
+if artifact:
+    selected = json.loads(Path(artifact).read_text())
+    assert selected['channel'] == 'lightwell'
+    assert re.sub(r'[-_.]+', '-', selected['package']).lower() == re.sub(r'[-_.]+', '-', profile['package']['name']).lower()
+    wheel_parts = selected['filename'][:-4].split('-')
+    assert len(wheel_parts) in (5, 6) and wheel_parts[1] == selected['version']
+    assert any(f'{py}-{abi}-{platform}' in profile['runtime']['wheel_tags'] for py in wheel_parts[-3].split('.') for abi in wheel_parts[-2].split('.') for platform in wheel_parts[-1].split('.')), 'Incompatible target wheel'
+    assert re.fullmatch(r'[0-9a-f]{64}', selected['sha256'])
+    assert re.fullmatch(r'[A-Za-z0-9_.+-]+\.whl', selected['filename'])
+    assert selected['version'] and not selected['version'].startswith('REPLACE_')
+    for name in ('url', 'provenance_url'):
+        parsed = urlsplit(selected[name])
+        assert parsed.scheme == 'https' and parsed.hostname == 'packages.redhat.com'
+        assert not parsed.username and not parsed.password and not parsed.query
+    material['lightwell'] = selected
+if material['repository_username'] or material['repository_token'] or artifact:
+    assert key_path and material['repository_username'] and material['repository_token']
+    key = Path(key_path).read_bytes()
+    assert hashlib.sha256(key).hexdigest() == material['signing_key_sha256'], 'Signing key does not match its independent pin'
+(output / 'input.json').write_text(json.dumps(material))
+(output / 'signing-key.pem').write_bytes(key)
+
+PY
+  if [[ -n ${INVOICE_LIGHTWELL_USERNAME:-} || -n ${INVOICE_LIGHTWELL_TOKEN:-} ]]; then
+    demo_invoice_discover_material "$preparation/input.json" "$preparation/material.json" || return
+  else
+    cp "$preparation/input.json" "$preparation/material.json"
+  fi
+  # Publish only a complete successful preparation, never partial discovery output.
+  cp "$preparation/signing-key.pem" "$invoice_dir/signing-key.pem" || return
+  mv "$preparation/material.json" "$invoice_dir/material.json" || return
+  printf 'Invoice material prepared; Lightwell configured: %s\n' "$(jq -r '.lightwell | length > 0' "$invoice_dir/material.json")"
+  for namespace in ansible-automation-platform omnigent-sandboxes; do
+    oc create namespace "$namespace" --dry-run=client -o yaml | oc apply -f - >/dev/null
+    oc -n "$namespace" create secret generic invoice-artifacts \
+      --from-file=material.json="$invoice_dir/material.json" \
+      --from-file=signing-key.pem="$invoice_dir/signing-key.pem" \
+      --dry-run=client -o yaml | oc apply -f - >/dev/null
+  done
+)
+
+demo_invoice_main_protection() {
+  local users_file
+  users_file=$(demo_identity_users_file)
+  demo_identity_validate_users "$users_file" || demo_die 'Invalid DEMO_USERS_FILE.'
+  # SSO owns these accounts. Match existing registrations by username/email;
+  # never create local passwords or grant the coding agent reviewer access.
+  jq -cn --slurpfile configured "$users_file" --argjson registered "$1" '
+    (["demo-reviewer"] + [$configured[0].users[] as $user |
+      select($user.enabled != false and (($user.groups // []) | index("demo-admins") != null)) |
+      $registered[] | select(.login == $user.username) |
+      if (.email | ascii_downcase) == ($user.email | ascii_downcase) then .login
+      else error("Forgejo account email differs from configured demo identity: " + $user.username) end
+    ] | unique) as $reviewers |
+    {branch_name:"main",rule_name:"main",enable_push:false,
+     enable_status_check:true,status_check_contexts:["invoice/ec2-validation"],
+     required_approvals:1,dismiss_stale_approvals:true,block_on_rejected_reviews:true,
+     block_on_outdated_branch:true,apply_to_admins:true,enable_merge_whitelist:true,
+     merge_whitelist_usernames:$reviewers}'
+}
+
+demo_invoice_forgejo_connect() {
+  local invoice_domain
+  invoice_domain=$(oc -n openshift-ingress-operator get ingresscontroller default -o jsonpath='{.status.domain}')
+  export FORGEJO_URL="https://$(oc -n forgejo get route forgejo -o jsonpath='{.status.ingress[0].host}')"
+  local invoice_token=${FORGEJO_STATE_DIR:-$demo_repo_root/cluster/forgejo/.state/$invoice_domain}/admin-token
+  [[ -s $invoice_token ]] || demo_die 'Hydrate Forgejo before invoice operations.'
+  FORGEJO_TOKEN=$(<"$invoice_token")
+  export FORGEJO_TOKEN
+}
+
+demo_invoice_foundation() (
+  set +x
+  umask 077
+  [[ ${DEMO_BACKEND:-cnv} == aws ]] || demo_die 'Invoice foundation requires BACKEND=aws.'
+  local ingress_domain storage_class app component
+  ingress_domain=$(oc -n openshift-ingress-operator get ingresscontroller default -o jsonpath='{.status.domain}')
+  storage_class=${BOOTSTRAP_STORAGE_CLASS:-$(oc get storageclasses -o json | jq -er '.items[] | select(.metadata.annotations["storageclass.kubernetes.io/is-default-class"] == "true") | .metadata.name')}
+  oc apply -k "$demo_repo_root/bootstrap"
+  for component in ansible-automation-platform-operator openshift-pipelines agent-sandbox-operator cloudnative-pg; do
+    oc apply -k "$demo_repo_root/cluster/$component"
+  done
+  oc apply -f "$demo_repo_root/cluster/automation-orchestrator/automation-orchestrator-namespace.yaml" \
+    -f "$demo_repo_root/cluster/automation-orchestrator/automation-orchestrator-operatorgroup.yaml" \
+    -f "$demo_repo_root/cluster/automation-orchestrator/automation-orchestrator-subscription.yaml"
+  oc wait --for=condition=Established crd/ansibleautomationplatforms.aap.ansible.com --timeout=10m
+  # Apply only the AWS-relevant instance; the other documents are CNV RBAC.
+  kustomize build "$demo_repo_root/cluster/ansible-automation-platform" |
+    yq -y --arg storage "$storage_class" 'select(.kind == "AnsibleAutomationPlatform") | .spec.database.postgres_storage_class=$storage' |
+    oc apply -f -
+  oc wait --for=condition=Established crd/clusters.postgresql.cnpg.io --timeout=10m
+  demo_identity_prepare
+  oc apply -k "$demo_repo_root/cluster/demojam-keycloak"
+  oc -n forgejo create configmap forgejo-url --from-literal="root-url=https://forgejo.$ingress_domain/" \
+    --dry-run=client -o yaml | oc apply -f -
+  oc apply -k "$demo_repo_root/cluster/forgejo"
+  sed "s|__DEMO_OIDC_ISSUER__|https://demojam-keycloak.$ingress_domain/realms/demo|g" \
+    "$demo_repo_root/bootstrap/config/openshift-gitops-argocd.yaml" | oc apply -f -
+  oc apply -f "$demo_repo_root/bootstrap/config/openshift-gitops-cluster-permissions.yaml"
+  oc -n openshift-gitops rollout status deployment/demojam-gitops-server --timeout=10m
+  oc wait --for=condition=Established crd/automationorchestrators.aap.ansible.com --timeout=10m
+  oc apply -k "$demo_repo_root/cluster/automation-orchestrator"
+  demo_aws setup
+  demo_identity_configure
+  oc -n forgejo rollout status deployment/forgejo --timeout=10m
+  export FORGEJO_URL="https://forgejo.$ingress_domain"
+  export FORGEJO_STATE_DIR=${FORGEJO_STATE_DIR:-$demo_repo_root/cluster/forgejo/.state/$ingress_domain}
+  demo_forgejo_lifecycle seed
+  demo_identity_forgejo
+  oc -n rhdh create configmap rhdh-demo-endpoints \
+    --from-literal="FORGEJO_HOST=forgejo.$ingress_domain" \
+    --from-literal="FORGEJO_URL=$FORGEJO_URL" \
+    --from-literal="RHDH_URL=https://rhdh.$ingress_domain" \
+    --dry-run=client -o yaml | oc apply -f -
+  oc -n rhdh create secret generic rhdh-forgejo-credentials \
+    --from-file=FORGEJO_TOKEN="$FORGEJO_STATE_DIR/rhdh-token" --from-literal=FORGEJO_USERNAME=demo-agent \
+    --dry-run=client -o yaml | oc apply -f -
+  if ! oc -n rhdh get secret rhdh-pg-credentials >/dev/null 2>&1; then
+    local password_file
+    password_file=$(mktemp)
+    openssl rand -hex 32 | tr -d '\n' >"$password_file"
+    oc -n rhdh create secret generic rhdh-pg-credentials --from-literal=username=backstage --from-file=password="$password_file"
+    rm -f -- "$password_file"
+  fi
+  oc apply -f "$demo_repo_root/cluster/rhdh/rhdh-operatorgroup.yaml" -f "$demo_repo_root/cluster/rhdh/rhdh-subscription.yaml"
+  oc wait --for=condition=Established crd/backstages.rhdh.redhat.com --timeout=10m
+  oc apply -k "$demo_repo_root/cluster/rhdh"
+  echo 'Foundation installed. Publish the committed local sources, then run the complete bootstrap with model and subscription inputs.'
+)
+
+demo_invoice_publish() (
+  set +x
+  umask 077
+  [[ -z $(git -C "$demo_repo_root" status --porcelain) ]] || demo_die 'Commit the GitOps implementation before publication.'
+  demo_invoice_forgejo_connect
+  local branch source repo exists scratch
+  branch=$(git -C "$demo_repo_root" branch --show-current)
+  git check-ref-format --branch "$branch" >/dev/null
+  exists=$(forgejo_api GET /users/demo-owner/repos?limit=50 | jq '[.[] | select(.name == "openshift-gitops")] | length')
+  if [[ $exists == 0 ]]; then
+    forgejo_api POST /admin/users/demo-owner/repos \
+      '{"name":"openshift-gitops","description":"Cluster-local published GitOps implementation","private":false,"auto_init":false}' >/dev/null
+  fi
+  scratch=$(mktemp -d)
+  trap 'rm -rf -- "$scratch"' EXIT
+  cat >"$scratch/askpass" <<'ASKPASS'
+#!/usr/bin/env bash
+case "$1" in
+  *Username*) printf '%s\n' demo-admin ;;
+  *) printf '%s\n' "$FORGEJO_TOKEN" ;;
+esac
+ASKPASS
+  chmod 700 "$scratch/askpass"
+  GIT_ASKPASS="$scratch/askpass" GIT_TERMINAL_PROMPT=0 git -C "$demo_repo_root" -c credential.helper= \
+    push "$FORGEJO_URL/demo-owner/openshift-gitops.git" "HEAD:refs/heads/$branch"
+  local gitops_branch=$branch gitops_repo="$FORGEJO_URL/demo-owner/openshift-gitops.git" storage_class
+  storage_class=${BOOTSTRAP_STORAGE_CLASS:-$(oc get storageclasses -o json | jq -er '.items[] | select(.metadata.annotations["storageclass.kubernetes.io/is-default-class"] == "true") | .metadata.name')}
+  demo_root_application "$storage_class" |
+    jq '.spec.source.kustomize.patches += (["omnigent","homepage","user-workload-monitoring"] | map(. as $name |
+      {target:{kind:"Application",name:$name},patch:({apiVersion:"argoproj.io/v1alpha1",kind:"Application",metadata:{name:$name},"$patch":"delete"}|tojson)}))' |
+    oc -n openshift-gitops apply -f -
+  printf 'Published GitOps source. Set these non-secret values in .env:\nBOOTSTRAP_REPO_URL=%s/demo-owner/openshift-gitops.git\nBOOTSTRAP_BRANCH=%s\n' "$FORGEJO_URL" "$branch"
+)
+
+demo_invoice() (
+  set +x
+  umask 077
+  local action=$1
+  shift
+  local invoice_dir="$demo_repo_root/.rendered/invoice"
+  mkdir -p "$invoice_dir"
+  if [[ $action == foundation ]]; then demo_invoice_foundation; return; fi
+  if [[ $action == publish ]]; then demo_invoice_publish; return; fi
+  if [[ $action == inputs ]]; then
+    local invoice_input_failures=0
+    if ! python3 - <<'PY'
+import os
+from pathlib import Path
+missing = []
+for name in ['AAP_LICENSE_FILE','INVOICE_LIGHTWELL_ARTIFACT_FILE','INVOICE_SIGNING_KEY_FILE']:
+    value = os.environ.get(name, '')
+    available = value and Path(value).is_file()
+    print(name + ': ' + ('available' if available else 'missing'))
+    if not available: missing.append(name)
+for name in ['AWS_BOOTSTRAP_ACCESS_KEY_ID','AWS_BOOTSTRAP_SECRET_ACCESS_KEY','INVOICE_LIGHTWELL_USERNAME','INVOICE_LIGHTWELL_TOKEN','INVOICE_SIGNING_KEY_SHA256']:
+    print(name + ': ' + ('set' if os.environ.get(name) else 'missing'))
+    if not os.environ.get(name): missing.append(name)
+print('INVOICE_TEST_EE_IMAGE: ' + ('set' if os.environ.get('INVOICE_TEST_EE_IMAGE') else 'resolve from the completed sandbox build'))
+raise SystemExit(1 if missing else 0)
+PY
+    then invoice_input_failures=1; fi
+    if ! demo_model_inputs ao; then invoice_input_failures=1; fi
+    if ! demo_model_inputs omnigent; then invoice_input_failures=1; fi
+    unset model_key
+    return "$invoice_input_failures"
+  fi
+  [[ ${DEMO_BACKEND:-cnv} == aws ]] || demo_die 'The invoice factory currently requires BACKEND=aws.'
+  if [[ $action == split-prepare ]]; then
+    demo_invoice_forgejo_connect
+    local legacy_repo=demo-owner/ansible-collection-demo.webapp legacy_rule
+    legacy_rule=$(forgejo_api GET "/repos/$legacy_repo/branch_protections" |
+      jq -c '.[] | select(.rule_name == "main" and .status_check_contexts == ["invoice/ec2-validation"])')
+    if [[ -n $legacy_rule ]]; then
+      forgejo_api GET "/repos/$legacy_repo/pulls?state=open&limit=100" |
+        jq -e 'length == 0' >/dev/null || demo_die 'Finish existing webapp PRs before migrating their old invoice protection.'
+      printf '%s\n' "$legacy_rule" >"$invoice_dir/legacy-webapp-invoice-protection.json"
+      forgejo_api DELETE "/repos/$legacy_repo/branch_protections/main" >/dev/null
+      echo 'Archived and removed the former invoice-only webapp protection; protect the separate Python collection after seeding.'
+    fi
+    return
+  fi
+  if [[ $action == material ]]; then demo_invoice_material; return; fi
+  if [[ $action == discover ]]; then
+    demo_invoice_material
+    demo_aap launch invoice_discover
+    return
+  fi
+  if [[ $action == trigger ]]; then
+    demo_invoice_material
+    demo_ao_reconcile run invoice-security-detect '{}'
+    return
+  fi
+  if [[ $action == protect ]]; then
+    demo_invoice_forgejo_connect
+    # The author must not be able to rewrite the independent validator or AAP
+    # configuration that will later evaluate and deploy its collection PR.
+    forgejo_api PUT /repos/demo-owner/demojam-ansible/collaborators/demo-agent \
+      '{"permission":"read"}' >/dev/null
+    local protection registered='[]' batch page=1 reviewer application
+    while :; do
+      batch=$(forgejo_api GET "/admin/users?limit=50&page=$page")
+      registered=$(jq -s 'add' <(printf '%s' "$registered") <(printf '%s' "$batch"))
+      [[ $(jq length <<<"$batch") == 50 ]] || break
+      ((page+=1))
+    done
+    protection=$(demo_invoice_main_protection "$registered")
+    for application in ansible-collection-demo.webapp ansible-collection-demo.pythonapp; do
+      while read -r reviewer; do
+        forgejo_api PUT "/repos/demo-owner/$application/collaborators/$reviewer" \
+          '{"permission":"write"}' >/dev/null
+      done < <(jq -r '.merge_whitelist_usernames[]' <<<"$protection")
+    done
+    if forgejo_api GET /repos/demo-owner/ansible-collection-demo.pythonapp/branch_protections |
+      jq -e 'any(.[]; .rule_name == "main" or .branch_name == "main")' >/dev/null; then
+      forgejo_api PATCH /repos/demo-owner/ansible-collection-demo.pythonapp/branch_protections/main "$protection" >/dev/null
+    else
+      forgejo_api POST /repos/demo-owner/ansible-collection-demo.pythonapp/branch_protections "$protection" >/dev/null
+    fi
+    echo 'Main requires human review and independent invoice/ec2-validation; registered demo-admins can merge, and the agent has read-only access to the trusted automation repository.'
+    return
+  fi
+  local aap_scratch aap_host aap_username
+  aap_scratch=$(mktemp -d)
+  trap 'rm -rf -- "$aap_scratch"' EXIT
+  aap_connect
+  local org inventory project environment template credential record result job sha payload
+  org=$(aap_find organizations/ demo | jq -er .id)
+  inventory=$(aap_find inventories/ demo-inventory "$(jq -n --argjson org "$org" '{organization:$org}')" | jq -er .id)
+  if [[ $action == configure ]]; then
+    demo_invoice_material
+    local image=${INVOICE_TEST_EE_IMAGE:-}
+    if [[ -z $image ]]; then
+      image="$(demo_sandbox_image)"
+      image="${image%:*}@$(oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:latest -o jsonpath='{.image.metadata.name}')"
+    fi
+    [[ $image =~ @sha256:[a-f0-9]{64}$ ]] || demo_die 'Set INVOICE_TEST_EE_IMAGE to an immutable ADT/Molecule/Cosign execution image.'
+    oc -n omnigent-sandboxes policy add-role-to-group system:image-puller \
+      system:serviceaccounts:ansible-automation-platform >/dev/null
+    oc -n openshift-config get configmap demojam-backend -o json |
+      jq -er '.data["aws.json"]' >"$aap_scratch/aws-config.json"
+    oc -n omnigent-sandboxes get secret molecule-aws-credentials -o json >"$aap_scratch/test-secret.json"
+    jq -n --slurpfile config "$aap_scratch/aws-config.json" --slurpfile secret "$aap_scratch/test-secret.json" \
+      '{config:$config[0],access_key_id:($secret[0].data.access_key_id|@base64d),secret_access_key:($secret[0].data.secret_access_key|@base64d)}' >"$aap_scratch/test-aws.json"
+    local kind
+    kind=$(aap_upsert credential_types/ 'Demo Invoice Configuration v1' \
+      "$(yq . "$demo_repo_root/bootstrap/invoice-dispatch-credential-type.yaml")" | jq -er .id)
+    credential=$(aap_upsert credentials/ demo-invoice-dispatch "$(jq -n --argjson org "$org" --argjson kind "$kind" \
+      --rawfile material "$invoice_dir/material.json" --rawfile key "$invoice_dir/signing-key.pem" \
+      --rawfile aws "$aap_scratch/test-aws.json" --arg image "$image" \
+      '{organization:$org,credential_type:$kind,inputs:{material:$material,signing_key:$key,test_aws:$aws,test_ee:$image}}')" | jq -er .id)
+    project=$(aap_find projects/ demojam-ansible "$(jq -n --argjson org "$org" '{organization:$org}')" | jq -er .id)
+    environment=$(aap_find execution_environments/ demo-aap-ee | jq -er .id)
+    template=$(aap_upsert job_templates/ invoice_configure "$(jq -n --argjson org "$org" --argjson project "$project" \
+      --argjson inventory "$inventory" --argjson environment "$environment" \
+      '{organization:$org,project:$project,inventory:$inventory,execution_environment:$environment,
+        playbook:"playbooks/aap/configure-invoice.yml",ask_variables_on_launch:true,allow_simultaneous:false}')" | jq -er .id)
+    aap_associate "job_templates/$template/credentials/" "$credential"
+    credential=$(aap_find credentials/ demo-aap-dispatch "$(jq -n --argjson org "$org" '{organization:$org}')" | jq -er .id)
+    aap_associate "job_templates/$template/credentials/" "$credential"
+    demo_aap launch invoice_configure
+    return
+  fi
+  if [[ $action == baseline ]]; then
+    demo_invoice_forgejo_connect
+    sha=$(forgejo_api GET /repos/demo-owner/ansible-collection-demo.pythonapp/branches/main | jq -er .commit.id)
+    template=$(aap_find job_templates/ invoice_baseline "$(jq -n --argjson org "$org" '{organization:$org}')" | jq -er .id)
+    result=$(aap_request POST "job_templates/$template/launch/" "$(jq -n --arg sha "$sha" '{scm_branch:$sha,extra_vars:{invoice_candidate_sha:$sha,invoice_release_channel:"baseline"}}')")
+    job=$(jq -er .job <<<"$result")
+    echo "Installing baseline through AAP job $job."
+    aap_wait "jobs/$job/"
+    aap_request GET "jobs/$job/" >"$invoice_dir/baseline-job.json"
+    jq -e --arg sha "$sha" '.scm_revision == $sha' "$invoice_dir/baseline-job.json" >/dev/null || demo_die 'Baseline source revision did not match.'
+    return
+  fi
+  if [[ $action == verify ]]; then
+    local expected=${1:-remediated}
+    [[ $expected == vulnerable || $expected == remediated ]] || demo_die 'invoice verify accepts vulnerable or remediated.'
+    template=$(aap_find job_templates/ invoice_check "$(jq -n --argjson org "$org" '{organization:$org}')" | jq -er .id)
+    result=$(aap_request POST "job_templates/$template/launch/" '{}')
+    job=$(jq -er .job <<<"$result")
+    aap_wait "jobs/$job/"
+    record=$(aap_request GET "jobs/$job/")
+    jq -e --arg expected "$expected" --slurpfile material "$invoice_dir/material.json" '
+      .artifacts.invoice_findings.observations |
+      length > 0 and all(.[];
+        if $expected == "vulnerable" then
+          .affected == true and .release.wheel_sha256 == $material[0].baseline.sha256
+        else
+          .affected == false and .installed_version == $material[0].lightwell.version and
+          .release.wheel_sha256 == $material[0].lightwell.sha256 and
+          (if $material[0].profile.validation.regression then
+            .regression.status == $material[0].profile.validation.regression.remediated_status
+           else true end)
+        end)' <<<"$record" >/dev/null || demo_die 'Application verification did not match the approved artifact and requested state.'
+    jq '.artifacts.invoice_findings' <<<"$record"
+    return
+  fi
+  if [[ $action == validate ]]; then
+    [[ $# == 1 && $1 =~ ^[a-f0-9]{40}$ ]] || demo_die 'Usage: invoice validate PUBLISHED_HEAD_SHA'
+    sha=$1
+    demo_invoice_forgejo_connect
+    template=$(aap_find job_templates/ invoice_validate "$(jq -n --argjson org "$org" '{organization:$org}')" | jq -er .id)
+    forgejo_api POST "/repos/demo-owner/ansible-collection-demo.pythonapp/statuses/$sha" \
+      '{"state":"pending","context":"invoice/ec2-validation","description":"Independent AAP validation running"}' >/dev/null
+    result=$(aap_request POST "job_templates/$template/launch/" "$(jq -n --arg sha "$sha" '{extra_vars:{invoice_candidate_sha:$sha}}')")
+    job=$(jq -er .job <<<"$result")
+    if ! (aap_wait "jobs/$job/"); then
+      forgejo_api POST "/repos/demo-owner/ansible-collection-demo.pythonapp/statuses/$sha" \
+        '{"state":"failure","context":"invoice/ec2-validation","description":"AAP validation failed; inspect the job"}' >/dev/null
+      demo_die "Validation job $job failed; the PR remains unmergeable."
+    fi
+    record=$(aap_request GET "jobs/$job/")
+    jq -e --arg sha "$sha" --argjson template "$template" \
+      '.status == "successful" and .job_template == $template and .artifacts.invoice_validation.passed == true and .artifacts.invoice_validation.source_revision == $sha and .artifacts.invoice_validation.backend == "aws" and .artifacts.invoice_validation.acceptance_suite == "trusted-invoice-v1"' <<<"$record" >/dev/null || demo_die 'AAP did not publish matching validation evidence.'
+    printf '%s' "$record" >"$invoice_dir/validation-$job.json"
+    forgejo_api POST "/repos/demo-owner/ansible-collection-demo.pythonapp/statuses/$sha" \
+      "$(jq -n --arg url "$aap_host/execution/jobs/playbook/$job/output" '{state:"success",context:"invoice/ec2-validation",description:"Exact commit passed independent RHEL EC2 lifecycle tests",target_url:$url}')" >/dev/null
+    echo "Independent validation passed: source $sha, AAP job $job. Human review and merge are now required."
+    return
+  fi
+  if [[ $action == promote ]]; then
+    [[ $# == 2 && $1 =~ ^[1-9][0-9]*$ && $2 =~ ^[1-9][0-9]*$ ]] || demo_die 'Usage: invoice promote MERGED_PR_NUMBER VALIDATION_JOB_ID'
+    local pr_number=$1 validation_job=$2 pr wheel
+    demo_invoice_forgejo_connect
+    pr=$(forgejo_api GET "/repos/demo-owner/ansible-collection-demo.pythonapp/pulls/$pr_number")
+    jq -e '.merged == true and .base.ref == "main"' <<<"$pr" >/dev/null || demo_die 'A human must merge this PR before promotion.'
+    sha=$(jq -er .head.sha <<<"$pr")
+    record=$(aap_request GET "jobs/$validation_job/")
+    template=$(aap_find job_templates/ invoice_validate "$(jq -n --argjson org "$org" '{organization:$org}')" | jq -er .id)
+    jq -e --arg sha "$sha" --argjson template "$template" '.status == "successful" and .job_template == $template and .artifacts.invoice_validation.passed == true and .artifacts.invoice_validation.source_revision == $sha' <<<"$record" >/dev/null || demo_die 'The validation job does not prove this merged PR head.'
+    wheel=$(jq -er '.artifacts.invoice_validation.wheel_sha256' <<<"$record")
+    demo_invoice_material
+    jq -e --arg wheel "$wheel" '.lightwell.sha256 == $wheel' "$invoice_dir/material.json" >/dev/null || demo_die 'The selected artifact changed after validation.'
+    local tested_profile current_profile
+    tested_profile=$(jq -er '.artifacts.invoice_validation.profile_sha256' <<<"$record")
+    current_profile=$(python3 - "$invoice_dir/material.json" <<'PYPROFILE'
+import hashlib, json, sys
+with open(sys.argv[1]) as stream:
+    profile = json.load(stream)['profile']
+print(hashlib.sha256(json.dumps(profile, sort_keys=True).encode()).hexdigest())
+PYPROFILE
+)
+    [[ $tested_profile == "$current_profile" ]] || demo_die 'The application or advisory policy changed after validation.'
+    git init -q "$aap_scratch/ancestry"
+    git -C "$aap_scratch/ancestry" fetch -q --no-tags "$FORGEJO_URL/demo-owner/ansible-collection-demo.pythonapp.git" refs/heads/main
+    git -C "$aap_scratch/ancestry" merge-base --is-ancestor "$sha" FETCH_HEAD || demo_die 'The tested commit is no longer contained in main.'
+    local issue_number
+    issue_number=$(jq -er '.head.ref | capture("^feature/issue-(?<number>[1-9][0-9]*)$").number | tonumber' <<<"$pr")
+    template=$(aap_find job_templates/ invoice_prepare_release "$(jq -n --argjson org "$org" '{organization:$org}')" | jq -er .id)
+    payload=$(jq -n --arg sha "$sha" --argjson job "$validation_job" --argjson issue "$issue_number" --argjson pr "$pr_number" \
+      '{extra_vars:{invoice_candidate_sha:$sha,invoice_validation_job_id:$job,invoice_issue_number:$issue,invoice_pr_number:$pr}}')
+    result=$(aap_request POST "job_templates/$template/launch/" "$payload")
+    local preparation_job
+    preparation_job=$(jq -er .job <<<"$result")
+    aap_wait "jobs/$preparation_job/"
+    record=$(aap_request GET "jobs/$preparation_job/")
+    payload=$(jq -ce --arg sha "$sha" '.artifacts.invoice_release_contract as $contract |
+      select($contract.source_revision == $sha) | {scm_branch:$sha,extra_vars:{invoice_candidate_sha:$sha,invoice_release_contract:$contract}}' \
+      <<<"$record") || demo_die 'The preparation job did not return the reviewed release contract.'
+    template=$(aap_find workflow_job_templates/ invoice_promote "$(jq -n --argjson org "$org" '{organization:$org}')" | jq -er .id)
+    result=$(aap_request POST "workflow_job_templates/$template/launch/" "$payload")
+    job=$(jq -er .workflow_job <<<"$result")
+    printf 'Production workflow %s awaits human approval: %s/execution/jobs/workflow/%s\n' "$job" "$aap_host" "$job"
+    return
+  fi
+  demo_die 'Usage: invoice foundation|publish|inputs|material|discover|configure|baseline|trigger|validate SHA|protect|promote PR JOB|verify [vulnerable|remediated]'
 )
 
 demo_main() {
@@ -3864,8 +4417,10 @@ Usage: bash bootstrap/bootstrap.sh [COMMAND] [--backend cnv|aws]
   ao-run NAME [JSON] Execute a published workflow and print its result
   reconcile-workflow Alias for ao-configure
   aap-configure      Configure AAP/EDA, publish AO workflows, connect the Forgejo webhook
+  pythonapp ACTION   create | delete | verify (separate AWS RHEL host)
   webapp ACTION      create | nginx | verify | verify-enforcing | delete | sync | mcp | mcp-verify | mcp-rotate
   aap ACTION         credentials | wait-project | dispatch | reset-vms | launch TEMPLATE [JSON]
+  invoice ACTION     inputs | material | discover | configure | baseline | trigger | validate SHA | protect | promote PR JOB | verify
   readiness TARGET   sandbox | aap
 
 Populate .env first. An inherited KUBECONFIG takes precedence over .env.
@@ -3927,7 +4482,9 @@ HELP
       fi
       demo_forgejo_webhook_configure
       ;;
+    pythonapp) [[ $# == 1 ]] || demo_die 'pythonapp requires one action'; demo_pythonapp "$@" ;;
     webapp) [[ $# == 1 ]] || demo_die 'webapp requires one action'; demo_webapp "$@" ;;
+    invoice) [[ $# -gt 0 ]] || demo_die 'invoice requires an action'; demo_verify_cluster; demo_invoice "$@" ;;
     aap) [[ $# -gt 0 ]] || demo_die 'aap requires an action'; demo_verify_cluster; demo_aap "$@" ;;
     readiness) [[ $# == 1 ]] || demo_die 'readiness requires sandbox or aap'; demo_verify_cluster; demo_readiness "$@" ;;
     forgejo-seed) demo_forgejo_lifecycle seed ;;

@@ -5,6 +5,7 @@ cluster/forgejo/.state/
 /.env.*
 !/.env.example
 !/.env.demo.example
+!/.env.invoice.example
 /.secrets/
 /aap_manifest.zip
 __pycache__/

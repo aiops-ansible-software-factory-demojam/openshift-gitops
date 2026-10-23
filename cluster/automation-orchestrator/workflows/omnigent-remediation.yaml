@@ -12,13 +12,22 @@ triggers:
       webhook_path: forgejo-issue-remediation
       # Bootstrap binds this trigger to the local EDA service account.
       authorized_service_account_ids: []
+      input_schema:
+        type: object
+        required:
+          - issue_number
+        properties:
+          issue_number:
+            type: integer
+            minimum: 1
+            title: Forgejo incident number
 nodes:
   - id: prepare_feature
     name: Prepare the incident branch through Backstage
     type: http_request
     position:
-      x: 300
-      y: 300
+      x: 310.0
+      y: 174.125
     parameters:
       method: POST
       url: http://backstage-feature-gate.automation-orchestrator.svc:8080/prepare
@@ -34,8 +43,8 @@ nodes:
     name: Obtain Omnigent machine access token
     type: http_request
     position:
-      x: 600
-      y: 300
+      x: 622.0
+      y: 192.0
     parameters:
       method: POST
       url: http://omnigent.omnigent.svc:8000/oauth/token
@@ -50,8 +59,8 @@ nodes:
     name: Create the incident remediation session
     type: http_request
     position:
-      x: 900
-      y: 300
+      x: 942.0
+      y: 192.0
     parameters:
       method: POST
       url: http://omnigent.omnigent.svc:8000/v1/sessions
@@ -71,8 +80,8 @@ nodes:
     name: Ask the agent to fix the root cause and submit a PR
     type: http_request
     position:
-      x: 1200
-      y: 300
+      x: 1672.194261250301
+      y: 174.1192183271887
     parameters:
       method: POST
       url: http://omnigent.omnigent.svc:8000/v1/sessions/${create_session.body.id}/events

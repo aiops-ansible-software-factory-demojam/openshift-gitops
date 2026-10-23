@@ -135,7 +135,7 @@ ao_curl() {
     'GET https://ao.test/api/v1/executions/execution')
       printf '%s' '{"status":"completed_with_errors"}' >"$ao_response" ;;
     'GET https://ao.test/api/v1/executions/execution/activities?limit=100')
-      printf '%s' '{"resources":[{"activity_name":"ask_model","status":"completed","output_data":{"result":{"content":"audit only"}}}]}' >"$ao_response" ;;
+      printf '%s' '{"resources":[{"activity_name":"create_session","status":"completed","output_data":{"body":{"id":"fixture-session"}}}]}' >"$ao_response" ;;
     *) echo 'Unexpected workflow API operation' >&2; return 1 ;;
   esac
   printf '200'
@@ -143,7 +143,7 @@ ao_curl() {
 sleep() { echo 'A terminal execution must not be polled again' >&2; return 1; }
 demo_ao_run probe '{}' >"$scratch/run-output"
 unset -f sleep
-tail -n +2 "$scratch/run-output" | jq -e '.status=="completed_with_errors" and .results[0].output=="audit only"' >/dev/null
+tail -n +2 "$scratch/run-output" | jq -e '.status=="completed_with_errors" and .results[0].output.body.id=="fixture-session"' >/dev/null
 
 # A selective source refresh must not fetch/reset the recovered collection.
 # Stop at the first fetch, before any Forgejo mutation, and record its name.

@@ -11,9 +11,20 @@ triggers:
     webhook_path: alertmanagealert
     # bootstrap.sh supplies the local webhook service account.
     authorized_service_account_ids: []
+    input_schema:
+      type: object
+      required:
+        - alert_payload
+      properties:
+        alert_payload:
+          type: object
+          title: Alertmanager webhook payload
+        check_audit_service_issue:
+          type: string
+          title: Affected service
   position:
-    x: 0
-    "y": 0
+    x: -102
+    "y": -19
 nodes:
 - id: auditlogs
   type: aap_job_template
@@ -25,8 +36,8 @@ nodes:
     job_template_name: pull_audit_logs
     organization_name: demo
   position:
-    x: 240
-    "y": 0
+    x: 214.0
+    "y": -70.0
 - id: airca
   type: agentic
   name: Investigate the webapp and determine RCA
@@ -90,8 +101,8 @@ nodes:
     timeout: 180
     continue_on_failure: true
   position:
-    x: 500
-    "y": 0
+    x: 558.0
+    "y": -60.0
 - id: rca_success
   type: condition
   name: Require a completed RCA with available MCP audit evidence
@@ -111,8 +122,8 @@ nodes:
       affected_host_log_output: "${airca.result.content.rca}"
     diff_mode: false
   position:
-    x: 1020
-    "y": -100
+    x: 1024.0
+    "y": -70.0
 - id: airca_fallback
   type: agentic
   name: Determine RCA from compact audit facts without MCP

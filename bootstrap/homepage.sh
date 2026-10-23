@@ -144,7 +144,8 @@ demo_homepage_configure() (
         "omnigent": {name:"Omnigent",group:"Platform",icon:"mdi-robot",description:"Agent sessions and activity"},
         "automation-orchestrator": {name:"Automation Orchestrator",group:"Automation",icon:"mdi-sitemap",description:"Issue-to-PR workflow"},
         "ansible-automation-platform": {name:"Ansible Automation Platform",group:"Automation",icon:"ansible",description:"Automation jobs and configuration"},
-        "webapp-vms": {name:"Webapp",group:"Demo applications",icon:"nginx",description:"RHEL web application"},
+        "webapp-vms": {name:"Webapp",group:"Demo applications",icon:"nginx",description:"RHEL nginx and SELinux scenario"},
+        "pythonapp-vms": {name:"Python invoice app",group:"Demo applications",icon:"python",description:"Separate enforcing RHEL host and dependency vulnerability"},
         "openshift-gitops": {name:"Argo CD",group:"Platform",icon:"argo-cd",description:"GitOps application health"},
         "openshift-console": {name:"OpenShift Console",group:"Platform",icon:"openshift",description:"Cluster resources and workloads"},
         "demojam-keycloak": {name:"Keycloak Admin",group:"Platform",icon:"keycloak",description:"Manage the demo realm",suffix:"/admin/demo/console/"}
