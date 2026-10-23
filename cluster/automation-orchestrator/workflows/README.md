@@ -19,6 +19,15 @@ workflow without it. The incident workflows require `issue_number`; the audit
 workflow requires the `alert_payload` object. Keep their existing webhook paths
 and authorized service-account binding when editing the schema.
 
+The invoice polling loops use native boolean expressions such as
+`read_pr.body.ready == False`. AO evaluates them after the first iteration;
+they are conditions, not substitutions performed before the poll executes.
+After polling, `read_candidate` confirms the eligible PR and supplies the
+candidate SHA/number to validation, review and deployment checks. This avoids
+referencing loop-body outputs from later steps, which the editor incorrectly
+rejects as non-upstream references. Existing node positions are retained; the
+confirmation step sits above the candidate polling loop.
+
 Run the commands below from the repository root after
 [bootstrap](../../../README.md).
 

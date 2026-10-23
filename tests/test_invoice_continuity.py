@@ -135,7 +135,7 @@ class WorkflowBoundaryTests(unittest.TestCase):
     def test_source_identity_and_failed_validation_cannot_be_skipped(self):
         self.assertTrue(self.nodes['validate_invoice']['settings']['continue_on_failure'])
         self.assertEqual(self.nodes['publish_validation']['parameters']['job_template_name'], 'invoice_validation_status')
-        self.assertEqual(self.nodes['verify_release']['parameters']['extra_vars']['invoice_expected_source_revision'], '${read_pr.body.head_sha}')
+        self.assertEqual(self.nodes['verify_release']['parameters']['extra_vars']['invoice_expected_source_revision'], '${read_candidate.body.head_sha}')
         duplicate_edges = [e for e in self.edges if e['from']=='owns_incident']
         self.assertEqual([e['from_port'] for e in duplicate_edges], ['true'])
 
