@@ -1,32 +1,30 @@
 # Automation Orchestrator
 
-Automation Orchestrator (AO) coordinates the issue-to-PR demo. It asks the
-internal Backstage feature gate to validate the Forgejo issue, run the
-Developer Hub template, and confirm `feature/issue-N` exists. Only then does
-it create an Omnigent session and send the task to `automation-developer`.
-Repeat dispatches reuse the prepared branch.
+Automation Orchestrator (AO) coordinates detection, incident authoring and
+approved recovery. EDA delivers newly opened outage issues after the RCA is
+included in their body. `omnigent-remediation` asks the internal Backstage gate
+to validate the incident and prepare `feature/issue-N`, then starts one shared
+Omnigent session. Duplicate incident deliveries do not start another author.
 
-Bootstrap also publishes `omnigent-remediation`. The Forgejo EDA listener
-dispatches newly opened outage issues to it after the RCA is included in the
-issue body. AO passes the current issue and diagnosis into a new shared
-Omnigent session. The agent fixes the collection, tests nginx with SELinux
-enforcing, and submits a PR for review.
+The agent submits a tested PR. After independent operator validation and human
+merge, AO waits for native AAP approval, deploys the exact reviewed nginx commit
+and verifies enforcing HTTP recovery. The separate invoice workflows handle CVE
+detection/routing and reviewed Python remediation.
 
 ## Configure and run
 
-Bootstrap configures AO after its workloads and Omnigent are ready. To refresh
-integrations and publish the checked-in workflows, run from the repository root:
+Bootstrap configures AO after its workloads and Omnigent are ready. Refresh the
+checked-in workflows from the repository root with `make ao-configure`.
+The nginx scenario starts through its real alert path:
 
 ```bash
-make ao-configure
-make demo-hydrate     # Find the starter issue number
-make demo ISSUE=N     # Replace N with that positive number
+bash bootstrap/bootstrap.sh aap launch webapp_selinux_enable
 ```
 
-The demo prints AO execution and Omnigent session IDs. AO finishes once
-Omnigent accepts the task; the agent continues asynchronously. Inspect the
-session for checks and the PR URL. See the [workflow guide](workflows/README.md)
-for model questions and AAP job execution.
+This deliberately introduces the SELinux outage. Follow the alert, RCA, Forgejo
+issue, AO execution and Omnigent session. For Python, use `make invoice-trigger`.
+The former manual issue-dispatch workflow is removed. See the
+[workflow guide](workflows/README.md) for configuration and review gates.
 
 AO uses the operator-managed Route's `/api/v1` API. If that Route is unavailable,
 set `AO_USE_PORT_FORWARD=true` to use `svc/automation-orchestrator-ui`, or

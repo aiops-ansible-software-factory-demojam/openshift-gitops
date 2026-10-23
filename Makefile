@@ -1,17 +1,15 @@
 .DEFAULT_GOAL := help
-export ISSUE
 ifneq ($(strip $(BACKEND)),)
 export DEMO_BACKEND := $(BACKEND)
 endif
 
-.PHONY: help help-all preflight bootstrap teardown teardown-keep-aap identity homepage-refresh model-config sandbox-build demo-hydrate demo render demo-reset aap-configure aap-sync ao-configure webapp-create webapp-nginx webapp-delete webapp-verify
+.PHONY: help help-all preflight bootstrap teardown teardown-keep-aap identity homepage-refresh model-config sandbox-build demo-hydrate render demo-reset aap-configure aap-sync ao-configure webapp-create webapp-nginx webapp-delete webapp-verify
 
 help:
 	@printf '%s\n' \
 	  'Set up and run the demo:' \
 	  '' \
 	  '  make bootstrap [BACKEND=cnv|aws] Set up the complete environment' \
-	  '  make demo ISSUE=N    Start the issue-to-PR demo' \
 	  '  make demo-reset      Reset disposable demo state' \
 	  '  make webapp-verify   Check webapp health' \
 	  '  make invoice-inputs Check inputs for the Lightwell invoice scenario' \
@@ -33,8 +31,7 @@ help-all:
 	  'make homepage-refresh Refresh dashboard links, repositories and environment details' \
 	  'make model-config  Apply model/agent configuration from .env for new sessions' \
 	  'make sandbox-build Build/publish the sandbox image in cluster; installed operators' \
-	  'make demo-hydrate  Seed Forgejo/refresh credentials; print the issue URL/number' \
-	  'make demo ISSUE=N  Hydrate, then hand positive issue N to AO; agent runs asynchronously' \
+	  'make demo-hydrate  Seed Forgejo and refresh agent/Backstage credentials' \
 	  'make webapp-create Provision the RHEL webapp through AAP' \
 	  'make webapp-nginx  Configure nginx through AAP' \
 	  'make webapp-verify Read-only VM, HTTPS and blackbox checks' \
@@ -71,12 +68,6 @@ sandbox-build:
 
 demo-hydrate:
 	bash bootstrap/bootstrap.sh hydrate
-
-demo:
-	@case "$${ISSUE:-}" in ''|0*|*[!0-9]*) \
-	  echo 'Usage: make demo ISSUE=N (positive issue number)' >&2; exit 2 ;; \
-	esac; \
-	bash bootstrap/bootstrap.sh hydrate && bash scripts/dispatch-issue.sh "$$ISSUE"
 
 preflight:
 	bash bootstrap/bootstrap.sh preflight
