@@ -1,0 +1,20 @@
+{
+  "omnigent-remediation": {
+    "share_session_0": {
+      "x": 1295.0,
+      "y": 174.0
+    }
+  },
+  "omnigent-dispatch": {
+    "share_session_0": {
+      "x": 1302.0,
+      "y": 173.0
+    }
+  },
+  "invoice-security-remediation": {
+    "share_session_0": {
+      "x": 1735.9628182969866,
+      "y": -119.68981239476794
+    }
+  }
+}

@@ -16,7 +16,7 @@ nodes:
   - id: validate_invoice
     name: AAP validates the exact candidate on disposable RHEL machines
     type: aap_job_template
-    position: {x: 300, y: 300}
+    position: {x: 330.0, y: 238.0}
     parameters:
       organization_name: demo
       job_template_name: invoice_validate

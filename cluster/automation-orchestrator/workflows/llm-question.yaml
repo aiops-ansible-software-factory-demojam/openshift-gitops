@@ -23,8 +23,8 @@ nodes:
     name: Answer the question
     type: agentic
     position:
-      x: 300
-      y: 300
+      x: 322.0
+      y: 249.0
     parameters:
       prompt: ${trigger.question}
       tool_selection_strategy: NONE
