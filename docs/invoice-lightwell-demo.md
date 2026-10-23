@@ -531,3 +531,57 @@ actual guard jobs, approval, deployed source/image and business result.
 A new independent validation is required after upgrading from the old per-release
 path: old receipts do not contain `material_sha256`. Configuration leaves historic
 per-release AAP resources intact, and does not modify running executions.
+
+## CVE response routing
+
+`invoice-security-detect` keeps its existing launch and the Forgejo → EDA → coding
+agent trigger for application fixes. It now calls the trusted `invoice_route` JT
+with the actual assessment and discovery job IDs before creating an authoring
+issue. The router reads those jobs back from Controller, checks their successful
+trusted templates/projects and the current profile digest, and requires complete
+host observations. An API/discovery failure stops the run; it is not a no-fix result.
+
+| Route | Decision | Outcome |
+| --- | --- | --- |
+| `app_patch` | Known affected application dependency; discovery confirms the prepared Lightwell artifact. | Existing authoring, independent acceptance, human merge and reusable production promotion. |
+| `contain` | All scoped hosts are known affected; no confirmed approved fix; every advisory has a score; maximum score meets the policy threshold; service containment is configured. | Open a security response ticket, then run `invoice_contain` with a separate human approval. |
+| `log_only` | Known lower-severity no-fix finding, or all hosts are known fixed. | Retain audit evidence; affected findings get a deferred-review ticket with an anchored UTC deadline. Verified fixed, healthy hosts reconcile existing tickets. |
+| `manual_review` | Unknown version/severity, unsupported package ecosystem/control, or mixed fixed/affected hosts requiring containment. | Open/update a security review ticket; no automatic host change or coding session. |
+
+Policy is operator data in `demo/invoice/profile.json`: each advisory may carry a
+numeric `cvss_score`; `response` sets `high_severity_threshold`, `review_in_days`
+(1–30), and `containment` (`stop_service` or `manual`). When no approved fix is available, missing scores require manual review; they never default
+to low severity. The example's actual advisory score is 6.2, as published in
+[GHSA-4vvm-4w3v-6mr8](https://github.com/advisories/GHSA-4vvm-4w3v-6mr8), so its no-fix
+case is deferred rather than artificially presented as high severity. Containment
+and escalation tests use clearly synthetic findings.
+
+The containment graph is `validate-request → containment-approval → recheck-request
+→ contain`. The guards re-read the real router and assessment receipts, bind the
+saved request and current profile, and prove the approval belongs to this exact
+workflow. The launch pins the configured application's SCM revision. Before
+service changes, the collection checks that revision, workflow context, service,
+policy and complete host scope, then reads the current installed version again.
+Only the configured application service is stopped and disabled; its state is
+verified afterward. No firewall, SSH, SELinux, package or unrelated host is changed.
+
+This mitigation intentionally causes an application outage. It does **not** fix
+the dependency or close the incident. Approval denial, timeout or failed checks
+prevent containment; partial execution remains unsuccessful and needs review.
+A later approved fixed release uses the existing deployment role, which enables
+and starts the service, then verifies the application. A stopped service remains
+assessable through its installed dependency, but does not pass business checks.
+Only observed fixed versions with healthy business checks close authoring and
+security response tickets.
+
+Security response tickets use `<!-- security-response:... -->`, distinct from the
+EDA authoring marker. Repeated detection updates the same open review and preserves
+its first review deadline. The deadline is recorded for human follow-up; this
+change does not install a scheduled retry or notification integration. The router sends non-PyPI ecosystems to manual review; the current detector collects
+Python dependency evidence only. No generic OS detector, `dnf` or CME adapter is claimed.
+
+These changes require all companion PRs to be merged/synced, material to be prepared
+with the updated policy, and `invoice-configure` plus AO configuration to be applied.
+The baseline is tagged in all repositories as
+`demo-baseline-before-cve-router-20261023`. Source changes and local/isolated checks
+do not by themselves update the running demo.

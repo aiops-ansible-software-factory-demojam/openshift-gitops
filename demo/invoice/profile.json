@@ -6,7 +6,8 @@
     "repository": "demo-owner/ansible-collection-demo.pythonapp",
     "release_manifest": "releases/invoice.json",
     "python_executable": "/opt/invoice-portal/current/venv/bin/python",
-    "status_path": "/api/status"
+    "status_path": "/api/status",
+    "service": "invoice-portal"
   },
   "environment": "demo-aws",
   "package": {
@@ -28,7 +29,8 @@
       "fix_evidence": "Discover remediated versions from the pinned public Lightwell OSV feed.",
       "affected_versions": [
         "3.0.1"
-      ]
+      ],
+      "cvss_score": 6.2
     }
   ],
   "validation": {
@@ -50,5 +52,10 @@
       "text_contains": "Invoice INV-1042"
     },
     "baseline_expectation": "vulnerable"
+  },
+  "response": {
+    "high_severity_threshold": 7.0,
+    "containment": "stop_service",
+    "review_in_days": 30
   }
 }
