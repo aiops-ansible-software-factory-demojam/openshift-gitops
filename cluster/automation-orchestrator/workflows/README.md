@@ -1,6 +1,6 @@
 # Automation Orchestrator workflows
 
-These YAML files define five manual AO workflows and three EDA webhook workflows.
+These YAML files define two manual AO workflows and three EDA webhook workflows.
 Bootstrap publishes them; `make ao-configure` validates and creates or updates every `*.yaml` here by
 its `name`. An unchanged definition keeps its version. Runtime IDs and
 credentials are supplied during configuration; secrets never appear in the YAML.
@@ -34,13 +34,10 @@ Run the commands below from the repository root after
 | Definition | What it does | Run it |
 | --- | --- | --- |
 | [omnigent-dispatch.yaml](omnigent-dispatch.yaml) | Prepares an issue branch in Backstage, starts the agent, and requests a PR | `make demo ISSUE=N` |
-| [llm-question.yaml](llm-question.yaml) | Asks the configured model a question using a Task Agent node | `make ao-llm-test` |
-| [aap-webapp-nginx.yaml](aap-webapp-nginx.yaml) | Runs AAP's existing `webapp_nginx` job in the `demo` organization | `make ao-aap-run` |
 | [rootcause.yaml](rootcause.yaml) | Investigates with MCP audit evidence, falls back to AAP facts when unavailable, and creates one Forgejo issue | AAP's `call_ao_webhook` job with `ao_webhook_path: alertmanagealert` |
 | [omnigent-remediation.yaml](omnigent-remediation.yaml) | Prepares the incident branch and sends the issue/RCA to Omnigent for a tested fix PR | Forgejo issue webhook through EDA and `call_ao_webhook` with `ao_webhook_path: forgejo-issue-remediation` |
 | [invoice-security-detect.yaml](invoice-security-detect.yaml) | Observe the dependency, discover approved candidates and reconcile the incident | `make invoice-trigger BACKEND=aws` |
 | [invoice-security-remediation.yaml](invoice-security-remediation.yaml) | Track authoring, independent validation, human merge, approval, deployment and verification | Existing Forgejo invoice issue webhook through EDA |
-| [invoice-validate.yaml](invoice-validate.yaml) | Independently validate one published commit as an operator recovery path | Manual AO launch with `invoice_candidate_sha` |
 
 `bootstrap/bootstrap.sh` creates or reuses the `demojam-eda-webhook` AO service
 account before AAP configuration. Its client credentials are preserved in
@@ -152,18 +149,7 @@ The launcher prints execution and session IDs. AO completion means the agent
 accepted the task; inspect [Omnigent](../../omnigent/README.md) for the checks
 and PR URL.
 
-## Model question or AAP job
-
-```bash
-make ao-llm-test QUESTION='What is 2 plus 2? Answer briefly.'
-make ao-aap-run
-make webapp-verify
-```
-
-The model command prints its execution ID and answer. The AAP command requires
-the webapp to be provisioned, waits for completion, and prints the job ID, URL,
-and status. Job launches have no retries; inspect AAP before repeating a launch
-whose response was lost.
+## Model configuration
 
 `AO_MODEL_PROVIDER` in `.env` selects LiteLLM or OpenCode Go for AO;
 `AO_MODEL` selects its decision/RCA model. Empty fields inherit the shared
