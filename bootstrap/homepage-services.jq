@@ -22,7 +22,7 @@ def listwidget($name;$url;$icon;$description;$items;$namefield;$label;$target):
     link("1. Open nginx";("https://webapp." + ($omnigent | sub("^https://omnigent\\."; "")));"nginx";"Independent RHEL webapp host"),
     link("2. Trigger the SELinux fault";($aap + "/execution/templates");"ansible";"Run webapp_selinux_enable once"),
     link("3. Follow the nginx issue";($forgejo + "/demo-owner/ansible-collection-demo.webapp/issues");"forgejo";"Alert → RCA → webapp contribution"),
-    link("4. Review and deploy";($forgejo + "/demo-owner/ansible-collection-demo.webapp/pulls");"mdi-source-pull";"Machine tests, human merge, then webapp_nginx")
+    link("4. Review and deploy";($forgejo + "/demo-owner/ansible-collection-demo.webapp/pulls");"mdi-source-pull";"Machine tests, human merge, then approved webapp_promote")
   ]},
   {"Python vulnerability walkthrough":(if (env.DEMO_SCENARIO == "invoice" or env.DEMO_SCENARIO == "both") then [
     link("1. Observe the invoice app";("https://pythonapp." + ($omnigent | sub("^https://omnigent\\."; "")));"python";"Separate RHEL host; SELinux stays enforcing"),

@@ -1,5 +1,6 @@
 name: omnigent-remediation
-description: Turn a Forgejo outage issue and its RCA into a verified collection fix PR.
+description: Track an nginx outage from authoring through exact PR merge, human production approval, pinned deployment
+  and verified recovery.
 schema_version: 2.0.0
 triggers:
   - id: forgejo_issue
@@ -10,7 +11,6 @@ triggers:
       y: 300
     parameters:
       webhook_path: forgejo-issue-remediation
-      # Bootstrap binds this trigger to the local EDA service account.
       authorized_service_account_ids: []
       input_schema:
         type: object
@@ -115,8 +115,8 @@ nodes:
                 or actual setup output. Report restorecon changes from its
                 verbose relabel output instead of unconditionally hiding them.
                 Confirm new Ansible modules, parameters, and return fields with
-                ansible-doc. Declare collection dependencies in galaxy.yml so
-                AAP project sync installs them; Molecule test requirements
+                ansible-doc. Declare collection dependencies in galaxy.yml and in collections/requirements.yml with matching versions so
+                AAP project sync installs the pinned checkout dependencies; Molecule test requirements
                 alone do not supply production dependencies. The sandbox
                 preloads the pinned test requirements. If you change
                 extensions/molecule/requirements-test.yml, install the updated
@@ -147,12 +147,174 @@ nodes:
         initial_interval: 5
         max_interval: 20
         backoff_coefficient: 1.5
+  - id: owns_incident
+    name: Only a newly claimed incident starts remediation
+    type: condition
+    position:
+      x: 500
+      y: -130
+    parameters:
+      condition: ${prepare_feature.body.author_required} == True
+  - id: wait_pr
+    name: Wait for a published candidate PR
+    type: loop
+    position:
+      x: 2050
+      y: 180
+    parameters:
+      type: do_while
+      condition: read_pr.body.ready == False
+      max_iterations: 2880
+  - id: read_pr
+    name: Read the exact incident PR through Developer Hub
+    type: http_request
+    position:
+      x: 2300
+      y: 480
+    parameters:
+      method: GET
+      url: http://backstage-feature-gate.automation-orchestrator.svc:8080/webapp/pr
+      query_params:
+        issue_number: ${trigger.issue_number}
+    settings:
+      timeout: 60
+      retry_policy:
+        max_retries: 3
+        initial_interval: 5
+        max_interval: 30
+        backoff_coefficient: 2
+  - id: pr_poll_interval
+    name: Allow authoring to progress
+    type: wait
+    position:
+      x: 2630
+      y: 480
+    parameters:
+      duration: 30
+  - id: read_candidate
+    name: Confirm the published candidate before human review
+    type: http_request
+    position:
+      x: 2400
+      y: -150
+    parameters:
+      method: GET
+      url: http://backstage-feature-gate.automation-orchestrator.svc:8080/webapp/pr
+      query_params:
+        issue_number: ${trigger.issue_number}
+    settings:
+      timeout: 60
+      retry_policy:
+        max_retries: 3
+        initial_interval: 5
+        backoff_coefficient: 2
+        max_interval: 30
+  - id: wait_merge
+    name: Wait for human review and merge of the tested source
+    type: loop
+    position:
+      x: 2820
+      y: -150
+    parameters:
+      type: do_while
+      condition: read_merge.body.merged == False
+      max_iterations: 2880
+  - id: read_merge
+    name: Check human merge and unchanged source identity
+    type: http_request
+    position:
+      x: 3150
+      y: 180
+    parameters:
+      method: GET
+      url: http://backstage-feature-gate.automation-orchestrator.svc:8080/webapp/pr
+      query_params:
+        issue_number: ${trigger.issue_number}
+        pr_number: ${read_candidate.body.number}
+        head_sha: ${read_candidate.body.head_sha}
+        require_merged: 'true'
+    settings:
+      timeout: 60
+      retry_policy:
+        max_retries: 3
+        initial_interval: 5
+        max_interval: 30
+        backoff_coefficient: 2
+  - id: merge_poll_interval
+    name: Wait for the human PR decision
+    type: wait
+    position:
+      x: 3500
+      y: 180
+    parameters:
+      duration: 30
+  - id: approve_and_deploy
+    name: Await human approval and deploy the merged nginx fix
+    type: aap_workflow_job_template
+    position:
+      x: 3300
+      y: -220
+    parameters:
+      organization_name: demo
+      workflow_job_template_name: webapp_promote
+      scm_branch: ${read_candidate.body.head_sha}
+      extra_vars:
+        webapp_candidate_sha: ${read_candidate.body.head_sha}
+        webapp_issue_number: ${trigger.issue_number}
+        webapp_pr_number: ${read_candidate.body.number}
+    settings:
+      timeout: 7200
+      retry_policy:
+        max_retries: 0
+  - id: verify_deployment
+    name: Prove approval, reviewed source and enforcing HTTP recovery
+    type: aap_job_template
+    position:
+      x: 3700
+      y: -220
+    parameters:
+      organization_name: demo
+      job_template_name: webapp_verify_deployment
+      extra_vars:
+        webapp_candidate_sha: ${read_candidate.body.head_sha}
+        webapp_issue_number: ${trigger.issue_number}
+        webapp_pr_number: ${read_candidate.body.number}
+        webapp_deployment_workflow_id: ${approve_and_deploy.workflow_job_id}
+    settings:
+      timeout: 600
+      retry_policy:
+        max_retries: 0
 edges:
   - from: forgejo_issue
     to: prepare_feature
-  - from: prepare_feature
-    to: authenticate_omnigent
   - from: authenticate_omnigent
     to: create_session
   - from: create_session
     to: send_task
+  - from: prepare_feature
+    to: owns_incident
+  - from: owns_incident
+    to: authenticate_omnigent
+    from_port: 'true'
+  - from: wait_pr
+    to: read_pr
+    from_port: iterate
+  - from: read_pr
+    to: pr_poll_interval
+  - from: wait_pr
+    to: read_candidate
+    from_port: complete
+  - from: wait_merge
+    to: read_merge
+    from_port: iterate
+  - from: read_merge
+    to: merge_poll_interval
+  - from: send_task
+    to: wait_pr
+  - from: read_candidate
+    to: wait_merge
+  - from: wait_merge
+    to: approve_and_deploy
+    from_port: complete
+  - from: approve_and_deploy
+    to: verify_deployment

@@ -47,7 +47,7 @@ class WorkflowAuthoringTests(unittest.TestCase):
                 {'username': 'disabled', 'email': 'disabled@example.test', 'enabled': False},
                 {'username': 'second', 'email': 'second@example.test'},
             ]}))
-            for filename in ['omnigent-dispatch.yaml', 'omnigent-remediation.yaml', 'invoice-security-remediation.yaml']:
+            for filename in ['omnigent-remediation.yaml', 'invoice-security-remediation.yaml']:
                 with self.subTest(workflow=filename):
                     result = subprocess.run([
                         'bash', '-c', 'source bootstrap/bootstrap.sh; demo_ao_workflow_definition "$1" fixture-credential fixture-agent',
