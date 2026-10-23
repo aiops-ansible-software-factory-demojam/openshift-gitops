@@ -2914,7 +2914,7 @@ YAML
 aap_launch() {
   local name=$1 extra=${2:-'{}'} reset=${3:-false} org template record result project inventory sources source update
   case $name in
-    webapp_vm|pythonapp_vm|webapp_retire_legacy_invoice|webapp_nginx|webapp_mcp|webapp_selinux_permissive|webapp_selinux_enable|aap_configure_all|invoice_configure|invoice_baseline|invoice_check|invoice_open_issue|invoice_validate|invoice_discover) ;;
+    webapp_vm|pythonapp_vm|webapp_retire_legacy_invoice|webapp_nginx|webapp_mcp|webapp_selinux_permissive|webapp_selinux_enable|aap_configure_all|invoice_configure|invoice_baseline|invoice_check|invoice_open_issue|invoice_validate|invoice_discover|invoice_prepare_release) ;;
     openshift_virtualization_machine) [[ $reset == true ]] || demo_die 'Only seeded demo templates may be launched.' ;;
     *) demo_die 'Only seeded demo templates may be launched.' ;;
   esac
@@ -4366,11 +4366,19 @@ PYPROFILE
     git -C "$aap_scratch/ancestry" merge-base --is-ancestor "$sha" FETCH_HEAD || demo_die 'The tested commit is no longer contained in main.'
     local issue_number
     issue_number=$(jq -er '.head.ref | capture("^feature/issue-(?<number>[1-9][0-9]*)$").number | tonumber' <<<"$pr")
-    demo_aap launch invoice_configure "$(jq -n --arg sha "$sha" --argjson job "$validation_job" \
-      --argjson issue "$issue_number" --argjson pr "$pr_number" \
-      '{invoice_candidate_sha:$sha,invoice_validation_job_id:$job,invoice_issue_number:$issue,invoice_pr_number:$pr}')"
-    template=$(aap_find workflow_job_templates/ "invoice-promote-$sha-$wheel" "$(jq -n --argjson org "$org" '{organization:$org}')" | jq -er .id)
-    result=$(aap_request POST "workflow_job_templates/$template/launch/" '{}')
+    template=$(aap_find job_templates/ invoice_prepare_release "$(jq -n --argjson org "$org" '{organization:$org}')" | jq -er .id)
+    payload=$(jq -n --arg sha "$sha" --argjson job "$validation_job" --argjson issue "$issue_number" --argjson pr "$pr_number" \
+      '{extra_vars:{invoice_candidate_sha:$sha,invoice_validation_job_id:$job,invoice_issue_number:$issue,invoice_pr_number:$pr}}')
+    result=$(aap_request POST "job_templates/$template/launch/" "$payload")
+    local preparation_job
+    preparation_job=$(jq -er .job <<<"$result")
+    aap_wait "jobs/$preparation_job/"
+    record=$(aap_request GET "jobs/$preparation_job/")
+    payload=$(jq -ce --arg sha "$sha" '.artifacts.invoice_release_contract as $contract |
+      select($contract.source_revision == $sha) | {scm_branch:$sha,extra_vars:{invoice_candidate_sha:$sha,invoice_release_contract:$contract}}' \
+      <<<"$record") || demo_die 'The preparation job did not return the reviewed release contract.'
+    template=$(aap_find workflow_job_templates/ invoice_promote "$(jq -n --argjson org "$org" '{organization:$org}')" | jq -er .id)
+    result=$(aap_request POST "workflow_job_templates/$template/launch/" "$payload")
     job=$(jq -er .workflow_job <<<"$result")
     printf 'Production workflow %s awaits human approval: %s/execution/jobs/workflow/%s\n' "$job" "$aap_host" "$job"
     return

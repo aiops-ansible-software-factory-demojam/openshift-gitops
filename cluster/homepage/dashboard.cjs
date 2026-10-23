@@ -169,7 +169,7 @@ async function remediation() {
   };
   const [observed, validation, deployment] = await Promise.all([
     latest('name=invoice_check'), latest('name=invoice_validate'),
-    latest('name__startswith=invoice-deploy-'),
+    latest('name=invoice_deploy'),
   ]);
   if (observed && observed.status !== 'successful') {
     return { assessment: `Observation ${observed.status}`, business: 'Not verified',

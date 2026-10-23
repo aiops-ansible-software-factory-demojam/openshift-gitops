@@ -190,9 +190,11 @@ the authoring handoff through production verification:
    failure and stop the flow. A launch failure with no job ID fails closed.
 4. AO waits for a human review/merge. A changed head, unmerged closure, ambiguous
    PR or missing main ancestry stops orchestration. The workflow never merges.
-5. The existing release configurator rechecks merge, validation, source, artifact,
-   profile and execution image and exports the immutable workflow name. AO runs
-   that native AAP workflow, waiting for its existing human production approval.
+5. `invoice_prepare_release` rechecks merge and trusted acceptance and returns a
+   public immutable release contract. AO launches the reusable `invoice_promote`
+   workflow with that contract and the exact tested `scm_branch`. AAP checks the
+   contract, waits for human approval, rechecks it and then runs `invoice_deploy`.
+   No release-specific project, credential, job template or workflow is created.
 6. A trusted read-only AAP gate requires successful approval and deployment nodes
    and the actual deployed SHA/wheel. Application checks then require the exact
    approved release and successful business/regression behavior before the
