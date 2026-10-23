@@ -15,15 +15,14 @@ After [bootstrap](../../README.md), run from the repository root with
 `KUBECONFIG="$HOME/.kube/config"`:
 
 ```bash
-make demo-hydrate     # Refresh repositories and print the starter issue URL
-make demo ISSUE=N     # Replace N with that positive issue number
+make demo-hydrate     # Refresh repository sources and agent/Backstage credentials
 ```
 
 Hydration commits the selected GitHub contents to Forgejo `main` without
 importing source history. Existing feature branches and PRs survive, but changes
 merged only into Forgejo `main` are replaced by the next refresh. Edit the GitHub
-source to change the baseline. [seed.json](seed.json) declares sources; the
-[starter issue](fixtures/readme-test-issue.md) requests one README line.
+source to change the baseline. [seed.json](seed.json) declares sources;
+incident issues are created by the alert and CVE assessment workflows.
 GitHub fetches use repository-scoped ghapp credentials.
 
 Override the source refs in the root `.env` with
