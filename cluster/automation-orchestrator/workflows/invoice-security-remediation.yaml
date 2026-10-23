@@ -197,7 +197,7 @@ nodes:
       y: -44.95352287123339
     parameters:
       type: do_while
-      condition: ${read_pr.body.ready} == False
+      condition: read_pr.body.ready == False
       max_iterations: 2880
   - id: read_pr
     name: Read the exact incident PR through Developer Hub
@@ -225,6 +225,24 @@ nodes:
       y: 315.42303699389583
     parameters:
       duration: 30
+  - id: read_candidate
+    name: Confirm the published candidate before independent validation
+    type: http_request
+    position:
+      x: 2720
+      y: -470
+    parameters:
+      method: GET
+      url: http://backstage-feature-gate.automation-orchestrator.svc:8080/invoice/pr
+      query_params:
+        issue_number: ${trigger.issue_number}
+    settings:
+      timeout: 60
+      retry_policy:
+        max_retries: 3
+        initial_interval: 5
+        backoff_coefficient: 2
+        max_interval: 30
   - id: mark_pending
     name: Publish the pending independent validation check
     type: aap_job_template
@@ -235,7 +253,7 @@ nodes:
       organization_name: demo
       job_template_name: invoice_validation_status
       extra_vars:
-        invoice_candidate_sha: ${read_pr.body.head_sha}
+        invoice_candidate_sha: ${read_candidate.body.head_sha}
         invoice_status_pending: true
     settings:
       timeout: 600
@@ -251,7 +269,7 @@ nodes:
       organization_name: demo
       job_template_name: invoice_validate
       extra_vars:
-        invoice_candidate_sha: ${read_pr.body.head_sha}
+        invoice_candidate_sha: ${read_candidate.body.head_sha}
     settings:
       timeout: 7200
       retry_policy:
@@ -267,7 +285,7 @@ nodes:
       organization_name: demo
       job_template_name: invoice_validation_status
       extra_vars:
-        invoice_candidate_sha: ${read_pr.body.head_sha}
+        invoice_candidate_sha: ${read_candidate.body.head_sha}
         invoice_validation_job_id: ${validate_invoice.job_id}
     settings:
       timeout: 600
@@ -281,7 +299,7 @@ nodes:
       y: -252.0986780674546
     parameters:
       type: do_while
-      condition: ${read_merge.body.merged} == False
+      condition: read_merge.body.merged == False
       max_iterations: 2880
   - id: read_merge
     name: Check human merge and unchanged source identity
@@ -294,8 +312,8 @@ nodes:
       url: http://backstage-feature-gate.automation-orchestrator.svc:8080/invoice/pr
       query_params:
         issue_number: ${trigger.issue_number}
-        pr_number: ${read_pr.body.number}
-        head_sha: ${read_pr.body.head_sha}
+        pr_number: ${read_candidate.body.number}
+        head_sha: ${read_candidate.body.head_sha}
         require_merged: 'true'
     settings:
       timeout: 60
@@ -322,10 +340,10 @@ nodes:
       organization_name: demo
       job_template_name: invoice_configure
       extra_vars:
-        invoice_candidate_sha: ${read_pr.body.head_sha}
+        invoice_candidate_sha: ${read_candidate.body.head_sha}
         invoice_validation_job_id: ${validate_invoice.job_id}
         invoice_issue_number: ${trigger.issue_number}
-        invoice_pr_number: ${read_pr.body.number}
+        invoice_pr_number: ${read_candidate.body.number}
     settings:
       timeout: 1800
       retry_policy:
@@ -353,7 +371,7 @@ nodes:
       organization_name: demo
       job_template_name: invoice_check
       extra_vars:
-        invoice_expected_source_revision: ${read_pr.body.head_sha}
+        invoice_expected_source_revision: ${read_candidate.body.head_sha}
         invoice_expected_wheel_sha256: ${validate_invoice.artifacts.invoice_validation.wheel_sha256}
     settings:
       timeout: 600
@@ -384,7 +402,7 @@ nodes:
       organization_name: demo
       job_template_name: invoice_verify_deployment
       extra_vars:
-        invoice_candidate_sha: ${read_pr.body.head_sha}
+        invoice_candidate_sha: ${read_candidate.body.head_sha}
         invoice_approved_wheel_sha256: ${validate_invoice.artifacts.invoice_validation.wheel_sha256}
         invoice_deployment_workflow_id: ${approve_and_deploy.workflow_job_id}
     settings:
@@ -411,8 +429,10 @@ edges:
   - from: read_pr
     to: pr_poll_interval
   - from: wait_pr
-    to: mark_pending
+    to: read_candidate
     from_port: complete
+  - from: read_candidate
+    to: mark_pending
   - from: mark_pending
     to: validate_invoice
   - from: validate_invoice
