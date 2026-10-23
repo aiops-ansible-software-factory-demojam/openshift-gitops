@@ -35,19 +35,19 @@ def backstage(path, method="GET", body=None, token=None, missing_ok=False):
         raise RuntimeError(f"Backstage {method} {path} returned HTTP {error.code}") from None
 
 
-_invoice_locks = {}
-_invoice_locks_guard = Lock()
+_incident_locks = {}
+_incident_locks_guard = Lock()
 
 
 def prepare(number, repository=DEFAULT_REPOSITORY):
-    # The single-replica helper uses Recreate updates so concurrent deliveries
-    # cannot both observe an absent branch and claim the same incident.
-    if repository == "demo-owner/ansible-collection-demo.pythonapp":
-        with _invoice_locks_guard:
-            lock = _invoice_locks.setdefault(number, Lock())
-        with lock:
-            return _prepare(number, repository)
-    return _prepare(number, repository)
+    # Claims are repository-scoped: duplicate EDA deliveries must not create
+    # another author or deployment, including when issue numbers overlap.
+    if repository not in REPOSITORIES:
+        raise ValueError("Unsupported application repository")
+    with _incident_locks_guard:
+        lock = _incident_locks.setdefault((repository, number), Lock())
+    with lock:
+        return _prepare(number, repository)
 
 
 def _prepare(number, repository=DEFAULT_REPOSITORY):
@@ -93,7 +93,7 @@ def _prepare(number, repository=DEFAULT_REPOSITORY):
         "repository": repository,
         "branch": branch,
         "task_id": task_id,
-        "author_required": not existing if repository.endswith("pythonapp") else True,
+        "author_required": not existing,
         "issue": {key: issue.get(key) or "" for key in ("title", "body", "html_url")},
     }
 
@@ -101,14 +101,16 @@ def _prepare(number, repository=DEFAULT_REPOSITORY):
 INVOICE_REPOSITORY = "demo-owner/ansible-collection-demo.pythonapp"
 
 
-def invoice_pr(number, pr_number=None, head_sha=None, require_merged=False):
+def incident_pr(number, repository, pr_number=None, head_sha=None, require_merged=False):
     """Read one incident PR; fail closed on ambiguity, closure or source drift."""
+    if repository not in REPOSITORIES:
+        raise ValueError("Unsupported application repository")
     if type(number) is not int or number < 1:
         raise ValueError("issue_number must be a positive integer")
     if head_sha is not None and not re.fullmatch(r"[0-9a-f]{40}", head_sha):
         raise ValueError("Expected a full source commit")
     token = os.environ["BACKSTAGE_TOKEN"]
-    root = f"/api/proxy/forgejo/repos/{INVOICE_REPOSITORY}"
+    root = f"/api/proxy/forgejo/repos/{repository}"
     if pr_number is not None:
         if type(pr_number) is not int or pr_number < 1:
             raise ValueError("pr_number must be a positive integer")
@@ -128,7 +130,7 @@ def invoice_pr(number, pr_number=None, head_sha=None, require_merged=False):
         raise ValueError("Multiple PRs match this incident; resolve ambiguity before continuing")
     pr = matches[0]
     if (pr["head"]["ref"] != f"feature/issue-{number}" or pr["base"]["ref"] != "main"
-            or any(pr[side].get("repo", {}).get("full_name") != INVOICE_REPOSITORY for side in ["head", "base"])):
+            or any(pr[side].get("repo", {}).get("full_name") != repository for side in ["head", "base"])):
         raise ValueError("PR does not belong to the expected incident branch and repository")
     sha = pr["head"]["sha"]
     if not re.fullmatch(r"[0-9a-f]{40}", sha):
@@ -155,6 +157,14 @@ def invoice_pr(number, pr_number=None, head_sha=None, require_merged=False):
             "number": pr["number"], "head_sha": sha, "url": pr["html_url"]}
 
 
+def invoice_pr(number, pr_number=None, head_sha=None, require_merged=False):
+    return incident_pr(number, INVOICE_REPOSITORY, pr_number, head_sha, require_merged)
+
+
+def webapp_pr(number, pr_number=None, head_sha=None, require_merged=False):
+    return incident_pr(number, DEFAULT_REPOSITORY, pr_number, head_sha, require_merged)
+
+
 class Handler(BaseHTTPRequestHandler):
     def respond(self, status, body):
         payload = json.dumps(body).encode()
@@ -168,7 +178,7 @@ class Handler(BaseHTTPRequestHandler):
         parsed = urlsplit(self.path)
         if parsed.path == "/healthz":
             return self.respond(200, {"status": "ok"})
-        if parsed.path != "/invoice/pr":
+        if parsed.path not in ["/invoice/pr", "/webapp/pr"]:
             return self.respond(404, {"error": "Unknown path"})
         try:
             query = parse_qs(parsed.query, strict_parsing=True)
@@ -176,7 +186,8 @@ class Handler(BaseHTTPRequestHandler):
                 raise ValueError("Unsupported PR query")
             if query.get("require_merged", ["false"])[0] not in ["true", "false"]:
                 raise ValueError("Invalid merge requirement")
-            result = invoice_pr(int(query["issue_number"][0]),
+            observer = invoice_pr if parsed.path == "/invoice/pr" else webapp_pr
+            result = observer(int(query["issue_number"][0]),
                                 int(query["pr_number"][0]) if "pr_number" in query else None,
                                 query.get("head_sha", [None])[0],
                                 query.get("require_merged", ["false"])[0] == "true")

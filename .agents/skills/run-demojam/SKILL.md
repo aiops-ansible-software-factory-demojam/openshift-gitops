@@ -104,17 +104,22 @@ For the Python vulnerability scenario, follow `docs/invoice-lightwell-demo.md`. 
    is merged and `main` contains the merge commit. Resolve an uncertain merge
    response with reads; do not blindly submit another merge request.
 
-7. Launch **one** application recovery job, then verify:
+7. The updated AO execution observes the exact human merge and launches
+   `webapp_promote`. Inspect its saved source SHA and incident/PR identities,
+   then approve the matching native AAP production gate once. The trusted
+   recheck and pinned deployment run automatically. If this session has not
+   authorized production approval, leave that gate for the operator.
+   Do not also launch the baseline `webapp_nginx` recovery job.
 
    ```bash
-   bash bootstrap/bootstrap.sh webapp nginx
    bash bootstrap/bootstrap.sh webapp verify-enforcing
    ```
 
-   Require Enforcing, HTTP 200, a successful probe and resolved outage alerts
-   under normal alert handling. The last command only verifies state. Do not
-   run the permissive setup job or another enforcement job after deployment.
-   If recovery fails, record that outcome and stop without repairing it.
+   Require the AO deployment-proof step and native workflow to succeed,
+   Enforcing, HTTP 200, a successful probe and resolved outage alerts under
+   normal alert handling. The command only verifies state. Do not run a
+   permissive setup or another enforcement job after deployment. If recovery
+   fails, record that outcome and stop without repairing it.
 
 8. Report the result, tested/merged SHAs, job IDs, stage timings, prompts,
    test failures and any deviations. Distinguish automatic incident-to-PR
