@@ -3041,7 +3041,7 @@ PYCI
   oc -n automation-orchestrator get secret omnigent-machine-client-credential -o json >"$aap_scratch/author.json"
   kind=$(aap_upsert credential_types/ 'Demo CI Author Callback' "$(jq -n '{kind:"cloud",inputs:{fields:[{id:"username",label:"Machine client ID",type:"string"},{id:"password",label:"Machine client secret",type:"string",secret:true}],required:["username","password"]},injectors:{env:{OMNIGENT_CI_CLIENT_ID:"{{ username }}",OMNIGENT_CI_CLIENT_SECRET:"{{ password }}"}}}')" | jq -er .id)
   author=$(aap_upsert credentials/ demo-ci-author "$(jq -n --argjson org "$org" --argjson kind "$kind" --slurpfile client "$aap_scratch/author.json" '{organization:$org,credential_type:$kind,inputs:{username:($client[0].data.username|@base64d),password:($client[0].data.password|@base64d)}}')" | jq -er .id)
-  template=$(aap_upsert job_templates/ demo_ci_iteration "$(jq -n --argjson org "$org" --argjson project "$project" --argjson inventory "$inventory" --argjson ee "$ee" '{organization:$org,project:$project,inventory:$inventory,execution_environment:$ee,playbook:"playbooks/ci/iterate.yml",ask_variables_on_launch:true,allow_simultaneous:false}')" | jq -er .id)
+  template=$(aap_upsert job_templates/ demo_ci_iteration "$(jq -n --argjson org "$org" --argjson project "$project" --argjson inventory "$inventory" --argjson ee "$ee" '{organization:$org,project:$project,inventory:$inventory,execution_environment:$ee,playbook:"playbooks/ci/iterate.yml",ask_variables_on_launch:true,allow_simultaneous:true}')" | jq -er .id)
   aap_associate "job_templates/$template/credentials/" "$review"
   aap_associate "job_templates/$template/credentials/" "$author"
   echo 'Independent CI templates configured with separate test and publisher credentials.'
