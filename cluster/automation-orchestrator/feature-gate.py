@@ -185,6 +185,12 @@ def ci_candidate(number, repository):
                         if repository == DEFAULT_REPOSITORY else 'invoice-ci-v2 checks=passed')
             result['ci_passed'] = checks[0].get('description') == expected
             result['validation_required'] = not result['ci_passed']
+            if result['ci_passed'] and repository == INVOICE_REPOSITORY:
+                job = re.fullmatch(r'https?://[^/]+/execution/jobs/playbook/([1-9][0-9]*)/output', checks[0].get('target_url', ''))
+                if not job:
+                    result.update(ci_passed=False, validation_required=True)
+                else:
+                    result['validation_job_id'] = int(job.group(1))
     return result
 
 

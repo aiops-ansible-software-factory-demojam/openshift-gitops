@@ -32,7 +32,11 @@ class FeedbackTests(unittest.TestCase):
             checks.append({'context':'invoice/ec2-validation','status':'success','description':'invoice-ci-v2 checks=passed','creator':{'login':'demo-agent'}})
             self.assertFalse(gate.ci_candidate(1,gate.INVOICE_REPOSITORY)['ci_passed'])
             checks[0]['creator']['login']='demo-reviewer'
-            self.assertTrue(gate.ci_candidate(1,gate.INVOICE_REPOSITORY)['ci_passed'])
+            self.assertFalse(gate.ci_candidate(1,gate.INVOICE_REPOSITORY)['ci_passed'])
+            checks[0]['target_url']='https://aap.fixture/execution/jobs/playbook/42/output'
+            verdict=gate.ci_candidate(1,gate.INVOICE_REPOSITORY)
+            self.assertTrue(verdict['ci_passed'])
+            self.assertEqual(verdict['validation_job_id'],42)
 
     def test_cli_ignores_agent_success_and_old_or_untrusted_diagnostics(self):
         repo=gate.INVOICE_REPOSITORY
@@ -61,6 +65,10 @@ class FeedbackTests(unittest.TestCase):
                 self.assertIn('ci_iteration.passed',n['wait_ci']['parameters']['condition'])
                 self.assertEqual([e['to']for e in w['edges']if e['from']=='ci_iteration'],['ci_poll_interval'])
                 self.assertIn('--wait',n['send_task']['parameters']['body']['data']['content'][0]['text'])
+                if file == 'invoice-security-remediation.yaml':
+                    self.assertEqual(n['configure_release']['parameters']['extra_vars']['invoice_validation_job_id'], '${read_candidate.body.validation_job_id}')
+                    self.assertEqual(n['verify_release']['parameters']['extra_vars']['invoice_expected_wheel_sha256'], '${configure_release.artifacts.invoice_release_contract.wheel_sha256}')
+                    self.assertNotIn('validate_invoice.', str(w))
 
 
 if __name__ == '__main__':unittest.main()

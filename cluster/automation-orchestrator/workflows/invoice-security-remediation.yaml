@@ -203,7 +203,7 @@ nodes:
       job_template_name: invoice_prepare_release
       extra_vars:
         invoice_candidate_sha: ${read_candidate.body.head_sha}
-        invoice_validation_job_id: ${validate_invoice.job_id}
+        invoice_validation_job_id: ${read_candidate.body.validation_job_id}
         invoice_issue_number: ${trigger.issue_number}
         invoice_pr_number: ${read_candidate.body.number}
     settings:
@@ -238,7 +238,7 @@ nodes:
       job_template_name: invoice_check
       extra_vars:
         invoice_expected_source_revision: ${read_candidate.body.head_sha}
-        invoice_expected_wheel_sha256: ${validate_invoice.artifacts.invoice_validation.wheel_sha256}
+        invoice_expected_wheel_sha256: ${configure_release.artifacts.invoice_release_contract.wheel_sha256}
     settings:
       timeout: 600
       retry_policy:
@@ -269,8 +269,8 @@ nodes:
       job_template_name: invoice_verify_deployment
       extra_vars:
         invoice_candidate_sha: ${read_candidate.body.head_sha}
-        invoice_validation_job_id: ${validate_invoice.job_id}
-        invoice_approved_wheel_sha256: ${validate_invoice.artifacts.invoice_validation.wheel_sha256}
+        invoice_validation_job_id: ${read_candidate.body.validation_job_id}
+        invoice_approved_wheel_sha256: ${configure_release.artifacts.invoice_release_contract.wheel_sha256}
         invoice_deployment_workflow_id: ${approve_and_deploy.workflow_job_id}
     settings:
       timeout: 300
