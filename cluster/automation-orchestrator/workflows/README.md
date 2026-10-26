@@ -278,3 +278,16 @@ on the trusted controller gates. No per-release AAP objects are created.
 
 Apply/sync the companion source changes and run AAP/AO configuration before using
 this path. Updating GitHub PRs alone does not update the running demo.
+
+### CI feedback and completion
+
+Both authoring workflows loop until independent CI passes for the latest PR
+head. The author polls `demo-goldenpath ci <issue> --wait`; exit 75 is pending,
+not completion. Validators publish diagnostics through the separate trusted
+`demo_ci_publish` job. A failed head waits for an agent-authored new commit;
+AO does not rerun unchanged failures. It resumes the same idle session with
+sanitized diagnostics, while active authors continue without duplicate prompts.
+A new head gets a new pending status and full validation. Only a green exact
+head can advance to human review and native production approval. This replaces
+the previous one-pass authoring/review boundary; infrastructure cleanup failure
+still requires operator resolution and cannot produce green CI.

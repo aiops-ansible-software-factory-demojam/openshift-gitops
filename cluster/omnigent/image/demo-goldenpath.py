@@ -174,6 +174,71 @@ def show_issue(issue):
     return result
 
 
+def ci_verdict(issue, sha):
+    """Trust only independent checks and feedback for this published head."""
+    token = os.environ['FORGEJO_TOKEN']
+    root = f'/api/v1/repos/{repository}'
+    matches = []
+    for page in range(1, 101):
+        batch = request(forgejo, root + f'/pulls?state=all&limit=50&page={page}', token=token)
+        matches.extend(p for p in batch if p.get('head', {}).get('ref') == f'feature/issue-{issue}')
+        if len(batch) < 50:
+            break
+    if len(matches) != 1:
+        raise RuntimeError('CI requires exactly one open PR on this incident branch')
+    pr = matches[0]
+    if pr.get('state') == 'closed' and not pr.get('merged'):
+        raise RuntimeError('The incident PR was closed without merging')
+    if (pr['head']['sha'] != sha or pr['base']['ref'] != 'main'
+            or any(pr[side]['repo']['full_name'] != repository for side in ['head', 'base'])):
+        raise RuntimeError('Published PR differs from the local candidate')
+    web = repository.endswith('.webapp')
+    context = 'webapp/regression-validation' if web else 'invoice/ec2-validation'
+    prefix = 'webapp-ci-v2 ' if web else 'invoice-ci-v2 '
+    status = request(forgejo, root + f'/commits/{sha}/status', token=token)
+    checks = [s for s in status.get('statuses', []) if s.get('context') == context
+              and (s.get('creator') or {}).get('login') == 'demo-reviewer'
+              and s.get('description', '').startswith(prefix)]
+    state = checks[0].get('status', 'pending') if checks else 'pending'
+    if state == 'success':
+        expected = ('webapp-ci-v2 base=' + pr['merge_base'] + ' checks=passed red=passed green=passed durable=passed'
+                    if web else 'invoice-ci-v2 checks=passed')
+        if checks[0].get('description') != expected:
+            state = 'failure'
+    feedback = ''
+    if state in ['failure', 'error']:
+        for page in range(1, 101):
+            batch = request(forgejo, root + f"/issues/{pr['number']}/comments?limit=50&page={page}", token=token)
+            for comment in batch:
+                if (comment.get('user', {}).get('login') == 'demo-reviewer'
+                        and comment.get('body', '').startswith(f'<!-- demo-ci sha={sha} -->')):
+                    feedback = comment['body']
+            if len(batch) < 50:
+                break
+    return {'state': state, 'head_sha': sha, 'pr': pr['number'], 'url': pr['html_url'], 'context': context, 'feedback': feedback}
+
+
+def watch_ci(issue, wait=False):
+    directory = Path.cwd() / f"{repository.split('/')[1]}-issue-{issue}"
+    if not directory.exists():
+        directory = Path.cwd()
+    if git(directory, 'remote', 'get-url', 'origin', capture=True) != f'{forgejo}/{repository}.git':
+        raise RuntimeError('CI workspace has an unexpected origin')
+    if git(directory, 'status', '--porcelain', capture=True):
+        raise RuntimeError('Commit and publish the final tree before waiting for CI')
+    sha = git(directory, 'rev-parse', 'HEAD', capture=True)
+    deadline = time.monotonic() + (45 if wait else 0)
+    while True:
+        verdict = ci_verdict(issue, sha)
+        if verdict['state'] == 'success':
+            print(json.dumps(verdict))
+            return 0
+        if verdict['state'] in ['failure', 'error'] or time.monotonic() >= deadline:
+            print(json.dumps(verdict))
+            return 1 if verdict['state'] in ['failure', 'error'] else 75
+        time.sleep(5)
+
+
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--repository", choices=["demo-owner/ansible-collection-demo.webapp", "demo-owner/ansible-collection-demo.pythonapp"], default="demo-owner/ansible-collection-demo.webapp", help="Application repository prepared by AO")
 subparsers = parser.add_subparsers(dest="command", required=True)
@@ -187,6 +252,9 @@ issue.add_argument("issue", type=int)
 pr = subparsers.add_parser("pr", help="Open a pull request for an issue branch")
 pr.add_argument("issue", type=int)
 pr.add_argument("--body-file", type=Path, required=True)
+ci = subparsers.add_parser('ci', help='Check independent CI for the published SHA; pending exits 75')
+ci.add_argument('issue', type=int)
+ci.add_argument('--wait', action='store_true', help='Poll for up to 45 seconds; repeat while pending')
 args = parser.parse_args()
 repository = args.repository
 for name in ("FORGEJO_URL", "FORGEJO_TOKEN", "FORGEJO_USERNAME"):
@@ -206,6 +274,8 @@ try:
         prepare_feature(args.issue)
     elif args.command == "issue":
         show_issue(args.issue)
+    elif args.command == 'ci':
+        sys.exit(watch_ci(args.issue, args.wait))
     else:
         open_pr(args.issue, args.body_file)
 except (KeyError, ValueError, RuntimeError, urllib.error.URLError, OSError, subprocess.CalledProcessError) as error:

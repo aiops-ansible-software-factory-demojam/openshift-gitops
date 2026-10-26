@@ -17,13 +17,13 @@ class WorkflowAuthoringTests(unittest.TestCase):
     def test_invoice_pins_a_candidate_after_polling_before_validation(self):
         workflow = yaml.safe_load((WORKFLOWS / 'invoice-security-remediation.yaml').read_text())
         nodes = {node['id']: node for node in workflow['nodes']}
-        self.assertIn({'from': 'wait_pr', 'to': 'read_candidate', 'from_port': 'complete'}, workflow['edges'])
-        self.assertIn({'from': 'read_candidate', 'to': 'mark_pending'}, workflow['edges'])
+        self.assertIn({'from': 'wait_ci', 'to': 'read_candidate', 'from_port': 'complete'}, workflow['edges'])
+        self.assertIn({'from': 'wait_ci', 'to': 'ci_iteration', 'from_port': 'iterate'}, workflow['edges'])
         for node in nodes.values():
             if node['type'] != 'loop':
                 # Poll body outputs are not upstream in the editor's outer graph.
                 self.assertNotRegex(json.dumps(node), r'\$\{(?:read_pr|read_merge)\.')
-        for node_id in ['mark_pending', 'validate_invoice', 'publish_validation', 'read_merge',
+        for node_id in ['read_merge',
                         'configure_release', 'verify_release', 'verify_deployment']:
             self.assertIn('${read_candidate.body.head_sha}', json.dumps(nodes[node_id]['parameters']))
 

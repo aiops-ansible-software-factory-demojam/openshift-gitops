@@ -163,6 +163,31 @@ def invoice_pr(number, pr_number=None, head_sha=None, require_merged=False):
     return incident_pr(number, INVOICE_REPOSITORY, pr_number, head_sha, require_merged)
 
 
+def ci_candidate(number, repository):
+    """A failed SHA waits for a new commit; only an independently green SHA is done."""
+    result = incident_pr(number, repository)
+    result.update(ci_passed=False, ci_failed=False, validation_required=False)
+    if not result['ready']:
+        return result
+    root = '/api/proxy/forgejo/repos/' + repository
+    status = backstage(root + '/commits/' + result['head_sha'] + '/status', token=os.environ['BACKSTAGE_TOKEN'])
+    context = 'webapp/regression-validation' if repository == DEFAULT_REPOSITORY else 'invoice/ec2-validation'
+    prefix = 'webapp-ci-v2 ' if repository == DEFAULT_REPOSITORY else 'invoice-ci-v2 '
+    checks = [s for s in status.get('statuses', []) if s.get('context') == context
+              and (s.get('creator') or {}).get('login') == 'demo-reviewer'
+              and s.get('description', '').startswith(prefix)]
+    result['validation_required'] = not checks
+    if checks:
+        result['ci_failed'] = checks[0].get('status') in ['failure', 'error']
+        result['ci_passed'] = checks[0].get('status') == 'success'
+        if result['ci_passed']:
+            expected = ('webapp-ci-v2 base=' + result['base_sha'] + ' checks=passed red=passed green=passed durable=passed'
+                        if repository == DEFAULT_REPOSITORY else 'invoice-ci-v2 checks=passed')
+            result['ci_passed'] = checks[0].get('description') == expected
+            result['validation_required'] = not result['ci_passed']
+    return result
+
+
 def webapp_pr(number, pr_number=None, head_sha=None, require_merged=False):
     result = incident_pr(number, DEFAULT_REPOSITORY, pr_number, head_sha, require_merged)
     if result["ready"]:
@@ -172,7 +197,7 @@ def webapp_pr(number, pr_number=None, head_sha=None, require_merged=False):
         receipt = backstage(root + "/commits/" + result["head_sha"] + "/status", token=os.environ["BACKSTAGE_TOKEN"])
         checks = [check for check in (receipt.get("statuses") or [])
                   if check.get("context") == "webapp/regression-validation"]
-        expected = "webapp-regression-v1 base=" + result["base_sha"] + " red=passed green=passed durable=passed"
+        expected = "webapp-ci-v2 base=" + result["base_sha"] + " checks=passed red=passed green=passed durable=passed"
         if (not checks or checks[0].get("status") != "success" or checks[0].get("description") != expected
                 or (checks[0].get("creator") or {}).get("login") != "demo-reviewer"):
             raise ValueError("Independent webapp/regression-validation must pass for this exact head and merge base")
@@ -218,7 +243,7 @@ class Handler(BaseHTTPRequestHandler):
         parsed = urlsplit(self.path)
         if parsed.path == "/healthz":
             return self.respond(200, {"status": "ok"})
-        if parsed.path not in ["/invoice/pr", "/webapp/pr"]:
+        if parsed.path not in ["/invoice/pr", "/webapp/pr", "/invoice/candidate", "/webapp/candidate", "/invoice/validated", "/webapp/validated"]:
             return self.respond(404, {"error": "Unknown path"})
         try:
             query = parse_qs(parsed.query, strict_parsing=True)
@@ -226,6 +251,14 @@ class Handler(BaseHTTPRequestHandler):
                 raise ValueError("Unsupported PR query")
             if query.get("require_merged", ["false"])[0] not in ["true", "false"]:
                 raise ValueError("Invalid merge requirement")
+            if parsed.path.endswith(('/candidate', '/validated')):
+                if set(query) != {'issue_number'}:
+                    raise ValueError('Candidate discovery only accepts an issue number')
+                repository = INVOICE_REPOSITORY if parsed.path.startswith('/invoice/') else DEFAULT_REPOSITORY
+                result = ci_candidate(int(query['issue_number'][0]), repository)
+                if parsed.path.endswith('/validated') and not result['ci_passed']:
+                    raise ValueError('The current PR head has not passed independent CI')
+                return self.respond(200, result)
             observer = invoice_pr if parsed.path == "/invoice/pr" else webapp_pr
             result = observer(int(query["issue_number"][0]),
                                 int(query["pr_number"][0]) if "pr_number" in query else None,

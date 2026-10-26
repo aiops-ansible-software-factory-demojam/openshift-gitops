@@ -1103,7 +1103,13 @@ demo_model_config() (
     Make only the requested change, verify it, and review the final diff before
     committing. Write an accurate PR summary to a file outside the repository,
     then run demo-goldenpath --repository <owner/repository> pr <number>
-    --body-file <path>. Report the PR URL.
+    --body-file <path>. PR submission is not completion. Run demo-goldenpath
+    --repository <owner/repository> ci <number> --wait until independent CI
+    passes for the current published SHA. Exit 75 means pending; keep waiting.
+    On failure, read trusted PR diagnostics, fix the same branch and PR,
+    rerun local checks after the final edit, commit and push, then wait again.
+    Do not edit the tree during independent testing or finish with failing CI.
+    Report the green SHA and PR URL for human review.
     Never create the issue branch yourself or run the feature template again.
     Do not merge or push to main. Never print credentials or commit them.
   executor:
@@ -1728,7 +1734,7 @@ demo_ao_workflow_definition() {
     --slurpfile layouts "$demo_repo_root/cluster/automation-orchestrator/workflows/session-sharing-layouts.json" \
     --slurpfile users "$(demo_identity_users_file)" '
     .name as $workflow_name |
-    .nodes |= map(if .id == "authenticate_omnigent" then .parameters.credential_id=$credential_id
+    .nodes |= map(if .parameters.url == "http://omnigent.omnigent.svc:8000/oauth/token" then .parameters.credential_id=$credential_id
       elif .id == "create_session" then .parameters.body.agent_id=$agent_id else . end) |
     ([$users[0].users[] | select(.enabled != false)] | to_entries | map({
       id:("share_session_" + (.key | tostring)),name:("Share session with " + .value.username),type:"http_request",
@@ -2974,6 +2980,66 @@ aap_verify_enforcing() {
   printf 'Webapp SELinux is Enforcing (AAP ad hoc command %s).\n' "$job"
 }
 
+# CI execution and publishing use separate credentials: the authoring subprocess
+# only sees disposable guest credentials, never the reviewer or AAP API token.
+demo_ci_configure() (
+  set +x
+  umask 077
+  local aap_scratch org scope project inventory ee kind tests publisher template author review image
+  aap_scratch=$(mktemp -d)
+  trap 'rm -rf -- "$aap_scratch"' EXIT
+  aap_connect
+  org=$(aap_find organizations/ demo | jq -er .id)
+  scope=$(jq -n --argjson org "$org" '{organization:$org}')
+  project=$(aap_find projects/ demojam-ansible "$scope" | jq -er .id)
+  inventory=$(aap_find inventories/ demo-inventory "$scope" | jq -er .id)
+  image="$(demo_sandbox_image)"
+  image="${image%:*}@$(oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:latest -o jsonpath='{.image.metadata.name}')"
+  [[ $image =~ @sha256:[a-f0-9]{64}$ ]] || demo_die 'CI requires a built immutable test image.'
+  oc -n omnigent-sandboxes policy add-role-to-group system:image-puller system:serviceaccounts:ansible-automation-platform >/dev/null
+  ee=$(aap_upsert execution_environments/ demo-ci-ee "$(jq -n --argjson org "$org" --arg image "$image" '{organization:$org,image:$image,pull:"always"}')" | jq -er .id)
+  : >"$aap_scratch/aws-credentials"
+  printf '{}' >"$aap_scratch/kubeconfig"
+  if [[ $DEMO_BACKEND == aws ]]; then
+    oc -n omnigent-sandboxes get secret molecule-aws-credentials -o json >"$aap_scratch/test-secret.json"
+    jq -r '.data.credentials|@base64d' "$aap_scratch/test-secret.json" >"$aap_scratch/aws-credentials"
+    python3 - "$aap_scratch/test-secret.json" >"$aap_scratch/profile.json" <<'PYCI'
+import base64,json,shlex,sys
+profile=base64.b64decode(json.load(open(sys.argv[1]))['data']['profile.sh']).decode()
+result={}
+for line in profile.splitlines():
+    parts=shlex.split(line)
+    if len(parts)==2 and parts[0]=='export':
+        key,value=parts[1].split('=',1)
+        if key!='AWS_SHARED_CREDENTIALS_FILE':result[key]=value
+print(json.dumps(result))
+PYCI
+  else
+    printf '{"PROVISIONER":"kubevirt"}' >"$aap_scratch/profile.json"
+    oc -n omnigent-sandboxes get secret molecule-provisioner-token -o json |
+      jq '{apiVersion:"v1",kind:"Config",clusters:[{name:"demo",cluster:{server:"https://kubernetes.default.svc","certificate-authority-data":.data["ca.crt"]}}],users:[{name:"test",user:{token:(.data.token|@base64d)}}],contexts:[{name:"test",context:{cluster:"demo",user:"test",namespace:"molecule-tests"}}],"current-context":"test"}' >"$aap_scratch/kubeconfig"
+  fi
+  kind=$(aap_upsert credential_types/ 'Demo CI Tests' "$(yq . "$demo_repo_root/bootstrap/ci-test-credential-type.yaml")" | jq -er .id)
+  tests=$(aap_upsert credentials/ demo-ci-tests "$(jq -n --argjson org "$org" --argjson kind "$kind" --rawfile profile "$aap_scratch/profile.json" --rawfile aws "$aap_scratch/aws-credentials" --rawfile kubeconfig "$aap_scratch/kubeconfig" '{organization:$org,credential_type:$kind,inputs:{profile:$profile,aws_credentials:$aws,kubeconfig:$kubeconfig}}')" | jq -er .id)
+  demo_invoice_forgejo_connect
+  kind=$(aap_upsert credential_types/ 'Demo CI Publisher' "$(jq -n '{kind:"cloud",inputs:{fields:[{id:"url",label:"Forgejo URL",type:"string"},{id:"token",label:"Independent reviewer token",type:"string",secret:true}],required:["url","token"]},injectors:{env:{FORGEJO_URL:"{{ url }}",FORGEJO_TOKEN:"{{ token }}"}}}')" | jq -er .id)
+  printf '%s' "$FORGEJO_TOKEN" >"$aap_scratch/reviewer-token"
+  publisher=$(aap_upsert credentials/ demo-ci-publisher "$(jq -n --argjson org "$org" --argjson kind "$kind" --arg url "$FORGEJO_URL" --rawfile token "$aap_scratch/reviewer-token" '{organization:$org,credential_type:$kind,inputs:{url:$url,token:$token}}')" | jq -er .id)
+  template=$(aap_upsert job_templates/ webapp_validate "$(jq -n --argjson org "$org" --argjson project "$project" --argjson inventory "$inventory" --argjson ee "$ee" '{organization:$org,project:$project,inventory:$inventory,execution_environment:$ee,playbook:"playbooks/ci/webapp.yml",ask_variables_on_launch:true,allow_simultaneous:false}')" | jq -er .id)
+  aap_associate "job_templates/$template/credentials/" "$tests"
+  template=$(aap_upsert job_templates/ demo_ci_publish "$(jq -n --argjson org "$org" --argjson project "$project" --argjson inventory "$inventory" --argjson ee "$ee" '{organization:$org,project:$project,inventory:$inventory,execution_environment:$ee,playbook:"playbooks/ci/publish.yml",ask_variables_on_launch:true,allow_simultaneous:false}')" | jq -er .id)
+  aap_associate "job_templates/$template/credentials/" "$publisher"
+  review=$(aap_find credentials/ demo-deployment-review-api "$scope" | jq -er .id)
+  aap_associate "job_templates/$template/credentials/" "$review"
+  oc -n automation-orchestrator get secret omnigent-machine-client-credential -o json >"$aap_scratch/author.json"
+  kind=$(aap_upsert credential_types/ 'Demo CI Author Callback' "$(jq -n '{kind:"cloud",inputs:{fields:[{id:"username",label:"Machine client ID",type:"string"},{id:"password",label:"Machine client secret",type:"string",secret:true}],required:["username","password"]},injectors:{env:{OMNIGENT_CI_CLIENT_ID:"{{ username }}",OMNIGENT_CI_CLIENT_SECRET:"{{ password }}"}}}')" | jq -er .id)
+  author=$(aap_upsert credentials/ demo-ci-author "$(jq -n --argjson org "$org" --argjson kind "$kind" --slurpfile client "$aap_scratch/author.json" '{organization:$org,credential_type:$kind,inputs:{username:($client[0].data.username|@base64d),password:($client[0].data.password|@base64d)}}')" | jq -er .id)
+  template=$(aap_upsert job_templates/ demo_ci_iteration "$(jq -n --argjson org "$org" --argjson project "$project" --argjson inventory "$inventory" --argjson ee "$ee" '{organization:$org,project:$project,inventory:$inventory,execution_environment:$ee,playbook:"playbooks/ci/iterate.yml",ask_variables_on_launch:true,allow_simultaneous:false}')" | jq -er .id)
+  aap_associate "job_templates/$template/credentials/" "$review"
+  aap_associate "job_templates/$template/credentials/" "$author"
+  echo 'Independent CI templates configured with separate test and publisher credentials.'
+)
+
 # Config-as-code enables these again during the next bootstrap.
 aap_stop_demo_listeners() {
   local activations id activation deadline
@@ -3053,6 +3119,7 @@ aap_dispatch() {
   aap_associate "job_templates/$template/credentials/" "$credential"
   aap_launch aap_configure_all
   aap_wait_eda
+  demo_ci_configure
 }
 
 # An enabled activation record does not prove that its rulebook is running.
@@ -4344,7 +4411,7 @@ PY
     fi
     record=$(aap_request GET "jobs/$job/")
     jq -e --arg sha "$sha" --argjson template "$template" \
-      '.status == "successful" and .job_template == $template and .artifacts.invoice_validation.passed == true and .artifacts.invoice_validation.source_revision == $sha and .artifacts.invoice_validation.backend == "aws" and .artifacts.invoice_validation.acceptance_suite == "trusted-invoice-v1"' <<<"$record" >/dev/null || demo_die 'AAP did not publish matching validation evidence.'
+      '.status == "successful" and .job_template == $template and .artifacts.invoice_validation.passed == true and .artifacts.invoice_validation.source_revision == $sha and .artifacts.invoice_validation.backend == "aws" and .artifacts.invoice_validation.acceptance_suite == "trusted-invoice-v2"' <<<"$record" >/dev/null || demo_die 'AAP did not publish matching validation evidence.'
     printf '%s' "$record" >"$invoice_dir/validation-$job.json"
     forgejo_api POST "/repos/demo-owner/ansible-collection-demo.pythonapp/statuses/$sha" \
       "$(jq -n --arg url "$aap_host/execution/jobs/playbook/$job/output" '{state:"success",context:"invoice/ec2-validation",description:"Exact commit passed independent RHEL EC2 lifecycle tests",target_url:$url}')" >/dev/null
@@ -4426,6 +4493,7 @@ Usage: bash bootstrap/bootstrap.sh [COMMAND] [--backend cnv|aws]
   identity           Reconcile demo users, clients and application login
   homepage-refresh   Refresh Homepage links, repositories and environment details
   hydrate            Seed Forgejo and refresh Backstage/agent credentials
+  ci-configure      Configure independent CI jobs and separate publisher credentials
   ao-configure      Reconcile AO LLM/AAP integrations and publish all demo workflows
   ao-run NAME [JSON] Execute a published workflow and print its result
   reconcile-workflow Alias for ao-configure
@@ -4483,6 +4551,7 @@ HELP
     verify-goldenpaths) demo_verify_cluster; demo_verify_goldenpaths ;;
     hydrate) demo_hydrate hydrate ;;
     forgejo-reset) demo_hydrate reset "$@" ;;
+    ci-configure) demo_verify_cluster; demo_ci_configure ;;
     reconcile-workflow|ao-configure) demo_verify_cluster; demo_ao_reconcile ;;
     ao-run) [[ $# -ge 1 && $# -le 2 ]] || demo_die 'ao-run requires WORKFLOW [INPUT_JSON]'; demo_verify_cluster; demo_ao_reconcile run "$@" ;;
     aap-configure)
