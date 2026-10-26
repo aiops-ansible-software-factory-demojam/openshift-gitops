@@ -6,6 +6,8 @@ scratch=$(mktemp -d)
 trap 'rm -rf -- "$scratch"' EXIT
 demo_sandbox_image() { echo registry.fixture/demo:latest; }
 aap_connect() { :; }
+aap_request() { printf '{"id":999}\n'; }
+aap_wait() { :; }
 demo_invoice_forgejo_connect() { export FORGEJO_URL=https://forgejo.fixture FORGEJO_TOKEN=fixture-token; }
 oc() {
   if [[ $* == *imagestreamtag* ]]; then

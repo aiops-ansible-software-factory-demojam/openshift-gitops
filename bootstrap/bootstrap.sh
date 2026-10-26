@@ -2985,7 +2985,7 @@ aap_verify_enforcing() {
 demo_ci_configure() (
   set +x
   umask 077
-  local aap_scratch org scope project inventory ee kind tests publisher template author review image
+  local aap_scratch org scope project inventory ee kind tests publisher template author review image update
   aap_scratch=$(mktemp -d)
   trap 'rm -rf -- "$aap_scratch"' EXIT
   aap_connect
@@ -2993,6 +2993,10 @@ demo_ci_configure() (
   scope=$(jq -n --argjson org "$org" '{organization:$org}')
   project=$(aap_find projects/ demojam-ansible "$scope" | jq -er .id)
   inventory=$(aap_find inventories/ demo-inventory "$scope" | jq -er .id)
+  # Controller validates playbook paths against its project cache on JT creation.
+  # Newly published CI content must be synchronized before registering the jobs.
+  update=$(aap_request POST "projects/$project/update/" '{}')
+  aap_wait "project_updates/$(jq -er .id <<<"$update")/"
   image="$(demo_sandbox_image)"
   image="${image%:*}@$(oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:latest -o jsonpath='{.image.metadata.name}')"
   [[ $image =~ @sha256:[a-f0-9]{64}$ ]] || demo_die 'CI requires a built immutable test image.'
