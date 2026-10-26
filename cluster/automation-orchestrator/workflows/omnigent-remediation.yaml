@@ -125,8 +125,20 @@ nodes:
                 ansible-lint to roles/nginx and extensions/molecule/nginx;
                 do not lint /tmp or installed dependency collections. Keep
                 the normal collection paths so provisioners remain available.
-                Add a regression check that nginx serves HTTP while SELinux is
-                enforcing in the nginx scenario. Run ansible-lint, build the
+                Add or extend extensions/molecule/nginx/tasks/regression.yml with
+                incident-specific Ansible assertion tasks and include it from
+                the nginx verify play. Existing HTTP/enforcing assertions alone
+                are not new coverage. Prove the persistent file-context policy
+                survives relabeling, and that HTTP still works under enforcing
+                SELinux afterward. Keep observations non-fatal and use explicit
+                ansible.builtin.assert tasks for the regression verdict. The
+                independent operator will run the identical regression tasks
+                against the original merge-base code (must fail an assertion
+                on each guest) and your exact published fix (must pass), plus
+                a trusted relabel/recovery check. Do not edit the trusted runner,
+                weaken assertions, or claim a required validation status yourself.
+                A PR without changed regression tasks cannot be promoted.
+                Run ansible-lint, build the
                 collection, and run make molecule to test every scenario.
                 Check the actual command exit codes. Fix failed checks,
                 review the diff, and commit it.

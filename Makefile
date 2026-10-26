@@ -38,6 +38,7 @@ help-all:
 	  'make webapp-mcp    Install or disable guest diagnostics and reconcile AO RCA' \
 	  'make webapp-mcp-verify Verify AO TLS authentication and selected diagnostic tools' \
 	  'make webapp-mcp-rotate Rotate the machine credential through AAP and AO' \
+	  'make webapp-protect Require human review and independent application validation' \
 	  'make webapp-delete Delete the webapp VM and owned disk through AAP' \
 	  'make aap-configure Bootstrap/refresh AAP credentials, license and configuration' \
 	  'make aap-sync      Apply seeded config-as-code through AAP' \
@@ -87,7 +88,10 @@ webapp-delete:
 webapp-verify:
 	bash bootstrap/bootstrap.sh webapp verify
 
-.PHONY: webapp-mcp webapp-mcp-verify webapp-mcp-rotate
+.PHONY: webapp-mcp webapp-mcp-verify webapp-mcp-rotate webapp-protect
+webapp-protect:
+	bash bootstrap/bootstrap.sh webapp protect
+
 webapp-mcp:
 	bash bootstrap/bootstrap.sh webapp mcp
 

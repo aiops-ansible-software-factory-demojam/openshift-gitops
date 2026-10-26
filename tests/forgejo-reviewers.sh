@@ -29,3 +29,20 @@ if demo_invoice_main_protection '[{"login":"demo-user","email":"wrong@example.te
   exit 1
 fi
 echo 'Forgejo reviewer policy checks passed.'
+
+# Exercise the actual writer: each application must require its own status.
+fixture_registered=$registered
+demo_invoice_forgejo_connect() { :; }
+forgejo_api() {
+  case "$1 $2" in
+    'GET /admin/users?limit=50&page=1') printf '%s\n' "$fixture_registered" ;;
+    GET*/branch_protections) printf '[]\n' ;;
+    POST*/ansible-collection-demo.webapp/branch_protections) printf '%s\n' "$3" >"$scratch/web-policy.json" ;;
+    POST*/ansible-collection-demo.pythonapp/branch_protections) printf '%s\n' "$3" >"$scratch/python-policy.json" ;;
+    PUT*) : ;;
+    *) printf 'Unexpected protection call: %s %s\n' "$1" "$2" >&2; return 1 ;;
+  esac
+}
+demo_protect_applications
+jq -e '.status_check_contexts == ["webapp/regression-validation"] and .apply_to_admins and .required_approvals == 1' "$scratch/web-policy.json" >/dev/null
+jq -e '.status_check_contexts == ["invoice/ec2-validation"]' "$scratch/python-policy.json" >/dev/null

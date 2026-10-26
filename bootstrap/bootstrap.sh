@@ -3159,6 +3159,7 @@ demo_webapp() {
     mcp-verify) demo_ao_reconcile mcp-verify ;;
     mcp-rotate) demo_mcp_rotate ;;
     sync) demo_aap launch aap_configure_all ;;
+    protect) demo_protect_applications ;;
     verify-enforcing) demo_aap verify-enforcing; demo_webapp verify ;;
     verify)
       local host pod metrics login_redirect ingress_domain
@@ -3604,6 +3605,7 @@ demo_bootstrap() (
   fi
   demo_step 'Verify the webapp and monitoring probe'
   demo_webapp verify
+  demo_protect_applications
   demo_alerting_maintenance resume
   demo_step 'Populate and verify Homepage navigation and dashboard'
   demo_homepage_reconcile bootstrap
@@ -4058,6 +4060,43 @@ demo_invoice_forgejo_connect() {
   export FORGEJO_TOKEN
 }
 
+# Both applications share reviewer identity policy, with independent checks.
+demo_protect_applications() (
+  demo_invoice_forgejo_connect
+  # The author must not be able to rewrite the independent validator or AAP
+  # configuration that will later evaluate and deploy its collection PR.
+  forgejo_api PUT /repos/demo-owner/demojam-ansible/collaborators/demo-agent \
+    '{"permission":"read"}' >/dev/null
+  local protection registered='[]' batch page=1 reviewer application
+  while :; do
+    batch=$(forgejo_api GET "/admin/users?limit=50&page=$page")
+    registered=$(jq -s 'add' <(printf '%s' "$registered") <(printf '%s' "$batch"))
+    [[ $(jq length <<<"$batch") == 50 ]] || break
+    ((page+=1))
+  done
+  protection=$(demo_invoice_main_protection "$registered")
+  for application in ansible-collection-demo.webapp ansible-collection-demo.pythonapp; do
+    while read -r reviewer; do
+      forgejo_api PUT "/repos/demo-owner/$application/collaborators/$reviewer" \
+        '{"permission":"write"}' >/dev/null
+    done < <(jq -r '.merge_whitelist_usernames[]' <<<"$protection")
+  done
+  # Enforce each application's own independent status before human merge.
+  for application in ansible-collection-demo.webapp ansible-collection-demo.pythonapp; do
+    local context=invoice/ec2-validation
+    [[ $application != ansible-collection-demo.webapp ]] || context=webapp/regression-validation
+    local policy
+    policy=$(jq --arg context "$context" '.status_check_contexts=[$context]' <<<"$protection")
+    if forgejo_api GET "/repos/demo-owner/$application/branch_protections" |
+      jq -e 'any(.[]; .rule_name == "main" or .branch_name == "main")' >/dev/null; then
+      forgejo_api PATCH "/repos/demo-owner/$application/branch_protections/main" "$policy" >/dev/null
+    else
+      forgejo_api POST "/repos/demo-owner/$application/branch_protections" "$policy" >/dev/null
+    fi
+  done
+  echo 'Both collection main branches require human review and their independent validation status; the agent cannot change the trusted validator.'
+)
+
 demo_invoice_foundation() (
   set +x
   umask 077
@@ -4210,32 +4249,7 @@ PY
     return
   fi
   if [[ $action == protect ]]; then
-    demo_invoice_forgejo_connect
-    # The author must not be able to rewrite the independent validator or AAP
-    # configuration that will later evaluate and deploy its collection PR.
-    forgejo_api PUT /repos/demo-owner/demojam-ansible/collaborators/demo-agent \
-      '{"permission":"read"}' >/dev/null
-    local protection registered='[]' batch page=1 reviewer application
-    while :; do
-      batch=$(forgejo_api GET "/admin/users?limit=50&page=$page")
-      registered=$(jq -s 'add' <(printf '%s' "$registered") <(printf '%s' "$batch"))
-      [[ $(jq length <<<"$batch") == 50 ]] || break
-      ((page+=1))
-    done
-    protection=$(demo_invoice_main_protection "$registered")
-    for application in ansible-collection-demo.webapp ansible-collection-demo.pythonapp; do
-      while read -r reviewer; do
-        forgejo_api PUT "/repos/demo-owner/$application/collaborators/$reviewer" \
-          '{"permission":"write"}' >/dev/null
-      done < <(jq -r '.merge_whitelist_usernames[]' <<<"$protection")
-    done
-    if forgejo_api GET /repos/demo-owner/ansible-collection-demo.pythonapp/branch_protections |
-      jq -e 'any(.[]; .rule_name == "main" or .branch_name == "main")' >/dev/null; then
-      forgejo_api PATCH /repos/demo-owner/ansible-collection-demo.pythonapp/branch_protections/main "$protection" >/dev/null
-    else
-      forgejo_api POST /repos/demo-owner/ansible-collection-demo.pythonapp/branch_protections "$protection" >/dev/null
-    fi
-    echo 'Main requires human review and independent invoice/ec2-validation; registered demo-admins can merge, and the agent has read-only access to the trusted automation repository.'
+    demo_protect_applications
     return
   fi
   local aap_scratch aap_host aap_username
@@ -4417,7 +4431,7 @@ Usage: bash bootstrap/bootstrap.sh [COMMAND] [--backend cnv|aws]
   reconcile-workflow Alias for ao-configure
   aap-configure      Configure AAP/EDA, publish AO workflows, connect the Forgejo webhook
   pythonapp ACTION   create | delete | verify (separate AWS RHEL host)
-  webapp ACTION      create | nginx | verify | verify-enforcing | delete | sync | mcp | mcp-verify | mcp-rotate
+  webapp ACTION      create | nginx | verify | verify-enforcing | delete | sync | protect | mcp | mcp-verify | mcp-rotate
   aap ACTION         credentials | wait-project | dispatch | reset-vms | launch TEMPLATE [JSON]
   invoice ACTION     inputs | material | discover | configure | baseline | trigger | validate SHA | protect | promote PR JOB | verify
   readiness TARGET   sandbox | aap

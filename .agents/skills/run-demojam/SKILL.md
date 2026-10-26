@@ -39,6 +39,10 @@ For the Python vulnerability scenario, follow `docs/invoice-lightwell-demo.md`. 
    bash bootstrap/bootstrap.sh
    ```
 
+   Bootstrap protects both collection main branches with human review and
+   application-specific independent checks. On an existing deployment, run
+   `make webapp-protect` to reconcile that policy before triggering an incident.
+
    Require a healthy HTTP probe, Permissive SELinux, the unfixed collection,
    both EDA listeners running, and no old incident sessions or fix PRs.
    Bootstrap provisions the VM, runs the separate permissive setup playbook,
@@ -76,6 +80,23 @@ For the Python vulnerability scenario, follow `docs/invoice-lightwell-demo.md`. 
    ansible-galaxy collection build --force --output-path /tmp
    make molecule
    ```
+
+   Also require changed `extensions/molecule/nginx/tasks/regression.yml`, included
+   from the scenario's verify play. After the normal checks, run the trusted
+   `demojam-ansible/playbooks/webapp/validate-regression.yml` from the same sandbox
+   with `webapp_source_directory`, the exact `webapp_candidate_sha`, and Forgejo's
+   preserved `merge_base` as `webapp_base_sha`. Use the operator-controlled
+   controller checkout, never an agent-authored copy of that runner. It exports
+   the two revisions, requires identical authored assertions to fail on every
+   original guest and pass on every repaired guest, checks durable relabel/HTTP
+   recovery, and destroys both sets of guests. Copy its `result.json` receipt to
+   the operator machine and use trusted `playbooks/webapp/publish-regression.yml`
+   there to publish `webapp/regression-validation` as `demo-reviewer`. The
+   publisher requires the exact candidate/base SHAs and complete receipt. Keep
+   its operator token outside the coding sandbox; an agent-created status is
+   rejected even if it says success. Missing, unchanged, always-green
+   or infrastructure-failing regressions cannot satisfy the gate. Do not create
+   that success status manually or merge without it.
 
    Use the sandbox's preloaded dependencies and native test environment.
    A plain `oc exec` does not inherit the native harness overrides: the test
