@@ -1,5 +1,6 @@
 """Verify nginx incident identity, duplicate claims and exact-merge routing."""
 import copy
+import base64
 from concurrent.futures import ThreadPoolExecutor
 import importlib.util
 import os
@@ -16,10 +17,17 @@ class WebPRTests(unittest.TestCase):
     def setUp(self):
         self.pr = {'number': 2, 'state': 'open', 'draft': False, 'merged': False, 'html_url': 'https://fixture/pulls/2',
             'head': {'ref': 'feature/issue-1', 'sha': 'a' * 40, 'repo': {'full_name': gate.DEFAULT_REPOSITORY}},
-            'base': {'ref': 'main', 'repo': {'full_name': gate.DEFAULT_REPOSITORY}}}
+            'base': {'ref': 'main', 'repo': {'full_name': gate.DEFAULT_REPOSITORY}}, 'merge_base': 'b' * 40}
     def read(self, **kwargs):
         def api(path, **unused):
             self.assertIn(gate.DEFAULT_REPOSITORY, path)
+            if '/contents/' in path:
+                return None if path.endswith('b' * 40) else {'type': 'file', 'encoding': 'base64',
+                    'content': base64.b64encode(b'- name: Test incident\n  ansible.builtin.assert:\n    that: true\n').decode()}
+            if path.endswith('/status'):
+                return {'statuses': [{'context': 'webapp/regression-validation', 'status': 'success',
+                    'creator': {'login':'demo-reviewer'},
+                    'description': 'webapp-regression-v1 base=' + 'b' * 40 + ' red=passed green=passed durable=passed'}]}
             if '/commits?' in path: return [{'sha': 'a' * 40}]
             return self.pr if '/pulls/' in path else [self.pr]
         with patch.dict(os.environ, BACKSTAGE_TOKEN='fixture'), patch.object(gate, 'backstage', side_effect=api):
@@ -36,6 +44,25 @@ class WebPRTests(unittest.TestCase):
                 if case == 'source': self.pr['head']['sha'] = 'b' * 40
                 if case == 'closed': self.pr['state'] = 'closed'
                 with self.assertRaises(ValueError): self.read(pr_number=2, head_sha='a' * 40, require_merged=True)
+    def test_missing_unchanged_or_empty_regression_is_rejected(self):
+        def record(text):
+            return {'type':'file', 'encoding':'base64', 'content':base64.b64encode(text.encode()).decode()}
+        for original, candidate in [(None,None), (None,record('')), (record('same'),record('same\n'))]:
+            with self.subTest(original=original,candidate=candidate), patch.dict(os.environ,BACKSTAGE_TOKEN='fixture'):
+                with patch.object(gate,'backstage',side_effect=[candidate,original]):
+                    with self.assertRaises(ValueError):gate.require_webapp_regression('b'*40,'a'*40)
+    def test_changed_file_does_not_replace_independent_execution_proof(self):
+        self.pr.update(merged=True,state='closed')
+        for check in [None, {'status':'pending'}, {'status':'success','description':'wrong base'},
+                {'status':'success','description':'webapp-regression-v1 base='+'b'*40+' red=passed green=passed durable=passed',
+                 'creator':{'login':'demo-agent'}}]:
+            def api(path, **unused):
+                if '/contents/' in path:return None if path.endswith('b'*40) else {'type':'file','encoding':'base64','content':'dGVzdA=='}
+                if path.endswith('/status'):return {'statuses':[] if check is None else [dict(check,context='webapp/regression-validation')]}
+                if '/commits?' in path:return [{'sha':'a'*40}]
+                return self.pr
+            with self.subTest(check=check), patch.dict(os.environ,BACKSTAGE_TOKEN='fixture'), patch.object(gate,'backstage',side_effect=api):
+                with self.assertRaises(ValueError):gate.webapp_pr(1,pr_number=2,head_sha='a'*40,require_merged=True)
     def test_missing_pr_waits_and_ambiguous_prs_fail(self):
         with patch.dict(os.environ, BACKSTAGE_TOKEN='fixture'), patch.object(gate, 'backstage', return_value=[]):
             self.assertFalse(gate.webapp_pr(1)['ready'])

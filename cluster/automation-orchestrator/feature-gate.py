@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 """Prepare an issue branch through Backstage before AO launches an agent."""
 
+import base64
 import json
 import os
 import time
@@ -154,7 +155,8 @@ def incident_pr(number, repository, pr_number=None, head_sha=None, require_merge
         else:
             raise ValueError("Main ancestry exceeds the reconciliation bound")
     return {"ready": not pr.get("draft", False), "merged": merged,
-            "number": pr["number"], "head_sha": sha, "url": pr["html_url"]}
+            "number": pr["number"], "head_sha": sha, "url": pr["html_url"],
+            "base_sha": pr.get("merge_base", "")}
 
 
 def invoice_pr(number, pr_number=None, head_sha=None, require_merged=False):
@@ -162,7 +164,45 @@ def invoice_pr(number, pr_number=None, head_sha=None, require_merged=False):
 
 
 def webapp_pr(number, pr_number=None, head_sha=None, require_merged=False):
-    return incident_pr(number, DEFAULT_REPOSITORY, pr_number, head_sha, require_merged)
+    result = incident_pr(number, DEFAULT_REPOSITORY, pr_number, head_sha, require_merged)
+    if result["ready"]:
+        require_webapp_regression(result["base_sha"], result["head_sha"])
+    if result["merged"]:
+        root = "/api/proxy/forgejo/repos/" + DEFAULT_REPOSITORY
+        receipt = backstage(root + "/commits/" + result["head_sha"] + "/status", token=os.environ["BACKSTAGE_TOKEN"])
+        checks = [check for check in (receipt.get("statuses") or [])
+                  if check.get("context") == "webapp/regression-validation"]
+        expected = "webapp-regression-v1 base=" + result["base_sha"] + " red=passed green=passed durable=passed"
+        if (not checks or checks[0].get("status") != "success" or checks[0].get("description") != expected
+                or (checks[0].get("creator") or {}).get("login") != "demo-reviewer"):
+            raise ValueError("Independent webapp/regression-validation must pass for this exact head and merge base")
+        result["regression_validated"] = True
+    return result
+
+
+def require_webapp_regression(base_sha, head_sha):
+    """Structural gate; independent red/green execution is still required.
+
+    Forgejo preserves merge_base after merging; base.sha then points at main.
+    """
+    if not isinstance(base_sha, str) or not re.fullmatch(r"[0-9a-f]{40}", base_sha) or base_sha == head_sha:
+        raise ValueError("The regression check requires the incident's original merge base")
+    path = "/api/proxy/forgejo/repos/" + DEFAULT_REPOSITORY + "/contents/extensions/molecule/nginx/tasks/regression.yml"
+    token = os.environ["BACKSTAGE_TOKEN"]
+    candidate = backstage(path + "?ref=" + head_sha, token=token, missing_ok=True)
+    original = backstage(path + "?ref=" + base_sha, token=token, missing_ok=True)
+
+    def contents(record):
+        if not isinstance(record, dict) or record.get("type") != "file" or record.get("encoding") != "base64":
+            raise ValueError("The nginx PR must add or extend extensions/molecule/nginx/tasks/regression.yml")
+        try:
+            return base64.b64decode(record["content"]).decode().strip()
+        except (KeyError, ValueError, UnicodeError, TypeError):
+            raise ValueError("The nginx regression file must contain readable Ansible tasks") from None
+
+    authored = contents(candidate)
+    if not authored or (original and authored == contents(original)):
+        raise ValueError("The nginx PR must add incident-specific regression tasks; unchanged tests are insufficient")
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -192,8 +232,10 @@ class Handler(BaseHTTPRequestHandler):
                                 query.get("head_sha", [None])[0],
                                 query.get("require_merged", ["false"])[0] == "true")
             self.respond(200, result)
-        except (ValueError, KeyError):
-            self.respond(409, {"error": "Incident PR is invalid, changed, closed or ambiguous; inspect the PR before continuing."})
+        except ValueError as error:
+            self.respond(409, {"error": str(error)})
+        except KeyError:
+            self.respond(409, {"error": "Incident PR has incomplete source or regression metadata."})
         except (HTTPError, URLError, RuntimeError):
             self.respond(502, {"error": "PR observation unavailable; no remediation action was taken."})
 

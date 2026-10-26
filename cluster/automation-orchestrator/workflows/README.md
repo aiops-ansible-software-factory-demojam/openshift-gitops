@@ -236,8 +236,21 @@ and waits for a human to merge that exact PR and commit into main. Drafts wait;
 closed, changed, cross-repository or ambiguous PRs stop the flow. Duplicate issue
 deliveries cannot start another author or deployment.
 
-The existing operator must still independently test the exact published commit
-before merging; this change does not add an automated nginx acceptance runner.
+The operator independently tests the exact published commit before merging.
+The PR must change `extensions/molecule/nginx/tasks/regression.yml` and include it
+from the scenario's verification play. The trusted controller playbook
+`playbooks/webapp/validate-regression.yml` runs those same assertions against the
+original merge base and the published fix on disposable guests. Every original
+guest must fail an authored assertion; every repaired guest must pass. A command
+or infrastructure error cannot count as the original-code failure. The trusted
+suite separately corrupts content labels, restores them from persistent SELinux
+policy, and requires enforcing HTTP recovery. Both lifecycles include cleanup.
+The operator copies its receipt out of the sandbox and publishes it using trusted
+`playbooks/webapp/publish-regression.yml` on the operator machine. Publishing
+credentials never enter the coding/test sandbox, and only a `demo-reviewer`
+status is accepted. Its exact-head `webapp/regression-validation` status is required by branch
+protection and checked again before promotion. A changed filename or a prompt
+claim alone cannot establish a passing regression.
 After merge, AO launches the reusable native AAP `webapp_promote` workflow with
 that commit and incident/PR identities. Its graph is
 `validate-release → production-approval → recheck-release → deploy`.
@@ -257,6 +270,9 @@ Normal blackbox monitoring resolves the outage alert after recovery.
 `webapp_nginx` remains the baseline/setup entry point. Do not launch it as an
 extra recovery after the approved workflow. The new project, credential and JTs
 are configured once by the normal AAP dispatcher, independently of invoice setup.
+Pinned jobs bind the approved full SHA to Controller's protected
+`awx_job_scm_branch`. `awx_project_revision` is used only without a job override;
+it describes the project's default source, which can advance to a merge commit.
 The native deployment uses only the web SSH credential; review API access stays
 on the trusted controller gates. No per-release AAP objects are created.
 
