@@ -38,6 +38,19 @@ class FeedbackTests(unittest.TestCase):
             self.assertTrue(verdict['ci_passed'])
             self.assertEqual(verdict['validation_job_id'],42)
 
+    def test_null_status_list_is_pending_until_the_independent_publisher_runs(self):
+        repo=gate.INVOICE_REPOSITORY
+        candidate={'ready':True,'head_sha':'a'*40,'base_sha':'b'*40}
+        with patch.dict(os.environ,BACKSTAGE_TOKEN='fixture'), patch.object(gate,'incident_pr',return_value=candidate), patch.object(gate,'backstage',return_value={'statuses':None}):
+            verdict=gate.ci_candidate(1,repo)
+            self.assertTrue(verdict['validation_required'])
+            self.assertFalse(verdict['ci_passed'])
+        pr={'number':2,'html_url':'https://fixture/pr/2','head':{'ref':'feature/issue-1','sha':'a'*40,'repo':{'full_name':repo}},'base':{'ref':'main','repo':{'full_name':repo}}}
+        def api(base,path,**kwargs):
+            return {'statuses':None} if path.endswith('/status') else [] if '/comments?' in path else [pr]
+        with patch.dict(os.environ,FORGEJO_TOKEN='fixture'),patch.dict(helper,repository=repo,forgejo='https://fixture',request=api):
+            self.assertEqual(helper['ci_verdict'](1,'a'*40)['state'],'pending')
+
     def test_cli_ignores_agent_success_and_old_or_untrusted_diagnostics(self):
         repo=gate.INVOICE_REPOSITORY
         pr={'number':2,'html_url':'https://fixture/pr/2','head':{'ref':'feature/issue-1','sha':'a'*40,'repo':{'full_name':repo}},'base':{'ref':'main','repo':{'full_name':repo}}}

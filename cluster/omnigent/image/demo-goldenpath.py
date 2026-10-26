@@ -196,7 +196,7 @@ def ci_verdict(issue, sha):
     context = 'webapp/regression-validation' if web else 'invoice/ec2-validation'
     prefix = 'webapp-ci-v2 ' if web else 'invoice-ci-v2 '
     status = request(forgejo, root + f'/commits/{sha}/status', token=token)
-    checks = [s for s in status.get('statuses', []) if s.get('context') == context
+    checks = [s for s in (status.get('statuses') or []) if s.get('context') == context
               and (s.get('creator') or {}).get('login') == 'demo-reviewer'
               and s.get('description', '').startswith(prefix)]
     state = checks[0].get('status', 'pending') if checks else 'pending'
