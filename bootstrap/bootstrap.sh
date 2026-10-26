@@ -1435,7 +1435,7 @@ ASKPASS
     fi
     while IFS= read -r collaborator; do
       local collaborator_permission=write
-      if demo_invoice_enabled && [[ $name == demojam-ansible && $collaborator == demo-agent ]]; then
+      if [[ $name == demojam-ansible && $collaborator == demo-agent ]]; then
         collaborator_permission=read
       fi
       forgejo_api PUT "/repos/$owner/$name/collaborators/$collaborator" \
