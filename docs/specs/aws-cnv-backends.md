@@ -126,7 +126,7 @@ Bootstrap reads these fields from the protected `.env` or inherited environment.
 | `DEMO_BACKEND` | Empty; fresh installs default to `cnv` |
 | `AWS_BOOTSTRAP_ACCESS_KEY_ID` | Required for AWS setup; operator-supplied root/admin key ID |
 | `AWS_BOOTSTRAP_SECRET_ACCESS_KEY` | Required for AWS setup; matching root/admin secret |
-| `AWS_DEMO_ACCOUNT_ID` | Optional expected account; resolved and recorded on first setup |
+| AWS account ID | Discovered from the bootstrap credentials through STS and recorded on first setup; legacy `AWS_DEMO_ACCOUNT_ID` inputs are ignored. Recorded account, region and cluster identity must match on subsequent runs. |
 | `AWS_DEMO_REGION` | `us-east-2` |
 | `AWS_DEMO_AZ` | Optional; otherwise choose and record a supported AZ in that account |
 | `AWS_DEMO_VPC_CIDR` | `10.77.0.0/24`; one subnet uses this range |
