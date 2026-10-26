@@ -173,7 +173,7 @@ def ci_candidate(number, repository):
     status = backstage(root + '/commits/' + result['head_sha'] + '/status', token=os.environ['BACKSTAGE_TOKEN'])
     context = 'webapp/regression-validation' if repository == DEFAULT_REPOSITORY else 'invoice/ec2-validation'
     prefix = 'webapp-ci-v2 ' if repository == DEFAULT_REPOSITORY else 'invoice-ci-v2 '
-    checks = [s for s in status.get('statuses', []) if s.get('context') == context
+    checks = [s for s in (status.get('statuses') or []) if s.get('context') == context
               and (s.get('creator') or {}).get('login') == 'demo-reviewer'
               and s.get('description', '').startswith(prefix)]
     result['validation_required'] = not checks
