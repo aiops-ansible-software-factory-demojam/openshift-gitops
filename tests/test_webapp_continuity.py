@@ -27,7 +27,7 @@ class WebPRTests(unittest.TestCase):
             if path.endswith('/status'):
                 return {'statuses': [{'context': 'webapp/regression-validation', 'status': 'success',
                     'creator': {'login':'demo-reviewer'},
-                    'description': 'webapp-regression-v1 base=' + 'b' * 40 + ' red=passed green=passed durable=passed'}]}
+                    'description': 'webapp-ci-v2 base=' + 'b' * 40 + ' checks=passed red=passed green=passed durable=passed'}]}
             if '/commits?' in path: return [{'sha': 'a' * 40}]
             return self.pr if '/pulls/' in path else [self.pr]
         with patch.dict(os.environ, BACKSTAGE_TOKEN='fixture'), patch.object(gate, 'backstage', side_effect=api):
@@ -54,7 +54,7 @@ class WebPRTests(unittest.TestCase):
     def test_changed_file_does_not_replace_independent_execution_proof(self):
         self.pr.update(merged=True,state='closed')
         for check in [None, {'status':'pending'}, {'status':'success','description':'wrong base'},
-                {'status':'success','description':'webapp-regression-v1 base='+'b'*40+' red=passed green=passed durable=passed',
+                {'status':'success','description':'webapp-ci-v2 base='+'b'*40+' checks=passed red=passed green=passed durable=passed',
                  'creator':{'login':'demo-agent'}}]:
             def api(path, **unused):
                 if '/contents/' in path:return None if path.endswith('b'*40) else {'type':'file','encoding':'base64','content':'dGVzdA=='}
@@ -87,7 +87,7 @@ class WebWorkflowTests(unittest.TestCase):
         self.assertEqual(w['triggers'][0]['parameters']['webhook_path'], 'forgejo-issue-remediation')
         self.assertIn({'from': 'owns_incident', 'to': 'authenticate_omnigent', 'from_port': 'true'}, edges)
         self.assertEqual([e['from_port'] for e in edges if e['from'] == 'owns_incident'], ['true'])
-        self.assertIn({'from': 'wait_pr', 'to': 'read_candidate', 'from_port': 'complete'}, edges)
+        self.assertIn({'from': 'wait_ci', 'to': 'read_candidate', 'from_port': 'complete'}, edges)
         self.assertIn({'from': 'wait_merge', 'to': 'approve_and_deploy', 'from_port': 'complete'}, edges)
         self.assertEqual(n['approve_and_deploy']['parameters']['workflow_job_template_name'], 'webapp_promote')
         self.assertEqual(n['approve_and_deploy']['parameters']['scm_branch'], '${read_candidate.body.head_sha}')

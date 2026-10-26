@@ -152,6 +152,8 @@ nodes:
                 URL: ${prepare_feature.body.issue.html_url}
                 Issue and root cause analysis:
                 ${prepare_feature.body.issue.body}
+
+                PR submission is not completion. After every push, run demo-goldenpath --repository demo-owner/ansible-collection-demo.webapp ci ${trigger.issue_number} --wait. Exit 75 means CI is pending: keep waiting and do not edit the published tree while tests run. On failure, read the trusted PR diagnostics, fix the cause on the SAME branch and PR, rerun local checks after your FINAL edit, commit and push, then wait for independent CI on that new SHA. Never mark your own required check successful. Do not finish or claim success until the current head passes every independent check. AO may send CI failure feedback to this same session; continue the same task. A passing CI verdict permits human review only; never merge or deploy.
     settings:
       timeout: 360
       retry_policy:
@@ -167,60 +169,6 @@ nodes:
       y: -130
     parameters:
       condition: ${prepare_feature.body.author_required} == True
-  - id: wait_pr
-    name: Wait for a published candidate PR
-    type: loop
-    position:
-      x: 2050
-      y: 180
-    parameters:
-      type: do_while
-      condition: read_pr.body.ready == False
-      max_iterations: 2880
-  - id: read_pr
-    name: Read the exact incident PR through Developer Hub
-    type: http_request
-    position:
-      x: 2300
-      y: 480
-    parameters:
-      method: GET
-      url: http://backstage-feature-gate.automation-orchestrator.svc:8080/webapp/pr
-      query_params:
-        issue_number: ${trigger.issue_number}
-    settings:
-      timeout: 60
-      retry_policy:
-        max_retries: 3
-        initial_interval: 5
-        max_interval: 30
-        backoff_coefficient: 2
-  - id: pr_poll_interval
-    name: Allow authoring to progress
-    type: wait
-    position:
-      x: 2630
-      y: 480
-    parameters:
-      duration: 30
-  - id: read_candidate
-    name: Confirm the published candidate before human review
-    type: http_request
-    position:
-      x: 2400
-      y: -150
-    parameters:
-      method: GET
-      url: http://backstage-feature-gate.automation-orchestrator.svc:8080/webapp/pr
-      query_params:
-        issue_number: ${trigger.issue_number}
-    settings:
-      timeout: 60
-      retry_policy:
-        max_retries: 3
-        initial_interval: 5
-        backoff_coefficient: 2
-        max_interval: 30
   - id: wait_merge
     name: Wait for human review and merge of the tested source
     type: loop
@@ -296,6 +244,59 @@ nodes:
       timeout: 600
       retry_policy:
         max_retries: 0
+  - id: wait_ci
+    name: Keep authoring until the current PR head passes independent CI
+    type: loop
+    position:
+      x: 2050
+      y: 180
+    parameters:
+      type: do_while
+      condition: ci_iteration.artifacts.ci_iteration.passed == False
+      max_iterations: 2880
+  - id: read_candidate
+    name: Capture the independently green head for human review
+    type: http_request
+    position:
+      x: 2400
+      y: -150
+    parameters:
+      method: GET
+      url: http://backstage-feature-gate.automation-orchestrator.svc:8080/webapp/validated
+      query_params:
+        issue_number: ${trigger.issue_number}
+    settings:
+      timeout: 60
+      retry_policy:
+        max_retries: 3
+        initial_interval: 5
+        backoff_coefficient: 2
+        max_interval: 30
+  - id: ci_iteration
+    name: Independently validate the PR and return failures to its existing author
+    type: aap_job_template
+    position:
+      x: 2300
+      y: 480
+    parameters:
+      organization_name: demo
+      job_template_name: demo_ci_iteration
+      extra_vars:
+        ci_repository: demo-owner/ansible-collection-demo.webapp
+        ci_issue_number: ${trigger.issue_number}
+        ci_author_session: ${create_session.body.id}
+    settings:
+      timeout: 14400
+      retry_policy:
+        max_retries: 0
+  - id: ci_poll_interval
+    name: Wait for author progress before the next CI check
+    type: wait
+    position:
+      x: 2630
+      y: 480
+    parameters:
+      duration: 30
 edges:
   - from: forgejo_issue
     to: prepare_feature
@@ -308,25 +309,25 @@ edges:
   - from: owns_incident
     to: authenticate_omnigent
     from_port: 'true'
-  - from: wait_pr
-    to: read_pr
-    from_port: iterate
-  - from: read_pr
-    to: pr_poll_interval
-  - from: wait_pr
-    to: read_candidate
-    from_port: complete
   - from: wait_merge
     to: read_merge
     from_port: iterate
   - from: read_merge
     to: merge_poll_interval
-  - from: send_task
-    to: wait_pr
-  - from: read_candidate
-    to: wait_merge
   - from: wait_merge
     to: approve_and_deploy
     from_port: complete
   - from: approve_and_deploy
     to: verify_deployment
+  - from: send_task
+    to: wait_ci
+  - from: wait_ci
+    to: read_candidate
+    from_port: complete
+  - from: read_candidate
+    to: wait_merge
+  - from: wait_ci
+    to: ci_iteration
+    from_port: iterate
+  - from: ci_iteration
+    to: ci_poll_interval

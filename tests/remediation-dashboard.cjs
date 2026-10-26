@@ -5,7 +5,7 @@ const finding = { application: 'invoice-portal', package: 'PyPDF2', installed_ve
   candidate: { sha256: 'wheel' }, observations: [{ business_passed: true }, { business_passed: false }] };
 const validation = { id: 1, status: 'successful', elapsed: 42, artifacts: { invoice_validation: {
   passed: true, application: 'invoice-portal', wheel_sha256: 'wheel', source_revision: 'source',
-  profile_sha256: 'profile', acceptance_suite: 'trusted-invoice-v1' } } };
+  profile_sha256: 'profile', acceptance_suite: 'trusted-invoice-v2' } } };
 const deployment = { id: 2, status: 'successful', artifacts: { invoice_release_evidence: {
   release: { wheel_sha256: 'wheel', source_revision: 'source' } } } };
 assert.equal(summarizeRemediation(finding, validation, deployment).deployment, 'Succeeded #2');

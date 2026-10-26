@@ -126,15 +126,15 @@ class WorkflowBoundaryTests(unittest.TestCase):
 
     def test_approval_remains_in_native_aap_workflow(self):
         self.assertEqual(self.nodes['approve_and_deploy']['type'], 'aap_workflow_job_template')
-        chain = ['publish_validation','wait_merge','configure_release','approve_and_deploy','verify_deployment','verify_release','close_incident']
+        chain = ['read_candidate','wait_merge','configure_release','approve_and_deploy','verify_deployment','verify_release','close_incident']
         for first, second in zip(chain, chain[1:]):
             self.assertTrue(any(e['from']==first and e['to']==second for e in self.edges))
         self.assertEqual(self.nodes['approve_and_deploy']['settings']['retry_policy']['max_retries'], 0)
         self.assertFalse(any(n['type']=='script' for n in self.nodes.values()))
 
     def test_source_identity_and_failed_validation_cannot_be_skipped(self):
-        self.assertTrue(self.nodes['validate_invoice']['settings']['continue_on_failure'])
-        self.assertEqual(self.nodes['publish_validation']['parameters']['job_template_name'], 'invoice_validation_status')
+        self.assertIn('ci_iteration.artifacts.ci_iteration.passed',self.nodes['wait_ci']['parameters']['condition'])
+        self.assertEqual(self.nodes['ci_iteration']['parameters']['job_template_name'], 'demo_ci_iteration')
         self.assertEqual(self.nodes['verify_release']['parameters']['extra_vars']['invoice_expected_source_revision'], '${read_candidate.body.head_sha}')
         duplicate_edges = [e for e in self.edges if e['from']=='owns_incident']
         self.assertEqual([e['from_port'] for e in duplicate_edges], ['true'])
