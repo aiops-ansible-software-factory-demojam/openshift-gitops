@@ -1106,6 +1106,9 @@ demo_model_config() (
     --body-file <path>. PR submission is not completion. Run demo-goldenpath
     --repository <owner/repository> ci <number> --wait until independent CI
     passes for the current published SHA. Exit 75 means pending; keep waiting.
+    Use this helper for CI polling; each call waits at most 45 seconds.
+    Check its exit code immediately; do not use custom polling loops or long sleeps.
+    Publish later commits through the same pr helper on the existing PR.
     On failure, read trusted PR diagnostics, fix the same branch and PR,
     rerun local checks after the final edit, commit and push, then wait again.
     Do not edit the tree during independent testing or finish with failing CI.
