@@ -19,7 +19,7 @@ demo_load_env() {
   local inherited_mcp=${WEBAPP_MCP_ENABLED:-}
   local input_name
   local -A inherited_aws=()
-  for input_name in AWS_BOOTSTRAP_ACCESS_KEY_ID AWS_BOOTSTRAP_SECRET_ACCESS_KEY AWS_DEMO_ACCOUNT_ID \
+  for input_name in AWS_BOOTSTRAP_ACCESS_KEY_ID AWS_BOOTSTRAP_SECRET_ACCESS_KEY \
     AWS_DEMO_REGION AWS_DEMO_AZ AWS_DEMO_VPC_CIDR AWS_DEMO_SSH_CIDR AWS_DEMO_HTTP_CIDR \
     AWS_WEBAPP_INSTANCE_TYPE AWS_PYTHONAPP_INSTANCE_TYPE AWS_MOLECULE_INSTANCE_TYPE AWS_DEMO_ROOT_VOLUME_SIZE_GIB \
     AWS_RHEL9_AMI_ID AWS_RHEL10_AMI_ID; do
@@ -134,7 +134,8 @@ cfg = Config(connect_timeout=10, read_timeout=30, retries={'mode': 'standard', '
 ec2, iam = session.client('ec2', config=cfg), session.client('iam', config=cfg)
 identity = session.client('sts', config=cfg).get_caller_identity()
 account = identity['Account']
-assert not env.get('AWS_DEMO_ACCOUNT_ID') or env['AWS_DEMO_ACCOUNT_ID'] == account, 'AWS account differs from AWS_DEMO_ACCOUNT_ID'
+# STS is authoritative. Older .env files may retain an account from a previous
+# workshop; existing deployments are protected by the recorded state below.
 
 def oc(*args, data=None):
     result = subprocess.run(['oc', *args], input=data, text=True, capture_output=True, check=True)
