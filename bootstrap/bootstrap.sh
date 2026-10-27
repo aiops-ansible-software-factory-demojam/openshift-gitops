@@ -16,6 +16,7 @@ source "$demo_repo_root/bootstrap/homepage.sh"
 demo_load_env() {
   set +x
   local inherited_backend=${DEMO_BACKEND:-}
+  local inherited_scenario=${DEMO_SCENARIO:-}
   local inherited_mcp=${WEBAPP_MCP_ENABLED:-}
   local input_name
   local -A inherited_aws=()
@@ -59,7 +60,7 @@ demo_load_env() {
   export AWS_MOLECULE_INSTANCE_TYPE=${AWS_MOLECULE_INSTANCE_TYPE:-t3.medium}
   export AWS_DEMO_ROOT_VOLUME_SIZE_GIB=${AWS_DEMO_ROOT_VOLUME_SIZE_GIB:-30}
   export BOOTSTRAP_BRANCH=${inherited_branch:-${BOOTSTRAP_BRANCH:-main}}
-  export DEMO_SCENARIO=${DEMO_SCENARIO:-selinux}
+  export DEMO_SCENARIO=${inherited_scenario:-${DEMO_SCENARIO:-selinux}}
   [[ $DEMO_SCENARIO == selinux || $DEMO_SCENARIO == invoice || $DEMO_SCENARIO == both ]] || demo_die 'DEMO_SCENARIO must be selinux, invoice, or both.'
   export ANSIBLE_COLLECTION_TEMPLATE_BRANCH=${inherited_template_branch:-${ANSIBLE_COLLECTION_TEMPLATE_BRANCH:-}}
   export ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH=${inherited_collection_branch:-${ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH:-}}
@@ -1296,6 +1297,29 @@ demo_source_branch() {
     demo_die "Invalid GitHub source branch for $name: $branch"
   fi
   printf '%s\n' "$branch"
+}
+
+# Validate the selected companion code before reset removes any working state.
+demo_source_preflight() {
+  local name checkout required
+  for name in demojam-ansible ansible-collection-demo.webapp ansible-collection-demo.pythonapp; do
+    [[ $name != ansible-collection-demo.pythonapp ]] || demo_invoice_enabled || continue
+    checkout=$(demo_source_checkout "$name") || return
+    local -a required_files=()
+    case $name in
+      demojam-ansible)
+        required_files=(playbooks/ci/webapp.yml playbooks/ci/publish.yml playbooks/ci/iterate.yml
+          playbooks/ci/watch.yml playbooks/ci/wait-merge.yml playbooks/ci/iterate-tasks.yml
+          playbooks/ci/watch-iteration.yml playbooks/ci/author-health.yml playbooks/ci/controller-vars.yml) ;;
+      ansible-collection-demo.webapp) required_files=(AGENTS.md playbooks/promote_webapp.yml) ;;
+      ansible-collection-demo.pythonapp) required_files=(AGENTS.md playbooks/invoice-remediate.yml) ;;
+    esac
+    for required in "${required_files[@]}"; do
+      [[ -f $checkout/$required ]] ||
+        demo_die "Selected source $name lacks $required. Select compatible companion branches before reset/bootstrap."
+    done
+    printf 'Source preflight: %s at %s\n' "$name" "$(git -C "$checkout" rev-parse HEAD)"
+  done
 }
 
 # Cache only fetched GitHub content in the ignored render directory, or in an
@@ -2639,7 +2663,9 @@ aap_request() {
       printf 'AAP GET %s interrupted; retrying.\n' "${path%%\?*}" >&2
       sleep $((attempt * 5))
     else
-      demo_die "AAP $method ${path%%\?*} failed (HTTP $code). Inspect AAP before repeating a write with an unknown outcome."
+      local validation_fields
+      validation_fields=$(jq -r 'if type == "object" then keys | join(", ") else "unavailable" end' "$response" 2>/dev/null || printf unavailable)
+      demo_die "AAP $method ${path%%\?*} failed (HTTP $code; response fields: ${validation_fields:0:200}). Inspect AAP before repeating a write with an unknown outcome."
     fi
   done
 }
@@ -3000,6 +3026,13 @@ demo_ci_configure() (
   # Newly published CI content must be synchronized before registering the jobs.
   update=$(aap_request POST "projects/$project/update/" '{}')
   aap_wait "project_updates/$(jq -er .id <<<"$update")/"
+  local playbooks required
+  playbooks=$(aap_request GET "projects/$project/playbooks/")
+  for required in playbooks/ci/webapp.yml playbooks/ci/publish.yml playbooks/ci/iterate.yml \
+    playbooks/ci/watch.yml playbooks/ci/wait-merge.yml; do
+    jq -e --arg required "$required" 'index($required) != null' <<<"$playbooks" >/dev/null ||
+      demo_die "AAP project demojam-ansible lacks $required. Check the selected source refs; CI configuration is incomplete."
+  done
   image="$(demo_sandbox_image)"
   image="${image%:*}@$(oc -n omnigent-sandboxes get imagestreamtag omnigent-opencode:latest -o jsonpath='{.image.metadata.name}')"
   [[ $image =~ @sha256:[a-f0-9]{64}$ ]] || demo_die 'CI requires a built immutable test image.'
@@ -3044,6 +3077,10 @@ PYCI
   template=$(aap_upsert job_templates/ demo_ci_iteration "$(jq -n --argjson org "$org" --argjson project "$project" --argjson inventory "$inventory" --argjson ee "$ee" '{organization:$org,project:$project,inventory:$inventory,execution_environment:$ee,playbook:"playbooks/ci/iterate.yml",ask_variables_on_launch:true,allow_simultaneous:true}')" | jq -er .id)
   aap_associate "job_templates/$template/credentials/" "$review"
   aap_associate "job_templates/$template/credentials/" "$author"
+  template=$(aap_upsert job_templates/ demo_ci_watch "$(jq -n --argjson org "$org" --argjson project "$project" --argjson inventory "$inventory" --argjson ee "$ee" '{organization:$org,project:$project,inventory:$inventory,execution_environment:$ee,playbook:"playbooks/ci/watch.yml",ask_variables_on_launch:true,allow_simultaneous:true,timeout:86400}')" | jq -er .id)
+  aap_associate "job_templates/$template/credentials/" "$review"
+  aap_associate "job_templates/$template/credentials/" "$author"
+  aap_upsert job_templates/ demo_wait_merge "$(jq -n --argjson org "$org" --argjson project "$project" --argjson inventory "$inventory" --argjson ee "$ee" '{organization:$org,project:$project,inventory:$inventory,execution_environment:$ee,playbook:"playbooks/ci/wait-merge.yml",ask_variables_on_launch:true,allow_simultaneous:true,timeout:86400}')" >/dev/null
   echo 'Independent CI templates configured with separate test and publisher credentials.'
 )
 
@@ -3356,6 +3393,7 @@ demo_bootstrap() (
   local operator_namespace=openshift-gitops-operator gitops_namespace=openshift-gitops
   demo_step 'Check operator inputs and cluster prerequisites'
   demo_preflight
+  demo_source_preflight
   # Verify the published branch or release tag before any cluster/AWS writes.
   gitops_branch=${BOOTSTRAP_BRANCH:-main}
   gitops_repo=$BOOTSTRAP_REPO_URL
@@ -3699,6 +3737,7 @@ demo_reset() (
   [[ $# == 1 && $1 == --confirm-demo-reset ]] ||
     demo_die 'Usage: demo-reset --confirm-demo-reset (deletes demo repos, sessions, VMs and disks).'
   demo_verify_cluster
+  demo_source_preflight
   demo_model_inputs ao
   demo_model_inputs omnigent
   unset model_key

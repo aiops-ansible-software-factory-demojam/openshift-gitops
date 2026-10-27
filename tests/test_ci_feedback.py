@@ -69,14 +69,14 @@ class FeedbackTests(unittest.TestCase):
         for file in ['omnigent-remediation.yaml','invoice-security-remediation.yaml']:
             w=yaml.safe_load((ROOT/'cluster/automation-orchestrator/workflows'/file).read_text());n={x['id']:x for x in w['nodes']}
             with self.subTest(workflow=file):
-                self.assertIn({'from':'wait_ci','to':'ci_iteration','from_port':'iterate'},w['edges'])
-                self.assertIn({'from':'wait_ci','to':'read_candidate','from_port':'complete'},w['edges'])
-                self.assertEqual(n['ci_iteration']['parameters']['extra_vars']['ci_author_session'],'${create_session.body.id}')
-                self.assertEqual(n['ci_iteration']['settings']['retry_policy']['max_retries'],0)
-                self.assertEqual(n['ci_iteration']['parameters']['job_template_name'],'demo_ci_iteration')
-                self.assertNotIn({'from':'publish_validation','to':'wait_merge'},w['edges'])
-                self.assertIn('ci_iteration.passed',n['wait_ci']['parameters']['condition'])
-                self.assertEqual([e['to']for e in w['edges']if e['from']=='ci_iteration'],['ci_poll_interval'])
+                self.assertIn({'from':'wait_ci','to':'read_candidate'},w['edges'])
+                self.assertFalse(any(x['type']=='loop' for x in w['nodes']))
+                self.assertEqual(n['wait_ci']['parameters']['extra_vars']['ci_author_session'],'${create_session.body.id}')
+                self.assertEqual(n['wait_ci']['settings']['retry_policy']['max_retries'],0)
+                self.assertEqual(n['wait_ci']['parameters']['job_template_name'],'demo_ci_watch')
+                self.assertEqual(n['wait_merge']['parameters']['job_template_name'],'demo_wait_merge')
+                self.assertEqual(n['wait_merge']['parameters']['extra_vars']['ci_candidate_sha'],'${read_candidate.body.head_sha}')
+                self.assertNotIn('ci_iteration',n)
                 self.assertIn('--wait',n['send_task']['parameters']['body']['data']['content'][0]['text'])
                 if file == 'invoice-security-remediation.yaml':
                     self.assertEqual(n['configure_release']['parameters']['extra_vars']['invoice_validation_job_id'], '${read_candidate.body.validation_job_id}')
