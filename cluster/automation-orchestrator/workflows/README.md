@@ -203,10 +203,11 @@ the authoring handoff through production verification:
    approved release and successful business/regression behavior before the
    existing issue reconciler closes the incident.
 
-Polling uses durable AO timers, not script nodes or sleeping AAP jobs. Each PR
-and human-merge wait is bounded to 2,880 observations spaced 30 seconds apart
-(about 24 hours plus API time). Validation allows two hours; configuration allows
-30 minutes; production execution allows two hours and retains its separate
+Authoring and human-merge polling run inside separate bounded Ansible watcher
+jobs, with 30-second polling and a 24-hour Controller timeout. AO tracks each
+watcher as one activity, preserving Temporal history during long waits. A failed
+runner or changed source ends the watch with an explicit failure. Configuration
+allows 30 minutes; production execution allows two hours and retains its separate
 30-minute AAP approval deadline. Timeouts and rejection never authorize deployment.
 Mutating AAP nodes have zero automatic retries. Investigate an uncertain launch
 before starting another execution.
@@ -292,3 +293,10 @@ A new head gets a new pending status and full validation. Only a green exact
 head can advance to human review and native production approval. This replaces
 the previous one-pass authoring/review boundary; infrastructure cleanup failure
 still requires operator resolution and cannot produce green CI.
+
+The authoring and merge waits are single AAP watcher jobs (`demo_ci_watch` and
+`demo_wait_merge`). Their bounded internal polling does not append a new AO
+workflow loop for every check. This preserves the installed Temporal history
+limits, including on long authoring runs and human review waits. A disconnected
+existing author stops the CI watcher with an infrastructure failure; it never
+becomes a passing check or a new author session.

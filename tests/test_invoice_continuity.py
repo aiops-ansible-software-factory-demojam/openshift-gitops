@@ -133,8 +133,8 @@ class WorkflowBoundaryTests(unittest.TestCase):
         self.assertFalse(any(n['type']=='script' for n in self.nodes.values()))
 
     def test_source_identity_and_failed_validation_cannot_be_skipped(self):
-        self.assertIn('ci_iteration.artifacts.ci_iteration.passed',self.nodes['wait_ci']['parameters']['condition'])
-        self.assertEqual(self.nodes['ci_iteration']['parameters']['job_template_name'], 'demo_ci_iteration')
+        self.assertEqual(self.nodes['wait_ci']['parameters']['job_template_name'], 'demo_ci_watch')
+        self.assertEqual(self.nodes['wait_merge']['parameters']['job_template_name'], 'demo_wait_merge')
         self.assertEqual(self.nodes['verify_release']['parameters']['extra_vars']['invoice_expected_source_revision'], '${read_candidate.body.head_sha}')
         duplicate_edges = [e for e in self.edges if e['from']=='owns_incident']
         self.assertEqual([e['from_port'] for e in duplicate_edges], ['true'])

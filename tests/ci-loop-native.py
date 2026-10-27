@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Opt-in native AO retry-loop test; creates and deletes isolated fixture resources.
+"""Opt-in native AO watcher handoff test; creates and deletes isolated fixture resources.
 
 Requires AO_URL, AO_TOKEN and CI_FIXTURE_IMAGE (a Python-capable immutable image).
 Uses the current oc context. CI_FIXTURE_NAMESPACE defaults to automation-orchestrator;
@@ -40,6 +40,7 @@ def request(url, headers=None, body=None, method=None):
 name='ci-loop-fixture-'+uuid.uuid4().hex[:6];namespace=os.environ.get('CI_FIXTURE_NAMESPACE','automation-orchestrator')
 server='''import json
 from http.server import BaseHTTPRequestHandler,HTTPServer
+import time
 state={'attempts':0,'feedback':0,'completed':0,'head':'a'*40,'green':False}
 class Handler(BaseHTTPRequestHandler):
  def send(self,value):
@@ -52,10 +53,10 @@ class Handler(BaseHTTPRequestHandler):
  def do_POST(self):
   self.rfile.read(int(self.headers.get('Content-Length',0)))
   if self.path=='/iteration':
-   state['attempts']+=1
-   if state['attempts']==1:state['feedback']+=1;state['head']='c'*40
-   else:state['green']=True
-   return self.send({'artifacts':{'ci_iteration':{'passed':state['green']}}})
+   state['attempts']=1;state['feedback']=1;state['head']='c'*40
+   time.sleep(2)
+   state['attempts']=2;state['green']=True
+   return self.send({'artifacts':{'ci_iteration':{'passed':True}}})
   if self.path=='/validate':state['attempts']+=1
   if self.path=='/feedback':state['feedback']+=1;state['head']='c'*40
   if self.path=='/complete':state['completed']+=1
@@ -69,14 +70,14 @@ HTTPServer(('0.0.0.0',8080),Handler).serve_forever()
 image=os.environ['CI_FIXTURE_IMAGE']
 objects=[{'apiVersion':'route.openshift.io/v1','kind':'Route','metadata':{'name':name,'namespace':namespace},'spec':{'to':{'kind':'Service','name':name},'port':{'targetPort':8080},'tls':{'termination':'edge','insecureEdgeTerminationPolicy':'Redirect'}}},{'apiVersion':'v1','kind':'ConfigMap','metadata':{'name':name,'namespace':namespace},'data':{'server.py':server}},
  {'apiVersion':'v1','kind':'Service','metadata':{'name':name,'namespace':namespace},'spec':{'selector':{'app':name},'ports':[{'port':8080,'targetPort':8080}]}},
- {'apiVersion':'v1','kind':'Pod','metadata':{'name':name,'namespace':namespace,'labels':{'app':name}},'spec':{'automountServiceAccountToken':False,'restartPolicy':'Never','activeDeadlineSeconds':600,'securityContext':{'runAsNonRoot':True,'runAsUser':1000,'seccompProfile':{'type':'RuntimeDefault'}},'containers':[{'name':'fixture','image':image,'command':['python3','-u','/fixture/server.py'],'securityContext':{'allowPrivilegeEscalation':False,'capabilities':{'drop':['ALL']}},'volumeMounts':[{'name':'code','mountPath':'/fixture'}],'resources':{'requests':{'cpu':'50m','memory':'64Mi'},'limits':{'memory':'256Mi'}}}],'volumes':[{'name':'code','configMap':{'name':name}}]}}]
+ {'apiVersion':'v1','kind':'Pod','metadata':{'name':name,'namespace':namespace,'labels':{'app':name}},'spec':{'automountServiceAccountToken':False,'restartPolicy':'Never','activeDeadlineSeconds':600,'securityContext':{'runAsNonRoot':True,'seccompProfile':{'type':'RuntimeDefault'}},'containers':[{'name':'fixture','image':image,'command':['python3','-u','/fixture/server.py'],'securityContext':{'allowPrivilegeEscalation':False,'capabilities':{'drop':['ALL']}},'volumeMounts':[{'name':'code','mountPath':'/fixture'}],'resources':{'requests':{'cpu':'50m','memory':'64Mi'},'limits':{'memory':'256Mi'}}}],'volumes':[{'name':'code','configMap':{'name':name}}]}}]
 manifest=folder/'native-loop-fixture.json';manifest.write_text(json.dumps({'apiVersion':'v1','kind':'List','items':objects}))
 workflow=None;execution=None
 try:
  subprocess.run(['oc','apply','-f',str(manifest)],check=True,stdout=subprocess.DEVNULL)
  subprocess.run(['oc','-n',namespace,'wait','pod/'+name,'--for=condition=Ready','--timeout=60s'],check=True)
  w=yaml.safe_load((ROOT/'cluster/automation-orchestrator/workflows/omnigent-remediation.yaml').read_text())
- ids={'wait_ci','ci_iteration','ci_poll_interval','read_candidate'}
+ ids={'wait_ci','read_candidate'}
  w['name']='isolated-ci-repair-loop-'+str(int(time.time()));w['description']='Isolated CI red/fix/green control flow fixture; no application or agent access.'
  w['triggers']=[{'id':'start','name':'Start fixture','type':'manual_trigger','parameters':{},'position':{'x':0,'y':0}}]
  w['nodes']=[n for n in w['nodes']if n['id']in ids]
@@ -94,12 +95,11 @@ try:
    method='GET' if n['id']=='read_candidate' else 'POST'
    endpoint='complete' if n['id']=='read_candidate' else 'iteration'
    n['type']='http_request';n['parameters']={'method':method,'url':url+'/'+endpoint}
-  if n['id']=='wait_ci':p['condition']=p['condition'].replace('ci_iteration.artifacts','ci_iteration.body.artifacts')
  validation=request(ao+'/workflows/validate',auth,{'workflow_definition':w})
  assert validation['is_valid'],validation
  project=os.environ.get('AO_PROJECT_ID') or request(ao+'/workflows?limit=100',auth)['resources'][0]['project_id']
  workflow=request(ao+'/workflows',auth,{'name':w['name'],'project_id':project,'workflow_definition':w})
- request(ao+'/workflows/'+workflow['id']+'/versions/'+str(workflow['current_version'])+'/publish',auth,{'publish_name':'Isolated CI test','change_description':'Verify red/fix/green loop'})
+ request(ao+'/workflows/'+workflow['id']+'/versions/'+str(workflow['current_version'])+'/publish',auth,{'publish_name':'Isolated CI test','change_description':'Verify one bounded watcher activity before human review'})
  execution=request(ao+'/executions',auth,{'workflow_id':workflow['id'],'trigger_node_id':'start','use_published':True,'input_data':{}})
  print('Native loop fixture execution '+execution['id'],flush=True)
  end=time.time()+180

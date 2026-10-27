@@ -170,44 +170,23 @@ nodes:
     parameters:
       condition: ${prepare_feature.body.author_required} == True
   - id: wait_merge
-    name: Wait for human review and merge of the tested source
-    type: loop
+    name: Wait for human merge of the independently tested source
+    type: aap_job_template
     position:
-      x: 2820
+      x: 3200
       y: -150
     parameters:
-      type: do_while
-      condition: read_merge.body.merged == False
-      max_iterations: 2880
-  - id: read_merge
-    name: Check human merge and unchanged source identity
-    type: http_request
-    position:
-      x: 3150
-      y: 180
-    parameters:
-      method: GET
-      url: http://backstage-feature-gate.automation-orchestrator.svc:8080/webapp/pr
-      query_params:
-        issue_number: ${trigger.issue_number}
-        pr_number: ${read_candidate.body.number}
-        head_sha: ${read_candidate.body.head_sha}
-        require_merged: 'true'
+      organization_name: demo
+      job_template_name: demo_wait_merge
+      extra_vars:
+        ci_repository: demo-owner/ansible-collection-demo.webapp
+        ci_issue_number: ${trigger.issue_number}
+        ci_pr_number: ${read_candidate.body.number}
+        ci_candidate_sha: ${read_candidate.body.head_sha}
     settings:
-      timeout: 60
+      timeout: 90000
       retry_policy:
-        max_retries: 3
-        initial_interval: 5
-        max_interval: 30
-        backoff_coefficient: 2
-  - id: merge_poll_interval
-    name: Wait for the human PR decision
-    type: wait
-    position:
-      x: 3500
-      y: 180
-    parameters:
-      duration: 30
+        max_retries: 0
   - id: approve_and_deploy
     name: Await human approval and deploy the merged nginx fix
     type: aap_workflow_job_template
@@ -245,15 +224,22 @@ nodes:
       retry_policy:
         max_retries: 0
   - id: wait_ci
-    name: Keep authoring until the current PR head passes independent CI
-    type: loop
+    name: Watch the existing author until independent CI passes
+    type: aap_job_template
     position:
-      x: 2050
+      x: 2300
       y: 180
     parameters:
-      type: do_while
-      condition: ci_iteration.artifacts.ci_iteration.passed == False
-      max_iterations: 2880
+      organization_name: demo
+      job_template_name: demo_ci_watch
+      extra_vars:
+        ci_repository: demo-owner/ansible-collection-demo.webapp
+        ci_issue_number: ${trigger.issue_number}
+        ci_author_session: ${create_session.body.id}
+    settings:
+      timeout: 90000
+      retry_policy:
+        max_retries: 0
   - id: read_candidate
     name: Capture the independently green head for human review
     type: http_request
@@ -272,31 +258,6 @@ nodes:
         initial_interval: 5
         backoff_coefficient: 2
         max_interval: 30
-  - id: ci_iteration
-    name: Independently validate the PR and return failures to its existing author
-    type: aap_job_template
-    position:
-      x: 2300
-      y: 480
-    parameters:
-      organization_name: demo
-      job_template_name: demo_ci_iteration
-      extra_vars:
-        ci_repository: demo-owner/ansible-collection-demo.webapp
-        ci_issue_number: ${trigger.issue_number}
-        ci_author_session: ${create_session.body.id}
-    settings:
-      timeout: 14400
-      retry_policy:
-        max_retries: 0
-  - id: ci_poll_interval
-    name: Wait for author progress before the next CI check
-    type: wait
-    position:
-      x: 2630
-      y: 480
-    parameters:
-      duration: 30
 edges:
   - from: forgejo_issue
     to: prepare_feature
@@ -310,24 +271,12 @@ edges:
     to: authenticate_omnigent
     from_port: 'true'
   - from: wait_merge
-    to: read_merge
-    from_port: iterate
-  - from: read_merge
-    to: merge_poll_interval
-  - from: wait_merge
     to: approve_and_deploy
-    from_port: complete
   - from: approve_and_deploy
     to: verify_deployment
   - from: send_task
     to: wait_ci
   - from: wait_ci
     to: read_candidate
-    from_port: complete
   - from: read_candidate
     to: wait_merge
-  - from: wait_ci
-    to: ci_iteration
-    from_port: iterate
-  - from: ci_iteration
-    to: ci_poll_interval

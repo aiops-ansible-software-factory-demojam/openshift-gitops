@@ -6,7 +6,13 @@ scratch=$(mktemp -d)
 trap 'rm -rf -- "$scratch"' EXIT
 demo_sandbox_image() { echo registry.fixture/demo:latest; }
 aap_connect() { :; }
-aap_request() { printf '{"id":999}\n'; }
+aap_request() {
+  if [[ $1 == GET && $2 == projects/30/playbooks/ ]]; then
+    printf '["playbooks/ci/webapp.yml","playbooks/ci/publish.yml","playbooks/ci/iterate.yml","playbooks/ci/watch.yml","playbooks/ci/wait-merge.yml"]\n'
+  else
+    printf '{"id":999}\n'
+  fi
+}
 aap_wait() { :; }
 demo_invoice_forgejo_connect() { export FORGEJO_URL=https://forgejo.fixture FORGEJO_TOKEN=fixture-token; }
 oc() {
@@ -38,6 +44,8 @@ aap_upsert() {
     demo_ci_publish) id=200 ;;
     demo-ci-author) id=50 ;;
     demo_ci_iteration) id=300 ;;
+    demo_ci_watch) id=400 ;;
+    demo_wait_merge) id=500 ;;
     *) echo 'Unexpected CI object.' >&2; return 1 ;;
   esac
   printf '{"id":%s}\n' "$id"
@@ -53,6 +61,9 @@ for DEMO_BACKEND in aws cnv; do
   rg -q '^job_templates/300/credentials/ 50$' "$scratch/$DEMO_BACKEND-attachments"
   rg -q '^job_templates/300/credentials/ 30$' "$scratch/$DEMO_BACKEND-attachments"
   ! rg -q '^job_templates/300/credentials/ (10|20)$' "$scratch/$DEMO_BACKEND-attachments"
+  rg -q '^job_templates/400/credentials/ 50$' "$scratch/$DEMO_BACKEND-attachments"
+  rg -q '^job_templates/400/credentials/ 30$' "$scratch/$DEMO_BACKEND-attachments"
+  ! rg -q '^job_templates/400/credentials/ (10|20)$' "$scratch/$DEMO_BACKEND-attachments"
 done
 jq -e '.inputs.profile|fromjson|.PROVISIONER=="aws" and (has("AWS_SHARED_CREDENTIALS_FILE")|not)' "$scratch/aws-tests.json" >/dev/null
 jq -e '.inputs.kubeconfig|fromjson|.users[0].user.token=="TOKEN" and .contexts[0].context.namespace=="molecule-tests"' "$scratch/cnv-tests.json" >/dev/null
