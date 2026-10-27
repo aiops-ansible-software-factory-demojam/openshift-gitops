@@ -12,11 +12,6 @@ RUN dnf5 install -y bubblewrap nodejs npm tmux \
     && /opt/omnigent/bin/python -m pip install --no-cache-dir omnigent==0.15.0 \
     && /opt/omnigent/bin/python -m pip check
 
-# Required role fixtures exercise legal /opt roots under arbitrary OpenShift UIDs.
-# The sticky parent permits isolated scratch directories without allowing removal
-# of the root-owned installed tool directories.
-RUN chmod 1777 /opt
-
 ENV PATH="${PATH}:/opt/omnigent/bin"
 ENV MOLECULE_GLOB="extensions/molecule/*/molecule.yml"
 ENV ANSIBLE_COLLECTIONS_PATH="~/.ansible/collections:/usr/share/ansible/collections"
