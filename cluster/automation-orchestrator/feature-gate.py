@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 """Prepare an issue branch through Backstage before AO launches an agent."""
 
-import base64
 import json
 import os
 import time
@@ -36,19 +35,19 @@ def backstage(path, method="GET", body=None, token=None, missing_ok=False):
         raise RuntimeError(f"Backstage {method} {path} returned HTTP {error.code}") from None
 
 
-_incident_locks = {}
-_incident_locks_guard = Lock()
+_invoice_locks = {}
+_invoice_locks_guard = Lock()
 
 
 def prepare(number, repository=DEFAULT_REPOSITORY):
-    # Claims are repository-scoped: duplicate EDA deliveries must not create
-    # another author or deployment, including when issue numbers overlap.
-    if repository not in REPOSITORIES:
-        raise ValueError("Unsupported application repository")
-    with _incident_locks_guard:
-        lock = _incident_locks.setdefault((repository, number), Lock())
-    with lock:
-        return _prepare(number, repository)
+    # The single-replica helper uses Recreate updates so concurrent deliveries
+    # cannot both observe an absent branch and claim the same incident.
+    if repository == "demo-owner/ansible-collection-demo.pythonapp":
+        with _invoice_locks_guard:
+            lock = _invoice_locks.setdefault(number, Lock())
+        with lock:
+            return _prepare(number, repository)
+    return _prepare(number, repository)
 
 
 def _prepare(number, repository=DEFAULT_REPOSITORY):
@@ -94,7 +93,7 @@ def _prepare(number, repository=DEFAULT_REPOSITORY):
         "repository": repository,
         "branch": branch,
         "task_id": task_id,
-        "author_required": not existing,
+        "author_required": not existing if repository.endswith("pythonapp") else True,
         "issue": {key: issue.get(key) or "" for key in ("title", "body", "html_url")},
     }
 
@@ -102,16 +101,14 @@ def _prepare(number, repository=DEFAULT_REPOSITORY):
 INVOICE_REPOSITORY = "demo-owner/ansible-collection-demo.pythonapp"
 
 
-def incident_pr(number, repository, pr_number=None, head_sha=None, require_merged=False):
+def invoice_pr(number, pr_number=None, head_sha=None, require_merged=False):
     """Read one incident PR; fail closed on ambiguity, closure or source drift."""
-    if repository not in REPOSITORIES:
-        raise ValueError("Unsupported application repository")
     if type(number) is not int or number < 1:
         raise ValueError("issue_number must be a positive integer")
     if head_sha is not None and not re.fullmatch(r"[0-9a-f]{40}", head_sha):
         raise ValueError("Expected a full source commit")
     token = os.environ["BACKSTAGE_TOKEN"]
-    root = f"/api/proxy/forgejo/repos/{repository}"
+    root = f"/api/proxy/forgejo/repos/{INVOICE_REPOSITORY}"
     if pr_number is not None:
         if type(pr_number) is not int or pr_number < 1:
             raise ValueError("pr_number must be a positive integer")
@@ -131,7 +128,7 @@ def incident_pr(number, repository, pr_number=None, head_sha=None, require_merge
         raise ValueError("Multiple PRs match this incident; resolve ambiguity before continuing")
     pr = matches[0]
     if (pr["head"]["ref"] != f"feature/issue-{number}" or pr["base"]["ref"] != "main"
-            or any(pr[side].get("repo", {}).get("full_name") != repository for side in ["head", "base"])):
+            or any(pr[side].get("repo", {}).get("full_name") != INVOICE_REPOSITORY for side in ["head", "base"])):
         raise ValueError("PR does not belong to the expected incident branch and repository")
     sha = pr["head"]["sha"]
     if not re.fullmatch(r"[0-9a-f]{40}", sha):
@@ -155,85 +152,7 @@ def incident_pr(number, repository, pr_number=None, head_sha=None, require_merge
         else:
             raise ValueError("Main ancestry exceeds the reconciliation bound")
     return {"ready": not pr.get("draft", False), "merged": merged,
-            "number": pr["number"], "head_sha": sha, "url": pr["html_url"],
-            "base_sha": pr.get("merge_base", "")}
-
-
-def invoice_pr(number, pr_number=None, head_sha=None, require_merged=False):
-    return incident_pr(number, INVOICE_REPOSITORY, pr_number, head_sha, require_merged)
-
-
-def ci_candidate(number, repository):
-    """A failed SHA waits for a new commit; only an independently green SHA is done."""
-    result = incident_pr(number, repository)
-    result.update(ci_passed=False, ci_failed=False, validation_required=False)
-    if not result['ready']:
-        return result
-    root = '/api/proxy/forgejo/repos/' + repository
-    status = backstage(root + '/commits/' + result['head_sha'] + '/status', token=os.environ['BACKSTAGE_TOKEN'])
-    context = 'webapp/regression-validation' if repository == DEFAULT_REPOSITORY else 'invoice/ec2-validation'
-    prefix = 'webapp-ci-v2 ' if repository == DEFAULT_REPOSITORY else 'invoice-ci-v2 '
-    checks = [s for s in (status.get('statuses') or []) if s.get('context') == context
-              and (s.get('creator') or {}).get('login') == 'demo-reviewer'
-              and s.get('description', '').startswith(prefix)]
-    result['validation_required'] = not checks
-    if checks:
-        result['ci_failed'] = checks[0].get('status') in ['failure', 'error']
-        result['ci_passed'] = checks[0].get('status') == 'success'
-        if result['ci_passed']:
-            expected = ('webapp-ci-v2 base=' + result['base_sha'] + ' checks=passed red=passed green=passed durable=passed'
-                        if repository == DEFAULT_REPOSITORY else 'invoice-ci-v2 checks=passed')
-            result['ci_passed'] = checks[0].get('description') == expected
-            result['validation_required'] = not result['ci_passed']
-            if result['ci_passed'] and repository == INVOICE_REPOSITORY:
-                job = re.fullmatch(r'https?://[^/]+/execution/jobs/playbook/([1-9][0-9]*)/output', checks[0].get('target_url', ''))
-                if not job:
-                    result.update(ci_passed=False, validation_required=True)
-                else:
-                    result['validation_job_id'] = int(job.group(1))
-    return result
-
-
-def webapp_pr(number, pr_number=None, head_sha=None, require_merged=False):
-    result = incident_pr(number, DEFAULT_REPOSITORY, pr_number, head_sha, require_merged)
-    if result["ready"]:
-        require_webapp_regression(result["base_sha"], result["head_sha"])
-    if result["merged"]:
-        root = "/api/proxy/forgejo/repos/" + DEFAULT_REPOSITORY
-        receipt = backstage(root + "/commits/" + result["head_sha"] + "/status", token=os.environ["BACKSTAGE_TOKEN"])
-        checks = [check for check in (receipt.get("statuses") or [])
-                  if check.get("context") == "webapp/regression-validation"]
-        expected = "webapp-ci-v2 base=" + result["base_sha"] + " checks=passed red=passed green=passed durable=passed"
-        if (not checks or checks[0].get("status") != "success" or checks[0].get("description") != expected
-                or (checks[0].get("creator") or {}).get("login") != "demo-reviewer"):
-            raise ValueError("Independent webapp/regression-validation must pass for this exact head and merge base")
-        result["regression_validated"] = True
-    return result
-
-
-def require_webapp_regression(base_sha, head_sha):
-    """Structural gate; independent red/green execution is still required.
-
-    Forgejo preserves merge_base after merging; base.sha then points at main.
-    """
-    if not isinstance(base_sha, str) or not re.fullmatch(r"[0-9a-f]{40}", base_sha) or base_sha == head_sha:
-        raise ValueError("The regression check requires the incident's original merge base")
-    path = "/api/proxy/forgejo/repos/" + DEFAULT_REPOSITORY + "/contents/extensions/molecule/nginx/tasks/regression.yml"
-    token = os.environ["BACKSTAGE_TOKEN"]
-    candidate = backstage(path + "?ref=" + head_sha, token=token, missing_ok=True)
-    original = backstage(path + "?ref=" + base_sha, token=token, missing_ok=True)
-
-    def contents(record):
-        if not isinstance(record, dict) or record.get("type") != "file" or record.get("encoding") != "base64":
-            raise ValueError("The nginx PR must add or extend extensions/molecule/nginx/tasks/regression.yml")
-        try:
-            return base64.b64decode(record["content"]).decode().strip()
-        except (KeyError, ValueError, UnicodeError, TypeError):
-            raise ValueError("The nginx regression file must contain readable Ansible tasks") from None
-
-    authored = contents(candidate)
-    if not authored or (original and authored == contents(original)):
-        raise ValueError("The nginx PR must add incident-specific regression tasks; unchanged tests are insufficient")
+            "number": pr["number"], "head_sha": sha, "url": pr["html_url"]}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -249,7 +168,7 @@ class Handler(BaseHTTPRequestHandler):
         parsed = urlsplit(self.path)
         if parsed.path == "/healthz":
             return self.respond(200, {"status": "ok"})
-        if parsed.path not in ["/invoice/pr", "/webapp/pr", "/invoice/candidate", "/webapp/candidate", "/invoice/validated", "/webapp/validated"]:
+        if parsed.path != "/invoice/pr":
             return self.respond(404, {"error": "Unknown path"})
         try:
             query = parse_qs(parsed.query, strict_parsing=True)
@@ -257,24 +176,13 @@ class Handler(BaseHTTPRequestHandler):
                 raise ValueError("Unsupported PR query")
             if query.get("require_merged", ["false"])[0] not in ["true", "false"]:
                 raise ValueError("Invalid merge requirement")
-            if parsed.path.endswith(('/candidate', '/validated')):
-                if set(query) != {'issue_number'}:
-                    raise ValueError('Candidate discovery only accepts an issue number')
-                repository = INVOICE_REPOSITORY if parsed.path.startswith('/invoice/') else DEFAULT_REPOSITORY
-                result = ci_candidate(int(query['issue_number'][0]), repository)
-                if parsed.path.endswith('/validated') and not result['ci_passed']:
-                    raise ValueError('The current PR head has not passed independent CI')
-                return self.respond(200, result)
-            observer = invoice_pr if parsed.path == "/invoice/pr" else webapp_pr
-            result = observer(int(query["issue_number"][0]),
+            result = invoice_pr(int(query["issue_number"][0]),
                                 int(query["pr_number"][0]) if "pr_number" in query else None,
                                 query.get("head_sha", [None])[0],
                                 query.get("require_merged", ["false"])[0] == "true")
             self.respond(200, result)
-        except ValueError as error:
-            self.respond(409, {"error": str(error)})
-        except KeyError:
-            self.respond(409, {"error": "Incident PR has incomplete source or regression metadata."})
+        except (ValueError, KeyError):
+            self.respond(409, {"error": "Incident PR is invalid, changed, closed or ambiguous; inspect the PR before continuing."})
         except (HTTPError, URLError, RuntimeError):
             self.respond(502, {"error": "PR observation unavailable; no remediation action was taken."})
 

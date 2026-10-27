@@ -148,7 +148,7 @@ function summarizeRemediation(finding, validation, deployment) {
   const validationMatches = candidate.sha256 && validation?.status === 'successful' && proof?.passed === true &&
     proof.wheel_sha256 === candidate.sha256 && proof.application === finding.application &&
     finding.profile_sha256 && proof.profile_sha256 === finding.profile_sha256 &&
-    proof.acceptance_suite === 'trusted-invoice-v2';
+    proof.acceptance_suite === 'trusted-invoice-v1';
   const deployed = deployment?.artifacts?.invoice_release_evidence;
   const deploymentMatches = validationMatches && deployment?.status === 'successful' &&
     deployed?.release?.wheel_sha256 === candidate.sha256 && deployed?.release?.source_revision === proof.source_revision;

@@ -34,7 +34,7 @@ Run the commands below from the repository root after
 | Definition | What it does | Run it |
 | --- | --- | --- |
 | [rootcause.yaml](rootcause.yaml) | Investigates with MCP audit evidence, falls back to AAP facts when unavailable, and creates one Forgejo issue | AAP's `call_ao_webhook` job with `ao_webhook_path: alertmanagealert` |
-| [omnigent-remediation.yaml](omnigent-remediation.yaml) | Tracks the nginx fix through authoring, exact human merge, native AAP approval and verified deployment | Forgejo issue webhook through EDA and `call_ao_webhook` with `ao_webhook_path: forgejo-issue-remediation` |
+| [omnigent-remediation.yaml](omnigent-remediation.yaml) | Prepares the incident branch and sends the issue/RCA to Omnigent for a tested fix PR | Forgejo issue webhook through EDA and `call_ao_webhook` with `ao_webhook_path: forgejo-issue-remediation` |
 | [invoice-security-detect.yaml](invoice-security-detect.yaml) | Observe the dependency, discover approved candidates and reconcile the incident | `make invoice-trigger BACKEND=aws` |
 | [invoice-security-remediation.yaml](invoice-security-remediation.yaml) | Track authoring, independent validation, human merge, approval, deployment and verification | Existing Forgejo invoice issue webhook through EDA |
 
@@ -100,9 +100,8 @@ To exercise the flow on the demo VM, run AAP's `webapp_selinux_enable` template.
 Enforcing SELinux blocks nginx's demo document root and the blackbox probe
 returns HTTP 403. Allow the one-minute alert rule and Alertmanager's delivery
 timers to run, then check EDA, the AO execution, and the Forgejo incident.
-After independently testing and merging the PR, approve its `webapp_promote`
-execution and verify `make webapp-verify` plus the absence of an active
-`WebappDown` alert. This test deliberately interrupts
+Restore the demo with `make webapp-nginx` and verify `make webapp-verify` plus
+the absence of an active `WebappDown` alert. This test deliberately interrupts
 the demo webapp until it is restored.
 
 ## Incident to fix PR
@@ -127,8 +126,9 @@ enabled demo users, and submits the task. The agent must preserve SELinux
 enforcing, add a regression check, run `make molecule`, and submit
 the collection fix as a PR. It does not merge or modify the application VM.
 The AAP handoff job publishes `ao_execution_id` for following the AO execution
-and session. Follow Omnigent for the PR and AO for merge, production approval
-and deployment verification.
+and session. Follow Omnigent for the nginx PR, independently test its exact head,
+then merge and launch the existing nginx AAP recovery job. Invoice AO retains
+its independent validation and native production approval.
 
 To update an installed demo, publish the changes, hydrate the selected Ansible
 source branch, then run `make aap-configure`. This applies both EDA listeners,
@@ -144,8 +144,9 @@ EDA supplies the required positive `issue_number` after detection creates an
 incident. Backstage validates it and confirms `feature/issue-N` before AO creates
 the session. The machine credential is exchanged for a native Omnigent token,
 and enabled users from `DEMO_USERS_FILE` receive read access to the session.
-Follow [Omnigent](../../omnigent/README.md) for the checks and PR, and AO for the
-review, approval and verified deployment stages.
+Follow [Omnigent](../../omnigent/README.md) for checks and the PR. Nginx recovery
+uses the operator-controlled AAP wrapper; invoice recovery retains AO review,
+approval and verified deployment stages.
 
 The manual issue-number dispatcher and its launcher were early test scaffolding
 and are removed. Bootstrap removes an unused installed copy on reconciliation.
@@ -203,11 +204,10 @@ the authoring handoff through production verification:
    approved release and successful business/regression behavior before the
    existing issue reconciler closes the incident.
 
-Authoring and human-merge polling run inside separate bounded Ansible watcher
-jobs, with 30-second polling and a 24-hour Controller timeout. AO tracks each
-watcher as one activity, preserving Temporal history during long waits. A failed
-runner or changed source ends the watch with an explicit failure. Configuration
-allows 30 minutes; production execution allows two hours and retains its separate
+Polling uses durable AO timers, not script nodes or sleeping AAP jobs. Each PR
+and human-merge wait is bounded to 2,880 observations spaced 30 seconds apart
+(about 24 hours plus API time). Validation allows two hours; configuration allows
+30 minutes; production execution allows two hours and retains its separate
 30-minute AAP approval deadline. Timeouts and rejection never authorize deployment.
 Mutating AAP nodes have zero automatic retries. Investigate an uncertain launch
 before starting another execution.
@@ -228,75 +228,3 @@ marker and retain an open review. Containment launches the native AAP
 `invoice_contain` workflow, with trusted checks on both sides of its human approval.
 The coding-agent session and existing remediation trigger are unchanged. See the
 [CVE response routing policy](../../../docs/invoice-lightwell-demo.md#cve-response-routing).
-
-## Approved nginx recovery
-
-`omnigent-remediation` now continues after the agent submits its PR. It claims
-an incident once, waits for an eligible PR on `feature/issue-N`, captures its head,
-and waits for a human to merge that exact PR and commit into main. Drafts wait;
-closed, changed, cross-repository or ambiguous PRs stop the flow. Duplicate issue
-deliveries cannot start another author or deployment.
-
-The operator independently tests the exact published commit before merging.
-The PR must change `extensions/molecule/nginx/tasks/regression.yml` and include it
-from the scenario's verification play. The trusted controller playbook
-`playbooks/webapp/validate-regression.yml` runs those same assertions against the
-original merge base and the published fix on disposable guests. Every original
-guest must fail an authored assertion; every repaired guest must pass. A command
-or infrastructure error cannot count as the original-code failure. The trusted
-suite separately corrupts content labels, restores them from persistent SELinux
-policy, and requires enforcing HTTP recovery. Both lifecycles include cleanup.
-The operator copies its receipt out of the sandbox and publishes it using trusted
-`playbooks/webapp/publish-regression.yml` on the operator machine. Publishing
-credentials never enter the coding/test sandbox, and only a `demo-reviewer`
-status is accepted. Its exact-head `webapp/regression-validation` status is required by branch
-protection and checked again before promotion. A changed filename or a prompt
-claim alone cannot establish a passing regression.
-After merge, AO launches the reusable native AAP `webapp_promote` workflow with
-that commit and incident/PR identities. Its graph is
-`validate-release → production-approval → recheck-release → deploy`.
-The trusted checks require the matching merged web incident and native execution;
-the second also proves the successful approval belongs to this exact run.
-
-`webapp_deploy` checks out the reviewed commit in `webapp-collection` and runs
-`playbooks/promote_webapp.yml`. It calls the local nginx role from that checkout,
-using `vars/webapp.yml`, after checking the source, contract and exact web-only
-host scope. Production collection requirements belong in
-`collections/requirements.yml` as well as `galaxy.yml`. After handlers finish,
-SELinux must remain enforcing and the configured page must return HTTP 200.
-Per-host proof must cover every approved host; AO verifies the actual trusted
-gate jobs, approval, deploy template/project/source and recovery artifacts.
-Normal blackbox monitoring resolves the outage alert after recovery.
-
-`webapp_nginx` remains the baseline/setup entry point. Do not launch it as an
-extra recovery after the approved workflow. The new project, credential and JTs
-are configured once by the normal AAP dispatcher, independently of invoice setup.
-Pinned jobs bind the approved full SHA to Controller's protected
-`awx_job_scm_branch`. `awx_project_revision` is used only without a job override;
-it describes the project's default source, which can advance to a merge commit.
-The native deployment uses only the web SSH credential; review API access stays
-on the trusted controller gates. No per-release AAP objects are created.
-
-Apply/sync the companion source changes and run AAP/AO configuration before using
-this path. Updating GitHub PRs alone does not update the running demo.
-
-### CI feedback and completion
-
-Both authoring workflows loop until independent CI passes for the latest PR
-head. The author polls `demo-goldenpath ci <issue> --wait`; exit 75 is pending,
-not completion. Validators publish diagnostics through the separate trusted
-`demo_ci_publish` job. A failed head waits for an agent-authored new commit;
-AO does not rerun unchanged failures. It resumes the same idle session with
-sanitized diagnostics, or queues source-bound feedback once for an active author.
-Queued feedback never sends an interrupt; repeated active polls do not duplicate it.
-A new head gets a new pending status and full validation. Only a green exact
-head can advance to human review and native production approval. This replaces
-the previous one-pass authoring/review boundary; infrastructure cleanup failure
-still requires operator resolution and cannot produce green CI.
-
-The authoring and merge waits are single AAP watcher jobs (`demo_ci_watch` and
-`demo_wait_merge`). Their bounded internal polling does not append a new AO
-workflow loop for every check. This preserves the installed Temporal history
-limits, including on long authoring runs and human review waits. A disconnected
-existing author stops the CI watcher with an infrastructure failure; it never
-becomes a passing check or a new author session.

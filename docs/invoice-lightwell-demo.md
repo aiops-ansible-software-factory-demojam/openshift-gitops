@@ -312,11 +312,10 @@ is the inference provider for that rehearsal. Switch to a verified OpenShift AI
 endpoint before recording the abstract's OpenShift AI claim, or identify the
 actual provider in the recording.
 
-AAP execution copies do not contain `.git`. Pinned jobs require Controller's
-protected `awx_job_scm_branch` to equal the approved full SHA. Only jobs without
-an override use `awx_project_revision`, which describes the project's default
-revision. Direct runs check clean Git HEAD. Both paths reject a mismatch with
-the requested commit. Independent validation still uses its fresh Git checkout
+AAP execution copies do not contain `.git`. The baseline checks AAP's
+system-provided `awx_project_revision`, which identifies the job's source
+revision. Direct runs check Git HEAD. Both paths reject a mismatch with the
+requested commit. Independent validation still uses its fresh Git checkout
 and checks that the tested source remains clean and unchanged.
 
 ## Prepare the environment

@@ -1,6 +1,5 @@
 name: omnigent-remediation
-description: Track an nginx outage from authoring through exact PR merge, human production approval, pinned deployment
-  and verified recovery.
+description: Turn a Forgejo outage issue and its RCA into a verified collection fix PR.
 schema_version: 2.0.0
 triggers:
   - id: forgejo_issue
@@ -11,6 +10,7 @@ triggers:
       y: 300
     parameters:
       webhook_path: forgejo-issue-remediation
+      # Bootstrap binds this trigger to the local EDA service account.
       authorized_service_account_ids: []
       input_schema:
         type: object
@@ -115,8 +115,8 @@ nodes:
                 or actual setup output. Report restorecon changes from its
                 verbose relabel output instead of unconditionally hiding them.
                 Confirm new Ansible modules, parameters, and return fields with
-                ansible-doc. Declare collection dependencies in galaxy.yml and in collections/requirements.yml with matching versions so
-                AAP project sync installs the pinned checkout dependencies; Molecule test requirements
+                ansible-doc. Declare collection dependencies in galaxy.yml so
+                AAP project sync installs them; Molecule test requirements
                 alone do not supply production dependencies. The sandbox
                 preloads the pinned test requirements. If you change
                 extensions/molecule/requirements-test.yml, install the updated
@@ -125,21 +125,20 @@ nodes:
                 ansible-lint to roles/nginx and extensions/molecule/nginx;
                 do not lint /tmp or installed dependency collections. Keep
                 the normal collection paths so provisioners remain available.
-                Add or extend extensions/molecule/nginx/tasks/regression.yml with
-                incident-specific Ansible assertion tasks and include it from
-                the nginx verify play. Existing HTTP/enforcing assertions alone
-                are not new coverage. Prove the persistent file-context policy
-                survives relabeling, and that HTTP still works under enforcing
-                SELinux afterward. Keep observations non-fatal and use explicit
-                ansible.builtin.assert tasks for the regression verdict. The
-                independent operator will run the identical regression tasks
-                against the original merge-base code (must fail an assertion
-                on each guest) and your exact published fix (must pass), plus
-                a trusted relabel/recovery check. Do not edit the trusted runner,
-                weaken assertions, or claim a required validation status yourself.
-                A PR without changed regression tasks cannot be promoted.
-                Run ansible-lint, build the
-                collection, and run make molecule to test every scenario.
+                Add meaningful regression assertions for this incident in the
+                nginx Molecule scenario. Renaming an existing HTTP check or
+                adding diagnostic output is not new regression coverage. Keep
+                nginx serving HTTP while SELinux is enforcing. Run ansible-lint,
+                all collection unit tests, a collection build and make molecule
+                to test every scenario after the final edit.
+                Provisioning commands must preserve the configured destroy-before-
+                create sequences. After the final edit, require new RHEL 9/10
+                guests and the entire create/converge/idempotence/verify/destroy
+                lifecycle. Set the shell tool timeout to at least 1800000 ms
+                for the full EC2 test, without a shorter shell timeout wrapper.
+                A timeout, skipped creation or partial output is not a pass.
+                Keep cleanup ownership records. Do not filter the test command
+                through head/grep/tail; preserve its actual exit status.
                 Check the actual command exit codes. Fix failed checks,
                 review the diff, and commit it.
                 Write the PR summary and actual validation results to a file
@@ -152,8 +151,6 @@ nodes:
                 URL: ${prepare_feature.body.issue.html_url}
                 Issue and root cause analysis:
                 ${prepare_feature.body.issue.body}
-
-                PR submission is not completion. After every push, run demo-goldenpath --repository demo-owner/ansible-collection-demo.webapp ci ${trigger.issue_number} --wait. Exit 75 means CI is pending: keep waiting and do not edit the published tree while tests run. On failure, read the trusted PR diagnostics, fix the cause on the SAME branch and PR, rerun local checks after your FINAL edit, commit and push, then wait for independent CI on that new SHA. Never mark your own required check successful. Do not finish or claim success until the current head passes every independent check. AO may send CI failure feedback to this same session; continue the same task. A passing CI verdict permits human review only; never merge or deploy.
     settings:
       timeout: 360
       retry_policy:
@@ -161,122 +158,12 @@ nodes:
         initial_interval: 5
         max_interval: 20
         backoff_coefficient: 1.5
-  - id: owns_incident
-    name: Only a newly claimed incident starts remediation
-    type: condition
-    position:
-      x: 500
-      y: -130
-    parameters:
-      condition: ${prepare_feature.body.author_required} == True
-  - id: wait_merge
-    name: Wait for human merge of the independently tested source
-    type: aap_job_template
-    position:
-      x: 3200
-      y: -150
-    parameters:
-      organization_name: demo
-      job_template_name: demo_wait_merge
-      extra_vars:
-        ci_repository: demo-owner/ansible-collection-demo.webapp
-        ci_issue_number: ${trigger.issue_number}
-        ci_pr_number: ${read_candidate.body.number}
-        ci_candidate_sha: ${read_candidate.body.head_sha}
-    settings:
-      timeout: 90000
-      retry_policy:
-        max_retries: 0
-  - id: approve_and_deploy
-    name: Await human approval and deploy the merged nginx fix
-    type: aap_workflow_job_template
-    position:
-      x: 3300
-      y: -220
-    parameters:
-      organization_name: demo
-      workflow_job_template_name: webapp_promote
-      scm_branch: ${read_candidate.body.head_sha}
-      extra_vars:
-        webapp_candidate_sha: ${read_candidate.body.head_sha}
-        webapp_issue_number: ${trigger.issue_number}
-        webapp_pr_number: ${read_candidate.body.number}
-    settings:
-      timeout: 7200
-      retry_policy:
-        max_retries: 0
-  - id: verify_deployment
-    name: Prove approval, reviewed source and enforcing HTTP recovery
-    type: aap_job_template
-    position:
-      x: 3700
-      y: -220
-    parameters:
-      organization_name: demo
-      job_template_name: webapp_verify_deployment
-      extra_vars:
-        webapp_candidate_sha: ${read_candidate.body.head_sha}
-        webapp_issue_number: ${trigger.issue_number}
-        webapp_pr_number: ${read_candidate.body.number}
-        webapp_deployment_workflow_id: ${approve_and_deploy.workflow_job_id}
-    settings:
-      timeout: 600
-      retry_policy:
-        max_retries: 0
-  - id: wait_ci
-    name: Watch the existing author until independent CI passes
-    type: aap_job_template
-    position:
-      x: 2300
-      y: 180
-    parameters:
-      organization_name: demo
-      job_template_name: demo_ci_watch
-      extra_vars:
-        ci_repository: demo-owner/ansible-collection-demo.webapp
-        ci_issue_number: ${trigger.issue_number}
-        ci_author_session: ${create_session.body.id}
-    settings:
-      timeout: 90000
-      retry_policy:
-        max_retries: 0
-  - id: read_candidate
-    name: Capture the independently green head for human review
-    type: http_request
-    position:
-      x: 2400
-      y: -150
-    parameters:
-      method: GET
-      url: http://backstage-feature-gate.automation-orchestrator.svc:8080/webapp/validated
-      query_params:
-        issue_number: ${trigger.issue_number}
-    settings:
-      timeout: 60
-      retry_policy:
-        max_retries: 3
-        initial_interval: 5
-        backoff_coefficient: 2
-        max_interval: 30
 edges:
   - from: forgejo_issue
     to: prepare_feature
+  - from: prepare_feature
+    to: authenticate_omnigent
   - from: authenticate_omnigent
     to: create_session
   - from: create_session
     to: send_task
-  - from: prepare_feature
-    to: owns_incident
-  - from: owns_incident
-    to: authenticate_omnigent
-    from_port: 'true'
-  - from: wait_merge
-    to: approve_and_deploy
-  - from: approve_and_deploy
-    to: verify_deployment
-  - from: send_task
-    to: wait_ci
-  - from: wait_ci
-    to: read_candidate
-  - from: read_candidate
-    to: wait_merge
