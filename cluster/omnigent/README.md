@@ -6,12 +6,14 @@ Omnigent runs the coding agent in a Kubernetes Sandbox. The API lives in
 
 ## Follow an issue to a PR
 
-After [bootstrap](../../README.md), run `make demo-hydrate` from the repository
-root to find the issue number, then `make demo ISSUE=N`. Backstage prepares
-`feature/issue-N` before AO starts `automation-developer`. Open the Omnigent
-URL from Homepage, sign in with [demo Keycloak](../demojam-keycloak/README.md),
-and inspect the printed session ID for checks and the PR URL. AO completion
-confirms handoff; the agent keeps working asynchronously.
+After [bootstrap](../../README.md), incident detection creates a Forgejo issue
+and EDA starts its remediation workflow. Backstage prepares `feature/issue-N`
+before AO starts `automation-developer`. Open Omnigent from Homepage, sign in
+with [demo Keycloak](../demojam-keycloak/README.md), and follow the session linked
+from the AO execution for checks and the PR URL. The operator independently tests
+and merges the nginx PR before its AAP recovery launch. Invoice AO retains native
+production approval and deployment verification. The manual
+issue-number dispatcher used for early testing has been removed.
 
 Enabled configured users receive read access to new workflow sessions.
 Omnigent uses verified email identities and per-session permissions. AO obtains

@@ -16,10 +16,11 @@ source "$demo_repo_root/bootstrap/homepage.sh"
 demo_load_env() {
   set +x
   local inherited_backend=${DEMO_BACKEND:-}
+  local inherited_scenario=${DEMO_SCENARIO:-}
   local inherited_mcp=${WEBAPP_MCP_ENABLED:-}
   local input_name
   local -A inherited_aws=()
-  for input_name in AWS_BOOTSTRAP_ACCESS_KEY_ID AWS_BOOTSTRAP_SECRET_ACCESS_KEY AWS_DEMO_ACCOUNT_ID \
+  for input_name in AWS_BOOTSTRAP_ACCESS_KEY_ID AWS_BOOTSTRAP_SECRET_ACCESS_KEY \
     AWS_DEMO_REGION AWS_DEMO_AZ AWS_DEMO_VPC_CIDR AWS_DEMO_SSH_CIDR AWS_DEMO_HTTP_CIDR \
     AWS_WEBAPP_INSTANCE_TYPE AWS_PYTHONAPP_INSTANCE_TYPE AWS_MOLECULE_INSTANCE_TYPE AWS_DEMO_ROOT_VOLUME_SIZE_GIB \
     AWS_RHEL9_AMI_ID AWS_RHEL10_AMI_ID; do
@@ -59,7 +60,7 @@ demo_load_env() {
   export AWS_MOLECULE_INSTANCE_TYPE=${AWS_MOLECULE_INSTANCE_TYPE:-t3.medium}
   export AWS_DEMO_ROOT_VOLUME_SIZE_GIB=${AWS_DEMO_ROOT_VOLUME_SIZE_GIB:-30}
   export BOOTSTRAP_BRANCH=${inherited_branch:-${BOOTSTRAP_BRANCH:-main}}
-  export DEMO_SCENARIO=${DEMO_SCENARIO:-selinux}
+  export DEMO_SCENARIO=${inherited_scenario:-${DEMO_SCENARIO:-selinux}}
   [[ $DEMO_SCENARIO == selinux || $DEMO_SCENARIO == invoice || $DEMO_SCENARIO == both ]] || demo_die 'DEMO_SCENARIO must be selinux, invoice, or both.'
   export ANSIBLE_COLLECTION_TEMPLATE_BRANCH=${inherited_template_branch:-${ANSIBLE_COLLECTION_TEMPLATE_BRANCH:-}}
   export ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH=${inherited_collection_branch:-${ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH:-}}
@@ -134,7 +135,8 @@ cfg = Config(connect_timeout=10, read_timeout=30, retries={'mode': 'standard', '
 ec2, iam = session.client('ec2', config=cfg), session.client('iam', config=cfg)
 identity = session.client('sts', config=cfg).get_caller_identity()
 account = identity['Account']
-assert not env.get('AWS_DEMO_ACCOUNT_ID') or env['AWS_DEMO_ACCOUNT_ID'] == account, 'AWS account differs from AWS_DEMO_ACCOUNT_ID'
+# STS is authoritative. Older .env files may retain an account from a previous
+# workshop; existing deployments are protected by the recorded state below.
 
 def oc(*args, data=None):
     result = subprocess.run(['oc', *args], input=data, text=True, capture_output=True, check=True)
@@ -1288,6 +1290,31 @@ demo_source_branch() {
   printf '%s\n' "$branch"
 }
 
+# Reject incompatible source selections before deleting a working rehearsal.
+demo_source_preflight() {
+  local name checkout required
+  for name in demojam-ansible ansible-collection-demo.webapp ansible-collection-demo.pythonapp; do
+    [[ $name != ansible-collection-demo.pythonapp ]] || demo_invoice_enabled || continue
+    checkout=$(demo_source_checkout "$name") || return
+    local -a required_files=()
+    case $name in
+      demojam-ansible)
+        required_files=(playbooks/webapp/nginx-install.yml)
+        if demo_invoice_enabled; then
+          required_files+=(playbooks/invoice/route.yml playbooks/invoice/record-response.yml
+            playbooks/invoice/prepare-containment.yml)
+        fi ;;
+      ansible-collection-demo.webapp) required_files=(AGENTS.md playbooks/deploy_webapp.yml) ;;
+      ansible-collection-demo.pythonapp) required_files=(AGENTS.md playbooks/invoice-remediate.yml playbooks/contain-invoice.yml) ;;
+    esac
+    for required in "${required_files[@]}"; do
+      [[ -f $checkout/$required ]] ||
+        demo_die "Selected source $name lacks $required; select compatible companion branches before reset/bootstrap."
+    done
+    printf 'Source preflight: %s at %s\n' "$name" "$(git -C "$checkout" rev-parse HEAD)"
+  done
+}
+
 # Cache only fetched GitHub content in the ignored render directory, or in an
 # explicit scratch checkout for hydration. Bootstrap also reads AAP metadata
 # before Forgejo exists on a fresh cluster, using the same source selection.
@@ -1435,22 +1462,7 @@ ASKPASS
         "$(jq -n --arg permission "$collaborator_permission" '{permission:$permission}')" >/dev/null
     done < <(jq -r '.collaborators[]' <<< "$repo")
   done < <(jq -c --arg selected "$selected_repo" '.repositories[] | select($selected == "" or .name == $selected)' "$config")
-  echo 'Seed complete. Create the trigger issue after the agent integration is ready.'
-)
-
-demo_forgejo_issue() (
-  root="$demo_repo_root/cluster/forgejo"
-  repo=demo-owner/ansible-collection-demo.webapp
-  title='Add a test line to the README'
-  issues=$(forgejo_api GET "/repos/$repo/issues?state=all&limit=100")
-  existing=$(jq -r --arg title "$title" \
-    '.[] | select(.title == $title and .pull_request == null) | .html_url' \
-    <<<"$issues" | head -1)
-  if [[ -n $existing ]]; then
-    printf '%s\n' "$existing"
-  else
-    forgejo_api POST "/repos/$repo/issues" "$(jq -n --arg title "$title" --rawfile body "$root/fixtures/readme-test-issue.md" '{title:$title,body:$body}')" | jq -r .html_url
-  fi
+  echo 'Seed complete. Detection workflows create the incident issues.'
 )
 
 demo_forgejo_lifecycle() (
@@ -1601,11 +1613,6 @@ demo_hydrate() (
   fi
   demo_identity_forgejo
 
-  FORGEJO_TOKEN=$(<"$state_dir/admin-token")
-  export FORGEJO_TOKEN
-  issue_url=$(demo_forgejo_issue)
-  unset FORGEJO_TOKEN
-
   umask 077
   scratch=$(mktemp -d)
   trap 'find "$scratch" -type f -delete; rmdir "$scratch"' EXIT
@@ -1639,7 +1646,7 @@ demo_hydrate() (
     oc -n rhdh rollout status deployment/backstage-rhdh-developer-hub --timeout=15m
   fi
 
-  printf 'Forgejo demo ready: %s\n' "$issue_url"
+  printf 'Forgejo repositories refreshed: %s\n' "$FORGEJO_URL"
   echo 'New automation-developer sandboxes and Backstage receive current Forgejo credentials.'
 )
 
@@ -2127,9 +2134,6 @@ demo_ao_run() {
         jq --arg status "$status" '{status:$status,results:[.resources[]? |
           select(.activity_name == "create_session") |
           {node:.activity_name,status,output:.output_data}]}' "$ao_response"
-        if [[ $name == omnigent-dispatch ]]; then
-          echo 'The agent continues asynchronously. Inspect the session for its PR URL.'
-        fi
         return ;;
       failed|cancelled|canceled|timed_out)
         code=$(ao_curl GET "$base_url/executions/$execution/activities?limit=100" -H "$auth_header")
@@ -2143,11 +2147,31 @@ demo_ao_run() {
   demo_die "AO execution $execution is still $status; inspect it before another launch."
 }
 
-demo_dispatch_issue() {
-  local issue=${1:-}
-  [[ $# == 1 && $issue =~ ^[1-9][0-9]*$ ]] || demo_die 'Pass a positive Forgejo issue number.'
-  demo_verify_cluster
-  demo_ao_reconcile run omnigent-dispatch "$(jq -cn --argjson issue "$issue" '{issue_number:$issue}')"
+demo_ao_retire_dispatch() {
+  local code matches workflow_id has_history
+  code=$(ao_curl GET "$base_url/workflows?limit=100" -H "$auth_header")
+  ao_require_json 'find retired manual workflow' "$code"
+  jq -e '(.next // null) == null' "$ao_response" >/dev/null ||
+    demo_die 'Workflow list is paginated; inspect the retired workflow before cleanup.'
+  matches=$(jq -c '[.resources[] | select(.name == "omnigent-dispatch" and .is_builtin == false)]' "$ao_response")
+  [[ $(jq length <<<"$matches") -le 1 ]] || demo_die 'Multiple retired manual workflows require inspection.'
+  [[ $matches != '[]' ]] || return 0
+  workflow_id=$(jq -er '.[0].id' <<<"$matches")
+  if [[ $(jq -r '.[0].is_enabled' <<<"$matches") != false ]]; then
+    code=$(ao_curl PATCH "$base_url/workflows/$workflow_id" -H "$auth_header" \
+      -H 'Content-Type: application/json' --data-binary '{"is_enabled":false}')
+    ao_require_json 'disable retired manual workflow' "$code"
+  fi
+  code=$(ao_curl GET "$base_url/executions?workflow_id=$workflow_id&limit=1" -H "$auth_header")
+  ao_require_json 'inspect retired workflow history' "$code"
+  has_history=$(jq -r '.resources | length > 0' "$ao_response")
+  if [[ $has_history == true ]]; then
+    echo 'Retired manual dispatch workflow; execution history retained.'
+  else
+    code=$(ao_curl DELETE "$base_url/workflows/$workflow_id" -H "$auth_header")
+    [[ $code == 204 ]] || ao_fail_response 'remove retired manual workflow' "$code"
+    echo 'Removed unused manual dispatch workflow.'
+  fi
 }
 
 demo_ao_reconcile() (
@@ -2494,7 +2518,7 @@ demo_ao_reconcile() (
   for workflow_file in "$script_dir"/workflows/*.yaml; do
     workflow_name=$(yq -er '.name' "$workflow_file")
     [[ $workflow_name != invoice-* ]] || demo_invoice_enabled || continue
-    if [[ $workflow_name == omnigent-dispatch || $workflow_name == omnigent-remediation || $workflow_name == invoice-security-remediation ]]; then
+    if [[ $workflow_name == omnigent-remediation || $workflow_name == invoice-security-remediation ]]; then
       workflow_definition=$(demo_ao_workflow_definition "$workflow_file" "$credential_id" "$agent_id")
     else
       workflow_definition=$(yq -c . "$workflow_file" | jq -c \
@@ -2581,6 +2605,7 @@ demo_ao_reconcile() (
     fi
     printf 'Reconciled workflow %s version %s\n' "$workflow_name" "$workflow_version"
   done
+  demo_ao_retire_dispatch
 )
 
 # -----------------------------------------------------------------------------
@@ -3293,6 +3318,7 @@ demo_bootstrap() (
   read -r gitops_ref published_revision <<<"$resolved_gitops"
   [[ $published_revision == "$target_revision" ]] ||
     demo_die "Publish the checked-out revision as $gitops_ref before bootstrap."
+  demo_source_preflight
   echo "Tracking GitOps ref $gitops_branch."
   if [[ $DEMO_BACKEND == aws ]]; then
     demo_step 'Prepare the dedicated AWS guest account resources'
@@ -3624,6 +3650,7 @@ demo_reset() (
   [[ $# == 1 && $1 == --confirm-demo-reset ]] ||
     demo_die 'Usage: demo-reset --confirm-demo-reset (deletes demo repos, sessions, VMs and disks).'
   demo_verify_cluster
+  demo_source_preflight
   demo_model_inputs ao
   demo_model_inputs omnigent
   unset model_key
@@ -4471,7 +4498,6 @@ HELP
     hydrate) demo_hydrate hydrate ;;
     forgejo-reset) demo_hydrate reset "$@" ;;
     reconcile-workflow|ao-configure) demo_verify_cluster; demo_ao_reconcile ;;
-    dispatch-issue) demo_dispatch_issue "$@" ;;
     ao-run) [[ $# -ge 1 && $# -le 2 ]] || demo_die 'ao-run requires WORKFLOW [INPUT_JSON]'; demo_verify_cluster; demo_ao_reconcile run "$@" ;;
     aap-configure)
       demo_aap_configure
@@ -4489,7 +4515,6 @@ HELP
     readiness) [[ $# == 1 ]] || demo_die 'readiness requires sandbox or aap'; demo_verify_cluster; demo_readiness "$@" ;;
     forgejo-seed) demo_forgejo_lifecycle seed ;;
     forgejo-repos) [[ $# -le 1 ]] || demo_die 'forgejo-repos accepts an optional repository name'; demo_forgejo_seed_repos "$@" ;;
-    forgejo-issue) demo_forgejo_issue ;;
     *) demo_die "Unknown command: $command (use --help)." ;;
   esac
 }
