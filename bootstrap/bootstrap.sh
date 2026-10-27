@@ -16,6 +16,7 @@ source "$demo_repo_root/bootstrap/homepage.sh"
 demo_load_env() {
   set +x
   local inherited_backend=${DEMO_BACKEND:-}
+  local inherited_scenario=${DEMO_SCENARIO:-}
   local inherited_mcp=${WEBAPP_MCP_ENABLED:-}
   local input_name
   local -A inherited_aws=()
@@ -59,7 +60,7 @@ demo_load_env() {
   export AWS_MOLECULE_INSTANCE_TYPE=${AWS_MOLECULE_INSTANCE_TYPE:-t3.medium}
   export AWS_DEMO_ROOT_VOLUME_SIZE_GIB=${AWS_DEMO_ROOT_VOLUME_SIZE_GIB:-30}
   export BOOTSTRAP_BRANCH=${inherited_branch:-${BOOTSTRAP_BRANCH:-main}}
-  export DEMO_SCENARIO=${DEMO_SCENARIO:-selinux}
+  export DEMO_SCENARIO=${inherited_scenario:-${DEMO_SCENARIO:-selinux}}
   [[ $DEMO_SCENARIO == selinux || $DEMO_SCENARIO == invoice || $DEMO_SCENARIO == both ]] || demo_die 'DEMO_SCENARIO must be selinux, invoice, or both.'
   export ANSIBLE_COLLECTION_TEMPLATE_BRANCH=${inherited_template_branch:-${ANSIBLE_COLLECTION_TEMPLATE_BRANCH:-}}
   export ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH=${inherited_collection_branch:-${ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH:-}}
@@ -1287,6 +1288,31 @@ demo_source_branch() {
     demo_die "Invalid GitHub source branch for $name: $branch"
   fi
   printf '%s\n' "$branch"
+}
+
+# Reject incompatible source selections before deleting a working rehearsal.
+demo_source_preflight() {
+  local name checkout required
+  for name in demojam-ansible ansible-collection-demo.webapp ansible-collection-demo.pythonapp; do
+    [[ $name != ansible-collection-demo.pythonapp ]] || demo_invoice_enabled || continue
+    checkout=$(demo_source_checkout "$name") || return
+    local -a required_files=()
+    case $name in
+      demojam-ansible)
+        required_files=(playbooks/webapp/nginx-install.yml)
+        if demo_invoice_enabled; then
+          required_files+=(playbooks/invoice/route.yml playbooks/invoice/record-response.yml
+            playbooks/invoice/prepare-containment.yml)
+        fi ;;
+      ansible-collection-demo.webapp) required_files=(AGENTS.md playbooks/deploy_webapp.yml) ;;
+      ansible-collection-demo.pythonapp) required_files=(AGENTS.md playbooks/invoice-remediate.yml playbooks/contain-invoice.yml) ;;
+    esac
+    for required in "${required_files[@]}"; do
+      [[ -f $checkout/$required ]] ||
+        demo_die "Selected source $name lacks $required; select compatible companion branches before reset/bootstrap."
+    done
+    printf 'Source preflight: %s at %s\n' "$name" "$(git -C "$checkout" rev-parse HEAD)"
+  done
 }
 
 # Cache only fetched GitHub content in the ignored render directory, or in an
@@ -3292,6 +3318,7 @@ demo_bootstrap() (
   read -r gitops_ref published_revision <<<"$resolved_gitops"
   [[ $published_revision == "$target_revision" ]] ||
     demo_die "Publish the checked-out revision as $gitops_ref before bootstrap."
+  demo_source_preflight
   echo "Tracking GitOps ref $gitops_branch."
   if [[ $DEMO_BACKEND == aws ]]; then
     demo_step 'Prepare the dedicated AWS guest account resources'
@@ -3623,6 +3650,7 @@ demo_reset() (
   [[ $# == 1 && $1 == --confirm-demo-reset ]] ||
     demo_die 'Usage: demo-reset --confirm-demo-reset (deletes demo repos, sessions, VMs and disks).'
   demo_verify_cluster
+  demo_source_preflight
   demo_model_inputs ao
   demo_model_inputs omnigent
   unset model_key

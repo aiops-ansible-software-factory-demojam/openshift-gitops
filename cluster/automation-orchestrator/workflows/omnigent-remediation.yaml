@@ -125,9 +125,12 @@ nodes:
                 ansible-lint to roles/nginx and extensions/molecule/nginx;
                 do not lint /tmp or installed dependency collections. Keep
                 the normal collection paths so provisioners remain available.
-                Add a regression check that nginx serves HTTP while SELinux is
-                enforcing in the nginx scenario. Run ansible-lint, build the
-                collection, and run make molecule to test every scenario.
+                Add meaningful regression assertions for this incident in the
+                nginx Molecule scenario. Renaming an existing HTTP check or
+                adding diagnostic output is not new regression coverage. Keep
+                nginx serving HTTP while SELinux is enforcing. Run ansible-lint,
+                all collection unit tests, a collection build and make molecule
+                to test every scenario after the final edit.
                 Check the actual command exit codes. Fix failed checks,
                 review the diff, and commit it.
                 Write the PR summary and actual validation results to a file

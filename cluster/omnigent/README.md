@@ -10,8 +10,9 @@ After [bootstrap](../../README.md), incident detection creates a Forgejo issue
 and EDA starts its remediation workflow. Backstage prepares `feature/issue-N`
 before AO starts `automation-developer`. Open Omnigent from Homepage, sign in
 with [demo Keycloak](../demojam-keycloak/README.md), and follow the session linked
-from the AO execution for checks and the PR URL. AO continues through human
-merge, native production approval and deployment verification. The manual
+from the AO execution for checks and the PR URL. The operator independently tests
+and merges the nginx PR before its AAP recovery launch. Invoice AO retains native
+production approval and deployment verification. The manual
 issue-number dispatcher used for early testing has been removed.
 
 Enabled configured users receive read access to new workflow sessions.
