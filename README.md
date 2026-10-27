@@ -235,8 +235,7 @@ bash bootstrap/bootstrap.sh aap launch webapp_selinux_enable
 The seeded job enables SELinux enforcing on the webapp VM. Follow the new
 Forgejo incident and its RCA into the Omnigent session; the agent tests its
 collection fix and submits a PR. Independently test and merge that exact PR, then
-approve its native AAP `webapp_promote` execution. AO deploys the pinned commit and
-verifies enforcing HTTP recovery.
+run `make webapp-nginx` once to deploy it through the existing AAP wrapper.
 Run `bash bootstrap/bootstrap.sh webapp verify-enforcing` to check recovery.
 To restore only the permissive mode for an unmerged demonstration, run
 `bash bootstrap/bootstrap.sh aap launch webapp_selinux_permissive`.
@@ -247,7 +246,8 @@ issue-number dispatch workflow and its starter README issue have been retired.
 `make demo-hydrate` remains a maintenance command for refreshing Forgejo sources
 and agent/Backstage credentials; it does not start a coding session.
 Follow the incident's [Omnigent session](cluster/omnigent/README.md) for tests and
-the PR, then follow AO through merge, production approval and deployment proof.
+the PR. Independently test and merge the nginx fix, then deploy it through AAP.
+The invoice flow retains its existing native production approval.
 
 `make demo-reset` deletes demo repositories, agent sessions, VMs, and disks,
 then reseeds the baseline. It leaves demo VMs absent; rerun `make bootstrap`

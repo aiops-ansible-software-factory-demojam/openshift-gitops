@@ -7,9 +7,9 @@ to validate the incident and prepare `feature/issue-N`, then starts one shared
 Omnigent session. Duplicate incident deliveries do not start another author.
 
 The agent submits a tested PR. After independent operator validation and human
-merge, AO waits for native AAP approval, deploys the exact reviewed nginx commit
-and verifies enforcing HTTP recovery. The separate invoice workflows handle CVE
-detection/routing and reviewed Python remediation.
+merge, the operator deploys nginx through its existing AAP wrapper and verifies
+enforcing HTTP recovery. The invoice workflows retain independent validation,
+native production approval and reviewed Python remediation.
 
 ## Configure and run
 
