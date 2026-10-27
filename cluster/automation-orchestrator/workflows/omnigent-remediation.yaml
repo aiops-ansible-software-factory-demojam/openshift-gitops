@@ -131,6 +131,14 @@ nodes:
                 nginx serving HTTP while SELinux is enforcing. Run ansible-lint,
                 all collection unit tests, a collection build and make molecule
                 to test every scenario after the final edit.
+                Provisioning commands must preserve the configured destroy-before-
+                create sequences. After the final edit, require new RHEL 9/10
+                guests and the entire create/converge/idempotence/verify/destroy
+                lifecycle. Set the shell tool timeout to at least 1800000 ms
+                for the full EC2 test, without a shorter shell timeout wrapper.
+                A timeout, skipped creation or partial output is not a pass.
+                Keep cleanup ownership records. Do not filter the test command
+                through head/grep/tail; preserve its actual exit status.
                 Check the actual command exit codes. Fix failed checks,
                 review the diff, and commit it.
                 Write the PR summary and actual validation results to a file
