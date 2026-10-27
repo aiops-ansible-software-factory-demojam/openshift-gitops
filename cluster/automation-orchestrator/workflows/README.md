@@ -126,8 +126,9 @@ enabled demo users, and submits the task. The agent must preserve SELinux
 enforcing, add a regression check, run `make molecule`, and submit
 the collection fix as a PR. It does not merge or modify the application VM.
 The AAP handoff job publishes `ao_execution_id` for following the AO execution
-and session. Follow Omnigent for the PR and AO for merge, production approval
-and deployment verification.
+and session. Follow Omnigent for the nginx PR, independently test its exact head,
+then merge and launch the existing nginx AAP recovery job. Invoice AO retains
+its independent validation and native production approval.
 
 To update an installed demo, publish the changes, hydrate the selected Ansible
 source branch, then run `make aap-configure`. This applies both EDA listeners,
@@ -143,8 +144,9 @@ EDA supplies the required positive `issue_number` after detection creates an
 incident. Backstage validates it and confirms `feature/issue-N` before AO creates
 the session. The machine credential is exchanged for a native Omnigent token,
 and enabled users from `DEMO_USERS_FILE` receive read access to the session.
-Follow [Omnigent](../../omnigent/README.md) for the checks and PR, and AO for the
-review, approval and verified deployment stages.
+Follow [Omnigent](../../omnigent/README.md) for checks and the PR. Nginx recovery
+uses the operator-controlled AAP wrapper; invoice recovery retains AO review,
+approval and verified deployment stages.
 
 The manual issue-number dispatcher and its launcher were early test scaffolding
 and are removed. Bootstrap removes an unused installed copy on reconciliation.
