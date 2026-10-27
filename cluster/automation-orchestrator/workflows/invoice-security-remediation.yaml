@@ -150,7 +150,13 @@ nodes:
 
                 molecule test -s invoice_portal. This AWS scenario must test both
 
-                RHEL 9 and RHEL 10 and destroy its guests. Report actual exit codes;
+                RHEL 9 and RHEL 10 and destroy its guests. Preserve destroy-before-
+                create sequences and cleanup ownership records. After the final
+                edit, run the full lifecycle on new guests. Set the shell tool
+                timeout to at least 1800000 ms for the full EC2 test, without a
+                shorter shell timeout wrapper. A timeout, skipped creation or
+                partial output is not a pass. Do not filter the test command
+                through head/grep/tail. Report actual exit codes;
 
                 unavailable tests or missing credentials are not passing checks.
 

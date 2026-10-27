@@ -1,6 +1,6 @@
 # Automation Orchestrator workflows
 
-These YAML files define two manual AO workflows and three EDA webhook workflows.
+These YAML files define one manual CVE-detection workflow and three EDA webhook workflows.
 Bootstrap publishes them; `make ao-configure` validates and creates or updates every `*.yaml` here by
 its `name`. An unchanged definition keeps its version. Runtime IDs and
 credentials are supplied during configuration; secrets never appear in the YAML.
@@ -33,7 +33,6 @@ Run the commands below from the repository root after
 
 | Definition | What it does | Run it |
 | --- | --- | --- |
-| [omnigent-dispatch.yaml](omnigent-dispatch.yaml) | Prepares an issue branch in Backstage, starts the agent, and requests a PR | `make demo ISSUE=N` |
 | [rootcause.yaml](rootcause.yaml) | Investigates with MCP audit evidence, falls back to AAP facts when unavailable, and creates one Forgejo issue | AAP's `call_ao_webhook` job with `ao_webhook_path: alertmanagealert` |
 | [omnigent-remediation.yaml](omnigent-remediation.yaml) | Prepares the incident branch and sends the issue/RCA to Omnigent for a tested fix PR | Forgejo issue webhook through EDA and `call_ao_webhook` with `ao_webhook_path: forgejo-issue-remediation` |
 | [invoice-security-detect.yaml](invoice-security-detect.yaml) | Observe the dependency, discover approved candidates and reconcile the incident | `make invoice-trigger BACKEND=aws` |
@@ -127,27 +126,32 @@ enabled demo users, and submits the task. The agent must preserve SELinux
 enforcing, add a regression check, run `make molecule`, and submit
 the collection fix as a PR. It does not merge or modify the application VM.
 The AAP handoff job publishes `ao_execution_id` for following the AO execution
-and session. AO completion proves task acceptance; follow Omnigent for the PR.
+and session. Follow Omnigent for the nginx PR, independently test its exact head,
+then merge and launch the existing nginx AAP recovery job. Invoice AO retains
+its independent validation and native production approval.
 
 To update an installed demo, publish the changes, hydrate the selected Ansible
 source branch, then run `make aap-configure`. This applies both EDA listeners,
 publishes AO workflows, and reconciles the hook. Bootstrap and demo reset run
 the same setup automatically. Reruns preserve the token and update the existing
-hook. An explicit redelivery of an opening webhook can start another session
-on the same issue branch; inspect existing runs before redelivering. HTTP job
+hook. Duplicate opening deliveries reuse the incident claim and do not start another
+author or deployment. HTTP job
 and session launches have no automatic retries.
 
-## Issue to PR
+## Incident to authoring
 
-Run `make demo-hydrate` to get the starter issue number, then replace `N` above
-with that positive number. The required workflow input is `issue_number`.
-Backstage validates the issue and confirms `feature/issue-N` before AO creates
+EDA supplies the required positive `issue_number` after detection creates an
+incident. Backstage validates it and confirms `feature/issue-N` before AO creates
 the session. The machine credential is exchanged for a native Omnigent token,
 and enabled users from `DEMO_USERS_FILE` receive read access to the session.
+Follow [Omnigent](../../omnigent/README.md) for checks and the PR. Nginx recovery
+uses the operator-controlled AAP wrapper; invoice recovery retains AO review,
+approval and verified deployment stages.
 
-The launcher prints execution and session IDs. AO completion means the agent
-accepted the task; inspect [Omnigent](../../omnigent/README.md) for the checks
-and PR URL.
+The manual issue-number dispatcher and its launcher were early test scaffolding
+and are removed. Bootstrap removes an unused installed copy on reconciliation.
+If it has execution records, bootstrap disables it and retains that audit history.
+The invoice detection workflow retains its separate manual detection trigger.
 
 ## Model configuration
 
@@ -215,3 +219,12 @@ incident. Publishing changes does not exercise the flow or approve production.
 The legacy `invoice-validate`, `invoice-promote` and `invoice-verify` commands
 remain operator recovery paths. Inspect existing branch/session/job ownership
 before recovery; do not redeliver an incident to create a second rollout.
+
+The invoice detection workflow now routes independent CVE evidence through
+`invoice_route`: approved application fix, approved temporary service containment,
+deferred review or manual security review. Only the application-fix branch creates
+an EDA authoring ticket. Other affected findings use a distinct security response
+marker and retain an open review. Containment launches the native AAP
+`invoice_contain` workflow, with trusted checks on both sides of its human approval.
+The coding-agent session and existing remediation trigger are unchanged. See the
+[CVE response routing policy](../../../docs/invoice-lightwell-demo.md#cve-response-routing).
