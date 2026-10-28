@@ -13,7 +13,9 @@ incident. AWS Molecule acceptance uses fresh RHEL 9 and RHEL 10 EC2 guests.
 CNV remains the alternative nginx backend and was not part of the latest dual-app run.
 
 Start with the [current state and tested source refs](docs/stable-demo-rehearsal.md)
-and the [two-application runbook](docs/invoice-lightwell-demo.md). Editable,
+and the [two-application runbook](docs/invoice-lightwell-demo.md). The
+[five-minute script](docs/demo-script.md) assigns one continuous section to each
+of three presenters and covers both complete flows. Editable,
 uncompressed Draw.io XML is available in the [diagram guide](docs/diagrams/README.md):
 [architecture](docs/diagrams/demo-architecture.drawio) and
 [workflow walkthrough](docs/diagrams/demo-workflow.drawio).

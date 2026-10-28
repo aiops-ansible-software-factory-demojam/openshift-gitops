@@ -445,32 +445,24 @@ documented in `cluster/automation-orchestrator/workflows/README.md`.
 
 ## Five minute recording and narration
 
-Homepage provides the scenario-specific walkthrough and a remediation evidence card with installed version, advisory assessment, observed hosts, business checks, and matching AAP validation/deployment results. Refresh it with `make homepage-refresh` after preparing this revision.
+Use the canonical [three-presenter demo script](demo-script.md). It covers both
+Lightwell/Python and nginx/SELinux in one five-minute walkthrough, with exactly
+100 seconds per presenter and two clean handoffs:
 
-Keep a progress strip visible: **Intent → Author → Test → Review → Deploy**.
-Use one complete recorded run. Cut elapsed waits and label them with measured
-durations. The edited runtime is five minutes; real incident duration is a
-separate measurement.
+1. Presenter 1 (0:00–1:40): architecture, both baselines and both incident triggers.
+2. Presenter 2 (1:40–3:20): Lightwell discovery, authoring, independent acceptance,
+   human merge, native production approval and verified Python recovery.
+3. Presenter 3 (3:20–5:00): nginx alert/RCA, code and regression tests, independent
+   validation, human merge, operator AAP recovery and final proof for both apps.
 
-| Time | Screen and action | Suggested narration |
-| --- | --- | --- |
-| 0:00–0:30 | Portal processes an ordinary invoice; regression document stalls; show the ticket context. | “This invoice application works, but one vulnerable dependency can stall document processing. We need a repeatable, tested operational fix.” |
-| 0:30–1:00 | AO detection workflow and the AAP evidence job; briefly show the Lightwell selection and Developer Hub task. | “AAP identifies the affected dependency and compatible Lightwell fix. Automation Orchestrator prepares a reviewed release change through our golden path.” |
-| 1:00–1:50 | Agent Sandbox session and the actual release/test diff; identify the actual configured inference service. | “The agent prepares the dependency release and regression coverage using our Ansible golden path. Operations reviews the actual change and its evidence.” |
-| 1:50–2:50 | Independent AAP validation, two real RHEL EC2 guests, convergence and idempotence, security and functional results. | “The published commit is tested on disposable RHEL machines. The same regression document must process correctly, and ordinary invoices must still work.” |
-| 2:50–3:25 | Human PR review and merge; highlight the exact commit and required AAP status. | “The developer reviews the code and its evidence. A changed commit must pass validation again.” |
-| 3:25–4:25 | AAP production approval and execution; expand meaningful deployment and verification tasks. | “A separate human approval releases the tested automation to production. AAP executes the reviewed revision and records the outcome.” |
-| 4:25–5:00 | Same regression document now succeeds; normal invoice succeeds; finish on release evidence and AAP results. | “Processing is restored with the trusted backport. One incident produced reusable Ansible automation, machine-tested evidence, human approval, and an auditable deployment.” |
+The script includes spoken narration, screen directions and transition cues.
+Use one complete recorded run and label measured waits; the five-minute edit
+must not be described as the real incident duration. Homepage and the
+[Draw.io pages](diagrams/README.md) provide the walkthrough views.
 
-Zoom into the locked dependency change, the Ansible deployment checks, and
-the recovery test. Let readable Ansible task names carry the explanation.
-Keep package catalog and supporting product appearances short. Do not add a
-product appearance unless it performed the action attributed to it.
-
-The default inventory contains one nginx EC2 instance in `webapps` and one separate Python EC2 instance in `pythonapps`. The invoice production inventory therefore contains one host. A
-serial canary workflow must be tested against the two disposable
-guests. Claim a production fleet rollout only when additional production hosts
-are actually present and the recording shows their results.
+There is one production host per application in the default AWS inventory.
+Canary/rollback behavior is independently tested on disposable guests; do not
+claim a production fleet rollout from a single Python production host.
 
 ## Acceptance criteria and evidence
 
