@@ -23,7 +23,7 @@ class PortableSourceTests(unittest.TestCase):
         self.git('config', 'user.email', 'fixture@example.test')
         self.git('config', 'core.hooksPath', '/dev/null')
         (self.root / 'README.md').write_text('Reviewed source\n')
-        (self.root / '.gitignore').write_text('/collections/\n')
+        (self.root / '.gitignore').write_text('/collections/ansible_collections/\n')
         self.commit()
         self.git('update-ref', 'refs/remotes/origin/main', self.git('rev-parse', 'HEAD'))
 
@@ -41,6 +41,8 @@ class PortableSourceTests(unittest.TestCase):
 
     def test_source_and_internal_relative_link_are_allowed(self):
         (self.root / 'manual.md').symlink_to('README.md')
+        (self.root / 'collections').mkdir()
+        (self.root / 'collections/requirements.yml').write_text('collections: []\n')
         self.commit()
         self.check()
 
@@ -63,10 +65,10 @@ class PortableSourceTests(unittest.TestCase):
                     self.check()
 
     def test_committed_cache_is_rejected_before_push_or_api_requests(self):
-        generated = self.root / 'collections/install-state.json'
-        generated.parent.mkdir()
+        generated = self.root / 'collections/ansible_collections/install-state.json'
+        generated.parent.mkdir(parents=True)
         generated.write_text('{}')
-        self.git('add', '-f', 'collections/install-state.json')
+        self.git('add', '-f', 'collections/ansible_collections/install-state.json')
         self.git('commit', '-qm', 'accidental generated cache')
         self.git('checkout', '-qb', 'feature/issue-1')
         self.git('remote', 'add', 'origin', 'https://forgejo.fixture/demo-owner/ansible-collection-demo.webapp.git')

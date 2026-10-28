@@ -142,7 +142,7 @@ nodes:
                 Check the actual command exit codes. Fix failed checks,
                 review the diff, and commit it.
                 Keep generated collection installs outside the checkout. Never
-                commit collections/ caches or absolute/outside-checkout symlinks.
+                commit generated collection caches or links outside the checkout.
                 Use a separate temporary collection installation root and retain
                 the normal sandbox dependency paths. Inspect the staged diff and
                 stage only source and regression tests. The PR helper rejects
