@@ -463,7 +463,10 @@ agent development tests and validate the exact published commits. The script
 provides a recorded elapsed-time checkpoint map and separate five-minute stage
 clock; the two testing intervals overlap and must not be added together.
 
-The script includes spoken narration, screen directions and transition cues.
+The script includes spoken narration, screen directions and transition cues. Each
+timed block links its objects and specifies when to change view; use the
+[run-specific screen guide](demo-screen-links.md) for exact job/session/execution
+selectors, SSO fallbacks and local validation-log instructions.
 Use one complete recorded run and label measured waits; the five-minute edit
 must not be described as the real incident duration. Homepage and the
 [Draw.io pages](diagrams/README.md) provide the walkthrough views.
