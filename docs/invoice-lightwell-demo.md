@@ -56,6 +56,10 @@ to pypdf. The Lightwell build lets this scenario demonstrate a security
 backport while retaining the application's PyPDF2 baseline. Stock PyPDF2
 3.0.1 is the vulnerable release; its version alone is not proof of remediation.
 
+For editable architecture, preparation, nginx, Python and CVE-routing diagrams,
+see [the Draw.io XML files](diagrams/README.md). The
+[current-state record](stable-demo-rehearsal.md) identifies tested revisions and limits.
+
 ## Components and responsibilities
 
 | Component | Responsibility |
@@ -64,7 +68,7 @@ backport while retaining the application's PyPDF2 baseline. Stock PyPDF2
 | AAP | Observe application behavior, create the ticket, independently validate the candidate, require production approval, and execute the reviewed content. |
 | Developer Hub | Validate the issue and prepare its contribution branch through the existing golden path. |
 | Agent Sandbox and Omnigent | Host the authoring session with source access and scoped disposable-test credentials. |
-| OpenShift AI | Serve the configured model used for authoring and AO inference. |
+| Configured inference provider | Serve AO and coding models independently; the latest clean run used LiteLLM/MaaS Claude Haiku for both. OpenShift AI is an optional provider. |
 | Lightwell | Provide the selected remediated wheel and its provenance. |
 | RHEL on EC2 | Host the application and the ephemeral RHEL 9 and RHEL 10 tests. |
 | Forgejo | Host the seeded collection, incident, review, required status, and protected branch. |
@@ -83,8 +87,8 @@ flowchart TD
     Check[AO invokes AAP invoice checks] --> Issue[AAP creates incident]
     Issue --> EDA[Forgejo webhook through EDA]
     EDA --> Author[AO and Developer Hub prepare sandbox authoring]
-    Model[OpenShift AI inference] --> Author
-    Author --> PR[Ansible workflow and tests submitted as a PR]
+    Model[Configured inference provider] --> Author
+    Author --> PR[Release change and necessary code or tests submitted as a PR]
     PR --> Validate[Independent AAP validation of the published SHA]
     Lightwell[Lightwell wheel and provenance] --> Validate
     Validate --> EC2[Disposable RHEL 9 and RHEL 10 EC2 tests]
@@ -215,7 +219,7 @@ Developer Hub receives an allowlisted repository and issue number. For Python ta
 
 ## Upgrade an existing rehearsal
 
-When upgrading the old shared-host invoice rehearsal, preserve `.rendered/invoice/` and select all four split feature branches. Run `make applications-upgrade BACKEND=aws` rather than resetting the environment. Its preparation command archives/removes only the former invoice-specific protection on the nginx repository, and refuses while that repository has open PRs. Bootstrap then seeds the split contents, provisions/verifies the Python baseline first, stops the legacy invoice unit on the nginx host while retaining its release files, and prepares nginx there. Run `make invoice-protect BACKEND=aws` afterward to protect the Python collection. Existing incidents and job evidence remain historical; trigger a new incident in the Python repository.
+When upgrading the old shared-host invoice rehearsal, preserve `.rendered/invoice/` and select the four coordinated source refs in the current-state guide. Run `make applications-upgrade BACKEND=aws` rather than resetting the environment. Its preparation command archives/removes only the former invoice-specific protection on the nginx repository, and refuses while that repository has open PRs. Bootstrap then seeds the split contents, provisions/verifies the Python baseline first, stops the legacy invoice unit on the nginx host while retaining its release files, and prepares nginx there. Run `make invoice-protect BACKEND=aws` afterward to protect the Python collection. Existing incidents and job evidence remain historical; trigger a new incident in the Python repository.
 
 These changes replace the previous one-time authoring stub. The old Forgejo agent
 PR is historical evidence and is not a passing candidate for the revised workflow.
@@ -276,19 +280,22 @@ baseline. It cannot produce a successful remediation or independent validation.
 Never substitute a locally edited wheel or a migrated pypdf package and label
 it a Lightwell remediation.
 
-## Test the unmerged implementation
+## Select the current implementation
 
-The implementation feature branches can remain open while the demo runs.
-Check out their published `feature/separate-demo-applications` branches. In the
-private `.env`, select the GitOps branch and all companion source branches:
+See [current state and tested commits](stable-demo-rehearsal.md) before setup.
+The following published branches include the fixes exercised by the latest clean
+run. These are source selectors, not incident branches. Set them in the shell
+for the bootstrap/reset commands, or maintain equivalent values privately in
+`.env`; never print or commit credentials:
 
 ```bash
-BOOTSTRAP_REPO_URL='https://github.com/aiops-ansible-software-factory-demojam/openshift-gitops.git'
-BOOTSTRAP_BRANCH='feature/separate-demo-applications'
-ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH='feature/separate-demo-applications'
-ANSIBLE_COLLECTION_DEMO_PYTHONAPP_BRANCH='feature/separate-demo-applications'
-DEMOJAM_ANSIBLE_BRANCH='feature/separate-demo-applications'
-DEMO_LOCAL_SOURCES=''
+export BOOTSTRAP_REPO_URL='https://github.com/aiops-ansible-software-factory-demojam/openshift-gitops.git'
+export BOOTSTRAP_BRANCH='fix/portable-collection-artifacts'
+export ANSIBLE_COLLECTION_DEMO_WEBAPP_BRANCH='fix/portable-collection-artifacts'
+export ANSIBLE_COLLECTION_DEMO_PYTHONAPP_BRANCH='fix/ansible-review-contracts'
+export DEMOJAM_ANSIBLE_BRANCH='fix/ansible-review-contracts'
+export ANSIBLE_COLLECTION_TEMPLATE_BRANCH='main'
+export DEMO_LOCAL_SOURCES=''
 ```
 
 Bootstrap checks that the local GitOps HEAD matches its published revision.
@@ -297,26 +304,29 @@ demo's Forgejo repositories. The later Forgejo remediation PR belongs to the
 recorded software-factory workflow; its human merge does not merge any of the
 GitHub implementation PRs.
 
-For an initial rehearsal using OpenCode Go, select these model settings and
-supply `OPENCODE_GO_API_KEY` privately:
+The latest clean run used MaaS through the LiteLLM provider for both consumers:
 
 ```bash
-MODEL_PROVIDER='opencode-go'
-OPENCODE_GO_ENDPOINT='https://opencode.ai/zen/go/v1'
-OPENCODE_GO_MODEL='deepseek-v4.1-flash'
-OPENCODE_GO_PROTOCOL='chat'
+export AO_MODEL_PROVIDER='litellm'
+export AO_MODEL='claude-haiku-4-5'
+export AO_MODEL_PROTOCOL='chat'
+export OMNIGENT_MODEL_PROVIDER='litellm'
+export OMNIGENT_MODEL='claude-haiku-4-5'
+export OMNIGENT_MODEL_PROTOCOL='chat'
 ```
 
-Empty AO and Omnigent consumer overrides inherit those settings. OpenCode Go
-is the inference provider for that rehearsal. Switch to a verified OpenShift AI
-endpoint before recording the abstract's OpenShift AI claim, or identify the
-actual provider in the recording.
+Supply your HTTPS API base and key privately through `LITELLM_ENDPOINT` and
+`LITELLM_API_KEY`, or the per-consumer endpoint/key overrides. Do not append
+`/chat/completions` to the configured API base. Verify both consumers before reset;
+model availability depends on the endpoint. `make model-config` applies selections;
+new coding sessions use the new configuration. Other supported providers remain
+valid but must be described accurately in any recording.
 
-AAP execution copies do not contain `.git`. The baseline checks AAP's
-system-provided `awx_project_revision`, which identifies the job's source
-revision. Direct runs check Git HEAD. Both paths reject a mismatch with the
-requested commit. Independent validation still uses its fresh Git checkout
-and checks that the tested source remains clean and unchanged.
+AAP execution copies do not contain `.git`. When a job overrides its SCM source,
+validation requires the protected `awx_job_scm_branch` to equal the approved full
+SHA. Only a job without an override uses `awx_project_revision` for the default
+project revision. Direct runs require matching clean Git HEAD. Independent
+validation checks a fresh checkout of the exact published candidate.
 
 ## Prepare the environment
 
@@ -327,7 +337,7 @@ make invoice-inputs BACKEND=aws
 ```
 
 For development from committed sibling checkouts, set `DEMO_LOCAL_SOURCES` to
-their parent directory and select their local branch names in the three source
+their parent directory and select their local branch names in the companion source
 override fields. Dirty sources are rejected. The Ansible template repository
 continues using its published release unless a matching local checkout exists.
 
@@ -446,7 +456,7 @@ separate measurement.
 | --- | --- | --- |
 | 0:00–0:30 | Portal processes an ordinary invoice; regression document stalls; show the ticket context. | “This invoice application works, but one vulnerable dependency can stall document processing. We need a repeatable, tested operational fix.” |
 | 0:30–1:00 | AO detection workflow and the AAP evidence job; briefly show the Lightwell selection and Developer Hub task. | “AAP identifies the affected dependency and compatible Lightwell fix. Automation Orchestrator prepares a reviewed release change through our golden path.” |
-| 1:00–1:50 | Agent Sandbox session and the actual release/test diff; briefly identify the OpenShift AI inference service. | “The agent prepares the dependency release and regression coverage using our Ansible golden path. Operations reviews the actual change and its evidence.” |
+| 1:00–1:50 | Agent Sandbox session and the actual release/test diff; identify the actual configured inference service. | “The agent prepares the dependency release and regression coverage using our Ansible golden path. Operations reviews the actual change and its evidence.” |
 | 1:50–2:50 | Independent AAP validation, two real RHEL EC2 guests, convergence and idempotence, security and functional results. | “The published commit is tested on disposable RHEL machines. The same regression document must process correctly, and ordinary invoices must still work.” |
 | 2:50–3:25 | Human PR review and merge; highlight the exact commit and required AAP status. | “The developer reviews the code and its evidence. A changed commit must pass validation again.” |
 | 3:25–4:25 | AAP production approval and execution; expand meaningful deployment and verification tasks. | “A separate human approval releases the tested automation to production. AAP executes the reviewed revision and records the outcome.” |
@@ -469,8 +479,9 @@ are actually present and the recording shows their results.
 - Normal invoices extract `Invoice INV-1042` and the expected invoice text.
 - The exact same regression bytes work after the actual Lightwell artifact
   is installed; its signature, digest, and metadata have been checked.
-- The generated Ansible workflow is present in the reviewed PR and exercised
-  by Molecule on both RHEL versions, including idempotence and test cleanup.
+- The reviewed PR contains the required release change and any necessary Ansible
+  or regression additions. Existing golden-path content is identified as prebuilt;
+  final candidate and trusted tests run on both RHEL versions through cleanup.
 - Recovery testing establishes that a previous healthy release is restored
   after a failed candidate, and that the deployment still reports failure.
 - SELinux remains enforcing; source and artifact identity checks remain active.
@@ -580,8 +591,9 @@ its first review deadline. The deadline is recorded for human follow-up; this
 change does not install a scheduled retry or notification integration. The router sends non-PyPI ecosystems to manual review; the current detector collects
 Python dependency evidence only. No generic OS detector, `dnf` or CME adapter is claimed.
 
-These changes require all companion PRs to be merged/synced, material to be prepared
-with the updated policy, and `invoice-configure` plus AO configuration to be applied.
+Deploy coordinated published source refs, prepare material with the updated policy,
+and apply `invoice-configure` plus AO configuration. The current patch route has
+completed live acceptance; alternative routes retain isolated fixture coverage.
 The baseline is tagged in all repositories as
 `demo-baseline-before-cve-router-20261023`. Source changes and local/isolated checks
 do not by themselves update the running demo.

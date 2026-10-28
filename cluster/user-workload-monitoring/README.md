@@ -7,8 +7,10 @@ store monitoring data using the StorageClass selected by bootstrap.
 When `probe_success{job="webapp"}` stays zero for one minute, `WebappDown`
 fires. After a ten-second group wait, Alertmanager sends the alert to an
 authenticated Event-Driven Ansible (EDA) event stream. The rulebook launches
-AAP's `webapp_alert_issue` job, which opens a Forgejo issue in
-`demo-owner/ansible-collection-demo.webapp` with the failed target and alert details.
+AAP's `call_ao_webhook` job. AO investigates with optional native MCP diagnostics
+or the AAP audit-facts fallback, then runs `webapp_alert_issue` to open/reuse one
+Forgejo incident with the diagnosis. Its opening webhook starts authoring through
+the second EDA listener.
 
 ## Check the probe
 
@@ -38,6 +40,13 @@ After changing Ansible fixtures, run `make demo-hydrate` then
 `make aap-configure` to refresh configuration and credentials, or `make aap-sync`
 for configuration alone. Publish GitOps changes before running `make bootstrap`.
 
-Notifications repeat hourly while firing; resolved notifications are disabled.
-The job serializes deliveries and reuses an open issue with the outage marker.
-Close it after investigating so a later outage can open a new issue.
+The checked-in Alertmanager route uses a ten-second group wait, a 30-second group
+interval, a 23-hour repeat interval and `sendResolved: true`. EDA starts RCA only
+for firing alerts; resolved deliveries do not launch another author. Incident
+creation is serialized and reuses open outage issues. Forgejo may close the
+linked incident on merge; this is not proof of recovery. Require Enforcing,
+backend HTTP 200, probe success and normal alert resolution after AAP deployment.
+Public OIDC login pages cannot establish backend health.
+
+Python CVE discovery is explicitly triggered through AO/AAP observation and
+Lightwell metadata; it is not this blackbox availability alert or a fleet SBOM scan.

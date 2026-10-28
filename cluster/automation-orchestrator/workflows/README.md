@@ -228,3 +228,19 @@ marker and retain an open review. Containment launches the native AAP
 `invoice_contain` workflow, with trusted checks on both sides of its human approval.
 The coding-agent session and existing remediation trigger are unchanged. See the
 [CVE response routing policy](../../../docs/invoice-lightwell-demo.md#cve-response-routing).
+
+## Diagram and verification boundary
+
+The [Draw.io workflow file](../../../docs/diagrams/demo-workflow.drawio) has separate
+pages for preparation, nginx recovery, the Python patch path and CVE alternatives.
+The [architecture file](../../../docs/diagrams/demo-architecture.drawio) shows the
+management plane, separate production hosts and disposable test boundary.
+
+The 2026-10-28 AWS rehearsal completed the `app_patch` and nginx paths together.
+Alternative routing/containment checks use isolated fixtures; no live production
+containment or fleet-wide SBOM correlation is claimed. Current source refs and
+observed timing are in the [state record](../../../docs/stable-demo-rehearsal.md).
+Failed independent acceptance publishes failure and stops orchestration; this
+baseline has no automatic agent CI-repair loop. The retired AO wrappers
+`llm-question`, `invoice-validate` and `aap-webapp-nginx` must not be confused with
+active AAP job templates or the remaining manual recovery CLI commands.
