@@ -195,11 +195,35 @@ demo_identity_request() {
   printf '%s' "$payload" >"$identity_scratch/payload.json"
   local -a args=()
   [[ -z $payload ]] || args=(--data-binary "@$identity_scratch/payload.json")
-  code=$(curl --silent --show-error --connect-timeout 10 --max-time 60 \
-    --config "$identity_scratch/curl.conf" -H 'Content-Type: application/json' \
-    -X "$method" "${args[@]}" -o "$identity_scratch/response.json" -w '%{http_code}' \
-    "$identity_base/admin$path") || demo_die 'Demo Keycloak API transport failed.'
-  [[ $code == 2* ]] || demo_die "Demo Keycloak API $method failed (HTTP $code); response omitted to protect credentials."
+  local attempt transport_status metrics connected
+  for attempt in 1 2 3; do
+    transport_status=0
+    metrics=$(curl --silent --show-error --connect-timeout 30 --max-time 90 \
+      --config "$identity_scratch/curl.conf" -H 'Content-Type: application/json' \
+      -X "$method" "${args[@]}" -o "$identity_scratch/response.json" \
+      -w '%{http_code} %{time_connect}' "$identity_base/admin$path") || transport_status=$?
+    read -r code connected <<<"$metrics"
+    if (( transport_status == 0 )); then
+      break
+    fi
+    # Each invocation opens a fresh connection. A zero TCP-connect time with
+    # HTTP 000 proves a connect failure did not submit an application write.
+    # Once connected, only GET is safe to repeat after an uncertain response.
+    if (( attempt < 3 )) && { [[ $method == GET ]] || {
+      [[ $code == 000 && $connected =~ ^0([.]0+)?$ ]] &&
+      [[ $transport_status == 7 || $transport_status == 28 ]];
+    }; }; then
+      printf 'Retrying Keycloak %s %s after transport failure (%s/3).\n' "$method" "$path" "$attempt" >&2
+      sleep 2
+      continue
+    fi
+    demo_die "Demo Keycloak API $method $path transport failed (curl $transport_status); inspect state before retrying a write."
+    return 1
+  done
+  [[ $code == 2* ]] || {
+    demo_die "Demo Keycloak API $method $path failed (HTTP $code); response omitted to protect credentials."
+    return 1
+  }
   if [[ -s $identity_scratch/response.json ]]; then
     cat "$identity_scratch/response.json"
   else
@@ -238,7 +262,9 @@ demo_identity_configure() (
   identity_base="https://$(oc -n demojam-keycloak get route keycloak -o jsonpath='{.status.ingress[0].host}')"
   demo_wait_for_identity_route "$identity_base"
   demo_identity_connect
-  if ! demo_identity_request GET /realms | jq -e 'any(.[]; .realm == "demo")' >/dev/null; then
+  local realms
+  realms=$(demo_identity_request GET /realms) || return 1
+  if ! jq -e 'any(.[]; .realm == "demo")' <<<"$realms" >/dev/null; then
     demo_identity_request POST /realms '{"realm":"demo","enabled":true,"registrationAllowed":false}' >/dev/null
   fi
   demo_identity_request PUT /realms/demo '{"enabled":true,"registrationAllowed":false,"resetPasswordAllowed":false,"rememberMe":true}' >/dev/null
