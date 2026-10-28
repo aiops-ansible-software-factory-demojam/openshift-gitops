@@ -161,6 +161,12 @@ nodes:
                 unavailable tests or missing credentials are not passing checks.
 
 
+                Keep generated collection installs outside the checkout. Never
+                commit collections/ caches or absolute/outside-checkout symlinks.
+                Use a separate temporary collection installation root and retain
+                the normal sandbox dependency paths. Inspect the staged diff and
+                stage only source and regression tests. The PR helper rejects
+                nonportable committed content before push or publication.
                 Review and commit the change. Write an accurate PR description
 
                 outside the checkout, then run demo-goldenpath --repository demo-owner/ansible-collection-demo.pythonapp

@@ -112,6 +112,24 @@ def prepare_feature(number):
     print(f"Repository: {directory}\nBranch: {branch}")
 
 
+def check_portable_source(directory):
+    """Reject generated caches and links that escape the published source tree."""
+    entries = git(directory, "ls-tree", "-r", "-z", "HEAD", capture=True)
+    for entry in entries.split("\0"):
+        if not entry:
+            continue
+        metadata, path = entry.split("\t", 1)
+        mode, _, object_id = metadata.split()
+        if path == "collections" or path.startswith("collections/"):
+            raise RuntimeError(f"Remove generated collection cache from the commit: {path}")
+        if mode != "120000":
+            continue
+        target = git(directory, "cat-file", "blob", object_id, capture=True)
+        resolved = os.path.normpath(os.path.join(os.path.dirname(path), target))
+        if os.path.isabs(target) or resolved == ".." or resolved.startswith("../"):
+            raise RuntimeError(f"Remove nonportable symlink from the commit: {path}")
+
+
 def open_pr(issue, body_file):
     token = os.environ["FORGEJO_TOKEN"]
     owner, repo = repository.split("/")
@@ -127,6 +145,7 @@ def open_pr(issue, body_file):
         raise RuntimeError("Commit or discard working tree changes before submitting")
     if git(directory, "rev-list", "--count", "origin/main..HEAD", capture=True) == "0":
         raise RuntimeError("The feature branch has no commits")
+    check_portable_source(directory)
     body = body_file.read_text().strip()
     if not body:
         raise RuntimeError("PR body file is empty")

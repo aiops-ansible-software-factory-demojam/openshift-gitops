@@ -141,6 +141,12 @@ nodes:
                 through head/grep/tail; preserve its actual exit status.
                 Check the actual command exit codes. Fix failed checks,
                 review the diff, and commit it.
+                Keep generated collection installs outside the checkout. Never
+                commit collections/ caches or absolute/outside-checkout symlinks.
+                Use a separate temporary collection installation root and retain
+                the normal sandbox dependency paths. Inspect the staged diff and
+                stage only source and regression tests. The PR helper rejects
+                nonportable committed content before push or publication.
                 Write the PR summary and actual validation results to a file
                 outside the repository, then run demo-goldenpath pr
                 ${trigger.issue_number} --body-file <path>. Report the PR URL
