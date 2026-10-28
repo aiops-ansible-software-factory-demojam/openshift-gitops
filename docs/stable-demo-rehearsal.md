@@ -54,9 +54,10 @@ be reported as a passing final test. Preserve ownership records after interrupti
 so the next destroy can clean partial resources.
 
 The PR submission helper checks the committed tree before pushing or opening a
-Forgejo PR. Generated `collections/` caches and symlinks outside the checkout are
+Forgejo PR. Generated `collections/ansible_collections/` caches and symlinks outside the checkout are
 rejected. Both collections ignore local installation caches and exclude them from
 built artifacts. Packaging fixtures deliberately create an external source link
 to guard this boundary. A failed candidate remains unmerged; changes to these
 rules take effect through a published source revision and rebuilt sandbox image
 on the next full reset/bootstrap attempt.
+Standard `collections/requirements.yml` declarations remain valid tracked source.

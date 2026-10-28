@@ -120,7 +120,7 @@ def check_portable_source(directory):
             continue
         metadata, path = entry.split("\t", 1)
         mode, _, object_id = metadata.split()
-        if path == "collections" or path.startswith("collections/"):
+        if path == "collections/ansible_collections" or path.startswith("collections/ansible_collections/"):
             raise RuntimeError(f"Remove generated collection cache from the commit: {path}")
         if mode != "120000":
             continue
