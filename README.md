@@ -1,37 +1,39 @@
-# Two independent RHEL demo applications
+# AIOps Ansible software factory demo
 
-The AWS deployment can run both demonstrations with `DEMO_SCENARIO=both`:
+Two independent RHEL applications share an OpenShift management plane:
 
-- `demo.webapp` owns nginx and its SELinux outage on the `webapps` host.
-- `demo.pythonapp` owns the Python invoice vulnerability on a separate enforcing `pythonapps` host.
+| Scenario | Application host | Trigger | Recovery gate |
+| --- | --- | --- | --- |
+| nginx / SELinux | `demo.webapp`, `webapps` | `aap launch webapp_selinux_enable` | Operator independently tests the published PR, reviews/merges it, then launches `webapp_nginx` once. |
+| Python invoice / CVE | `demo.pythonapp`, `pythonapps` | `make invoice-trigger BACKEND=aws` | AO coordinates independent acceptance, human Forgejo merge, and the reusable AAP `invoice_promote` workflow with native human approval. |
 
-Each application has its own Forgejo/GitHub collection, inventory, EC2 purpose tag, security group, endpoint and issue routing. The management plane is shared. See [the invoice and two-application runbook](docs/invoice-lightwell-demo.md) for branch selection, setup, migration, testing and approval gates.
+Set `DEMO_BACKEND=aws` and `DEMO_SCENARIO=both` to deploy both on separate RHEL 9
+EC2 hosts. Bootstrap installs the vulnerable baselines; it does not trigger either
+incident. AWS Molecule acceptance uses fresh RHEL 9 and RHEL 10 EC2 guests.
+CNV remains the alternative nginx backend and was not part of the latest dual-app run.
 
-# Demo OpenShift GitOps
+Start with the [current state and tested source refs](docs/stable-demo-rehearsal.md)
+and the [two-application runbook](docs/invoice-lightwell-demo.md). Editable,
+uncompressed Draw.io XML is available in the [diagram guide](docs/diagrams/README.md):
+[architecture](docs/diagrams/demo-architecture.drawio) and
+[workflow walkthrough](docs/diagrams/demo-workflow.drawio).
 
-For the AAP and AO invoice-processing security demo using a Lightwell PyPDF2
-backport and RHEL EC2 guests, see the detailed
-[invoice setup and recording walkthrough](docs/invoice-lightwell-demo.md).
-Select `DEMO_SCENARIO=invoice` and `DEMO_BACKEND=aws`; the existing SELinux
-scenario remains the default.
+The latest clean rehearsal on 2026-10-28 completed both incident paths, independent
+RHEL tests, reviewed Forgejo merges and recovery. AO and the coding agent both used
+LiteLLM/MaaS `claude-haiku-4-5` over Chat Completions. Models are configurable per
+consumer; this is not evidence of an OpenShift AI deployment. Application details
+live in collection vars files; inventory supplies target hosts and runtime access.
 
-Set up a disposable OpenShift cluster for an Ansible software factory demo.
-The main flow takes a Forgejo issue through Automation Orchestrator (AO),
-Red Hat Developer Hub (Backstage), and an Omnigent agent to a pull request.
-The cluster also runs Ansible Automation Platform (AAP), a RHEL 9 nginx VM,
-and monitoring.
-
-A SELinux outage follows the complete automatic path: blackbox alert → EDA →
-AO audit/MCP RCA → Forgejo incident → Forgejo webhook → EDA → AO → Omnigent
-fix PR. Bootstrap installs and connects every stage; PR review and merge remain
-manual. LiteLLM's `qwen38-27b` is the default model in the configuration template.
-Bootstrap disables thinking by default for Qwen consumers because the demo
-endpoint can otherwise time out before returning a tool response.
+The management plane includes GitOps, AAP Controller and EDA, Automation
+Orchestrator, Developer Hub, Forgejo, Omnigent sandboxes, monitoring, Homepage,
+and demo Keycloak. The agent authors a PR; it cannot approve or merge its own work.
+The manual issue dispatcher and AO wrappers `llm-question`, `invoice-validate`,
+and `aap-webapp-nginx` are retired. AAP job templates remain in use.
 
 ## RHEL MCP diagnostics for AO RCA
 
-Bootstrap installs the stock Linux MCP 1.7.0 executable on the webapp guest
-after nginx, then publishes an RCA agent with nine native diagnostic tools.
+When `WEBAPP_MCP_ENABLED=true`, bootstrap installs the stock Linux MCP 1.7.0
+executable on the webapp guest after nginx, then publishes an RCA agent with nine native diagnostic tools.
 Its first `read_log_file` call reads 20 lines from `/var/log/audit/audit.log`.
 The non-root account has audit-log read access through auditd's `log_group`
 configuration, which preserves access after rotation. It has no sudo,
@@ -159,9 +161,9 @@ Lightwell sections when those scenarios apply. For the AWS invoice demo, use
 [.env.invoice.example](.env.invoice.example) and the
 [invoice runbook](docs/invoice-lightwell-demo.md).
 
-For the released AWS/native MCP demo with Qwen on both consumers, follow the
+For the historical released AWS/native MCP demo with Qwen on both consumers, follow the
 [v0.1.0-alpha.2 reproduction instructions](docs/releases/v0.1.0-alpha.2.md).
-The focused [demo environment example](.env.demo.example) selects that tag in
+That release's focused [demo environment example](.env.demo.example) selects that tag in
 all four repositories. The [command record](docs/native-mcp-demo-2026-10-16.md)
 preserves the original live run and its tested revisions.
 
@@ -171,7 +173,7 @@ Bootstrap uses those credentials locally to create a dedicated public VPC/subnet
 and separate scoped AAP and Molecule keys. It mounts only the Molecule key into
 the coding sandbox. Defaults are `us-east-2`, `t3.medium`, and encrypted 30 GiB
 gp3 disks. Account, availability zone and RHEL image choices are discovered and
-saved; normal resets reuse them. The monitored guest uses RHEL 9, while
+saved; normal resets reuse them. The application guests use RHEL 9, while
 `make molecule` tests RHEL 9 and RHEL 10. AWS guests use their AMI's RHUI repositories.
 
 Use `BACKEND=cnv` for the existing guest behavior. The recorded backend prevents
@@ -209,17 +211,32 @@ The ZIP and `.env` are ignored by Git; quote values as trusted Bash configuratio
 
 Argo CD reads published Git commits. Publish changes before setup and set
 `BOOTSTRAP_BRANCH` to the published branch or release tag. Source refs for the
-three Ansible repos are configured separately; see [Forgejo](cluster/forgejo/README.md).
+three application/automation companion repos are configured separately; see [Forgejo](cluster/forgejo/README.md).
 
 Bootstrap installs the stack, seeds Forgejo, builds the agent image, configures
-AAP, provisions the RHEL VM, runs the separate permissive setup playbook,
-installs nginx, and checks HTTPS and monitoring. Wait for
+AAP, provisions the selected application hosts, runs the separate nginx permissive
+setup, installs the selected baselines, and checks application and monitoring readiness. Wait for
 `Bootstrap completed`, then open the printed Homepage URL. Sign in as
 `demo-user` with `DEMO_USER_PASSWORD` (default `changeme` for new accounts).
 This demo account has application administrator and OpenShift cluster-admin
 access. Keep your populated `.env` for reruns.
 
-## Run the demo
+## Run both incidents
+
+With `DEMO_SCENARIO=both`, run both commands after readiness succeeds:
+
+```bash
+bash bootstrap/bootstrap.sh aap launch webapp_selinux_enable
+make invoice-trigger BACKEND=aws
+```
+
+These are independent triggers. Follow both until tested recovery; do not count
+baseline deployment or an idle coding session as completion. Python's protected
+branch uses `invoice/ec2-validation`; nginx's independent checks and recovery
+launch are operator actions. Failed Python validation stops AO; an autonomous
+CI repair loop is not part of this tested implementation.
+
+## Run the nginx scenario
 
 Agents can use the repository's
 [run-demojam skill](.agents/skills/run-demojam/SKILL.md) to run the full demo
@@ -285,7 +302,9 @@ verification command is never re-executed while waiting for its event.
 Setup, reset, and teardown share the implementation in
 `bootstrap/bootstrap.sh`; Make targets invoke that script directly.
 Bootstrap waits up to fifteen minutes for Keycloak's public OIDC discovery
-endpoint, covering its ten-minute container startup probe window.
+endpoint. Administrative API reads and provable pre-connection failures have
+bounded transport retries; writes with an uncertain outcome stop for inspection.
+A failed realm lookup cannot be interpreted as a missing realm.
 
 ## Find your next step
 

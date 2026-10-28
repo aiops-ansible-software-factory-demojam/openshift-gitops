@@ -14,7 +14,8 @@ and scaffolder access.
   It includes a starter role, a Molecule scenario, CentOS Stream 10 and RHEL 10
   inventory hosts, and an Ansible Development Tools Devfile.
 - **Contribute to the Demo Ansible Collection** reads a Forgejo issue in
-  `demo-owner/ansible-collection-demo.webapp` and creates `feature/issue-N`.
+  either allowlisted application repository (`demo-owner/ansible-collection-demo.webapp`
+  or `demo-owner/ansible-collection-demo.pythonapp`) and creates `feature/issue-N`.
   It prepares the branch; the coding agent implements the change and opens the PR.
 
 AO must run the feature template before creating the agent session. Its internal
@@ -45,3 +46,9 @@ the helper uses Git askpass for Forgejo Git operations.
 `make demo-reset` wipes generated Forgejo repositories and removes their catalog
 registrations, then refreshes tokens and template sources. Bootstrap verifies
 both templates, the demo collection entity, and the scaffolder HTTP action.
+
+For Python, pass `--repository demo-owner/ansible-collection-demo.pythonapp`
+to the helper before `issue`, `checkout` or `pr`. nginx uses the default repository.
+Python's durable branch claim suppresses duplicate authors/rollouts. The helper
+checks committed source portability before PR publication; it does not validate
+or approve production. See [the workflow diagrams](../../docs/diagrams/README.md).

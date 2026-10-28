@@ -48,3 +48,16 @@ The admin settings allow private-network OIDC because Keycloak ingress resolves
 to a private address. Workflow HTTP hosts have a separate allowlist, and TLS
 verification stays enabled. Changing `.env` and running `make model-config`
 refreshes model settings in both AO and Omnigent.
+
+## Current scope
+
+There are four authored demo workflows: RCA, nginx authoring, CVE detection/router,
+and continuous Python remediation. The AO wrappers `llm-question`, `invoice-validate`
+and `aap-webapp-nginx`, plus the manual `omnigent-dispatch`, are retired. AAP's
+`invoice_validate` and `webapp_nginx` job templates remain required. Platform-managed
+integration health/discovery and agent-execution entries are not extra demo flows.
+
+The latest clean rehearsal used LiteLLM/MaaS `claude-haiku-4-5` for both AO and
+Omnigent, over Chat Completions. Configuration examples may select other models;
+record the actual provider used. See [tested state](../../docs/stable-demo-rehearsal.md)
+and [workflow XML](../../docs/diagrams/README.md).

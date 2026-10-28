@@ -44,3 +44,13 @@ in widgets or mounted into the Homepage application container.
 
 The page cache uses a writable volume for OpenShift's assigned user ID. Startup
 regenerates the page from mounted settings without additional privileges.
+
+## Walking through both applications
+
+Use the separate nginx and Python invoice application links. The nginx outage is
+triggered by `webapp_selinux_enable`; Python detection is triggered independently
+with `make invoice-trigger BACKEND=aws`. Bootstrap alone does not run either event.
+Follow [the current-state guide](../../docs/stable-demo-rehearsal.md) and
+[editable Draw.io architecture/workflows](../../docs/diagrams/README.md) when presenting.
+A login page returning HTTP 200 does not prove backend recovery; use the internal
+probe for nginx and verified installed release/business checks for Python.

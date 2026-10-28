@@ -79,3 +79,13 @@ make bootstrap
 Bootstrap restores root auto-sync. Preserve the workshop server, database,
 operator, Routes, and Secrets. Do not delete the `keycloak` namespace.
 Provider username collisions may require explicit identity mapping.
+
+## Bootstrap transport recovery
+
+Bootstrap waits for the public OIDC discovery Route as well as deployment readiness.
+Admin API transport retries are bounded to three attempts for reads and provable
+failures before a TCP connection. A write interrupted after connecting is not
+replayed automatically; inspect the named operation's state first. Failed realm
+reads stop configuration rather than being treated as permission to create a realm.
+Errors identify method/path while omitting credential-bearing response bodies.
+The same demo login protects the Python portal as well as nginx and Homepage.

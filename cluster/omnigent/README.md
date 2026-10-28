@@ -49,15 +49,28 @@ Keep the image's provisioner pin aligned with the collections' test requirements
 If an agent changes requirements, it must install them before testing. Production
 dependencies still belong in the collection's `galaxy.yml` for AAP project sync.
 
-Tests clone CentOS Stream 10 into `molecule-tests` with a 30 GiB disk, two
-vCPUs, and 2 GiB RAM. The RHEL 10 inventory entry stays disabled until repository
-prerequisites are configured. The dedicated test identity can manage test VMs
+The selected backend controls guests. AWS uses pinned RHEL 9 and RHEL 10 EC2
+images with scoped Molecule credentials. CNV uses the existing CentOS Stream 10
+DataSource in `molecule-tests`; that alternative was not part of the latest
+AWS dual-application rehearsal. The dedicated test identity can manage test VMs
 and clone OS disks; it cannot read Secrets or manage application VMs. The runner
 does not automatically mount a Kubernetes API token.
 
-This demo runs one agent. After an interrupted test, run `make destroy` from
-the same collection. Resolve missing credential mounts or unready DataSources
-before testing.
+With both scenarios enabled, separate nginx and Python coding sessions can run
+concurrently. Each uses its own checkout and test ownership records. Source
+`/etc/profile.d/molecule.sh` before testing; Python also requires
+`/etc/profile.d/invoice.sh` and the committed `INVOICE_SOURCE_COMMIT`.
+Every separate test/create/converge/check provisions fresh owned guests after
+cleanup. Retain state and use `make destroy` in the same sandbox after interruption.
+Never repair an agent branch while claiming its tests passed unchanged.
+
+Independently export the exact published SHA with `git archive` into a temporary
+source directory and use a separate collection installation directory. Require
+clean matching source before/after; capture real exit codes for lint, units, build
+and the complete lifecycle. Both AWS RHEL versions must pass. The PR publication
+helper rejects generated collection caches and links outside the checkout.
+An idle session alone is not acceptance; failed Python independent validation
+stops AO. Automatic CI repair and a Forgejo Actions runner remain deferred.
 
 ## Image and session lifecycle
 
