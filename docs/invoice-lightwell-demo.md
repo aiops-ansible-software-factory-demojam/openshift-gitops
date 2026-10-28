@@ -455,6 +455,14 @@ Lightwell/Python and nginx/SELinux in one five-minute walkthrough, with exactly
 3. Presenter 3 (3:20–5:00): nginx alert/RCA, code and regression tests, independent
    validation, human merge, operator AAP recovery and final proof for both apps.
 
+The script is tied to the 2026-10-28 module-first run: both incident paths took
+35 minutes in parallel, and reset through completion took 79.5 minutes including
+disclosed setup retries. Python's independent AAP stage took 14.3 minutes;
+nginx's independent operator validation took 4.4 minutes. These checks follow
+agent development tests and validate the exact published commits. The script
+provides a recorded elapsed-time checkpoint map and separate five-minute stage
+clock; the two testing intervals overlap and must not be added together.
+
 The script includes spoken narration, screen directions and transition cues.
 Use one complete recorded run and label measured waits; the five-minute edit
 must not be described as the real incident duration. Homepage and the
