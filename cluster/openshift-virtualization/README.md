@@ -6,7 +6,9 @@ Bootstrap waits for it to become Available before proceeding with VM work.
 
 At least one node needs `/dev/kvm`, enough free CPU and memory, and hardware
 virtualization exposed by its parent hypervisor if the node is itself a VM.
-The demo uses Virtualization for the RHEL webapp and Molecule test guests.
+With `DEMO_BACKEND=cnv`, Virtualization hosts the nginx guest and Molecule tests.
+The latest dual-application rehearsal uses AWS EC2 instead; bootstrap omits this
+operator in AWS mode. The separate Python production host is currently AWS-only.
 
 ## Check a bootstrapped cluster
 

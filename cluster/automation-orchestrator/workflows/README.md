@@ -228,3 +228,34 @@ marker and retain an open review. Containment launches the native AAP
 `invoice_contain` workflow, with trusted checks on both sides of its human approval.
 The coding-agent session and existing remediation trigger are unchanged. See the
 [CVE response routing policy](../../../docs/invoice-lightwell-demo.md#cve-response-routing).
+
+## Diagram and verification boundary
+
+The [Draw.io workflow file](../../../docs/diagrams/demo-workflow.drawio) has separate
+pages for preparation, nginx recovery, the Python patch path and CVE alternatives.
+The [architecture file](../../../docs/diagrams/demo-architecture.drawio) shows the
+management plane, separate production hosts and disposable test boundary.
+
+The 2026-10-28 AWS rehearsal completed the `app_patch` and nginx paths together.
+Alternative routing/containment checks use isolated fixtures; no live production
+containment or fleet-wide SBOM correlation is claimed. Current source refs and
+observed timing are in the [state record](../../../docs/stable-demo-rehearsal.md).
+Failed independent acceptance publishes failure and stops orchestration; this
+baseline has no automatic agent CI-repair loop. The retired AO wrappers
+`llm-question`, `invoice-validate` and `aap-webapp-nginx` must not be confused with
+active AAP job templates or the remaining manual recovery CLI commands.
+
+## Authoring guidance for future sessions
+
+Both coding handoff prompts link the Red Hat CoP Automation Good Practices guide
+and embed a module-first checklist so it remains available without web access.
+Prefer existing built-in/maintained collection modules, `uri` for APIs and
+`community.general.sefcontext` for nginx persistent SELinux policy. Custom modules
+need a documented capability gap. Necessary commands require accurate idempotence,
+check-mode behavior and visible failures; `|| true` cannot turn errors into success.
+The companion `AGENTS.md` files carry the same policy. Keep application details in
+vars files. Existing test, source, trust and human approval boundaries still apply.
+
+These prompt changes apply when published/reconciled source starts a new session.
+They do not repair or restart a live candidate, and prompting does not replace
+independent validation or code review.

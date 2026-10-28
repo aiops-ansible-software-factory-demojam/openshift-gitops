@@ -1,5 +1,8 @@
 # AWS native MCP demo: configuration and executed commands
 
+> Historical release/run record. Its refs, models and timings describe that run.
+> For the current implementation, use the [tested-state guide](stable-demo-rehearsal.md).
+
 The 2026-10-16 run used AWS in `us-east-2`, native guest MCP enabled, and
 `qwen38-27b` through the Red Hat MaaS endpoint for both AO and Omnigent.
 Both consumers used Chat Completions with thinking disabled. The focused

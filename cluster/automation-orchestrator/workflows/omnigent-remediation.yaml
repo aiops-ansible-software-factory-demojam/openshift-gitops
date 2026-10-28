@@ -102,6 +102,22 @@ nodes:
                 AGENTS.md and the incident. Use the RCA below as diagnostic
                 evidence and confirm it against the collection code.
 
+                Follow https://redhat-cop.github.io/automation-good-practices/,
+                especially role design, coding style and testing. Apply these
+                module-first rules even if the guide cannot be fetched: prefer
+                existing built-in or maintained collection modules over command
+                or shell; confirm behavior with ansible-doc and declare production
+                dependencies in galaxy.yml. Use ansible.builtin.uri for HTTP APIs.
+                Avoid new custom modules/plugins when existing modules and simple
+                tasks meet the requirement. Document a concrete gap before adding
+                custom code. Keep application details in vars files, not roles or
+                inventory. If a command is unavoidable, explain why in a comment,
+                prefer command argv over shell, preserve nonzero failures, and
+                implement accurate change detection and check-mode behavior.
+                Never use || true or unconditional failed_when: false to hide
+                configuration or test failures. Do not claim idempotence by
+                setting changed_when: false on a state-changing command.
+
                 Implement the durable fix in the collection. Keep SELinux
                 enforcing; correct the policy or file contexts needed by nginx.
                 The nginx Molecule converge play disables fact gathering;
@@ -114,6 +130,11 @@ nodes:
                 ansible_facts.selinux.type; confirm facts against the collector
                 or actual setup output. Report restorecon changes from its
                 verbose relabel output instead of unconditionally hiding them.
+                Use community.general.sefcontext for persistent SELinux file
+                context policy instead of shell-wrapped semanage. Applying that
+                policy with restorecon may need command argv; report relabel
+                changes accurately and keep errors visible. Never skip or weaken
+                Molecule idempotence or verification to obtain a passing result.
                 Confirm new Ansible modules, parameters, and return fields with
                 ansible-doc. Declare collection dependencies in galaxy.yml so
                 AAP project sync installs them; Molecule test requirements
@@ -141,6 +162,12 @@ nodes:
                 through head/grep/tail; preserve its actual exit status.
                 Check the actual command exit codes. Fix failed checks,
                 review the diff, and commit it.
+                Keep generated collection installs outside the checkout. Never
+                commit generated collection caches or links outside the checkout.
+                Use a separate temporary collection installation root and retain
+                the normal sandbox dependency paths. Inspect the staged diff and
+                stage only source and regression tests. The PR helper rejects
+                nonportable committed content before push or publication.
                 Write the PR summary and actual validation results to a file
                 outside the repository, then run demo-goldenpath pr
                 ${trigger.issue_number} --body-file <path>. Report the PR URL

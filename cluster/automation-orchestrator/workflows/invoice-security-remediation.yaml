@@ -108,6 +108,22 @@ nodes:
                 the issue, playbooks/deploy-invoice.yml, and vars/invoice.yml.
 
 
+                Follow https://redhat-cop.github.io/automation-good-practices/,
+                especially role design, coding style and testing. Apply these
+                module-first rules even if the guide cannot be fetched: prefer
+                existing built-in or maintained collection modules over command
+                or shell; confirm behavior with ansible-doc and declare production
+                dependencies in galaxy.yml. Use ansible.builtin.uri for HTTP APIs.
+                Avoid new custom modules/plugins when existing modules and simple
+                tasks meet the requirement. Document a concrete gap before adding
+                custom code. Keep application details in vars files, not roles or
+                inventory. If a command is unavoidable, explain why in a comment,
+                prefer command argv over shell, preserve nonzero failures, and
+                implement accurate change detection and check-mode behavior.
+                Never use || true or unconditional failed_when: false to hide
+                configuration or test failures. Do not claim idempotence by
+                setting changed_when: false on a state-changing command.
+
                 Read the structured finding and the mounted INVOICE_MATERIAL_FILE
 
                 (keep repository credentials out of logs and commits). Update the
@@ -161,6 +177,12 @@ nodes:
                 unavailable tests or missing credentials are not passing checks.
 
 
+                Keep generated collection installs outside the checkout. Never
+                commit generated collection caches or links outside the checkout.
+                Use a separate temporary collection installation root and retain
+                the normal sandbox dependency paths. Inspect the staged diff and
+                stage only source and regression tests. The PR helper rejects
+                nonportable committed content before push or publication.
                 Review and commit the change. Write an accurate PR description
 
                 outside the checkout, then run demo-goldenpath --repository demo-owner/ansible-collection-demo.pythonapp

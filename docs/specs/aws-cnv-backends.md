@@ -1,15 +1,17 @@
-# AWS and CNV backends for the SELinux outage demo
+# AWS and CNV backends for the application demos
 
-Status: implementation in feature branches. AWS lifecycle checks have passed;
-full platform bootstrap and the incident demo are still being validated.
+Status (2026-10-28): AWS reset/bootstrap and both nginx/Python incident-to-recovery
+paths passed together. See [tested revisions and validation limits](../stable-demo-rehearsal.md).
+CNV remains the alternative nginx backend; this result does not establish a new
+CNV dual-application run. This document describes the backend ownership contract.
 
-Bootstrap must install the demo on OpenShift and provision its Linux targets
+Bootstrap installs the demo on OpenShift and provisions its Linux targets
 through either CNV or AWS. CNV remains the default and retains its current
 behavior. AWS puts the monitored RHEL webapp and Molecule guests in a dedicated
 VPC with a public subnet in the supplied AWS account. That account can differ
 from the account hosting OpenShift.
 
-The incident flow stays: fault job → alert → RCA → Forgejo issue → webhook →
+The nginx incident flow stays: fault job → alert → RCA → Forgejo issue → webhook →
 EDA/AO → Omnigent session → tested PR → human merge → one human recovery job.
 AO and Omnigent keep their independent provider/model settings.
 

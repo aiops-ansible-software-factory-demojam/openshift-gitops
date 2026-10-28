@@ -1,528 +1,465 @@
-<?xml version='1.0' encoding='utf-8'?>
-<mxfile host="app.diagrams.net" agent="Demo workflow diagram" compressed="false" type="device">
-  <diagram id="overview" name="01 Overview">
-    <mxGraphModel dx="1960" dy="1280" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1960" pageHeight="1280" math="0" shadow="0" background="#FFFFFF">
+<?xml version='1.0' encoding='UTF-8'?>
+<mxfile host="app.diagrams.net" agent="AIOps demo documentation" version="24.7.17" type="device" compressed="false">
+  <diagram id="overview" name="01 Walkthrough">
+    <mxGraphModel dx="2100" dy="1320" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2100" pageHeight="1320" math="0" shadow="0" background="#FFFFFF">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="accent" value="" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#C52932;strokeColor=#C52932;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="50" y="46" width="7" height="72" />
+        <mxCell id="title" value="Demo walkthrough | one preparation, two independent incidents" style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=Arial;fontSize=32;fontColor=#192E43;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="35" width="1980" height="55" />
         </mxCell>
-        <mxCell id="eyebrow" value="DEMO WALKTHROUGH" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=13;fontColor=#B73138;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="75" y="38" width="1800" height="22" />
+        <mxCell id="subtitle" value="Open this file in Draw.io and use the next pages to walk through preparation, nginx, Python and CVE routing." style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=Arial;fontSize=17;fontColor=#526578;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="100" width="1980" height="58" />
         </mxCell>
-        <mxCell id="title" value="AIOps Ansible Software Factory" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=37;fontColor=#172B40;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="75" y="68" width="1800" height="54" />
+        <mxCell id="footer" value="AIOps Ansible Software Factory | Current implementation: 2026-10-28 | AWS dual-app paths verified; CNV and alternative mitigation are separately qualified." style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=Arial;fontSize=12;fontColor=#526578;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="1275" width="1980" height="24" />
         </mxCell>
-        <mxCell id="subtitle" value="One preparation. Two independent RHEL applications. Human gates and verified recovery." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=18;fontColor=#536579;fontStyle=0;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="75" y="128" width="1800" height="35" />
+        <mxCell id="nginx-lane" value="NGINX / SELINUX | webapps · demo.webapp" style="rounded=1;arcSize=4;whiteSpace=wrap;html=0;fillColor=#FAFBFD;strokeColor=#C8D2DD;strokeWidth=1.5;align=left;verticalAlign=top;spacingTop=12;spacingLeft=18;fontFamily=Arial;fontSize=20;fontStyle=1;fontColor=#263F57;container=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="45" y="370" width="2010" height="300" />
         </mxCell>
-        <mxCell id="phase-0" value="1  Baseline" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=18;fontColor=#172B40;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="220" y="188" width="188" height="32" />
+        <mxCell id="python-lane" value="PYTHON / CVE | pythonapps · demo.pythonapp" style="rounded=1;arcSize=4;whiteSpace=wrap;html=0;fillColor=#FAFBFD;strokeColor=#C8D2DD;strokeWidth=1.5;align=left;verticalAlign=top;spacingTop=12;spacingLeft=18;fontFamily=Arial;fontSize=20;fontStyle=1;fontColor=#263F57;container=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="45" y="720" width="2010" height="300" />
         </mxCell>
-        <mxCell id="phase-1" value="2  Trigger" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=18;fontColor=#172B40;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="430" y="188" width="188" height="32" />
+        <mxCell id="prepare" value="Prepare once&#10;Select published refs → reset → bootstrap&#10;Verify baselines, model access and both EDA listeners" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#F1F4F7;strokeColor=#91A0AE;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="650" y="190" width="800" height="125" />
         </mxCell>
-        <mxCell id="phase-2" value="3  Diagnose" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=18;fontColor=#172B40;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="640" y="188" width="188" height="32" />
+        <mxCell id="n1" value="1  Trigger outage&#10;Enable SELinux Enforcing&#10;HTTP 403 → WebappDown" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#EAF2FC;strokeColor=#3977B7;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="80" y="470" width="350" height="125" />
         </mxCell>
-        <mxCell id="phase-3" value="4  Author" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=18;fontColor=#172B40;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="850" y="188" width="188" height="32" />
+        <mxCell id="n2" value="2  Diagnose / author&#10;EDA → AO RCA → issue → EDA&#10;Developer Hub + coding agent" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#EAF2FC;strokeColor=#3977B7;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="480" y="470" width="350" height="125" />
         </mxCell>
-        <mxCell id="phase-4" value="5  Test" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=18;fontColor=#172B40;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1060" y="188" width="188" height="32" />
+        <mxCell id="n3" value="3  Test / review&#10;Operator independently tests exact PR&#10;Fresh RHEL 9/10 → human merge" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#FFF3D6;strokeColor=#BC8B24;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="880" y="470" width="350" height="125" />
         </mxCell>
-        <mxCell id="phase-5" value="6  Review" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=18;fontColor=#172B40;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1270" y="188" width="188" height="32" />
+        <mxCell id="n4" value="4  Recover / prove&#10;One webapp_nginx launch&#10;Enforcing, HTTP 200, alert resolved" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#E9F5EC;strokeColor=#43885B;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1280" y="470" width="350" height="125" />
         </mxCell>
-        <mxCell id="phase-6" value="7  Deploy" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=18;fontColor=#172B40;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1480" y="188" width="188" height="32" />
+        <mxCell id="nginx-boundary" value="No native nginx approval graph&#10;Operator owns merge and recovery" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#F1F4F7;strokeColor=#91A0AE;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1680" y="470" width="330" height="125" />
         </mxCell>
-        <mxCell id="phase-7" value="8  Verify" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=18;fontColor=#172B40;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1690" y="188" width="188" height="32" />
+        <mxCell id="p1" value="1  Detect / route&#10;AAP dependency + business observation&#10;Lightwell discovery → app_patch" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#EAF2FC;strokeColor=#3977B7;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="80" y="820" width="350" height="125" />
         </mxCell>
-        <mxCell id="web-lane" value="" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F7FAFD;strokeColor=#D9E2EC;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="50" y="240" width="1860" height="300" />
+        <mxCell id="p2" value="2  Author / validate&#10;Issue → EDA → AO → coding PR&#10;Trusted independent RHEL acceptance" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#EAF2FC;strokeColor=#3977B7;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="480" y="820" width="350" height="125" />
         </mxCell>
-        <mxCell id="python-lane" value="" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F7FAFD;strokeColor=#D9E2EC;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="50" y="565" width="1860" height="330" />
+        <mxCell id="p3" value="3  Merge / approve&#10;Human Forgejo merge&#10;Native AAP production approval" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#FFF3D6;strokeColor=#BC8B24;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="880" y="820" width="350" height="125" />
         </mxCell>
-        <mxCell id="web-label" value="WEB APP&lt;br&gt;SELinux outage" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=20;fontColor=#176B9B;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="70" y="278" width="132" height="82" />
+        <mxCell id="p4" value="4  Deploy / prove&#10;Reuse invoice_promote + exact SHA&#10;Verify release, behavior, close issue" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#E9F5EC;strokeColor=#43885B;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1280" y="820" width="350" height="125" />
         </mxCell>
-        <mxCell id="web-host" value="demo.webapp&lt;br&gt;RHEL host A&lt;br&gt;AWS EC2" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=14;fontColor=#536579;fontStyle=0;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="70" y="390" width="132" height="105" />
+        <mxCell id="alternatives" value="Other CVE routes&#10;Contain / manual_review / log_only&#10;See page 05 for their boundaries" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#F1EBFA;strokeColor=#8664AA;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1680" y="820" width="330" height="125" />
         </mxCell>
-        <mxCell id="python-label" value="PYTHON APP&lt;br&gt;Invoice CVE" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=20;fontColor=#176B9B;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="70" y="604" width="132" height="90" />
-        </mxCell>
-        <mxCell id="python-host" value="demo.pythonapp&lt;br&gt;RHEL host B&lt;br&gt;AWS EC2" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=14;fontColor=#536579;fontStyle=0;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="70" y="735" width="132" height="105" />
-        </mxCell>
-        <mxCell id="w0" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#64748B;line-height:1.3&quot;&gt;RHEL HOST A&lt;/div&gt;&lt;div style=&quot;font-size:18px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Web app ready&lt;/div&gt;&lt;div style=&quot;font-size:14px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;nginx serves /web&lt;br&gt;SELinux Permissive&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F3F5F8;strokeColor=#64748B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="220" y="280" width="188" height="220" />
-        </mxCell>
-        <mxCell id="w1" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#A76B00;line-height:1.3&quot;&gt;OPERATOR / AAP&lt;/div&gt;&lt;div style=&quot;font-size:18px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Introduce fault&lt;/div&gt;&lt;div style=&quot;font-size:14px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Run the SELinux&lt;br&gt;Enforcing job on&lt;br&gt;the web host.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFF5DC;strokeColor=#A76B00;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="430" y="280" width="188" height="220" />
-        </mxCell>
-        <mxCell id="w2" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#176B9B;line-height:1.3&quot;&gt;EDA / AO / AAP&lt;/div&gt;&lt;div style=&quot;font-size:18px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Detect + diagnose&lt;/div&gt;&lt;div style=&quot;font-size:14px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Probe fails → alert&lt;br&gt;EDA → AO audit-log RCA&lt;br&gt;Forgejo issue → EDA&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F0F7FC;strokeColor=#176B9B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="640" y="280" width="188" height="220" />
-        </mxCell>
-        <mxCell id="w3" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#176B9B;line-height:1.3&quot;&gt;DEVELOPER HUB / AGENT&lt;/div&gt;&lt;div style=&quot;font-size:18px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Author the fix&lt;/div&gt;&lt;div style=&quot;font-size:14px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Prepare a branch.&lt;br&gt;Sandbox agent adds&lt;br&gt;persistent SELinux&lt;br&gt;labels and opens a PR.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F0F7FC;strokeColor=#176B9B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="850" y="280" width="188" height="220" />
-        </mxCell>
-        <mxCell id="w4" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#176B9B;line-height:1.3&quot;&gt;INDEPENDENT OPERATOR&lt;/div&gt;&lt;div style=&quot;font-size:18px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Prove the PR&lt;/div&gt;&lt;div style=&quot;font-size:14px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Test the exact SHA.&lt;br&gt;Lint, build, Molecule.&lt;br&gt;RHEL 9 + 10 full&lt;br&gt;lifecycle and cleanup.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F0F7FC;strokeColor=#176B9B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1060" y="280" width="188" height="220" />
-        </mxCell>
-        <mxCell id="w5" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#A76B00;line-height:1.3&quot;&gt;HUMAN GATE&lt;/div&gt;&lt;div style=&quot;font-size:18px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Review + merge&lt;/div&gt;&lt;div style=&quot;font-size:14px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Check the diff and&lt;br&gt;independent evidence.&lt;br&gt;Merge the tested SHA&lt;br&gt;in Forgejo.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFF5DC;strokeColor=#A76B00;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1270" y="280" width="188" height="220" />
-        </mxCell>
-        <mxCell id="w6" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#A76B00;line-height:1.3&quot;&gt;OPERATOR / AAP&lt;/div&gt;&lt;div style=&quot;font-size:18px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Recover&lt;/div&gt;&lt;div style=&quot;font-size:14px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Launch one recovery&lt;br&gt;job. AAP deploys the&lt;br&gt;reviewed collection&lt;br&gt;to the web host.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFF5DC;strokeColor=#A76B00;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1480" y="280" width="188" height="220" />
-        </mxCell>
-        <mxCell id="w7" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#24714E;line-height:1.3&quot;&gt;RUNNING WEB APP&lt;/div&gt;&lt;div style=&quot;font-size:18px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Show recovery&lt;/div&gt;&lt;div style=&quot;font-size:14px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;SELinux Enforcing.&lt;br&gt;HTTP 200.&lt;br&gt;Probe healthy.&lt;br&gt;Outage alert resolved.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#EAF7EF;strokeColor=#24714E;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1690" y="280" width="188" height="220" />
-        </mxCell>
-        <mxCell id="p0" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#64748B;line-height:1.3&quot;&gt;RHEL HOST B&lt;/div&gt;&lt;div style=&quot;font-size:18px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Invoice baseline&lt;/div&gt;&lt;div style=&quot;font-size:14px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Normal PDF works.&lt;br&gt;Regression PDF times&lt;br&gt;out at two seconds.&lt;br&gt;SELinux Enforcing.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F3F5F8;strokeColor=#64748B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="220" y="605" width="188" height="250" />
-        </mxCell>
-        <mxCell id="p1" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#A76B00;line-height:1.3&quot;&gt;OPERATOR / AO&lt;/div&gt;&lt;div style=&quot;font-size:18px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Run detection&lt;/div&gt;&lt;div style=&quot;font-size:14px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Start the invoice&lt;br&gt;detection workflow.&lt;br&gt;The service remains&lt;br&gt;available.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFF5DC;strokeColor=#A76B00;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="430" y="605" width="188" height="250" />
-        </mxCell>
-        <mxCell id="p2" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#176B9B;line-height:1.3&quot;&gt;AAP / LIGHTWELL / EDA&lt;/div&gt;&lt;div style=&quot;font-size:18px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Find + route CVE&lt;/div&gt;&lt;div style=&quot;font-size:14px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Inspect dependency.&lt;br&gt;Approved fix → issue.&lt;br&gt;No fix → review or&lt;br&gt;approved containment.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F0F7FC;strokeColor=#176B9B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="640" y="605" width="188" height="250" />
-        </mxCell>
-        <mxCell id="p3" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#176B9B;line-height:1.3&quot;&gt;DEVELOPER HUB / AGENT&lt;/div&gt;&lt;div style=&quot;font-size:18px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Update package&lt;/div&gt;&lt;div style=&quot;font-size:14px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Prepare a branch.&lt;br&gt;Agent updates the&lt;br&gt;approved release lock&lt;br&gt;and adds tests → PR.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F0F7FC;strokeColor=#176B9B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="850" y="605" width="188" height="250" />
-        </mxCell>
-        <mxCell id="p4" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#176B9B;line-height:1.3&quot;&gt;AO / TRUSTED AAP&lt;/div&gt;&lt;div style=&quot;font-size:18px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Validate exact SHA&lt;/div&gt;&lt;div style=&quot;font-size:14px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Source-path preflight.&lt;br&gt;Candidate + acceptance.&lt;br&gt;RHEL 9 + 10; rollback&lt;br&gt;and cleanup.&lt;br&gt;Publish required check.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F0F7FC;strokeColor=#176B9B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1060" y="605" width="188" height="250" />
-        </mxCell>
-        <mxCell id="p5" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#A76B00;line-height:1.3&quot;&gt;HUMAN GATE&lt;/div&gt;&lt;div style=&quot;font-size:18px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Review + merge&lt;/div&gt;&lt;div style=&quot;font-size:14px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Required check passes.&lt;br&gt;Human reviews + merges.&lt;br&gt;AO confirms the same&lt;br&gt;SHA is in main.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFF5DC;strokeColor=#A76B00;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1270" y="605" width="188" height="250" />
-        </mxCell>
-        <mxCell id="p6approval" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#A76B00;line-height:1.3&quot;&gt;HUMAN AAP GATE&lt;/div&gt;&lt;div style=&quot;font-size:17px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Approve production&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFF5DC;strokeColor=#A76B00;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1480" y="605" width="188" height="108" />
-        </mxCell>
-        <mxCell id="p6deploy" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#176B9B;line-height:1.3&quot;&gt;AO / AAP&lt;/div&gt;&lt;div style=&quot;font-size:17px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Deploy pinned release&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F0F7FC;strokeColor=#176B9B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1480" y="750" width="188" height="105" />
-        </mxCell>
-        <mxCell id="p7" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#24714E;line-height:1.3&quot;&gt;AO / RUNNING APP&lt;/div&gt;&lt;div style=&quot;font-size:18px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Show the fix&lt;/div&gt;&lt;div style=&quot;font-size:14px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Prove the deployment.&lt;br&gt;Both unchanged PDFs&lt;br&gt;process successfully.&lt;br&gt;Exact wheel + SHA.&lt;br&gt;Reconcile the incident.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#EAF7EF;strokeColor=#24714E;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1690" y="605" width="188" height="250" />
-        </mxCell>
-        <mxCell id="shared-platform" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#64748B;line-height:1.3&quot;&gt;SHARED MANAGEMENT PLANE ON OPENSHIFT&lt;/div&gt;&lt;div style=&quot;font-size:18px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Homepage + SSO  •  AO  •  AAP + EDA  •  Developer Hub  •  Forgejo  •  Omnigent + Agent Sandbox  •  GitOps&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F3F5F8;strokeColor=#64748B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="50" y="925" width="1860" height="75" />
-        </mxCell>
-        <mxCell id="presenter-cue" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#64748B;line-height:1.3&quot;&gt;WALKTHROUGH NOTE&lt;/div&gt;&lt;div style=&quot;font-size:19px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Follow the numbered columns&lt;/div&gt;&lt;div style=&quot;font-size:15px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Show the baseline, trigger the incident, follow the issue and agent, inspect the PR and tests, approve, then prove recovery.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F3F5F8;strokeColor=#64748B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="50" y="1030" width="600" height="150" />
-        </mxCell>
-        <mxCell id="human-control" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#64748B;line-height:1.3&quot;&gt;WALKTHROUGH NOTE&lt;/div&gt;&lt;div style=&quot;font-size:19px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;People keep the release gates&lt;/div&gt;&lt;div style=&quot;font-size:15px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Both paths require human review and merge. Python also requires AAP production approval. Agents cannot merge or deploy.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F3F5F8;strokeColor=#64748B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="680" y="1030" width="600" height="150" />
-        </mxCell>
-        <mxCell id="real-machines" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#64748B;line-height:1.3&quot;&gt;WALKTHROUGH NOTE&lt;/div&gt;&lt;div style=&quot;font-size:19px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Real machines, separate responsibilities&lt;/div&gt;&lt;div style=&quot;font-size:15px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Two production RHEL EC2 hosts. Disposable RHEL 9 + 10 EC2 test guests. Management services and agent sandboxes run on OpenShift.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F3F5F8;strokeColor=#64748B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1310" y="1030" width="600" height="150" />
-        </mxCell>
-        <mxCell id="footer-line" value="" style="rounded=0;arcSize=8;whiteSpace=wrap;html=1;fillColor=#D9E2EC;strokeColor=#D9E2EC;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="50" y="1214" width="1860" height="1" />
-        </mxCell>
-        <mxCell id="footer-caption" value="Blue: automation / tests  •  Amber: operator action or human gate  •  Green: verified outcome  •  Detailed paths: pages 02 and 03" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=13;fontColor=#536579;fontStyle=0;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="50" y="1230" width="1550" height="27" />
-        </mxCell>
-        <mxCell id="footer-page" value="01 / 04" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=14;fontColor=#536579;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1750" y="1230" width="160" height="27" />
-        </mxCell>
-        <mxCell id="e0" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="w0" target="w1">
-          <mxGeometry as="geometry" relative="1" />
-        </mxCell>
-        <mxCell id="e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="w1" target="w2">
-          <mxGeometry as="geometry" relative="1" />
-        </mxCell>
-        <mxCell id="e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="w2" target="w3">
-          <mxGeometry as="geometry" relative="1" />
-        </mxCell>
-        <mxCell id="e3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="w3" target="w4">
-          <mxGeometry as="geometry" relative="1" />
-        </mxCell>
-        <mxCell id="e4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="w4" target="w5">
-          <mxGeometry as="geometry" relative="1" />
-        </mxCell>
-        <mxCell id="e5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="w5" target="w6">
-          <mxGeometry as="geometry" relative="1" />
-        </mxCell>
-        <mxCell id="e6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="w6" target="w7">
-          <mxGeometry as="geometry" relative="1" />
-        </mxCell>
-        <mxCell id="e7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="p0" target="p1">
-          <mxGeometry as="geometry" relative="1" />
-        </mxCell>
-        <mxCell id="e8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="p1" target="p2">
-          <mxGeometry as="geometry" relative="1" />
-        </mxCell>
-        <mxCell id="e9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="p2" target="p3">
-          <mxGeometry as="geometry" relative="1" />
-        </mxCell>
-        <mxCell id="e10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="p3" target="p4">
-          <mxGeometry as="geometry" relative="1" />
-        </mxCell>
-        <mxCell id="e11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="p4" target="p5">
-          <mxGeometry as="geometry" relative="1" />
-        </mxCell>
-        <mxCell id="e12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="p5" target="p6approval">
+        <mxCell id="edge-1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="prepare" target="n1">
           <mxGeometry as="geometry" relative="1">
             <Array as="points">
-              <mxPoint x="1469" y="730" />
-              <mxPoint x="1469" y="659" />
+              <mxPoint x="450" y="335" />
+              <mxPoint x="255" y="335" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e13" value="approved" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="p6approval" target="p6deploy">
-          <mxGeometry as="geometry" relative="1" />
-        </mxCell>
-        <mxCell id="e14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="p6deploy" target="p7">
+        <mxCell id="edge-2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;entryX=0.5;entryY=0;" edge="1" parent="1" source="prepare" target="p1">
           <mxGeometry as="geometry" relative="1">
             <Array as="points">
-              <mxPoint x="1679" y="802" />
-              <mxPoint x="1679" y="730" />
+              <mxPoint x="30" y="335" />
+              <mxPoint x="30" y="700" />
+              <mxPoint x="255" y="700" />
             </Array>
           </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="n1" target="n2">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="edge-4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="n2" target="n3">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="edge-5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="n3" target="n4">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="edge-6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="p1" target="p2">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="edge-7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="p2" target="p3">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="edge-8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="p3" target="p4">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="overview-note" value="Completion means both tested recoveries, not just a completed coding session or closed PR. The latest clean AWS run completed in 66.8 minutes including reset/bootstrap and operator actions. Failed attempts remain failures. No automatic CI repair or agent production approval is included." style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#F1F4F7;strokeColor=#91A0AE;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="1110" width="1980" height="90" />
         </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
-  <diagram id="python" name="02 Python CVE">
-    <mxGraphModel dx="1960" dy="1280" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1960" pageHeight="1280" math="0" shadow="0" background="#FFFFFF">
+  <diagram id="preparation" name="02 Reset and prepare">
+    <mxGraphModel dx="2100" dy="1320" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2100" pageHeight="1320" math="0" shadow="0" background="#FFFFFF">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="accent" value="" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#C52932;strokeColor=#C52932;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="50" y="46" width="7" height="72" />
+        <mxCell id="title" value="Prepare a fresh dual-application run" style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=Arial;fontSize=32;fontColor=#192E43;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="35" width="1980" height="55" />
         </mxCell>
-        <mxCell id="eyebrow" value="DEMO WALKTHROUGH" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=13;fontColor=#B73138;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="75" y="38" width="1800" height="22" />
+        <mxCell id="subtitle" value="Do not trigger incidents during bootstrap. Preserve private configuration and evidence; explicitly select the coordinated source refs." style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=Arial;fontSize=17;fontColor=#526578;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="100" width="1980" height="58" />
         </mxCell>
-        <mxCell id="title" value="Python invoice CVE — continuous AO workflow" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=37;fontColor=#172B40;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="75" y="68" width="1800" height="54" />
+        <mxCell id="footer" value="AIOps Ansible Software Factory | Current implementation: 2026-10-28 | AWS dual-app paths verified; CNV and alternative mitigation are separately qualified." style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=Arial;fontSize=12;fontColor=#526578;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="1275" width="1980" height="24" />
         </mxCell>
-        <mxCell id="subtitle" value="CVE-2023-36464 • approved Lightwell PyPDF2 update • independent acceptance • separate production approval" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=18;fontColor=#536579;fontStyle=0;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="75" y="128" width="1800" height="35" />
+        <mxCell id="refs" value="1  Select implementation&#10;Published GitOps + all companion refs&#10;See current-state table; seed defaults differ" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#F1F4F7;strokeColor=#91A0AE;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="80" y="220" width="400" height="140" />
         </mxCell>
-        <mxCell id="row1-label" value="INCIDENT → AUTHORING" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=15;fontColor=#176B9B;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="70" y="188" width="1800" height="28" />
+        <mxCell id="model" value="2  Verify both model consumers&#10;Endpoint / protocol / model access&#10;Keep all keys private" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#F1EBFA;strokeColor=#8664AA;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="560" y="220" width="400" height="140" />
         </mxCell>
-        <mxCell id="row2-label" value="EVIDENCE → REVIEWED RECOVERY" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=15;fontColor=#176B9B;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="70" y="620" width="1800" height="28" />
+        <mxCell id="reset" value="3  Reset disposable state&#10;demo-reset --confirm-demo-reset&#10;Stop listeners; remove guests/disks/sessions" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#EAF2FC;strokeColor=#3977B7;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1040" y="220" width="400" height="140" />
         </mxCell>
-        <mxCell id="n1" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#A76B00;line-height:1.3&quot;&gt;01  OPERATOR / AO&lt;/div&gt;&lt;div style=&quot;font-size:20px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Trigger detection&lt;/div&gt;&lt;div style=&quot;font-size:16px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Start invoice-security-detect.&lt;br&gt;Show the healthy normal invoice and the regression timeout on the baseline.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFF5DC;strokeColor=#A76B00;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="70" y="235" width="270" height="255" />
+        <mxCell id="seed" value="4  Reseed / reconcile&#10;Forgejo source and credentials&#10;AAP/AO definitions; no starter incident" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#EAF2FC;strokeColor=#3977B7;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1520" y="220" width="400" height="140" />
         </mxCell>
-        <mxCell id="n2" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#176B9B;line-height:1.3&quot;&gt;02  AAP + LIGHTWELL&lt;/div&gt;&lt;div style=&quot;font-size:20px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Assess + route the CVE&lt;/div&gt;&lt;div style=&quot;font-size:16px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Read dependency + business evidence.&lt;br&gt;Find approved Lightwell fixes.&lt;br&gt;Fix path continues below; no-fix alternatives are on page 04.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F0F7FC;strokeColor=#176B9B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="380" y="235" width="270" height="255" />
+        <mxCell id="baseline" value="8  Verify live baselines&#10;nginx: Permissive + HTTP 200&#10;Python: vulnerable PyPDF2 + Enforcing" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#E9F5EC;strokeColor=#43885B;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="80" y="510" width="400" height="140" />
         </mxCell>
-        <mxCell id="n3" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#176B9B;line-height:1.3&quot;&gt;03  FORGEJO → EDA&lt;/div&gt;&lt;div style=&quot;font-size:20px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Open the incident&lt;/div&gt;&lt;div style=&quot;font-size:16px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;AAP creates a deduplicated ticket.&lt;br&gt;The new-issue webhook reaches EDA and starts invoice-security-remediation in AO.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F0F7FC;strokeColor=#176B9B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="690" y="235" width="270" height="255" />
+        <mxCell id="apps" value="7  Deploy baseline apps&#10;invoice_baseline; nginx permissive setup&#10;webapp_nginx preserves the chosen mode" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#EAF2FC;strokeColor=#3977B7;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="560" y="510" width="400" height="140" />
         </mxCell>
-        <mxCell id="n4" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#176B9B;line-height:1.3&quot;&gt;04  AO + DEVELOPER HUB&lt;/div&gt;&lt;div style=&quot;font-size:20px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Prepare contribution&lt;/div&gt;&lt;div style=&quot;font-size:16px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Validate the repository and issue.&lt;br&gt;Create feature/issue-N.&lt;br&gt;Only a newly claimed incident starts a new authoring session.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F0F7FC;strokeColor=#176B9B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1000" y="235" width="270" height="255" />
+        <mxCell id="hosts" value="6  Provision distinct RHEL 9 hosts&#10;webapp_vm → webapps&#10;pythonapp_vm → pythonapps" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#EAF2FC;strokeColor=#3977B7;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1040" y="510" width="400" height="140" />
         </mxCell>
-        <mxCell id="n5" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#176B9B;line-height:1.3&quot;&gt;05  AGENT SANDBOX&lt;/div&gt;&lt;div style=&quot;font-size:20px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Author + test the update&lt;/div&gt;&lt;div style=&quot;font-size:16px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Omnigent runs the configured model.&lt;br&gt;Update the approved package lock and regression tests.&lt;br&gt;Test on disposable RHEL 9 + 10 EC2 guests.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F0F7FC;strokeColor=#176B9B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1310" y="235" width="270" height="255" />
+        <mxCell id="bootstrap" value="5  Full bootstrap&#10;GitOps services + identity + AAP&#10;Scoped AWS / model / Lightwell material" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#EAF2FC;strokeColor=#3977B7;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1520" y="510" width="400" height="140" />
         </mxCell>
-        <mxCell id="n6" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#176B9B;line-height:1.3&quot;&gt;06  FORGEJO / AO&lt;/div&gt;&lt;div style=&quot;font-size:20px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Publish the candidate&lt;/div&gt;&lt;div style=&quot;font-size:16px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;The agent opens a PR.&lt;br&gt;AO discovers its exact head SHA and publishes a pending required validation check.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F0F7FC;strokeColor=#176B9B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1620" y="235" width="270" height="255" />
+        <mxCell id="ready" value="9  Require clean readiness&#10;No old incident PRs or coding sessions&#10;Both EDA listeners and source checks pass" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#E9F5EC;strokeColor=#43885B;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="80" y="800" width="400" height="140" />
         </mxCell>
-        <mxCell id="n7" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#176B9B;line-height:1.3&quot;&gt;07  TRUSTED AAP&lt;/div&gt;&lt;div style=&quot;font-size:20px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Independently validate&lt;/div&gt;&lt;div style=&quot;font-size:16px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Preflight source-path contract.&lt;br&gt;Lint, build, candidate tests.&lt;br&gt;Separate trusted RHEL 9 + 10 acceptance: regression, rollback, idempotence and cleanup.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F0F7FC;strokeColor=#176B9B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="70" y="670" width="270" height="255" />
+        <mxCell id="web-trigger" value="10a  Trigger nginx once&#10;aap launch webapp_selinux_enable&#10;Expect Enforcing / HTTP 403 / failed probe" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#EAF2FC;strokeColor=#3977B7;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="560" y="800" width="400" height="140" />
         </mxCell>
-        <mxCell id="n8" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#A76B00;line-height:1.3&quot;&gt;08  HUMAN GATE&lt;/div&gt;&lt;div style=&quot;font-size:20px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Review + merge&lt;/div&gt;&lt;div style=&quot;font-size:16px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Inspect the diff and independent evidence.&lt;br&gt;Required check must pass.&lt;br&gt;Merge that exact tested SHA.&lt;br&gt;AO observes the merge.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFF5DC;strokeColor=#A76B00;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="380" y="670" width="270" height="255" />
+        <mxCell id="invoice-trigger" value="10b  Trigger invoice detection&#10;make invoice-trigger BACKEND=aws&#10;Observe real dependency and business state" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#EAF2FC;strokeColor=#3977B7;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1040" y="800" width="400" height="140" />
         </mxCell>
-        <mxCell id="n9" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#176B9B;line-height:1.3&quot;&gt;09  AO / AAP&lt;/div&gt;&lt;div style=&quot;font-size:20px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Prepare release contract&lt;/div&gt;&lt;div style=&quot;font-size:16px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Confirm the tested SHA is in main.&lt;br&gt;Bind source, artifact and image to a saved run of the reusable promotion workflow.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F0F7FC;strokeColor=#176B9B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="690" y="670" width="270" height="255" />
+        <mxCell id="monitor" value="11  Follow both paths&#10;Separate issues, sessions, tests and results&#10;Do not modify live agent branches" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#E9F5EC;strokeColor=#43885B;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1520" y="800" width="400" height="140" />
         </mxCell>
-        <mxCell id="n10" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#A76B00;line-height:1.3&quot;&gt;10  HUMAN AAP GATE&lt;/div&gt;&lt;div style=&quot;font-size:20px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Approve production&lt;/div&gt;&lt;div style=&quot;font-size:16px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Approve this workflow run in AAP.&lt;br&gt;Recheck the contract before deployment.&lt;br&gt;Rejection or timeout stops the rollout.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFF5DC;strokeColor=#A76B00;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1000" y="670" width="270" height="255" />
-        </mxCell>
-        <mxCell id="n11" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#176B9B;line-height:1.3&quot;&gt;11  AAP → RHEL HOST B&lt;/div&gt;&lt;div style=&quot;font-size:20px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Deploy approved release&lt;/div&gt;&lt;div style=&quot;font-size:16px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Run the tested collection commit.&lt;br&gt;Verify the pinned Lightwell artifact and provenance.&lt;br&gt;Activate the immutable release on the Python host.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F0F7FC;strokeColor=#176B9B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1310" y="670" width="270" height="255" />
-        </mxCell>
-        <mxCell id="n12" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#24714E;line-height:1.3&quot;&gt;12  AO / AAP / PORTAL&lt;/div&gt;&lt;div style=&quot;font-size:20px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Verify + reconcile&lt;/div&gt;&lt;div style=&quot;font-size:16px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Prove approval and deployment.&lt;br&gt;Check running SHA + wheel.&lt;br&gt;Process the identical normal and regression PDFs.&lt;br&gt;Reconcile the incident.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#EAF7EF;strokeColor=#24714E;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1620" y="670" width="270" height="255" />
-        </mxCell>
-        <mxCell id="wrap-label" value="Continue to the tested release below" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=14;fontColor=#536579;fontStyle=0;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="720" y="540" width="500" height="31" />
-        </mxCell>
-        <mxCell id="stop" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#B73138;line-height:1.3&quot;&gt;FAIL CLOSED — KEEP THE EVIDENCE&lt;/div&gt;&lt;div style=&quot;font-size:15px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Failed validation blocks merge. Changed source or denied approval blocks deployment. Failed verification leaves the incident unresolved.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFF0F0;strokeColor=#B73138;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="70" y="1010" width="1820" height="78" />
-        </mxCell>
-        <mxCell id="show" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#64748B;line-height:1.3&quot;&gt;SHOW DURING THE WALKTHROUGH&lt;/div&gt;&lt;div style=&quot;font-size:15px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Invoice portal → AO detection and remediation → Developer Hub / agent → Forgejo PR + required check → AAP approval → same PDFs succeed.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F3F5F8;strokeColor=#64748B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="70" y="1110" width="1820" height="78" />
-        </mxCell>
-        <mxCell id="footer-line" value="" style="rounded=0;arcSize=8;whiteSpace=wrap;html=1;fillColor=#D9E2EC;strokeColor=#D9E2EC;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="50" y="1214" width="1860" height="1" />
-        </mxCell>
-        <mxCell id="footer-caption" value="Trusted acceptance lives in demojam-ansible, outside candidate write access. Test guests: RHEL 9 + 10 on EC2. Inference uses the configured provider." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=13;fontColor=#536579;fontStyle=0;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="50" y="1230" width="1550" height="27" />
-        </mxCell>
-        <mxCell id="footer-page" value="02 / 04" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=14;fontColor=#536579;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1750" y="1230" width="160" height="27" />
-        </mxCell>
-        <mxCell id="e0" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="n1" target="n2">
+        <mxCell id="edge-1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="refs" target="model">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
-        <mxCell id="e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="n2" target="n3">
+        <mxCell id="edge-2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="model" target="reset">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
-        <mxCell id="e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="n3" target="n4">
+        <mxCell id="edge-3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="reset" target="seed">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
-        <mxCell id="e3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="n4" target="n5">
+        <mxCell id="edge-4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="seed" target="bootstrap">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
-        <mxCell id="e4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="n5" target="n6">
+        <mxCell id="edge-5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="bootstrap" target="hosts">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
-        <mxCell id="e5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="n7" target="n8">
+        <mxCell id="edge-6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="hosts" target="apps">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
-        <mxCell id="e6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="n8" target="n9">
+        <mxCell id="edge-7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="apps" target="baseline">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
-        <mxCell id="e7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="n9" target="n10">
+        <mxCell id="edge-8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="baseline" target="ready">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
-        <mxCell id="e8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="n10" target="n11">
+        <mxCell id="edge-9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="ready" target="web-trigger">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
-        <mxCell id="e9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="n11" target="n12">
+        <mxCell id="edge-10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="web-trigger" target="invoice-trigger">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
-        <mxCell id="e10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=0.5;exitY=1;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="n6" target="n7">
-          <mxGeometry as="geometry" relative="1">
-            <Array as="points">
-              <mxPoint x="1755" y="560" />
-              <mxPoint x="45" y="560" />
-              <mxPoint x="45" y="797.5" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e11" value="failed" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#B73138;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.07417582417582418;entryY=0;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#B73138;labelBackgroundColor=#FFFFFF;dashed=1;dashPattern=5 4;" edge="1" parent="1" source="n7" target="stop">
+        <mxCell id="edge-11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="invoice-trigger" target="monitor">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
-        <mxCell id="e12" value="closed / changed SHA" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#B73138;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.2445054945054945;entryY=0;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#B73138;labelBackgroundColor=#FFFFFF;dashed=1;dashPattern=5 4;" edge="1" parent="1" source="n8" target="stop">
-          <mxGeometry as="geometry" relative="1" />
-        </mxCell>
-        <mxCell id="e13" value="denied / timeout" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#B73138;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5851648351648352;entryY=0;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#B73138;labelBackgroundColor=#FFFFFF;dashed=1;dashPattern=5 4;" edge="1" parent="1" source="n10" target="stop">
-          <mxGeometry as="geometry" relative="1" />
+        <mxCell id="prepare-note" value="Reset preserves AAP/history, persistent credentials, owned AWS network and selected images; it removes disposable source work and guests. Bootstrap is required afterward. If an attempt fails, retain its evidence, fix the published source, and begin a new complete attempt when authorized. Never replay an uncertain write blindly." style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#F1F4F7;strokeColor=#91A0AE;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="1150" width="1980" height="90" />
         </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
-  <diagram id="nginx" name="03 Nginx SELinux">
-    <mxGraphModel dx="1960" dy="1280" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1960" pageHeight="1280" math="0" shadow="0" background="#FFFFFF">
+  <diagram id="nginx" name="03 nginx outage">
+    <mxGraphModel dx="2100" dy="1320" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2100" pageHeight="1320" math="0" shadow="0" background="#FFFFFF">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="accent" value="" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#C52932;strokeColor=#C52932;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="50" y="46" width="7" height="72" />
+        <mxCell id="title" value="nginx / SELinux | alert to reviewed recovery" style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=Arial;fontSize=32;fontColor=#192E43;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="35" width="1980" height="55" />
         </mxCell>
-        <mxCell id="eyebrow" value="DEMO WALKTHROUGH" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=13;fontColor=#B73138;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="75" y="38" width="1800" height="22" />
+        <mxCell id="subtitle" value="AO workflow: Check Audit logs, Determine RCA, Create Issue → omnigent-remediation. The operator owns independent testing, merge and recovery." style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=Arial;fontSize=17;fontColor=#526578;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="100" width="1980" height="58" />
         </mxCell>
-        <mxCell id="title" value="Nginx SELinux outage — diagnosed and reviewed recovery" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=37;fontColor=#172B40;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="75" y="68" width="1800" height="54" />
+        <mxCell id="footer" value="AIOps Ansible Software Factory | Current implementation: 2026-10-28 | AWS dual-app paths verified; CNV and alternative mitigation are separately qualified." style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=Arial;fontSize=12;fontColor=#526578;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="1275" width="1980" height="24" />
         </mxCell>
-        <mxCell id="subtitle" value="A separate RHEL host • real audit evidence • persistent file labels • independent operator validation" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=18;fontColor=#536579;fontStyle=0;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="75" y="128" width="1800" height="35" />
+        <mxCell id="fault" value="1  AAP fault job&#10;webapp_selinux_enable&#10;webapps → Enforcing, backend HTTP 403" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#EAF2FC;strokeColor=#3977B7;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="80" y="220" width="400" height="140" />
         </mxCell>
-        <mxCell id="row1-label" value="INCIDENT → AUTHORING" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=15;fontColor=#176B9B;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="70" y="188" width="1800" height="28" />
+        <mxCell id="alert" value="2  Availability alert&#10;Blackbox probe fails for one minute&#10;Alertmanager → authenticated EDA" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#EAF2FC;strokeColor=#3977B7;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="560" y="220" width="400" height="140" />
         </mxCell>
-        <mxCell id="row2-label" value="EVIDENCE → REVIEWED RECOVERY" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=15;fontColor=#176B9B;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="70" y="620" width="1800" height="28" />
+        <mxCell id="rca" value="3  AO root cause&#10;Optional read-only native MCP&#10;Otherwise AAP audit facts + text RCA" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#EAF2FC;strokeColor=#3977B7;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1040" y="220" width="400" height="140" />
         </mxCell>
-        <mxCell id="n1" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#A76B00;line-height:1.3&quot;&gt;01  OPERATOR / AAP&lt;/div&gt;&lt;div style=&quot;font-size:20px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Introduce the outage&lt;/div&gt;&lt;div style=&quot;font-size:16px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Run webapp_selinux_enable on webapps only.&lt;br&gt;Switch the web host to Enforcing.&lt;br&gt;The Python host is unaffected.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFF5DC;strokeColor=#A76B00;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="70" y="235" width="270" height="255" />
+        <mxCell id="issue" value="4  Forgejo incident&#10;webapp_alert_issue opens/reuses issue&#10;Outage marker + completed RCA" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#EAF2FC;strokeColor=#3977B7;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1520" y="220" width="400" height="140" />
         </mxCell>
-        <mxCell id="n2" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#176B9B;line-height:1.3&quot;&gt;02  MONITORING&lt;/div&gt;&lt;div style=&quot;font-size:20px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Observe HTTP failure&lt;/div&gt;&lt;div style=&quot;font-size:16px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;The blackbox probe returns 403.&lt;br&gt;WebappDown fires after one minute.&lt;br&gt;Alertmanager delivers the alert to EDA.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F0F7FC;strokeColor=#176B9B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="380" y="235" width="270" height="255" />
+        <mxCell id="test" value="8  Operator independent validation&#10;Exact published SHA; isolated source export&#10;Build / install / lint / units / full RHEL 9+10" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#FFF3D6;strokeColor=#BC8B24;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="80" y="510" width="400" height="140" />
         </mxCell>
-        <mxCell id="n3" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#176B9B;line-height:1.3&quot;&gt;03  EDA → AO&lt;/div&gt;&lt;div style=&quot;font-size:20px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Start investigation&lt;/div&gt;&lt;div style=&quot;font-size:16px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;The alert listener invokes the AO root-cause workflow.&lt;br&gt;Keep the original alert context through diagnosis.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F0F7FC;strokeColor=#176B9B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="690" y="235" width="270" height="255" />
+        <mxCell id="pr" value="7  Guarded candidate publication&#10;Reject caches / escaping links&#10;Open PR; never merge or deploy" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#EAF2FC;strokeColor=#3977B7;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="560" y="510" width="400" height="140" />
         </mxCell>
-        <mxCell id="n4" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#176B9B;line-height:1.3&quot;&gt;04  AO + AAP&lt;/div&gt;&lt;div style=&quot;font-size:20px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Read live audit logs&lt;/div&gt;&lt;div style=&quot;font-size:16px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;AAP collects SELinux audit evidence from the web host.&lt;br&gt;AO uses the configured model to identify the denial and root cause.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F0F7FC;strokeColor=#176B9B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1000" y="235" width="270" height="255" />
+        <mxCell id="author" value="6  Agent implements / tests&#10;Preserve Enforcing; regression assertions&#10;Fresh guests after final changes" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#EAF2FC;strokeColor=#3977B7;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1040" y="510" width="400" height="140" />
         </mxCell>
-        <mxCell id="n5" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#176B9B;line-height:1.3&quot;&gt;05  AAP → FORGEJO&lt;/div&gt;&lt;div style=&quot;font-size:20px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Open the outage issue&lt;/div&gt;&lt;div style=&quot;font-size:16px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;AAP creates the remediation ticket with the alert and root-cause evidence in the web collection repository.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F0F7FC;strokeColor=#176B9B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1310" y="235" width="270" height="255" />
+        <mxCell id="handoff" value="5  Issue webhook → EDA → AO&#10;New valid incident only&#10;Developer Hub branch → coding session" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#EAF2FC;strokeColor=#3977B7;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1520" y="510" width="400" height="140" />
         </mxCell>
-        <mxCell id="n6" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#176B9B;line-height:1.3&quot;&gt;06  FORGEJO → EDA → AO&lt;/div&gt;&lt;div style=&quot;font-size:20px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Dispatch authoring&lt;/div&gt;&lt;div style=&quot;font-size:16px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;The new-issue webhook reaches EDA.&lt;br&gt;EDA starts omnigent-remediation in AO for this outage issue.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F0F7FC;strokeColor=#176B9B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1620" y="235" width="270" height="255" />
+        <mxCell id="merge" value="9  Human review / merge&#10;All checks pass; same head and base&#10;Merge guard binds tested SHA" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#FFF3D6;strokeColor=#BC8B24;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="80" y="800" width="400" height="140" />
         </mxCell>
-        <mxCell id="n7" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#176B9B;line-height:1.3&quot;&gt;07  DEVELOPER HUB&lt;/div&gt;&lt;div style=&quot;font-size:20px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Prepare the branch&lt;/div&gt;&lt;div style=&quot;font-size:16px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Validate the incident repository.&lt;br&gt;Create feature/issue-N.&lt;br&gt;AO requests the Omnigent authoring session.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F0F7FC;strokeColor=#176B9B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="70" y="670" width="270" height="255" />
+        <mxCell id="deploy" value="10  One AAP recovery launch&#10;webapp_nginx via existing wrapper&#10;Refresh source/inventory, preserve Enforcing" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#EAF2FC;strokeColor=#3977B7;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="560" y="800" width="400" height="140" />
         </mxCell>
-        <mxCell id="n8" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#176B9B;line-height:1.3&quot;&gt;08  AGENT SANDBOX&lt;/div&gt;&lt;div style=&quot;font-size:20px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Author fix + open PR&lt;/div&gt;&lt;div style=&quot;font-size:16px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Add persistent httpd_sys_content_t labels and relabel /web.&lt;br&gt;Test the Ansible change.&lt;br&gt;Publish a PR; leave SELinux Enforcing.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F0F7FC;strokeColor=#176B9B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="380" y="670" width="270" height="255" />
+        <mxCell id="verify" value="11  Verify actual recovery&#10;verify-enforcing; internal probe&#10;Enforcing + HTTP 200 + probe success" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#E9F5EC;strokeColor=#43885B;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1040" y="800" width="400" height="140" />
         </mxCell>
-        <mxCell id="n9" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#176B9B;line-height:1.3&quot;&gt;09  INDEPENDENT OPERATOR&lt;/div&gt;&lt;div style=&quot;font-size:20px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Test exact published SHA&lt;/div&gt;&lt;div style=&quot;font-size:16px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Use an isolated source export in the existing sandbox.&lt;br&gt;Lint, build and full Molecule lifecycle on RHEL 9 + 10.&lt;br&gt;Verify Enforcing + HTTP; destroy guests.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F0F7FC;strokeColor=#176B9B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="690" y="670" width="270" height="255" />
+        <mxCell id="resolved" value="12  Prove normal resolution&#10;No active WebappDown alert&#10;Record tests, merge and deployment evidence" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#E9F5EC;strokeColor=#43885B;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1520" y="800" width="400" height="140" />
         </mxCell>
-        <mxCell id="n10" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#A76B00;line-height:1.3&quot;&gt;10  HUMAN GATE&lt;/div&gt;&lt;div style=&quot;font-size:20px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Review + merge&lt;/div&gt;&lt;div style=&quot;font-size:16px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Inspect the code and independent evidence.&lt;br&gt;Recheck the base and tested head.&lt;br&gt;Merge with the exact SHA guard.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFF5DC;strokeColor=#A76B00;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1000" y="670" width="270" height="255" />
-        </mxCell>
-        <mxCell id="n11" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#A76B00;line-height:1.3&quot;&gt;11  OPERATOR / AAP&lt;/div&gt;&lt;div style=&quot;font-size:20px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Launch one recovery&lt;/div&gt;&lt;div style=&quot;font-size:16px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Run webapp nginx once.&lt;br&gt;AAP installs the reviewed collection on the web host.&lt;br&gt;No permissive setup after recovery.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFF5DC;strokeColor=#A76B00;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1310" y="670" width="270" height="255" />
-        </mxCell>
-        <mxCell id="n12" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#24714E;line-height:1.3&quot;&gt;12  WEB APP / MONITORING&lt;/div&gt;&lt;div style=&quot;font-size:20px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Prove recovery&lt;/div&gt;&lt;div style=&quot;font-size:16px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Verify SELinux Enforcing.&lt;br&gt;Require HTTP 200 and the correct page.&lt;br&gt;Confirm the probe is healthy and WebappDown resolves normally.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#EAF7EF;strokeColor=#24714E;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1620" y="670" width="270" height="255" />
-        </mxCell>
-        <mxCell id="wrap-label" value="Continue to the tested release below" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=14;fontColor=#536579;fontStyle=0;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="720" y="540" width="500" height="31" />
-        </mxCell>
-        <mxCell id="stop" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#B73138;line-height:1.3&quot;&gt;FAIL CLOSED — KEEP THE EVIDENCE&lt;/div&gt;&lt;div style=&quot;font-size:15px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;A failed candidate check leaves the PR open. A failed recovery is recorded as failed. Preserve the evidence and keep the agent branch untouched.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFF0F0;strokeColor=#B73138;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="70" y="1010" width="1820" height="78" />
-        </mxCell>
-        <mxCell id="show" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#64748B;line-height:1.3&quot;&gt;SHOW DURING THE WALKTHROUGH&lt;/div&gt;&lt;div style=&quot;font-size:15px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Web app and firing alert → AO audit-log diagnosis → Forgejo issue → agent / PR → independent RHEL tests → human merge → AAP recovery → healthy probe.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F3F5F8;strokeColor=#64748B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="70" y="1110" width="1820" height="78" />
-        </mxCell>
-        <mxCell id="footer-line" value="" style="rounded=0;arcSize=8;whiteSpace=wrap;html=1;fillColor=#D9E2EC;strokeColor=#D9E2EC;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="50" y="1214" width="1860" height="1" />
-        </mxCell>
-        <mxCell id="footer-caption" value="The operator independently tests and launches recovery on this path. Both application and test guests are EC2; OpenShift hosts the management plane." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=13;fontColor=#536579;fontStyle=0;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="50" y="1230" width="1550" height="27" />
-        </mxCell>
-        <mxCell id="footer-page" value="03 / 04" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=14;fontColor=#536579;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1750" y="1230" width="160" height="27" />
-        </mxCell>
-        <mxCell id="e0" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="n1" target="n2">
+        <mxCell id="edge-1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="fault" target="alert">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
-        <mxCell id="e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="n2" target="n3">
+        <mxCell id="edge-2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="alert" target="rca">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
-        <mxCell id="e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="n3" target="n4">
+        <mxCell id="edge-3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="rca" target="issue">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
-        <mxCell id="e3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="n4" target="n5">
+        <mxCell id="edge-4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="issue" target="handoff">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
-        <mxCell id="e4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="n5" target="n6">
+        <mxCell id="edge-5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="handoff" target="author">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
-        <mxCell id="e5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="n7" target="n8">
+        <mxCell id="edge-6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="author" target="pr">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
-        <mxCell id="e6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="n8" target="n9">
+        <mxCell id="edge-7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="pr" target="test">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
-        <mxCell id="e7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="n9" target="n10">
+        <mxCell id="edge-8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="test" target="merge">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
-        <mxCell id="e8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="n10" target="n11">
+        <mxCell id="edge-9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="merge" target="deploy">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
-        <mxCell id="e9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="n11" target="n12">
+        <mxCell id="edge-10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="deploy" target="verify">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
-        <mxCell id="e10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=0.5;exitY=1;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="n6" target="n7">
-          <mxGeometry as="geometry" relative="1">
-            <Array as="points">
-              <mxPoint x="1755" y="560" />
-              <mxPoint x="45" y="560" />
-              <mxPoint x="45" y="797.5" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e11" value="failed tests" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#B73138;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.41483516483516486;entryY=0;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#B73138;labelBackgroundColor=#FFFFFF;dashed=1;dashPattern=5 4;" edge="1" parent="1" source="n9" target="stop">
+        <mxCell id="edge-11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="verify" target="resolved">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
-        <mxCell id="e12" value="failed recovery" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#B73138;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.7554945054945055;entryY=0;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#B73138;labelBackgroundColor=#FFFFFF;dashed=1;dashPattern=5 4;" edge="1" parent="1" source="n11" target="stop">
-          <mxGeometry as="geometry" relative="1" />
+        <mxCell id="nginx-note" value="Failure at candidate validation: leave the PR unmerged and the attempt failed. Do not repair the agent branch or make SELinux permissive to claim recovery. A merge-linked issue closure is not health evidence. No native nginx approval workflow, Actions runner, or automatic CI-repair controller is deployed." style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#F1F4F7;strokeColor=#91A0AE;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="1150" width="1980" height="90" />
         </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
-  <diagram id="cve-routing" name="04 CVE responses">
-    <mxGraphModel dx="1960" dy="1280" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1960" pageHeight="1280" math="0" shadow="0" background="#FFFFFF">
+  <diagram id="python-patch" name="04 Python patch">
+    <mxGraphModel dx="2100" dy="1320" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2100" pageHeight="1320" math="0" shadow="0" background="#FFFFFF">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="accent" value="" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#C52932;strokeColor=#C52932;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="50" y="46" width="7" height="72" />
+        <mxCell id="title" value="Python / Lightwell | validated commit to approved deployment" style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=Arial;fontSize=32;fontColor=#192E43;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="35" width="1980" height="55" />
         </mxCell>
-        <mxCell id="eyebrow" value="DEMO WALKTHROUGH" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=13;fontColor=#B73138;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="75" y="38" width="1800" height="22" />
+        <mxCell id="subtitle" value="AO: invoice-security-detect → Forgejo/EDA → invoice-security-remediation. Production targets only pythonapps; its SELinux mode remains Enforcing." style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=Arial;fontSize=17;fontColor=#526578;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="100" width="1980" height="58" />
         </mxCell>
-        <mxCell id="title" value="CVE response routing — four governed outcomes" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=37;fontColor=#172B40;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="75" y="68" width="1800" height="54" />
+        <mxCell id="footer" value="AIOps Ansible Software Factory | Current implementation: 2026-10-28 | AWS dual-app paths verified; CNV and alternative mitigation are separately qualified." style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=Arial;fontSize=12;fontColor=#526578;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="1275" width="1980" height="24" />
         </mxCell>
-        <mxCell id="subtitle" value="Same detection trigger and coding agent • operator policy in vars • no SBOM platform required" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=18;fontColor=#536579;fontStyle=0;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="75" y="128" width="1800" height="35" />
+        <mxCell id="detect" value="1  Explicit detection&#10;invoice_check observes installed dependency&#10;Normal/regression business evidence" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#EAF2FC;strokeColor=#3977B7;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="80" y="205" width="400" height="150" />
         </mxCell>
-        <mxCell id="observations" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#176B9B;line-height:1.3&quot;&gt;TRUSTED AAP&lt;/div&gt;&lt;div style=&quot;font-size:24px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Observe and discover&lt;/div&gt;&lt;div style=&quot;font-size:18px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Read actual dependency versions and business state. Discover Lightwell fixes. Pass real assessment and discovery job IDs.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F0F7FC;strokeColor=#176B9B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="280" y="220" width="590" height="170" />
+        <mxCell id="discover" value="2  Ansible Lightwell discovery&#10;Pinned OSV + authenticated JSON index&#10;Match CVEs / runtime / wheel / digest" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#F1EBFA;strokeColor=#8664AA;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="560" y="205" width="400" height="150" />
         </mxCell>
-        <mxCell id="router" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#176B9B;line-height:1.3&quot;&gt;TRUSTED ANSIBLE POLICY&lt;/div&gt;&lt;div style=&quot;font-size:24px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Choose one response&lt;/div&gt;&lt;div style=&quot;font-size:18px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Verify job provenance, profile and complete host evidence. Use approved fix identity, CVSS scores and configured containment policy.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F0F7FC;strokeColor=#176B9B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1090" y="220" width="590" height="170" />
+        <mxCell id="router" value="3  Trusted CVE route&#10;invoice_route reads actual AAP receipts&#10;Approved compatible fix → app_patch" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#EAF2FC;strokeColor=#3977B7;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1040" y="205" width="400" height="150" />
         </mxCell>
-        <mxCell id="patch" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#24714E;line-height:1.3&quot;&gt;CVE RESPONSE&lt;/div&gt;&lt;div style=&quot;font-size:22px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Reviewed application fix&lt;/div&gt;&lt;div style=&quot;font-size:18px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Known affected dependency + confirmed approved Lightwell artifact.&lt;br&gt;Existing coding agent → PR → independent acceptance → human merge → production approval → verified deployment.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#EAF7EF;strokeColor=#24714E;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="70" y="610" width="380" height="330" />
+        <mxCell id="issue" value="4  Incident → EDA handoff&#10;Deduplicated Python issue / fixed marker&#10;Only newly opened incidents start authoring" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#EAF2FC;strokeColor=#3977B7;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1520" y="205" width="400" height="150" />
         </mxCell>
-        <mxCell id="contain" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#A76B00;line-height:1.3&quot;&gt;CVE RESPONSE&lt;/div&gt;&lt;div style=&quot;font-size:22px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Temporary containment&lt;/div&gt;&lt;div style=&quot;font-size:18px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;All scoped hosts affected; high severity; no approved fix.&lt;br&gt;Open security review → human approval → trusted recheck → stop and disable only the scoped application service. Not a CVE fix.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFF5DC;strokeColor=#A76B00;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="550" y="610" width="380" height="330" />
+        <mxCell id="trusted" value="8  Independent trusted acceptance&#10;invoice_validate + separate mandatory suite&#10;RHEL 9/10, provenance, regression, rollback" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#E9F5EC;strokeColor=#43885B;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="80" y="470" width="400" height="150" />
         </mxCell>
-        <mxCell id="defer" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#64748B;line-height:1.3&quot;&gt;CVE RESPONSE&lt;/div&gt;&lt;div style=&quot;font-size:22px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Defer and review&lt;/div&gt;&lt;div style=&quot;font-size:18px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Known lower-severity no-fix finding.&lt;br&gt;Keep an open security ticket with an anchored review deadline. No host changes. Fixed, healthy observations reconcile incidents.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F3F5F8;strokeColor=#64748B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1030" y="610" width="380" height="330" />
+        <mxCell id="candidate" value="7  AO observes published PR&#10;Fixed branch / repo / base, exact head&#10;Publish pending required validation status" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#EAF2FC;strokeColor=#3977B7;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="560" y="470" width="400" height="150" />
         </mxCell>
-        <mxCell id="manual" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#B73138;line-height:1.3&quot;&gt;CVE RESPONSE&lt;/div&gt;&lt;div style=&quot;font-size:22px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Manual security review&lt;/div&gt;&lt;div style=&quot;font-size:18px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;Unknown version or severity, unsupported ecosystem/control, or mixed containment scope.&lt;br&gt;Retain the finding and review ticket. No automatic host mutation or coding session.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFF0F0;strokeColor=#B73138;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1510" y="610" width="380" height="330" />
+        <mxCell id="agent" value="6  Agent tests and publishes&#10;Update approved release lock&#10;Needed code/tests only; guarded PR" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#EAF2FC;strokeColor=#3977B7;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1040" y="470" width="400" height="150" />
         </mxCell>
-        <mxCell id="failure" value="&lt;div style=&quot;font-family:Arial;text-align:left&quot;&gt;&lt;div style=&quot;font-size:11px;font-weight:700;color:#64748B;line-height:1.3&quot;&gt;OPERATING RULE&lt;/div&gt;&lt;div style=&quot;font-size:23px;font-weight:700;line-height:1.15;margin-top:9px;color:#172B40&quot;&gt;Failures remain failures; containment remains unresolved&lt;/div&gt;&lt;div style=&quot;font-size:18px;line-height:1.35;margin-top:10px;color:#536579&quot;&gt;API or discovery errors stop the run. Approval denial/timeout blocks containment. Verify service state after shutdown. Restore service through a reviewed fixed release; require healthy business checks before closing either incident type.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F3F5F8;strokeColor=#64748B;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="70" y="1000" width="1820" height="150" />
+        <mxCell id="branch" value="5  Developer Hub + Omnigent&#10;Prepare feature/issue-N, claim incident&#10;One shared coding session; model configurable" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#EAF2FC;strokeColor=#3977B7;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1520" y="470" width="400" height="150" />
         </mxCell>
-        <mxCell id="footer-line" value="" style="rounded=0;arcSize=8;whiteSpace=wrap;html=1;fillColor=#D9E2EC;strokeColor=#D9E2EC;strokeWidth=1.3;align=left;verticalAlign=top;spacing=16;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="50" y="1214" width="1860" height="1" />
+        <mxCell id="merge" value="9  Required check + human merge&#10;Publish success only from trusted evidence&#10;Changed head / failed CI stops flow" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#FFF3D6;strokeColor=#BC8B24;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="80" y="735" width="400" height="150" />
         </mxCell>
-        <mxCell id="footer-caption" value="Policy is explicit operator data. The real invoice advisory score remains 6.2; high-severity containment tests use synthetic findings." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=13;fontColor=#536579;fontStyle=0;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="50" y="1230" width="1550" height="27" />
+        <mxCell id="contract" value="10  Prepare immutable contract&#10;invoice_prepare_release binds tested source&#10;Wheel, profile, material, image, validation" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#EAF2FC;strokeColor=#3977B7;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="560" y="735" width="400" height="150" />
         </mxCell>
-        <mxCell id="footer-page" value="04 / 04" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;spacing=0;fontFamily=Arial;fontSize=14;fontColor=#536579;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="1750" y="1230" width="160" height="27" />
+        <mxCell id="promote" value="11  Reuse invoice_promote&#10;validate-release → HUMAN APPROVAL&#10;recheck-release → invoice_deploy" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#FFF3D6;strokeColor=#BC8B24;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1040" y="735" width="400" height="150" />
         </mxCell>
-        <mxCell id="e0" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="observations" target="router">
+        <mxCell id="proof" value="12  Prove deployment / close&#10;Verify actual approval, job, source and wheel&#10;Business/regression checks → close incident" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#E9F5EC;strokeColor=#43885B;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1520" y="735" width="400" height="150" />
+        </mxCell>
+        <mxCell id="edge-1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="detect" target="discover">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
-        <mxCell id="e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="router" target="patch">
+        <mxCell id="edge-2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="discover" target="router">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="edge-3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="router" target="issue">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="edge-4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="issue" target="branch">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="edge-5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="branch" target="agent">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="edge-6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="agent" target="candidate">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="edge-7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="candidate" target="trusted">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="edge-8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="trusted" target="merge">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="edge-9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="merge" target="contract">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="edge-10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="contract" target="promote">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="edge-11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="promote" target="proof">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="failure" value="FAIL CLOSED&#10;Failed acceptance, changed source/material, rejection or timeout prevents deployment. No automatic re-authoring loop. A failed rollout remains failed even if rollback restores service." style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#FCEBEB;strokeColor=#BB5353;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="80" y="1000" width="920" height="100" />
+        </mxCell>
+        <mxCell id="reuse" value="RESOURCE REUSE&#10;Configure JTs/workflow once. Each launch passes a new immutable contract and full SCM SHA. No per-release project, credential, JT or workflow is generated." style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#F1F4F7;strokeColor=#91A0AE;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1040" y="1000" width="880" height="100" />
+        </mxCell>
+        <mxCell id="patch-note" value="Human Forgejo merge and native AAP production approval are separate gates. Agent tests cannot replace independent acceptance. Provenance alone does not prove CVE coverage; exact artifact identity and observed normal/security behavior are checked. Latest clean run exercised this full app_patch path." style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#F1F4F7;strokeColor=#91A0AE;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="1150" width="1980" height="90" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="router" name="05 CVE alternatives">
+    <mxGraphModel dx="2100" dy="1320" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2100" pageHeight="1320" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="CVE router | approved patch, mitigation or review" style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=Arial;fontSize=32;fontColor=#192E43;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="35" width="1980" height="55" />
+        </mxCell>
+        <mxCell id="subtitle" value="Implemented policy branches. The latest live rehearsal proved app_patch; containment and alternative routing have isolated fixture coverage." style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=Arial;fontSize=17;fontColor=#526578;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="100" width="1980" height="58" />
+        </mxCell>
+        <mxCell id="footer" value="AIOps Ansible Software Factory | Current implementation: 2026-10-28 | AWS dual-app paths verified; CNV and alternative mitigation are separately qualified." style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=Arial;fontSize=12;fontColor=#526578;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="1275" width="1980" height="24" />
+        </mxCell>
+        <mxCell id="observations" value="Trusted inputs&#10;Successful invoice_check + invoice_discover receipts&#10;Complete host observations, current profile and advisory evidence" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#EAF2FC;strokeColor=#3977B7;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="650" y="190" width="800" height="110" />
+        </mxCell>
+        <mxCell id="decision" value="invoice_route&#10;Read actual Controller jobs; verify trusted templates/projects&#10;API/discovery failures STOP; unknown evidence is not fixed" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#EAF2FC;strokeColor=#3977B7;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="650" y="360" width="800" height="110" />
+        </mxCell>
+        <mxCell id="edge-1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="observations" target="decision">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="patch" value="app_patch&#10;Known affected dependency&#10;Compatible approved Lightwell fix" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#EAF2FC;strokeColor=#3977B7;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="590" width="430" height="145" />
+        </mxCell>
+        <mxCell id="edge-2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="decision" target="patch">
           <mxGeometry as="geometry" relative="1">
             <Array as="points">
-              <mxPoint x="1385" y="490" />
-              <mxPoint x="260" y="490" />
+              <mxPoint x="1050" y="525" />
+              <mxPoint x="285" y="525" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="router" target="contain">
+        <mxCell id="contain" value="contain&#10;All scoped hosts affected; no approved fix&#10;Complete severity meets threshold&#10;Explicit service containment policy" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#FFF3D6;strokeColor=#BC8B24;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="580" y="590" width="430" height="145" />
+        </mxCell>
+        <mxCell id="edge-3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="decision" target="contain">
           <mxGeometry as="geometry" relative="1">
             <Array as="points">
-              <mxPoint x="1385" y="490" />
-              <mxPoint x="740" y="490" />
+              <mxPoint x="1050" y="525" />
+              <mxPoint x="795" y="525" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="router" target="defer">
+        <mxCell id="manual" value="manual_review&#10;Unknown/mixed/unsupported evidence&#10;Missing severity or unsupported control" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#F1EBFA;strokeColor=#8664AA;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1090" y="590" width="430" height="145" />
+        </mxCell>
+        <mxCell id="edge-4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="decision" target="manual">
           <mxGeometry as="geometry" relative="1">
             <Array as="points">
-              <mxPoint x="1385" y="490" />
-              <mxPoint x="1220" y="490" />
+              <mxPoint x="1050" y="525" />
+              <mxPoint x="1305" y="525" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#71859A;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=1;entryPerimeter=1;fontFamily=Arial;fontSize=12;fontColor=#71859A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="router" target="manual">
+        <mxCell id="log" value="log_only&#10;Known lower-severity no-fix finding&#10;Or observed fixed + healthy application" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#F1F4F7;strokeColor=#91A0AE;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1600" y="590" width="430" height="145" />
+        </mxCell>
+        <mxCell id="edge-5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="decision" target="log">
           <mxGeometry as="geometry" relative="1">
             <Array as="points">
-              <mxPoint x="1385" y="490" />
-              <mxPoint x="1700" y="490" />
+              <mxPoint x="1050" y="525" />
+              <mxPoint x="1815" y="525" />
             </Array>
           </mxGeometry>
+        </mxCell>
+        <mxCell id="patch-end" value="Existing authoring + acceptance path&#10;Human merge → native approval&#10;Exact release deploy → verify → close" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#E9F5EC;strokeColor=#43885B;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="845" width="430" height="145" />
+        </mxCell>
+        <mxCell id="edge-6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="patch" target="patch-end">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="contain-end" value="Separate security ticket / invoice_contain&#10;Validate → HUMAN APPROVAL → recheck&#10;Recheck installed version and scope&#10;Stop/disable configured service only" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#FFF3D6;strokeColor=#BC8B24;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="580" y="845" width="430" height="145" />
+        </mxCell>
+        <mxCell id="edge-7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="contain" target="contain-end">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="manual-end" value="Security review ticket&#10;No automatic coding session or host change&#10;Retain evidence for operator decision" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#F1EBFA;strokeColor=#8664AA;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1090" y="845" width="430" height="145" />
+        </mxCell>
+        <mxCell id="edge-8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="manual" target="manual-end">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="log-end" value="Retain evidence&#10;Affected: deferred ticket / UTC deadline&#10;Fixed + healthy: reconcile existing tickets&#10;No scheduled retry / reminder service" style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#F1F4F7;strokeColor=#91A0AE;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1600" y="845" width="430" height="145" />
+        </mxCell>
+        <mxCell id="edge-9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=24;html=0;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#526B83;fontFamily=Arial;fontSize=13;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="log" target="log-end">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="router-note" value="Containment deliberately interrupts the application, leaves the dependency vulnerable (fixed: false), and does not close the incident. A later reviewed fixed release restores service and must pass business checks. Security-response markers cannot trigger coding. No fleet-wide SBOM scan, generic OS patching, or CME adapter is included." style="rounded=1;arcSize=10;whiteSpace=wrap;html=0;fillColor=#F1F4F7;strokeColor=#91A0AE;strokeWidth=1.5;align=center;verticalAlign=middle;spacing=14;fontFamily=Arial;fontSize=16;fontColor=#192E43;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="1130" width="1980" height="90" />
         </mxCell>
       </root>
     </mxGraphModel>
