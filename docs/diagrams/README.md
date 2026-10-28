@@ -30,6 +30,7 @@ gray marks supporting services and boundaries. Red notes identify failure handli
 Architecture arrows are schematic interactions, not an exhaustive network-policy
 or secret-mount specification. Dashed arrows identify configuration/input flows.
 
+For a timed presentation, use the [three-presenter script](../demo-script.md).
 For a walkthrough, start on page 01, show the architecture, then use page 02 once.
 Follow page 03 for nginx and page 04 for Python; use page 05 to explain alternatives.
 Application provisioning does not trigger an incident. Agent completion, PR closure,
