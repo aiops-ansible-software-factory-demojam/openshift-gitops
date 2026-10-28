@@ -1,0 +1,393 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<svg aria-labelledby="svg-title svg-description" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2200 1800" width="2200" height="1800" role="img">
+  <title id="svg-title">AIOps Ansible Software Factory architecture</title>
+  <desc id="svg-description">Nested OpenShift logical service groups, separate AWS RHEL production hosts and fresh RHEL 9 and 10 acceptance hosts, with external GitHub, inference and Lightwell inputs.</desc>
+  <rect width="2200" height="1800" fill="white" />
+  <defs>
+    <marker id="arrow-B17D23" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#B17D23" />
+    </marker>
+    <marker id="arrow-6966BB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6966BB" />
+    </marker>
+    <marker id="arrow-8526A5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8526A5" />
+    </marker>
+    <marker id="arrow-137F8C" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#137F8C" />
+    </marker>
+    <marker id="arrow-1670C5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1670C5" />
+    </marker>
+    <marker id="arrow-D6323A" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#D6323A" />
+    </marker>
+  </defs>
+  <rect x="30" y="110" width="1340" height="1140" rx="22" fill="#EAF4FC" stroke="#1670C5" stroke-width="2" />
+  <rect x="1430" y="110" width="740" height="1140" rx="22" fill="#FFF4E5" stroke="#F36C21" stroke-width="2" />
+  <rect x="50" y="190" width="600" height="1035" rx="22" fill="#F3F9FE" stroke="#58A4E2" stroke-width="1.4" stroke-dasharray="4 4" />
+  <rect x="670" y="190" width="680" height="1035" rx="22" fill="#F3F9FE" stroke="#58A4E2" stroke-width="1.4" stroke-dasharray="4 4" />
+  <rect x="70" y="250" width="560" height="190" rx="12" fill="#D6EAFE" stroke="#1670C5" stroke-width="1.4" />
+  <rect x="70" y="460" width="560" height="240" rx="12" fill="#F1E8F7" stroke="#8526A5" stroke-width="1.4" />
+  <rect x="70" y="720" width="560" height="220" rx="12" fill="#EAF5EB" stroke="#338445" stroke-width="1.4" />
+  <rect x="70" y="960" width="560" height="240" rx="12" fill="#E6F3F4" stroke="#137F8C" stroke-width="1.4" />
+  <rect x="690" y="250" width="640" height="470" rx="12" fill="#D6EAFE" stroke="#1670C5" stroke-width="1.4" />
+  <rect x="690" y="750" width="640" height="155" rx="12" fill="#E3F2F3" stroke="#137F8C" stroke-width="1.4" />
+  <rect x="690" y="960" width="640" height="240" rx="12" fill="#F1E8F7" stroke="#8526A5" stroke-width="1.4" />
+  <rect x="1450" y="190" width="700" height="450" rx="22" fill="#FFFAF0" stroke="#ECA43A" stroke-width="1.4" stroke-dasharray="4 4" />
+  <rect x="1450" y="670" width="700" height="290" rx="22" fill="#F8F0FC" stroke="#A06BB3" stroke-width="1.4" stroke-dasharray="4 4" />
+  <rect x="1450" y="990" width="700" height="210" rx="12" fill="#FFF0D1" stroke="#B17D23" stroke-width="1.4" />
+  <rect x="30" y="1510" width="2140" height="120" rx="12" fill="#FFF0F1" stroke="#D6323A" stroke-width="1.4" />
+  <rect x="30" y="1660" width="2140" height="90" rx="12" fill="#FFFFFF" stroke="#75818E" stroke-width="1.4" />
+  <polyline points="845,415 845,382" fill="none" stroke="#1670C5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow-1670C5)" />
+  <polyline points="1160,382 1160,415" fill="none" stroke="#1670C5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow-1670C5)" />
+  <polyline points="215,597 215,605 660,605 660,454 710,454" fill="none" stroke="#6966BB" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#arrow-6966BB)" />
+  <polyline points="1000,800 1000,735 680,735 680,469 710,469" fill="none" stroke="#137F8C" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#arrow-137F8C)" />
+  <polyline points="990,1069 1005,1069 1005,1143 1390,1143 1390,335" fill="none" stroke="#D6323A" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#arrow-D6323A)" />
+  <polyline points="1390,335 1470,335" fill="none" stroke="#D6323A" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#arrow-D6323A)" />
+  <polyline points="1390,335 1390,527 1470,527" fill="none" stroke="#D6323A" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#arrow-D6323A)" />
+  <polyline points="1470,387 1378,387 1378,839 1310,839" fill="none" stroke="#137F8C" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-137F8C)" stroke-dasharray="5 4" />
+  <polyline points="1310,1069 1414,1069 1414,801" fill="none" stroke="#8526A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow-8526A5)" />
+  <polyline points="990,1045 1000,1045 1000,931 1414,931 1414,801" fill="none" stroke="#8526A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow-8526A5)" />
+  <polyline points="1414,801 1470,801" fill="none" stroke="#8526A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow-8526A5)" />
+  <polyline points="1414,801 1440,801 1440,715 1975,715 1975,734" fill="none" stroke="#8526A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow-8526A5)" />
+  <polyline points="350,1290 350,1268 15,1268 15,328 90,328" fill="none" stroke="#1670C5" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow-1670C5)" stroke-dasharray="5 4" />
+  <polyline points="1035,1290 1035,1260 1360,1260 1360,342" fill="none" stroke="#8526A5" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow-8526A5)" stroke-dasharray="5 4" />
+  <polyline points="1360,342 1310,342" fill="none" stroke="#8526A5" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow-8526A5)" stroke-dasharray="5 4" />
+  <polyline points="1360,342 1360,1069 1310,1069" fill="none" stroke="#8526A5" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow-8526A5)" stroke-dasharray="5 4" />
+  <polyline points="1800,1290 1800,1275 1420,1275 1420,975 1800,975 1800,960" fill="none" stroke="#B17D23" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow-B17D23)" stroke-dasharray="5 4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="32" font-weight="700" text-anchor="start" x="30" y="50.2" fill="#263646">
+    <tspan x="30" dy="0">Infrastructure | AIOps Ansible Software Factory</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="19" font-weight="400" text-anchor="start" x="30" y="81.65" fill="#5B6876">
+    <tspan x="30" dy="0">Shared OpenShift management plane, two independent RHEL applications, and fresh real-machine acceptance tests</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="23" font-weight="700" text-anchor="start" x="50" y="146.05" fill="#1670C5">
+    <tspan x="50" dy="0">OpenShift Container Platform — demo management plane</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="16" font-weight="400" text-anchor="start" x="50" y="174.6" fill="#5B6876">
+    <tspan x="50" dy="0">Logical service groups; not worker placement, availability zones, or an HA topology</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="23" font-weight="700" text-anchor="start" x="1450" y="146.05" fill="#F36C21">
+    <tspan x="1450" dy="0">AWS guest account — dedicated VPC / public subnet</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="16" font-weight="400" text-anchor="start" x="1450" y="174.6" fill="#5B6876">
+    <tspan x="1450" dy="0">RHEL application and test guests; account may differ from the OpenShift account</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="23" font-weight="700" text-anchor="start" x="70" y="226.05" fill="#58A4E2">
+    <tspan x="70" dy="0">Platform, developer services &amp; data</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="23" font-weight="700" text-anchor="start" x="690" y="226.05" fill="#58A4E2">
+    <tspan x="690" dy="0">Orchestration &amp; execution</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="20" font-weight="700" text-anchor="start" x="86" y="281.0" fill="#1670C5">
+    <tspan x="86" dy="0">Platform services</tspan>
+  </text>
+  <rect x="90" y="297" width="250" height="62" rx="6" fill="#1670C5" stroke="#1670C5" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="20" font-weight="700" text-anchor="middle" x="215.0" y="327.0" fill="#FFFFFF">
+    <tspan x="215.0" dy="0">OpenShift GitOps</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="16" font-weight="400" text-anchor="middle" x="215.0" y="351.1" fill="#FFFFFF">
+    <tspan x="215.0" dy="0">Published manifests</tspan>
+  </text>
+  <rect x="360" y="297" width="250" height="62" rx="6" fill="#318EDC" stroke="#318EDC" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="20" font-weight="700" text-anchor="middle" x="485.0" y="327.0" fill="#FFFFFF">
+    <tspan x="485.0" dy="0">OpenShift Pipelines</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="16" font-weight="400" text-anchor="middle" x="485.0" y="351.1" fill="#FFFFFF">
+    <tspan x="485.0" dy="0">Sandbox / test image build</tspan>
+  </text>
+  <rect x="90" y="369" width="250" height="60" rx="6" fill="#137F8C" stroke="#137F8C" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="20" font-weight="700" text-anchor="middle" x="215.0" y="399.0" fill="#FFFFFF">
+    <tspan x="215.0" dy="0">Demo Keycloak</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="16" font-weight="400" text-anchor="middle" x="215.0" y="422.1" fill="#FFFFFF">
+    <tspan x="215.0" dy="0">Browser OIDC / groups</tspan>
+  </text>
+  <rect x="360" y="369" width="250" height="60" rx="6" fill="#527085" stroke="#527085" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="20" font-weight="700" text-anchor="middle" x="485.0" y="399.0" fill="#FFFFFF">
+    <tspan x="485.0" dy="0">Homepage</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="16" font-weight="400" text-anchor="middle" x="485.0" y="422.1" fill="#FFFFFF">
+    <tspan x="485.0" dy="0">Links / read-only status</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="20" font-weight="700" text-anchor="start" x="86" y="491.0" fill="#8526A5">
+    <tspan x="86" dy="0">Developer services</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="15" font-weight="400" text-anchor="start" x="86" y="517.75" fill="#5B6876">
+    <tspan x="86" dy="0">forgejo • rhdh • omnigent / omnigent-sandboxes</tspan>
+  </text>
+  <rect x="90" y="527" width="250" height="70" rx="6" fill="#7657B8" stroke="#7657B8" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="20" font-weight="700" text-anchor="middle" x="215.0" y="557.0" fill="#FFFFFF">
+    <tspan x="215.0" dy="0">Forgejo</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="16" font-weight="400" text-anchor="middle" x="215.0" y="585.1" fill="#FFFFFF">
+    <tspan x="215.0" dy="0">Issues / branches / PRs</tspan>
+  </text>
+  <rect x="360" y="527" width="250" height="70" rx="6" fill="#7657B8" stroke="#7657B8" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="20" font-weight="700" text-anchor="middle" x="485.0" y="557.0" fill="#FFFFFF">
+    <tspan x="485.0" dy="0">Developer Hub</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="16" font-weight="400" text-anchor="middle" x="485.0" y="585.1" fill="#FFFFFF">
+    <tspan x="485.0" dy="0">Contribution golden path</tspan>
+  </text>
+  <rect x="90" y="611" width="520" height="70" rx="6" fill="#8526A5" stroke="#8526A5" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="20" font-weight="700" text-anchor="middle" x="350.0" y="641.0" fill="#FFFFFF">
+    <tspan x="350.0" dy="0">Omnigent + Agent Sandboxes</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="16" font-weight="400" text-anchor="middle" x="350.0" y="669.1" fill="#FFFFFF">
+    <tspan x="350.0" dy="0">One coding session per application</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="20" font-weight="700" text-anchor="start" x="86" y="751.0" fill="#338445">
+    <tspan x="86" dy="0">Application-owned data &amp; storage</tspan>
+  </text>
+  <path stroke-width="1.5" d="M 100 793 v 74 a 115.0 15 0 0 0 230 0 v -74" fill="#A5D6A5" stroke="#338445" />
+  <ellipse cx="215.0" cy="793" rx="115.0" ry="15" fill="#A5D6A5" stroke="#338445" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="18" font-weight="700" text-anchor="middle" x="215.0" y="826.5999999999999" fill="#245C2B">
+    <tspan x="215.0" dy="0">PostgreSQL</tspan>
+    <tspan x="215.0" dy="23.400000000000002">AAP / Keycloak / RHDH</tspan>
+  </text>
+  <rect x="365" y="788" width="235" height="88" rx="9" fill="#FFFFFF" stroke="#338445" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="17" font-weight="700" text-anchor="middle" x="482.5" y="828.4000000000001" fill="#245C2B">
+    <tspan x="482.5" dy="0">Persistent volumes</tspan>
+    <tspan x="482.5" dy="22.1">Forgejo Git / session homes</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="15" font-weight="400" text-anchor="start" x="90" y="918.25" fill="#5B6876">
+    <tspan x="90" dy="0">Separate application databases and PVCs; no shared HA database implied.</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="20" font-weight="700" text-anchor="start" x="86" y="991.0" fill="#137F8C">
+    <tspan x="86" dy="0">Runtime security &amp; configuration</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="18" font-weight="400" text-anchor="start" x="90" y="1044.5" fill="#263646">
+    <tspan x="90" dy="0">Kubernetes Secrets hold runtime credentials.</tspan>
+    <tspan x="90" dy="23.400000000000002">Bootstrap provisioning keys stay local.</tspan>
+    <tspan x="90" dy="23.400000000000002">App access and disposable-test identities are scoped.</tspan>
+    <tspan x="90" dy="23.400000000000002">Application settings live in collection vars.</tspan>
+    <tspan x="90" dy="23.400000000000002">Inventory resolves hosts and runtime access.</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="20" font-weight="700" text-anchor="start" x="706" y="281.0" fill="#1670C5">
+    <tspan x="706" dy="0">Automation services</tspan>
+  </text>
+  <rect x="710" y="300" width="600" height="82" rx="6" fill="#1670C5" stroke="#1670C5" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="20" font-weight="700" text-anchor="middle" x="1010.0" y="330.0" fill="#FFFFFF">
+    <tspan x="1010.0" dy="0">Automation Orchestrator</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="16" font-weight="400" text-anchor="middle" x="1010.0" y="364.1" fill="#FFFFFF">
+    <tspan x="1010.0" dy="0">CVE router / RCA / authoring / durable waits</tspan>
+  </text>
+  <rect x="710" y="415" width="270" height="78" rx="6" fill="#6966BB" stroke="#6966BB" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="20" font-weight="700" text-anchor="middle" x="845.0" y="445.0" fill="#FFFFFF">
+    <tspan x="845.0" dy="0">Event-Driven Ansible</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="16" font-weight="400" text-anchor="middle" x="845.0" y="477.1" fill="#FFFFFF">
+    <tspan x="845.0" dy="0">Alert + Forgejo listeners</tspan>
+  </text>
+  <rect x="1010" y="415" width="300" height="78" rx="6" fill="#1670C5" stroke="#1670C5" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="20" font-weight="700" text-anchor="middle" x="1160.0" y="445.0" fill="#FFFFFF">
+    <tspan x="1160.0" dy="0">Automation Controller</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="16" font-weight="400" text-anchor="middle" x="1160.0" y="477.1" fill="#FFFFFF">
+    <tspan x="1160.0" dy="0">Trusted jobs / native workflows</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="16" font-weight="400" text-anchor="start" x="710" y="522.6" fill="#5B6876">
+    <tspan x="710" dy="0">Reusable job templates and workflows; no per-release AAP objects.</tspan>
+  </text>
+  <rect x="710" y="548" width="600" height="150" rx="9" fill="#EDF6ED" stroke="#338445" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="20" font-weight="700" text-anchor="start" x="726" y="577.5" fill="#338445">
+    <tspan x="726" dy="0">Trusted validation &amp; release gates</tspan>
+  </text>
+  <rect x="728" y="596" width="268" height="77" rx="9" fill="#FFFFFF" stroke="#338445" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="17" font-weight="700" text-anchor="middle" x="862.0" y="628.9000000000001" fill="#338445">
+    <tspan x="862.0" dy="0">Independent acceptance</tspan>
+    <tspan x="862.0" dy="22.1">Exact source + artifact identity</tspan>
+  </text>
+  <rect x="1018" y="596" width="274" height="77" rx="9" fill="#FFF2CC" stroke="#D5A43B" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="17" font-weight="700" text-anchor="middle" x="1155.0" y="628.9000000000001" fill="#8A651D">
+    <tspan x="1155.0" dy="0">Human decisions</tspan>
+    <tspan x="1155.0" dy="22.1">Merge + Python approval</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="20" font-weight="700" text-anchor="start" x="706" y="781.0" fill="#137F8C">
+    <tspan x="706" dy="0">Monitoring</tspan>
+  </text>
+  <rect x="710" y="800" width="180" height="78" rx="6" fill="#137F8C" stroke="#137F8C" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="20" font-weight="700" text-anchor="middle" x="800.0" y="830.0" fill="#FFFFFF">
+    <tspan x="800.0" dy="0">Prometheus</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="16" font-weight="400" text-anchor="middle" x="800.0" y="862.1" fill="#FFFFFF">
+    <tspan x="800.0" dy="0">Metrics / rules</tspan>
+  </text>
+  <rect x="910" y="800" width="180" height="78" rx="6" fill="#137F8C" stroke="#137F8C" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="20" font-weight="700" text-anchor="middle" x="1000.0" y="830.0" fill="#FFFFFF">
+    <tspan x="1000.0" dy="0">Alertmanager</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="16" font-weight="400" text-anchor="middle" x="1000.0" y="862.1" fill="#FFFFFF">
+    <tspan x="1000.0" dy="0">WebappDown</tspan>
+  </text>
+  <rect x="1110" y="800" width="200" height="78" rx="6" fill="#137F8C" stroke="#137F8C" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="20" font-weight="700" text-anchor="middle" x="1210.0" y="830.0" fill="#FFFFFF">
+    <tspan x="1210.0" dy="0">Blackbox</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="16" font-weight="400" text-anchor="middle" x="1210.0" y="862.1" fill="#FFFFFF">
+    <tspan x="1210.0" dy="0">Internal HTTP probe</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="20" font-weight="700" text-anchor="start" x="706" y="991.0" fill="#8526A5">
+    <tspan x="706" dy="0">Execution workloads</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="15" font-weight="400" text-anchor="start" x="706" y="1017.75" fill="#5B6876">
+    <tspan x="706" dy="0">Dynamic pods and sandbox hosts; not dedicated worker-node pools</tspan>
+  </text>
+  <rect x="710" y="1028" width="280" height="82" rx="6" fill="#8526A5" stroke="#8526A5" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="20" font-weight="700" text-anchor="middle" x="850.0" y="1058.0" fill="#FFFFFF">
+    <tspan x="850.0" dy="0">Controller execution pods</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="16" font-weight="400" text-anchor="middle" x="850.0" y="1092.1" fill="#FFFFFF">
+    <tspan x="850.0" dy="0">Scoped deployment / test access</tspan>
+  </text>
+  <rect x="1020" y="1028" width="290" height="82" rx="6" fill="#9C5DB5" stroke="#9C5DB5" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="20" font-weight="700" text-anchor="middle" x="1165.0" y="1058.0" fill="#FFFFFF">
+    <tspan x="1165.0" dy="0">Agent sandbox hosts</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="16" font-weight="400" text-anchor="middle" x="1165.0" y="1092.1" fill="#FFFFFF">
+    <tspan x="1165.0" dy="0">ADT + pinned Molecule provisioner</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="15" font-weight="400" text-anchor="start" x="710" y="1187.25" fill="#8526A5">
+    <tspan x="710" dy="0">Fresh guest lifecycle: destroy → create → converge → idempotence → verify → destroy</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="23" font-weight="700" text-anchor="start" x="1470" y="226.05" fill="#ECA43A">
+    <tspan x="1470" dy="0">Production guests — separate RHEL 9 hosts</tspan>
+  </text>
+  <rect x="1470" y="255" width="660" height="160" rx="10" fill="#E8F3E8" stroke="#338445" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="22" font-weight="700" text-anchor="start" x="1488" y="290.7" fill="#338445">
+    <tspan x="1488" dy="0">nginx web application</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="18" font-weight="400" text-anchor="start" x="1488" y="337.90000000000003" fill="#263646">
+    <tspan x="1488" dy="0">demo.webapp  |  inventory: webapps</tspan>
+    <tspan x="1488" dy="23.400000000000002">SELinux outage → persistent file-context fix</tspan>
+    <tspan x="1488" dy="23.400000000000002">Recovery: operator launches webapp_nginx</tspan>
+  </text>
+  <rect x="1470" y="445" width="660" height="165" rx="10" fill="#E8F3E8" stroke="#338445" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="22" font-weight="700" text-anchor="start" x="1488" y="480.7" fill="#338445">
+    <tspan x="1488" dy="0">Python invoice application</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="18" font-weight="400" text-anchor="start" x="1488" y="530.4" fill="#263646">
+    <tspan x="1488" dy="0">demo.pythonapp  |  inventory: pythonapps</tspan>
+    <tspan x="1488" dy="23.400000000000002">CVE-2023-36464 → approved Lightwell backport</tspan>
+    <tspan x="1488" dy="23.400000000000002">Recovery: invoice_promote + native human approval</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="23" font-weight="700" text-anchor="start" x="1470" y="706.05" fill="#A06BB3">
+    <tspan x="1470" dy="0">Disposable acceptance — separate scoped identity</tspan>
+  </text>
+  <rect x="1470" y="734" width="310" height="133" rx="10" fill="#EBE1F4" stroke="#8526A5" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="22" font-weight="700" text-anchor="start" x="1488" y="769.7" fill="#8526A5">
+    <tspan x="1488" dy="0">RHEL 9</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="18" font-weight="400" text-anchor="start" x="1488" y="815.0999999999999" fill="#263646">
+    <tspan x="1488" dy="0">Fresh EC2 test guests</tspan>
+    <tspan x="1488" dy="23.400000000000002">Full lifecycle / cleanup</tspan>
+  </text>
+  <rect x="1820" y="734" width="310" height="133" rx="10" fill="#EBE1F4" stroke="#8526A5" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="22" font-weight="700" text-anchor="start" x="1838" y="769.7" fill="#8526A5">
+    <tspan x="1838" dy="0">RHEL 10</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="18" font-weight="400" text-anchor="start" x="1838" y="815.0999999999999" fill="#263646">
+    <tspan x="1838" dy="0">Fresh EC2 test guests</tspan>
+    <tspan x="1838" dy="23.400000000000002">Full lifecycle / cleanup</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="17" font-weight="400" text-anchor="start" x="1470" y="910.9000000000001" fill="#8526A5">
+    <tspan x="1470" dy="0">Agent Molecule and trusted AAP acceptance use separate owned lifecycles.</tspan>
+    <tspan x="1470" dy="22.1">Test guests are destroyed; interrupted cleanup retains ownership records.</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="20" font-weight="700" text-anchor="start" x="1466" y="1021.0" fill="#B17D23">
+    <tspan x="1466" dy="0">Lifecycle &amp; connectivity</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="18" font-weight="400" text-anchor="start" x="1470" y="1078.7" fill="#263646">
+    <tspan x="1470" dy="0">AAP provisions each application with separate purpose / security group.</tspan>
+    <tspan x="1470" dy="23.400000000000002">OpenShift Services + EndpointSlices provide stable guest endpoints.</tspan>
+    <tspan x="1470" dy="23.400000000000002">Scoped Molecule identity manages only disposable test resources.</tspan>
+    <tspan x="1470" dy="23.400000000000002">Reset removes application/test guests and disks; network is retained.</tspan>
+  </text>
+  <rect x="30" y="1290" width="640" height="190" rx="10" fill="#E7EFF8" stroke="#1670C5" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="22" font-weight="700" text-anchor="start" x="48" y="1325.7" fill="#1670C5">
+    <tspan x="48" dy="0">Published GitHub sources</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="18" font-weight="400" text-anchor="start" x="48" y="1387.8999999999999" fill="#263646">
+    <tspan x="48" dy="0">openshift-gitops  •  demojam-ansible</tspan>
+    <tspan x="48" dy="23.400000000000002">demo.webapp  •  demo.pythonapp  •  collection template</tspan>
+    <tspan x="48" dy="23.400000000000002">Bootstrap seeds the selected refs into Forgejo.</tspan>
+  </text>
+  <rect x="700" y="1290" width="670" height="190" rx="10" fill="#F0E8F7" stroke="#8526A5" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="22" font-weight="700" text-anchor="start" x="718" y="1325.7" fill="#8526A5">
+    <tspan x="718" dy="0">Configured inference endpoint</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="18" font-weight="400" text-anchor="start" x="718" y="1387.8999999999999" fill="#263646">
+    <tspan x="718" dy="0">Latest run: LiteLLM / MaaS  •  claude-haiku-4-5</tspan>
+    <tspan x="718" dy="23.400000000000002">AO and coding-agent models are selected independently.</tspan>
+    <tspan x="718" dy="23.400000000000002">Inference runs outside this demo management plane.</tspan>
+  </text>
+  <rect x="1430" y="1290" width="740" height="190" rx="10" fill="#FFF2CC" stroke="#B17D23" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="22" font-weight="700" text-anchor="start" x="1448" y="1325.7" fill="#B17D23">
+    <tspan x="1448" dy="0">Lightwell advisories &amp; package service</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="18" font-weight="400" text-anchor="start" x="1448" y="1387.8999999999999" fill="#263646">
+    <tspan x="1448" dy="0">Pinned public OSV feed + authenticated JSON package index</tspan>
+    <tspan x="1448" dy="23.400000000000002">Approved wheel / provenance + separately pinned signing trust</tspan>
+    <tspan x="1448" dy="23.400000000000002">Ansible discovery uses standard modules, including uri.</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="13" font-weight="700" text-anchor="start" x="395" y="714.05" fill="#6966BB">
+    <tspan x="395" dy="0">Issue webhook → EDA</tspan>
+  </text>
+  <circle cx="1390" cy="335" r="3" fill="#D6323A" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="16" font-weight="700" text-anchor="start" x="1040" y="1135.1" fill="#D6323A">
+    <tspan x="1040" dy="0">Reviewed AAP deployment / SSH</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="13" font-weight="700" text-anchor="start" x="1404" y="383.05" fill="#137F8C">
+    <tspan x="1404" dy="0">HTTP</tspan>
+  </text>
+  <circle cx="1414" cy="801" r="3" fill="#8526A5" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="16" font-weight="700" text-anchor="start" x="1170" y="926.6" fill="#8526A5">
+    <tspan x="1170" dy="0">Fresh RHEL tests</tspan>
+  </text>
+  <circle cx="1360" cy="342" r="3" fill="#8526A5" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="13" font-weight="700" text-anchor="start" x="1510" y="973.55" fill="#B17D23">
+    <tspan x="1510" dy="0">Approved wheel + provenance</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="20" font-weight="700" text-anchor="start" x="46" y="1541.0" fill="#D6323A">
+    <tspan x="46" dy="0">Demo control paths — shared services, different production gates</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="19" font-weight="400" text-anchor="start" x="50" y="1570.65" fill="#263646">
+    <tspan x="50" dy="0">nginx: alert → AO diagnosis → issue → agent PR → independent operator tests + human merge → webapp_nginx → Enforcing + HTTP 200</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="19" font-weight="400" text-anchor="start" x="50" y="1607.65" fill="#263646">
+    <tspan x="50" dy="0">Python: observation + Lightwell discovery → CVE router → agent PR → trusted acceptance → human merge → native AAP approval → deploy / verify</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="20" font-weight="700" text-anchor="start" x="46" y="1691.0" fill="#75818E">
+    <tspan x="46" dy="0">Legend — solid: runtime actions; dashed: configuration / inference / artifact inputs and internal probe checks</tspan>
+  </text>
+  <rect x="55" y="1705" width="22" height="18" rx="3" fill="#1670C5" stroke="#1670C5" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="17" font-weight="400" text-anchor="start" x="86" y="1719.95" fill="#263646">
+    <tspan x="86" dy="0">Platform / Controller</tspan>
+  </text>
+  <rect x="385" y="1705" width="22" height="18" rx="3" fill="#6966BB" stroke="#6966BB" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="17" font-weight="400" text-anchor="start" x="416" y="1719.95" fill="#263646">
+    <tspan x="416" dy="0">EDA</tspan>
+  </text>
+  <rect x="715" y="1705" width="22" height="18" rx="3" fill="#8526A5" stroke="#8526A5" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="17" font-weight="400" text-anchor="start" x="746" y="1719.95" fill="#263646">
+    <tspan x="746" dy="0">Execution / authoring</tspan>
+  </text>
+  <rect x="1045" y="1705" width="22" height="18" rx="3" fill="#338445" stroke="#338445" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="17" font-weight="400" text-anchor="start" x="1076" y="1719.95" fill="#263646">
+    <tspan x="1076" dy="0">Guest apps / data</tspan>
+  </text>
+  <rect x="1375" y="1705" width="22" height="18" rx="3" fill="#137F8C" stroke="#137F8C" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="17" font-weight="400" text-anchor="start" x="1406" y="1719.95" fill="#263646">
+    <tspan x="1406" dy="0">Monitoring / trust</tspan>
+  </text>
+  <rect x="1705" y="1705" width="22" height="18" rx="3" fill="#B17D23" stroke="#B17D23" stroke-width="1.4" />
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="17" font-weight="400" text-anchor="start" x="1736" y="1719.95" fill="#263646">
+    <tspan x="1736" dy="0">External services</tspan>
+  </text>
+  <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="16" font-weight="400" text-anchor="start" x="30" y="1785.6" fill="#5B6876">
+    <tspan x="30" dy="0">AWS dual-application architecture • logical boundaries, not HA/DR or replica placement • workflow details remain in demo-workflow.drawio</tspan>
+  </text>
+</svg>
