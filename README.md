@@ -110,6 +110,9 @@ Hydration rewrites the automation project's application collection requirements
 to their seeded Forgejo repositories. Their `main` refs then follow the selected
 baselines and reviewed incident merges; the public source requirements keep their
 GitHub URLs. Certified image directories and Galaxy dependencies are preserved.
+For the Python scenario, bootstrap also runs the real AAP observation and
+vulnerability assessment against the installed baseline before reporting success.
+This checks collection resolution and the vulnerable release as well as HTTP health.
 
 For AWS, bootstrap removes the Service selector and publishes an EndpointSlice
 using the EC2 webapp's current public address. The same Service hostname and TLS

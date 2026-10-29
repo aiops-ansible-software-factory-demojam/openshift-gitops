@@ -3627,6 +3627,8 @@ demo_bootstrap() (
     demo_invoice configure
     demo_invoice baseline
     demo_pythonapp verify
+    demo_step 'Verify the observed Python vulnerability baseline'
+    demo_invoice verify vulnerable
   fi
   # An upgrade may leave the old invoice unit on the nginx host. Retire it
   # only after the separate Python baseline has been installed successfully.
