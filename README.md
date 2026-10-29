@@ -106,6 +106,10 @@ force its AAP project sync before publishing a workflow that consumes new
 artifacts. The seeding helper accepts an optional repository name and preserves
 the other repositories and account passwords during that selective refresh.
 Refreshing every baseline would overwrite a previously merged collection fix.
+Hydration rewrites the automation project's application collection requirements
+to their seeded Forgejo repositories. Their `main` refs then follow the selected
+baselines and reviewed incident merges; the public source requirements keep their
+GitHub URLs. Certified image directories and Galaxy dependencies are preserved.
 
 For AWS, bootstrap removes the Service selector and publishes an EndpointSlice
 using the EC2 webapp's current public address. The same Service hostname and TLS
@@ -119,6 +123,7 @@ MCP bearer credential and tool policy enforce AO's identity. CNV's pod-level
 ingress policy does not apply to external EC2 endpoints.
 
 Local checks include `bash tests/git-source-refs.sh`,
+`bash tests/seeded-collection-dependencies.sh`,
 `bash tests/webapp-mcp-bootstrap.sh`,
 `python tests/mcp-aws-network.py`, Kustomize rendering,
 the companion repository's HTTPS/credential tests, and the shipped AO adapter

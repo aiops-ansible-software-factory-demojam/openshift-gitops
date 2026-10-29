@@ -12,3 +12,7 @@ __pycache__/
 .venv/
 # Local demo user definitions; generated passwords live in Kubernetes Secrets.
 bootstrap/users.local.json
+
+# Local workshop script and captured demo screenshots.
+/docs/demo-script.md
+/demo-screenshots-*.tar.gz
