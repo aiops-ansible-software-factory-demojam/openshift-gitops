@@ -1031,7 +1031,7 @@ demo_ao_mcp_integration() {
   code=$(ao_curl GET "$base_url/integrations/$mcp_integration_id/tools?limit=100" -H "$auth_header")
   ao_require_json 'list webapp diagnostic tools' "$code"
   cp "$ao_response" "$omnigent_scratch/mcp-tools.json"
-  names=$(yq -c '.webapp_mcp_tools' "$(demo_source_checkout demojam-ansible)/group_vars/webapps.yml")
+  names=$(yq -c '.webapp_mcp_tools' "$(demo_source_checkout demojam-ansible)/inventory/group_vars/webapps.yml")
   jq -e --argjson names "$names" '.resources as $tools |
     all($names[]; . as $name | any($tools[]; .name == $name and .status == "available"))' \
     "$omnigent_scratch/mcp-tools.json" >/dev/null || demo_die 'Required webapp diagnostic tools are missing.'
@@ -2412,7 +2412,7 @@ demo_ao_reconcile() (
     http_code=$(ao_curl GET "$base_url/integrations/$diagnostics_id/tools?limit=100" -H "$auth_header")
     ao_require_json 'check MCP tools' "$http_code"
     local expected_tools
-    expected_tools=$(yq -c '.webapp_mcp_tools' "$(demo_source_checkout demojam-ansible)/group_vars/webapps.yml")
+    expected_tools=$(yq -c '.webapp_mcp_tools' "$(demo_source_checkout demojam-ansible)/inventory/group_vars/webapps.yml")
     jq -e --argjson names "$expected_tools" '.resources as $tools |
       all($names[]; . as $name | any($tools[]; .name == $name and .enabled and .status == "available")) and
       all($tools[]; (.enabled | not) or (.name as $name | $names | index($name)))' "$ao_response" >/dev/null ||
@@ -2723,7 +2723,7 @@ demo_alerting_prepare() (
   host=${AAP_HOST:-https://aap-ansible-automation-platform.$domain}
   host=${host%/}
   uuid=$(yq -er '.demo_eda_event_stream.uuid' \
-    "$(demo_source_checkout demojam-ansible)/group_vars/aap/eda.yml")
+    "$(demo_source_checkout demojam-ansible)/inventory/group_vars/aap/eda.yml")
   oc apply --server-side --field-manager=demo-bootstrap \
     -f "$demo_repo_root/cluster/user-workload-monitoring/blackbox-exporter/blackbox-exporter-namespace.yaml"
   if [[ -n $(oc -n blackbox-exporter get secret webapp-eda-webhook --ignore-not-found -o name) ]]; then
@@ -2788,7 +2788,7 @@ demo_forgejo_webhook_prepare() (
   trap 'rm -rf -- "$scratch"' EXIT
   host=${AAP_HOST:-https://$(oc -n ansible-automation-platform get route aap -o jsonpath='{.status.ingress[0].host}')}
   uuid=$(yq -er '.demo_forgejo_event_stream.uuid' \
-    "$(demo_source_checkout demojam-ansible)/group_vars/aap/eda.yml")
+    "$(demo_source_checkout demojam-ansible)/inventory/group_vars/aap/eda.yml")
   if [[ -n $(oc -n forgejo get secret forgejo-eda-webhook --ignore-not-found -o name) ]]; then
     oc -n forgejo get secret forgejo-eda-webhook \
       -o go-template='{{index .data "token" | base64decode}}' >"$scratch/token"
@@ -3050,7 +3050,7 @@ aap_reset_vms() {
 
 aap_dispatch() {
   # Bootstrap exclusively owns the objects required to run config-as-code.
-  # Keep them out of group_vars/aap; dispatch owns everything downstream.
+  # Keep them out of inventory/group_vars/aap; dispatch owns everything downstream.
   local org scope inventory project project_record ee template credential host group update
   org=$(aap_find organizations/ demo | jq -er .id)
   scope=$(jq -n --argjson org "$org" '{organization:$org}')
@@ -3098,7 +3098,7 @@ aap_wait_eda() {
       sleep 10
     done
     [[ $status == running ]] || demo_die "Timed out waiting for EDA activation $name ($status); inspect its logs in AAP."
-  done < <(yq -er '.demo_eda_activation.name, .demo_forgejo_activation.name' "$source/group_vars/aap/eda.yml")
+  done < <(yq -er '.demo_eda_activation.name, .demo_forgejo_activation.name' "$source/inventory/group_vars/aap/eda.yml")
 }
 
 # Retire only the three legacy bootstrap CRs. No finalizer means deleting the

@@ -105,7 +105,8 @@ nodes:
                 demo-goldenpath --repository demo-owner/ansible-collection-demo.pythonapp checkout ${trigger.issue_number};
                 read AGENTS.md,
 
-                the issue, playbooks/deploy-invoice.yml, and vars/invoice.yml.
+                the issue, playbooks/deploy-invoice.yml, roles/invoice, and
+                roles/python_application/vars/invoice.yml.
 
 
                 Follow https://redhat-cop.github.io/automation-good-practices/,

@@ -13,6 +13,23 @@ compressed diagram payloads, credentials, runtime hostnames or remote assets.
 | Same workflow file | 04 Python patch | Observation, Lightwell discovery, CVE route, authoring, trusted independent acceptance, merge, native approval, reusable deployment and verification. |
 | Same workflow file | 05 CVE alternatives | Patch, approved temporary containment, manual review and deferred evidence paths, with their validation limits. |
 
+## Architecture preview
+
+![Demo architecture](demo-architecture.svg)
+
+[Open the SVG preview](demo-architecture.svg) or download the
+[editable Draw.io XML](demo-architecture.drawio).
+
+The architecture layout takes inspiration from the
+[AAP infrastructure reference](https://ansible-tmm.github.io/solution-guides/assets/images/aap-hadr-full-architecture.png):
+nested boundaries, compact component groups and separate external services.
+Blue outlines group the OpenShift management plane; orange outlines group AWS
+application and test hosts. These are logical service groups, not availability
+zones or an HA/DR deployment. Purple marks execution and authoring, green marks
+applications and data, and teal marks monitoring and runtime configuration.
+The SVG provides a vector preview of the same geometry and labels as the editable
+XML; neither file embeds bitmap images or remote assets.
+
 ## Open or reuse the XML
 
 Open a `.drawio` file directly in diagrams.net/Draw.io using **File → Open from →
@@ -24,11 +41,12 @@ copy an entire `mxfile` into a dialog expecting only one `mxGraphModel`.
 
 ## Reading the diagrams
 
-Blue denotes automated work; amber denotes human-controlled gates/actions; green
+In the workflow diagrams, blue denotes automated work; amber denotes human-controlled gates/actions; green
 marks verification/recovery; purple marks inference, artifacts or policy review;
 gray marks supporting services and boundaries. Red notes identify failure handling.
 Architecture arrows are schematic interactions, not an exhaustive network-policy
-or secret-mount specification. Dashed arrows identify configuration/input flows.
+or secret-mount specification. Dashed architecture arrows identify configuration, inference and artifact inputs,
+as well as the internal HTTP probe check. Solid arrows show runtime actions.
 
 For a timed presentation, use the [three-presenter script](../demo-script.md).
 For a walkthrough, start on page 01, show the architecture, then use page 02 once.
@@ -45,7 +63,10 @@ trusted AAP content in `demojam-ansible`. The 2026-10-28 clean run used AWS,
 separate RHEL 9 production hosts, fresh RHEL 9/10 tests and LiteLLM/MaaS
 `claude-haiku-4-5` for both consumers. The patch route and nginx recovered together.
 Alternative mitigation routes have isolated fixture coverage; CNV was not used
-in that dual-app run. Observed 66.8-minute timing includes operator actions.
+in that dual-app run. That earlier rehearsal took 66.8 minutes. The latest
+[scripted walkthrough](../demo-script.md) covers a 35-minute parallel incident run
+and 79.5 minutes including reset, preparation and connectivity retries; both
+measurements include operator actions.
 
 nginx recovery is operator-launched through the existing AAP wrapper. Python
 uses a reusable native `invoice_promote` approval graph. A failed independent

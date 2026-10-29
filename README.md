@@ -176,7 +176,7 @@ and separate scoped AAP and Molecule keys. It mounts only the Molecule key into
 the coding sandbox. Defaults are `us-east-2`, `t3.medium`, and encrypted 30 GiB
 gp3 disks. Account, availability zone and RHEL image choices are discovered and
 saved; normal resets reuse them. The application guests use RHEL 9, while
-`make molecule` tests RHEL 9 and RHEL 10. AWS guests use their AMI's RHUI repositories.
+`molecule test --all` tests RHEL 9 and RHEL 10. AWS guests use their AMI's RHUI repositories.
 
 Use `BACKEND=cnv` for the existing guest behavior. The recorded backend prevents
 an accidental switch on a live installation. See the
