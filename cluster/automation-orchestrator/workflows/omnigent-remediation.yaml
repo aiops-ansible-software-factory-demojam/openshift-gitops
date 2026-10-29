@@ -150,7 +150,8 @@ nodes:
                 nginx Molecule scenario. Renaming an existing HTTP check or
                 adding diagnostic output is not new regression coverage. Keep
                 nginx serving HTTP while SELinux is enforcing. Run ansible-lint,
-                all collection unit tests, a collection build and make molecule
+                all collection unit tests and a collection build. Set MOLECULE_GLOB
+                to extensions/molecule/*/molecule.yml and run molecule test --all
                 to test every scenario after the final edit.
                 Provisioning commands must preserve the configured destroy-before-
                 create sequences. After the final edit, require new RHEL 9/10

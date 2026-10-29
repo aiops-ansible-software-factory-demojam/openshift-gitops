@@ -42,9 +42,11 @@ provisioner, its dependencies, and `ansible.posix` for SELinux modules. The
 collection search path includes the agent's home directory and the image's
 `/usr/share/ansible/collections`, so unchanged test requirements need no download.
 
-From the seeded `demo.webapp` collection root, run `make molecule`. It runs
-`molecule test --all`; nginx is the only scenario. New scenarios under
-`extensions/molecule/` are included automatically. `make test` remains an alias.
+From the seeded `demo.webapp` collection root, run `molecule test --all`
+to test every discovered scenario; nginx is currently the only scenario. New scenarios under
+`extensions/molecule/` are included automatically. Set
+`MOLECULE_GLOB=extensions/molecule/*/molecule.yml` when running outside the image;
+the collection Makefile wrappers have been removed.
 Keep the image's provisioner pin aligned with the collections' test requirements.
 If an agent changes requirements, it must install them before testing. Production
 dependencies still belong in the collection's `galaxy.yml` for AAP project sync.
@@ -61,7 +63,7 @@ concurrently. Each uses its own checkout and test ownership records. Source
 `/etc/profile.d/molecule.sh` before testing; Python also requires
 `/etc/profile.d/invoice.sh` and the committed `INVOICE_SOURCE_COMMIT`.
 Every separate test/create/converge/check provisions fresh owned guests after
-cleanup. Retain state and use `make destroy` in the same sandbox after interruption.
+cleanup. Retain state and use `molecule destroy --all` in the same sandbox after interruption.
 Never repair an agent branch while claiming its tests passed unchanged.
 
 Independently export the exact published SHA with `git archive` into a temporary

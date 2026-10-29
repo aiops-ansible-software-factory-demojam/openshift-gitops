@@ -80,7 +80,7 @@ flowchart LR
   IAM -->|Molecule key mount| Runner
   AAP -->|SSH and EC2 API| Web
   Web -->|HTTP through stable Service| Probe
-  Runner -->|make molecule| Tests
+  Runner -->|molecule test --all| Tests
   Net --- Web
   Net --- Tests
 ```
@@ -305,7 +305,7 @@ Consumer dependency setup uses that release. AWS lifecycle tasks stay in the
 shared provisioner; scenarios retain the public create/prepare/destroy imports.
 
 Keep Ansible-native Molecule configuration, the public shared create/prepare/
-destroy dispatchers, and `make molecule` → `molecule test --all`. Each scenario
+destroy dispatchers, and `molecule test --all` with `MOLECULE_GLOB=extensions/molecule/*/molecule.yml`. Each scenario
 still contains only `molecule.yml`, `converge.yml` and `verify.yml`. Common
 inventory loads first, then the selected backend's declarative host layer,
 then runtime connection inventory. Static desired-state inventory must not
@@ -332,7 +332,7 @@ provisioner's own run tags, so scoped cleanup retains both ownership checks.
 
 Use a per-invocation run ID alongside `molecule_scenario`, deployment ID and
 purpose tags. Persist resource IDs and backend in Molecule's ephemeral state.
-Create and destroy use the same identity; `make destroy` must work after a
+Create and destroy use the same identity; `molecule destroy --all` must work after a
 partial create failure. Independent PR-head tests use a separate source export,
 installation directory and run ID. One agent runs the demo; no scheduling or
 serialization system is added.
@@ -401,7 +401,7 @@ shared provisioner repository as a separate dependency change.
 2. Fresh AWS bootstrap on OCP without KVM creates the dedicated public network,
    RHEL 9 webapp, scoped keys and all platform wiring from one entry point.
    There is no attempted CNV API call, installation or image wait.
-3. Native `make molecule` runs every discovered scenario on both RHEL 9/10
+3. Native `molecule test --all` runs every discovered scenario on both RHEL 9/10
    AWS guests using the mounted test identity. Full lifecycle and cleanup pass.
    Independent tests of the published PR head use the same backend contract.
 4. The test identity can run the real Ansible lifecycle and inspect volume

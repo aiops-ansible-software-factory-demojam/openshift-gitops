@@ -81,7 +81,8 @@ directory. From that source directory it ran:
 ```bash
 ansible-lint roles/nginx extensions/molecule/nginx
 ansible-galaxy collection build --force --output-path "$validation_root"
-make molecule
+export MOLECULE_GLOB='extensions/molecule/*/molecule.yml'
+molecule test --all
 ```
 
 Here `validation_root` was the runner's temporary parent directory, separate
