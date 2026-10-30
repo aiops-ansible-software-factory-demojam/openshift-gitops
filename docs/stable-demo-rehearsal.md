@@ -81,4 +81,4 @@ again before incidents. No GitHub implementation PR is merged as a side effect.
 
 See the [operator runbook](invoice-lightwell-demo.md),
 [workflow definitions](../cluster/automation-orchestrator/workflows/README.md),
-and [Draw.io architecture and workflows](diagrams/README.md).
+and [architecture and workflow diagrams](diagrams/README.md).

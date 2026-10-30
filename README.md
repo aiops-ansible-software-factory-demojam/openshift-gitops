@@ -15,10 +15,10 @@ CNV remains the alternative nginx backend and was not part of the latest dual-ap
 Start with the [current state and tested source refs](docs/stable-demo-rehearsal.md)
 and the [two-application runbook](docs/invoice-lightwell-demo.md). The
 [five-minute script](docs/demo-script.md) assigns one continuous section to each
-of three presenters and covers both complete flows. Editable,
-uncompressed Draw.io XML is available in the [diagram guide](docs/diagrams/README.md):
-[architecture](docs/diagrams/demo-architecture.drawio) and
-[workflow walkthrough](docs/diagrams/demo-workflow.drawio).
+of three presenters and covers both complete flows. Architecture and workflow
+diagrams (SVG, JPEG, PNG, PDF) live in the [diagram guide](docs/diagrams/README.md):
+[architecture preview](docs/diagrams/demo-architecture.svg) and
+[workflow walkthrough](docs/diagrams/demo-workflow.pdf).
 
 The latest clean rehearsal on 2026-10-28 completed both incident paths, independent
 RHEL tests, reviewed Forgejo merges and recovery. AO and the coding agent both used

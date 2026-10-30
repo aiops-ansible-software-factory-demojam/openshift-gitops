@@ -9,8 +9,8 @@ included at the operator's request. Credentials and raw agent reasoning are excl
 
 Sign into [Homepage][home], [AO][ao], [AAP][aap], [Forgejo Python PR][python-pr],
 [Forgejo nginx PR][web-pr], [Omnigent][omnigent] and [Developer Hub][hub] with your
-demo SSO identity. Open the [architecture](diagrams/demo-architecture.drawio) and
-[workflow file](diagrams/demo-workflow.drawio) in Draw.io. Keep a terminal with the
+demo SSO identity. Open the [architecture SVG](diagrams/demo-architecture.svg) and
+[workflow PDF](diagrams/demo-workflow.pdf) (or [overview PNG](diagrams/demo-workflow-overview.png)). Keep a terminal with the
 saved independent validation and enforcing/probe logs ready.
 
 The application links now show the recovered state. Use historical AAP results

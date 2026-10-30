@@ -1,43 +1,34 @@
 # Architecture and workflow diagrams
 
-These files are **raw, uncompressed UTF-8 Draw.io XML**. They contain editable
-`mxCell` shapes, labels, connectors and geometry; no embedded screenshots,
-compressed diagram payloads, credentials, runtime hostnames or remote assets.
+Checked-in **SVG**, **JPEG**, **PNG**, and **PDF** previews only. No separate
+editable diagram source is kept in this folder; edit the SVG directly or replace
+the raster exports after changes. Nothing here embeds credentials, runtime
+hostnames, or remote assets.
 
-| File | Pages | Purpose |
-| --- | --- | --- |
-| [demo-architecture.drawio](demo-architecture.drawio) | Architecture | OpenShift management plane, source/inference/artifact services, two production RHEL hosts, and disposable AWS acceptance hosts. |
-| [demo-workflow.drawio](demo-workflow.drawio) | 01 Walkthrough | One preparation, two independent triggers and different human gates. |
-| Same workflow file | 02 Reset and prepare | Source selection, model checks, reset/bootstrap, distinct baselines and readiness before both triggers. |
-| Same workflow file | 03 nginx outage | Fault, availability alert, RCA, issue/EDA handoff, authoring, independent operator tests, merge and one recovery launch. |
-| Same workflow file | 04 Python patch | Observation, Lightwell discovery, CVE route, authoring, trusted independent acceptance, merge, native approval, reusable deployment and verification. |
-| Same workflow file | 05 CVE alternatives | Patch, approved temporary containment, manual review and deferred evidence paths, with their validation limits. |
+| File | Purpose |
+| --- | --- |
+| [demo-architecture.svg](demo-architecture.svg) | Architecture — OpenShift management plane, inference and artifact inputs, virtualized RHEL production and test guests. |
+| [demo-architecture.jpg](demo-architecture.jpg) | Same architecture as JPEG for slides. |
+| [demo-workflow-overview.svg](demo-workflow-overview.svg) | Workflow overview — preparation and dual incident paths. |
+| [demo-workflow-overview.png](demo-workflow-overview.png) | Same overview as PNG. |
+| [demo-workflow.pdf](demo-workflow.pdf) | Full multi-page workflow walkthrough (prepare, nginx, Python, CVE alternatives). |
 
 ## Architecture preview
 
 ![Demo architecture](demo-architecture.svg)
 
-[Open the SVG preview](demo-architecture.svg) or download the
-[editable Draw.io XML](demo-architecture.drawio).
+[Open the SVG](demo-architecture.svg) or [JPEG](demo-architecture.jpg).
 
-The architecture layout takes inspiration from the
+The layout takes inspiration from the
 [AAP infrastructure reference](https://ansible-tmm.github.io/solution-guides/assets/images/aap-hadr-full-architecture.png):
 nested boundaries, compact component groups and separate external services.
-Blue outlines group the OpenShift management plane; orange outlines group AWS
+Blue outlines group the OpenShift management plane; orange outlines group virtualized
 application and test hosts. These are logical service groups, not availability
 zones or an HA/DR deployment. Purple marks execution and authoring, green marks
 applications and data, and teal marks monitoring and runtime configuration.
-The SVG provides a vector preview of the same geometry and labels as the editable
-XML; neither file embeds bitmap images or remote assets.
 
-## Open or reuse the XML
-
-Open a `.drawio` file directly in diagrams.net/Draw.io using **File → Open from →
-Device**, or import it into an existing document. Use the page tabs for workflows.
-The `.drawio` extension identifies the application; the contents are ordinary XML.
-To transfer raw code, copy the complete file from `<?xml ...?>` through `</mxfile>`
-into a text file and open it in Draw.io. Do not replace it with a raster image or
-copy an entire `mxfile` into a dialog expecting only one `mxGraphModel`.
+Regenerate the JPEG from the SVG when architecture labels change (for example with
+`resvg`/`jimp` or your usual SVG raster tool at 2200px width).
 
 ## Reading the diagrams
 
@@ -49,8 +40,7 @@ or secret-mount specification. Dashed architecture arrows identify configuration
 as well as the internal HTTP probe check. Solid arrows show runtime actions.
 
 For a timed presentation, use the [three-presenter script](../demo-script.md).
-For a walkthrough, start on page 01, show the architecture, then use page 02 once.
-Follow page 03 for nginx and page 04 for Python; use page 05 to explain alternatives.
+Use the workflow PDF or overview SVG/PNG for walkthrough pages: preparation, nginx, Python, and CVE alternatives.
 Application provisioning does not trigger an incident. Agent completion, PR closure,
 a signature, or an OIDC login response alone does not prove production recovery.
 
@@ -59,7 +49,7 @@ a signature, or an OIDC login response alone does not prove production recovery.
 The diagrams reflect the [current-state record](../stable-demo-rehearsal.md),
 [operator runbook](../invoice-lightwell-demo.md),
 [AO definitions](../../cluster/automation-orchestrator/workflows/README.md), and
-trusted AAP content in `demojam-ansible`. The 2026-10-28 clean run used AWS,
+trusted AAP content in `demojam-ansible`. The 2026-10-28 clean run used a virtualized guest backend,
 separate RHEL 9 production hosts, fresh RHEL 9/10 tests and LiteLLM/MaaS
 `claude-haiku-4-5` for both consumers. The patch route and nginx recovered together.
 Alternative mitigation routes have isolated fixture coverage; CNV was not used
@@ -74,6 +64,4 @@ Python check stops orchestration; an automatic agent CI-repair loop and a native
 nginx promotion workflow remain deferred. Containment stops service and leaves
 the dependency vulnerable; it does not close the incident.
 
-Keep the XML aligned with checked-in behavior. Preserve stable page/cell IDs when
-editing and use orthogonal connectors. Validate well-formed XML, unique IDs,
-edge endpoints, page bounds, and relative documentation links before publication.
+Keep diagram copy aligned with checked-in behavior and validate relative documentation links before publication.

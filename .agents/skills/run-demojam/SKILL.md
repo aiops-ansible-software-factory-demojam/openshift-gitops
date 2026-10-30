@@ -15,7 +15,7 @@ Do not merge the GitHub implementation PRs as part of this demo.
 
 For the latest tested source refs, model selection and observed outcomes, see
 [the current-state record](../../../docs/stable-demo-rehearsal.md). The editable
-[Draw.io walkthrough](../../../docs/diagrams/README.md) distinguishes nginx's
+[workflow diagrams](../../../docs/diagrams/README.md) distinguishes nginx's
 operator recovery from Python's native AAP approval flow.
 
 ## Separate application scenarios

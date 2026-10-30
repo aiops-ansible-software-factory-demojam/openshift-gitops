@@ -231,9 +231,9 @@ The coding-agent session and existing remediation trigger are unchanged. See the
 
 ## Diagram and verification boundary
 
-The [Draw.io workflow file](../../../docs/diagrams/demo-workflow.drawio) has separate
+The [workflow PDF](../../../docs/diagrams/demo-workflow.pdf) has separate
 pages for preparation, nginx recovery, the Python patch path and CVE alternatives.
-The [architecture file](../../../docs/diagrams/demo-architecture.drawio) shows the
+The [architecture SVG](../../../docs/diagrams/demo-architecture.svg) shows the
 management plane, separate production hosts and disposable test boundary.
 
 The 2026-10-28 AWS rehearsal completed the `app_patch` and nginx paths together.

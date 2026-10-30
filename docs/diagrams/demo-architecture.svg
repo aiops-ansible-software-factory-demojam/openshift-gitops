@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <svg aria-labelledby="svg-title svg-description" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2200 1800" width="2200" height="1800" role="img">
   <title id="svg-title">AIOps Ansible Software Factory architecture</title>
-  <desc id="svg-description">Nested OpenShift logical service groups, separate AWS RHEL production hosts and fresh RHEL 9 and 10 acceptance hosts, with external GitHub, inference and Lightwell inputs.</desc>
+  <desc id="svg-description">Nested OpenShift logical service groups, separate virtualized RHEL production hosts and fresh RHEL 9 and 10 acceptance hosts, with external GitHub, inference and Lightwell inputs.</desc>
   <rect width="2200" height="1800" fill="white" />
   <defs>
     <marker id="arrow-B17D23" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -69,10 +69,10 @@
     <tspan x="50" dy="0">Logical service groups; not worker placement, availability zones, or an HA topology</tspan>
   </text>
   <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="23" font-weight="700" text-anchor="start" x="1450" y="146.05" fill="#F36C21">
-    <tspan x="1450" dy="0">AWS guest account — dedicated VPC / public subnet</tspan>
+    <tspan x="1450" dy="0">Virtualized guest zone — dedicated network segment</tspan>
   </text>
   <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="16" font-weight="400" text-anchor="start" x="1450" y="174.6" fill="#5B6876">
-    <tspan x="1450" dy="0">RHEL application and test guests; account may differ from the OpenShift account</tspan>
+    <tspan x="1450" dy="0">RHEL application and test VMs; provider may differ from the OpenShift cluster</tspan>
   </text>
   <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="23" font-weight="700" text-anchor="start" x="70" y="226.05" fill="#58A4E2">
     <tspan x="70" dy="0">Platform, developer services &amp; data</tspan>
@@ -282,7 +282,7 @@
     <tspan x="1488" dy="0">RHEL 9</tspan>
   </text>
   <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="18" font-weight="400" text-anchor="start" x="1488" y="815.0999999999999" fill="#263646">
-    <tspan x="1488" dy="0">Fresh EC2 test guests</tspan>
+    <tspan x="1488" dy="0">Fresh virtual test guests</tspan>
     <tspan x="1488" dy="23.400000000000002">Full lifecycle / cleanup</tspan>
   </text>
   <rect x="1820" y="734" width="310" height="133" rx="10" fill="#EBE1F4" stroke="#8526A5" stroke-width="1.4" />
@@ -290,7 +290,7 @@
     <tspan x="1838" dy="0">RHEL 10</tspan>
   </text>
   <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="18" font-weight="400" text-anchor="start" x="1838" y="815.0999999999999" fill="#263646">
-    <tspan x="1838" dy="0">Fresh EC2 test guests</tspan>
+    <tspan x="1838" dy="0">Fresh virtual test guests</tspan>
     <tspan x="1838" dy="23.400000000000002">Full lifecycle / cleanup</tspan>
   </text>
   <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="17" font-weight="400" text-anchor="start" x="1470" y="910.9000000000001" fill="#8526A5">
@@ -301,7 +301,7 @@
     <tspan x="1466" dy="0">Lifecycle &amp; connectivity</tspan>
   </text>
   <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="18" font-weight="400" text-anchor="start" x="1470" y="1078.7" fill="#263646">
-    <tspan x="1470" dy="0">AAP provisions each application with separate purpose / security group.</tspan>
+    <tspan x="1470" dy="0">AAP provisions each application with separate purpose and network access.</tspan>
     <tspan x="1470" dy="23.400000000000002">OpenShift Services + EndpointSlices provide stable guest endpoints.</tspan>
     <tspan x="1470" dy="23.400000000000002">Scoped Molecule identity manages only disposable test resources.</tspan>
     <tspan x="1470" dy="23.400000000000002">Reset removes application/test guests and disks; network is retained.</tspan>
@@ -388,6 +388,6 @@
     <tspan x="1736" dy="0">External services</tspan>
   </text>
   <text font-family="Arial, Liberation Sans, DejaVu Sans, sans-serif" font-size="16" font-weight="400" text-anchor="start" x="30" y="1785.6" fill="#5B6876">
-    <tspan x="30" dy="0">AWS dual-application architecture • logical boundaries, not HA/DR or replica placement • workflow details remain in demo-workflow.drawio</tspan>
+    <tspan x="30" dy="0">Virtualized dual-application architecture • logical boundaries, not HA/DR or replica placement • workflow details in demo-workflow.pdf</tspan>
   </text>
 </svg>

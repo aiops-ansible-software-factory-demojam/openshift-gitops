@@ -57,7 +57,7 @@ backport while retaining the application's PyPDF2 baseline. Stock PyPDF2
 3.0.1 is the vulnerable release; its version alone is not proof of remediation.
 
 For editable architecture, preparation, nginx, Python and CVE-routing diagrams,
-see [the Draw.io XML files](diagrams/README.md). The
+see [the diagram files](diagrams/README.md). The
 [current-state record](stable-demo-rehearsal.md) identifies tested revisions and limits.
 
 ## Components and responsibilities
@@ -469,7 +469,7 @@ timed block links its objects and specifies when to change view; use the
 selectors, SSO fallbacks and local validation-log instructions.
 Use one complete recorded run and label measured waits; the five-minute edit
 must not be described as the real incident duration. Homepage and the
-[Draw.io pages](diagrams/README.md) provide the walkthrough views.
+[workflow diagrams](diagrams/README.md) provide the walkthrough views.
 
 There is one production host per application in the default AWS inventory.
 Canary/rollback behavior is independently tested on disposable guests; do not
