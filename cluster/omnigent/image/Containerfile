@@ -34,6 +34,9 @@ COPY opencode-profile.sh /etc/profile.d/omnigent-opencode.sh
 COPY sandbox-user-profile.sh /etc/profile.d/00-sandbox-user.sh
 COPY molecule-profile.sh /etc/profile.d/molecule.sh
 COPY invoice-profile.sh /etc/profile.d/invoice.sh
+COPY requirements-unit.txt /opt/omnigent/requirements-unit.txt
+RUN /usr/bin/python3 -m pip install --no-cache-dir --require-hashes --only-binary=:all: \
+    -r /opt/omnigent/requirements-unit.txt
 COPY demo-goldenpath.py /usr/local/bin/demo-goldenpath
 RUN chmod 755 /usr/local/bin/demo-goldenpath \
     && bash -lc 'command -v omnigent && command -v bwrap && command -v tmux && command -v ansible && command -v molecule && command -v opencode && command -v git && command -v ssh && command -v ssh-keygen && command -v demo-goldenpath' \
