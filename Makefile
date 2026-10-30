@@ -3,13 +3,14 @@ ifneq ($(strip $(BACKEND)),)
 export DEMO_BACKEND := $(BACKEND)
 endif
 
-.PHONY: help help-all preflight bootstrap teardown teardown-keep-aap identity homepage-refresh model-config sandbox-build demo-hydrate render demo-reset aap-configure aap-sync ao-configure webapp-create webapp-nginx webapp-delete webapp-verify
+.PHONY: help help-all preflight bootstrap teardown teardown-keep-aap identity homepage-refresh model-config sandbox-build demo-hydrate render demo-reset reset aap-configure aap-sync ao-configure webapp-create webapp-nginx webapp-delete webapp-verify
 
 help:
 	@printf '%s\n' \
 	  'Set up and run the demo:' \
 	  '' \
 	  '  make bootstrap [BACKEND=cnv|aws] Set up the complete environment' \
+	  '  make reset           Reset disposable demo state (alias for demo-reset)' \
 	  '  make demo-reset      Reset disposable demo state' \
 	  '  make webapp-verify   Check webapp health' \
 	  '  make invoice-inputs Check inputs for the Lightwell invoice scenario' \
@@ -43,6 +44,7 @@ help-all:
 	  'make aap-sync      Apply seeded config-as-code through AAP' \
 	  'make ao-configure  Reconcile AO integrations and publish all demo workflows' \
 	  'make demo-reset    Reset disposable demo repos, sessions, VMs/disks and AAP config' \
+	  'make reset         Alias for demo-reset; preserves the installed platform' \
 	  'Cluster commands load .env in their scripts; see README for inputs and setup.'
 
 bootstrap:
@@ -105,6 +107,8 @@ ao-configure:
 
 demo-reset:
 	bash bootstrap/bootstrap.sh demo-reset --confirm-demo-reset
+
+reset: demo-reset
 
 render:
 	@mkdir -p .rendered

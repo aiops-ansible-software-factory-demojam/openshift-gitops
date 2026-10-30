@@ -74,6 +74,14 @@ helper rejects generated collection caches and links outside the checkout.
 An idle session alone is not acceptance; failed Python independent validation
 stops AO. Automatic CI repair and a Forgejo Actions runner remain deferred.
 
+Before pushing or opening a PR, `demo-goldenpath pr` exports the committed HEAD,
+builds and installs it separately, and runs full production lint and unit tests.
+It rejects unconditional command failure suppression and overrides of
+`restorecon` failure handling. Uncommitted fixes cannot satisfy these checks.
+The image includes the pinned baseline PDF parser for isolated unit fixtures;
+production releases still use the separately approved artifact. These publication
+checks complement the required fresh Molecule lifecycle and independent review.
+
 ## Image and session lifecycle
 
 Publish image changes, run `make sandbox-build`, wait for success, then start

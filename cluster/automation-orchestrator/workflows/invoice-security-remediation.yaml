@@ -184,6 +184,12 @@ nodes:
                 the normal sandbox dependency paths. Inspect the staged diff and
                 stage only source and regression tests. The PR helper rejects
                 nonportable committed content before push or publication.
+                Publication also builds and installs a committed export, runs
+                full production lint and unit tests, and rejects unconditional
+                command failure suppression or restorecon failure overrides.
+                Give demo-goldenpath pr a shell tool timeout of at least
+                1800000 ms. If these checks reject the commit, correct it and
+                rerun the complete fresh Molecule lifecycle before submitting.
                 Review and commit the change. Write an accurate PR description
 
                 outside the checkout, then run demo-goldenpath --repository demo-owner/ansible-collection-demo.pythonapp

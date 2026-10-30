@@ -6,13 +6,17 @@ import json
 import os
 from pathlib import Path
 import re
+import shlex
 import subprocess
 import sys
+import tarfile
 import tempfile
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
+
+import yaml
 
 
 def request(base, path, method="GET", payload=None, token=None):
@@ -130,6 +134,79 @@ def check_portable_source(directory):
             raise RuntimeError(f"Remove nonportable symlink from the commit: {path}")
 
 
+def check_command_error_handling(source):
+    """Enforce the existing command-failure policy outside the author's checkout."""
+    def walk(value, path):
+        if isinstance(value, list):
+            for item in value:
+                walk(item, path)
+        elif isinstance(value, dict):
+            command = next((value[key] for key in (
+                "ansible.builtin.command", "ansible.builtin.shell", "command", "shell"
+            ) if key in value), None)
+            if command is not None:
+                location = f"{path.relative_to(source)} ({value.get('name', 'unnamed task')})"
+                if str(value.get("failed_when", "")).strip().lower() == "false":
+                    raise RuntimeError(f"Remove unconditional command failure suppression: {location}")
+                arguments = command.get("argv", command.get("cmd", [])) if isinstance(command, dict) else command
+                if isinstance(arguments, str):
+                    arguments = shlex.split(arguments)
+                if arguments and Path(str(arguments[0])).name == "restorecon" and "failed_when" in value:
+                    raise RuntimeError(f"Preserve restorecon's default failure handling: {location}")
+            for item in value.values():
+                walk(item, path)
+
+    for path in sorted(source.rglob("*")):
+        if path.is_file() and path.suffix in (".yml", ".yaml"):
+            # BaseLoader leaves expressions and Ansible-specific tags opaque;
+            # only task structure and the literal failure override are examined.
+            try:
+                for document in yaml.load_all(path.read_text(), Loader=yaml.BaseLoader):
+                    walk(document, path)
+            except yaml.YAMLError as error:
+                raise RuntimeError(f"Cannot inspect command error handling in {path.relative_to(source)}") from error
+
+
+def run_collection_check(directory, environment, *command):
+    print(f"Committed-source check: {' '.join(map(str, command))}", flush=True)
+    subprocess.run(command, cwd=directory, env=environment, check=True)
+
+
+def check_committed_quality(directory):
+    """Build, lint and unit-test exactly HEAD before any push or PR API write."""
+    head = git(directory, "rev-parse", "HEAD", capture=True)
+    with tempfile.TemporaryDirectory(prefix="candidate-checks-") as temp:
+        staging = Path(temp)
+        source = staging / "source"
+        source.mkdir()
+        archive = staging / "source.tar"
+        git(directory, "archive", "--format=tar", "--output", str(archive), head)
+        with tarfile.open(archive) as contents:
+            contents.extractall(source, filter="data")
+        if not (source / "galaxy.yml").is_file() or not any((source / "tests").rglob("test_*.py")):
+            raise RuntimeError("The committed collection must retain its metadata and unit tests")
+        check_command_error_handling(source)
+        installed = staging / "installed"
+        installed.mkdir()
+        environment = os.environ.copy()
+        native_collections = environment.get(
+            "ANSIBLE_COLLECTIONS_PATH", "/home/omnigent/.ansible/collections:/usr/share/ansible/collections"
+        )
+        environment["ANSIBLE_COLLECTIONS_PATH"] = f"{installed}:{native_collections}"
+        environment["ANSIBLE_HOME"] = str(staging / "ansible-home")
+        print(f"Checking committed candidate {head}", flush=True)
+        run_collection_check(source, environment, "ansible-galaxy", "collection", "build",
+                             "--force", "--output-path", str(staging))
+        built = list(staging.glob("*.tar.gz"))
+        if len(built) != 1:
+            raise RuntimeError("Expected exactly one committed collection artifact")
+        run_collection_check(source, environment, "ansible-galaxy", "collection", "install",
+                             str(built[0]), "--force", "--no-deps", "-p", str(installed))
+        run_collection_check(source, environment, "ansible-lint", "--profile", "production")
+        run_collection_check(source, environment, sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v")
+    return head
+
+
 def open_pr(issue, body_file):
     token = os.environ["FORGEJO_TOKEN"]
     owner, repo = repository.split("/")
@@ -146,6 +223,11 @@ def open_pr(issue, body_file):
     if git(directory, "rev-list", "--count", "origin/main..HEAD", capture=True) == "0":
         raise RuntimeError("The feature branch has no commits")
     check_portable_source(directory)
+    checked_head = check_committed_quality(directory)
+    if git(directory, "rev-parse", "HEAD", capture=True) != checked_head or git(
+        directory, "status", "--porcelain", capture=True
+    ):
+        raise RuntimeError("The candidate changed during committed-source checks; commit and validate again")
     body = body_file.read_text().strip()
     if not body:
         raise RuntimeError("PR body file is empty")

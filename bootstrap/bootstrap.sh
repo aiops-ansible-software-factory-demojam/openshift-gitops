@@ -1443,6 +1443,16 @@ ASKPASS
     while IFS= read -r -d '' file; do
       sed -i "s|__FORGEJO_URL__|$FORGEJO_URL|g; s|$source_url|$FORGEJO_URL/$owner/$name|g" "$work/$file"
     done < <(git -C "$source_work" ls-files -z)
+    if [[ $name == demojam-ansible && -f $work/requirements.yml ]]; then
+      # Controller must install the selected Forgejo baselines and later human
+      # merges, rather than independently resolving the public GitHub main refs.
+      local dependency_source dependency_owner dependency_name dependency_pattern
+      while IFS=$'\t' read -r dependency_source dependency_owner dependency_name; do
+        dependency_pattern=${dependency_source//./\\.}
+        sed -i "s|$dependency_pattern|$FORGEJO_URL/$dependency_owner/$dependency_name.git|g" \
+          "$work/requirements.yml"
+      done < <(jq -r '.repositories[] | [.source, .owner, .name] | @tsv' "$config")
+    fi
     git -C "$work" add -A
     if ! git -C "$work" diff --cached --quiet; then
       git -C "$work" -c user.name='Demo Maintainer' -c user.email=owner@example.test \
@@ -3617,6 +3627,8 @@ demo_bootstrap() (
     demo_invoice configure
     demo_invoice baseline
     demo_pythonapp verify
+    demo_step 'Verify the observed Python vulnerability baseline'
+    demo_invoice verify vulnerable
   fi
   # An upgrade may leave the old invoice unit on the nginx host. Retire it
   # only after the separate Python baseline has been installed successfully.
